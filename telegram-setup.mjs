@@ -1,8 +1,21 @@
 // Quick Telegram Bot setup script v9.5
 // Registers commands, menu button, description directly via Telegram API
 
-const BOT_TOKEN = '8626655358:AAE-IW_4XBbBClSdXRsdjvHm2nAUO0Cw12M';
-const SITE_URL = 'https://duongminhhoang.id.vn';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
+const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
+
+if (!BOT_TOKEN) {
+  throw new Error("Missing TELEGRAM_BOT_TOKEN environment variable.");
+}
+
+if (!SITE_URL) {
+  throw new Error("Missing NEXT_PUBLIC_SITE_URL or SITE_URL environment variable.");
+}
+
+if (!WEBHOOK_SECRET) {
+  throw new Error("Missing TELEGRAM_WEBHOOK_SECRET environment variable.");
+}
 
 async function api(method, body) {
   const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
@@ -76,7 +89,7 @@ async function main() {
     url: `${SITE_URL}/api/telegram/webhook`,
     max_connections: 40,
     allowed_updates: ['message', 'callback_query'],
-    secret_token: '1654c93ec5d64b5b9817906b1cd35e95d6682280594c459a91d481e7706fbd83',
+    secret_token: WEBHOOK_SECRET,
   });
 
   // 6. Check result

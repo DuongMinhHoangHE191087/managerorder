@@ -1,0 +1,30 @@
+// Barrel export for Excel parser utilities
+export {
+  type TargetField,
+  type FieldGroup,
+  type ContactChannelKey,
+  type ContactChannelOption,
+  type ContactEntry,
+  type ImportDefaultValues,
+  ORDER_IMPORT_FIELDS,
+  DUOLINGO_EXTRA_FIELDS,
+  FIELD_GROUP_META,
+  CONTACT_CHANNEL_OPTIONS,
+  safeStringify,
+  detectHeaderRowIndex,
+  fuzzyMatchHeaders,
+  excelDateToJSDateString,
+  parseVietnameseDateStr,
+  parseExcelDate,
+  parseDuolingoField,
+  parseFacebookUrl,
+  normalizePlanName,
+  normalizePaymentStatus,
+  smartExtractCustomerName,
+  extractMappedData,
+} from './parser';
+export {
+  loadWorkbook,
+  worksheetToMatrix,
+  worksheetToRecords,
+} from './workbook';

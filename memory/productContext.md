@@ -65,3 +65,27 @@ ManagerOrder là một **hệ thống quản lý đơn hàng và dịch vụ pre
 5. **Debt Policy**: Tự động escalation khi nợ quá hạn
 6. **RFM Segmentation**: Tính toán tự động qua cron job
 7. **Invoice Snapshot**: Lưu thông tin hóa đơn tại thời điểm tạo đơn
+
+## 6. Canonical operating flow to preserve (2026-04-10)
+
+The system should keep one coherent sales-management flow end to end:
+
+1. customer/contact intake
+2. product or service selection
+3. order creation
+4. payment and debt tracking
+5. provisioning or slot allocation
+6. active subscription operation
+7. renewal, migration, or refund
+8. reporting, debt review, and reminders
+
+The current stabilization work should protect this flow before any large new module is added.
+
+## 7. Bot support role in the product
+
+Bots are not a side feature only for alerts. The target product role is:
+- quick lookup for customer, order, inventory, and premium account state
+- customer/contact matching support
+- automated reminders for debt, renewal, and expiry
+- controlled broadcast and operational actions
+- shared governance across Telegram and Zalo with tenant-safe behavior

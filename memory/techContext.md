@@ -133,3 +133,45 @@ TELEGRAM_CHAT_ID=
 - **Build**: `npm run build` — ✅ 63 pages generated
 - **Tests**: `vitest run` — ✅ 1439 tests passed (2 skipped — mock config issue)
 - **Lint**: `next lint` — ⚠️ Pre-existing warnings (non-blocking)
+
+## 6. Current runtime and tooling snapshot (2026-04-10)
+
+### Confirmed package/runtime baseline
+- Workspace for active implementation: `premium-admin-web/`
+- Node / npm from `package.json`:
+  - Node `22.x`
+  - npm `10.x`
+- Key app versions now in use:
+  - Next.js `^16.1.6`
+  - React / React DOM `^19.2.4`
+  - `@supabase/supabase-js` `^2.98.0`
+  - `@supabase/ssr` `^0.9.0`
+  - `@tanstack/react-query` `^5.90.21`
+  - Tailwind CSS `^3.4.19`
+  - Vitest `^4.0.18`
+  - Playwright `^1.58.2`
+
+### Scripts that matter for stabilization
+- `npm run check:client-boundaries`
+- `npm run check:css-tokens`
+- `npm run check:quality-guards`
+- `npm run smoke:runtime`
+- `npm run qa:visual`
+- `npm run typecheck`
+- `npm run lint -- src`
+- `npm run build`
+
+### Next.js and deployment notes
+- `next.config.ts` keeps `reactStrictMode: false` to avoid duplicate-mount issues with current Supabase/auth behavior.
+- Windows local builds still bypass the internal Next TypeScript step; repo safety is enforced through `npm run typecheck`.
+- `BUILD_STANDALONE=true` is only for Docker or self-host standalone builds.
+- Vercel must use the normal Next adapter path, not standalone mode.
+
+### Supervisor and bot runtime notes
+- `npm run dev` and `npm run start` go through `scripts/runtime-supervisor.ts`.
+- The supervisor can spawn web plus Telegram polling and Zalo polling.
+- Production direction remains webhook-first on Vercel, with polling reserved for local or fallback environments.
+
+### Test env caveat
+- Business smoke coverage requires seeded credentials such as `SUPABASE_TEST_EMAIL` and `SUPABASE_TEST_PASSWORD`.
+- If those env vars are missing, smoke runs can skip the highest-value business scenarios.

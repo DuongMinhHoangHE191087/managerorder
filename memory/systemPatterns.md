@@ -141,3 +141,38 @@ src/
 - JWT token chứa `accountId`, `role`, `email`
 - API routes extract `accountId` từ JWT trước mỗi operation
 - Supabase Admin client dùng service role key cho server-side operations
+
+## 5. Stabilization patterns added on 2026-04-10
+
+### 5.1 Client/server import boundary
+- Client modules must never import modules that use:
+  - `import "server-only"`
+  - secret `process.env.*`
+  - `supabaseAdmin` or server-side auth helpers
+- Pure calculations that are needed in both server and client must live in a domain-safe module, not next to repository or admin access code.
+- First concrete split:
+  - Pure premium math now lives in `src/lib/domain/premium-account-math.ts`
+  - Server-only premium helper logic stays in `src/lib/utils/premium-accounts-helpers.ts`
+
+### 5.2 API envelope contract
+- Frontend-consumed responses should converge on:
+  - success: `{ data, meta? }`
+  - error: `{ error, code?, details? }`
+- Client readers should normalize both legacy nested errors and the new flat error shape during migration.
+- Routes should avoid leaking raw stack traces or env-related crashes to the UI.
+
+### 5.3 Design token contract
+- Components may only use CSS variables defined in `src/app/globals.css` or allowed vendor prefixes such as `--radix-*`.
+- New tokens must be added centrally before component adoption.
+- Compatibility aliases are allowed as a short-term bridge, but the desired end state is one canonical token set.
+
+### 5.4 Runtime split for bots
+- Vercel is the primary production runtime.
+- Web routes and bot event entrypoints should prefer webhook or event-based execution.
+- Telegram and Zalo polling scripts are fallback paths for local development or non-Vercel hosting only.
+
+### 5.5 Agent guardrails
+- Read `memory/memory-conventions.md` first.
+- Wake up MemPalace and search existing facts before deep repo reads.
+- Prefer targeted inspection plus memory recall over re-reading the whole repository.
+- Run repo quality guards before typecheck, test, or build so boundary and token drift errors fail early.

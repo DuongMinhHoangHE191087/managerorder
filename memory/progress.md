@@ -76,3 +76,22 @@
 - [ ] Internationalization (i18n) — hiện tại chỉ Vietnamese
 - [ ] Rate limiting cho API routes
 - [ ] API documentation (OpenAPI/Swagger)
+
+## 4. Stabilization progress log (2026-04-10)
+
+### Delivered
+- [x] Identified the real premium migrations runtime failure from existing visual QA artifacts.
+- [x] Split reusable premium account math into a client-safe domain module.
+- [x] Marked Supabase admin/server helpers and premium helper module as server-only.
+- [x] Patched the premium migrations client page to stop importing a server-only helper.
+- [x] Replaced missing CSS token usage in affected order and bot settings UI modules.
+- [x] Added compatibility aliases in global theme tokens to stop current CSS breakage.
+- [x] Added automated guards for client/server boundaries and undefined CSS tokens.
+- [x] Added a runtime smoke script for high-risk routes.
+- [x] Wired guard scripts into the normal typecheck, test, and build lifecycle.
+
+### Still in progress
+- [ ] Re-run quality guards, typecheck, lint, build, and targeted tests after the new patches.
+- [ ] Re-sync local memory bank into MemPalace after memory files are updated.
+- [ ] Expand runtime smoke and business smoke coverage with seeded staging credentials.
+- [ ] Continue the next stabilization wave for business validations, responsive cleanup, and bot runtime hardening.

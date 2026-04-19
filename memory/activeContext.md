@@ -58,3 +58,37 @@
 - **Services**: `src/lib/services/<name>.service.ts`
 - **Repos**: `src/lib/supabase/repositories/<name>.repo.ts`
 - **Mappers**: `src/lib/supabase/mappers/<name>.mapper.ts`
+
+## 6. Stabilization Wave 1 (2026-04-10)
+
+### Current phase
+- Phase: Runtime and UI stabilization on top of the current refactor workspace.
+- Priority order: fix 500 errors, fix CSS token drift, lock business regressions, then expand features.
+- Primary runtime target: Vercel. Local polling and supervisor scripts stay as fallback for dev or self-host.
+
+### Work completed in this wave
+- Added client/server boundary guardrails:
+  - `src/lib/supabase/admin.ts` and `src/lib/supabase/server.ts` now declare `server-only`.
+  - `src/lib/utils/premium-accounts-helpers.ts` now declares `server-only`.
+  - Added pure domain helpers in `src/lib/domain/premium-account-math.ts`.
+- Fixed the real client runtime failure on premium migrations:
+  - `src/widgets/pages/premium/migrations/page-client.tsx` now imports pure math helpers instead of the server helper that pulled `supabaseAdmin`.
+- Fixed CSS token drift and added compatibility aliases:
+  - Replaced missing token usage in order and bot settings UI.
+  - Added temporary aliases in `src/app/globals.css` for `bg-base`, `surface-1`, `surface-base`, and `fg-primary`.
+- Added repo quality guards:
+  - `scripts/check-client-boundaries.mjs`
+  - `scripts/check-css-tokens.mjs`
+  - `scripts/runtime-smoke.mjs`
+  - package scripts wired into `pretypecheck`, `pretest`, and `prebuild`.
+
+### Verified facts to preserve
+- `typecheck`, `lint`, and `build` were green before this stabilization wave.
+- `qa-artifacts/visual-qa/report.json` showed a real runtime error on `/premium/migrations?status=pending` caused by a client import crossing into server-only code.
+- `qa-artifacts/provider-flows-qa/report.json` showed the provider -> purchase-order flow was already visually clean.
+- `test:e2e:smoke` can skip business smoke when `SUPABASE_TEST_EMAIL` and `SUPABASE_TEST_PASSWORD` are missing.
+
+### Next focus
+- Re-run the new guards and static gates after the code changes.
+- Expand runtime smoke around dashboard, notifications, orders, premium, and bot status.
+- Stabilize business validations before broad feature work.

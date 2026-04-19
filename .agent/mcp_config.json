@@ -1,24 +1,58 @@
 {
-    "mcpServers": {
-        "context7": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@upstash/context7-mcp",
-                "--api-key",
-                "YOUR_API_KEY"
-            ]
-        },
-        "shadcn": {
-            "command": "npx",
-            "args": [
-                "shadcn@latest",
-                "mcp"
-            ]
-        }
-        //other mcp servers
+  "mcpServers": {
+    "pencil": {
+      "command": "C:\\Users\\Duong Hoang\\.pencil\\mcp\\antigravity\\out\\mcp-server-windows-x64.exe",
+      "args": [
+        "--app",
+        "antigravity"
+      ],
+      "env": {}
+    },
+    "supabase-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_0d5f90f06cfeba07a478502a228014508a9f309d"
+      ]
+    },
+    "google-developer-knowledge": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://developerknowledge.googleapis.com/mcp",
+        "--header",
+        "X-Goog-Api-Key: sbp_f53daffa84f9f3ad9d9c7c043db7dc9d919809e5"
+      ]
+    },
+    "StitchMCP": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://stitch.googleapis.com/mcp",
+        "--header",
+        "X-Goog-Api-Key: AQ.Ab8RN6JkQkJ2BGb2KkBWLgfGLyDhyokzKjFxW7rUZXxkIagcCQ"
+      ]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "mempalace": {
+      "command": "python",
+      "args": [
+        "-m",
+        "mempalace.mcp_server"
+      ],
+      "env": {
+        "MEMPALACE_PALACE_PATH": "C:\\Users\\Duong Hoang\\.codex\\memories\\mempalace\\palace"
+      }
     }
+  }
 }
-
-// setup mcp server in  ~/.gemini\antigravity\mcp_config.json
-

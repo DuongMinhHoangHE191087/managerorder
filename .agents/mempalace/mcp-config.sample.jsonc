@@ -1,0 +1,13 @@
+{
+  // Shared MCP server definition for Antigravity, Gemini, and Continue.
+  // Copy the "mcpServers.mempalace" block into the client-specific config file.
+  "mcpServers": {
+    "mempalace": {
+      "command": "python",
+      "args": ["-m", "mempalace.mcp_server"],
+      "env": {
+        "MEMPALACE_PALACE_PATH": "C:\\Users\\Duong Hoang\\.codex\\memories\\mempalace\\palace"
+      }
+    }
+  }
+}

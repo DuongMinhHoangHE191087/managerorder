@@ -17,11 +17,12 @@ Nếu bạn đang đọc nội dung này trong khung chat AI (Claude, Gemini, v.
 Gõ lệnh sau vào khung chat AI:
 
 ```
-Đọc .agent/rules/GEMINI.md và kích hoạt toàn bộ quy tắc cũng như kỹ năng.
+Đọc .agent/rules/GEMINI.md và .antigravity/rules.md, sau đó kích hoạt toàn bộ quy tắc cũng như kỹ năng.
 ```
 
 AI sẽ thực hiện:
 - ✅ Tải GEMINI.md (Bộ quy tắc chủ chốt)
+- ✅ Tải rules Antigravity để đồng bộ hành vi trong repo
 - ✅ Kích hoạt điều phối Agent thông minh dựa trên lĩnh vực
 - ✅ Kích hoạt Socratic Gate (Cổng nghi vấn) để đưa ra quyết định tốt hơn
 - ✅ Sẵn sàng 550+ kỹ năng chuyên dụng
@@ -59,6 +60,7 @@ Trước khi bắt đầu, tôi cần làm rõ một vài điểm:
 - `GEMINI.md` - Bộ quy tắc chủ chốt (Luôn luôn kích hoạt).
 - `ARCHITECTURE.md` - Tài liệu kiến trúc hệ thống.
 - `SKILLS.md` - Danh mục 550+ kỹ năng.
+- `.agents/` - Alias local cho bộ kỹ năng mới trong repo.
 
 ### Lệnh tắt (Slash Commands):
 - `/create` - Tạo tính năng mới.
