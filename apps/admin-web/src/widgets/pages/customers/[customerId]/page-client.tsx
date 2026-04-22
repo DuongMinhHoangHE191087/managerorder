@@ -23,6 +23,7 @@ import {
 import { useCustomer360Stats } from "@/widgets/pages/customers/hooks/use-customers";
 import { useCustomerGroups } from "@/widgets/pages/customers/hooks/use-customer-groups";
 import type { CustomerOrder } from "@/shared/types/customers";
+import { buildCustomerProfileInsights, type CustomerProfileActionTone } from "./lib/profile-insights";
 
 function DetailPanelSkeleton() {
   return (
@@ -60,6 +61,32 @@ const TABS: { id: DetailTab; label: string; icon: React.ReactNode }[] = [
   { id: "activity", label: vi.customers.detail.tabs.activity, icon: <History className="size-4" /> },
 ];
 
+const ACTION_TONE_STYLES: Record<
+  CustomerProfileActionTone,
+  { container: string; badge: string; cta: string }
+> = {
+  critical: {
+    container: "border-red-200 bg-red-50/80",
+    badge: "bg-red-100 text-red-600",
+    cta: "text-red-600",
+  },
+  warning: {
+    container: "border-amber-200 bg-amber-50/80",
+    badge: "bg-amber-100 text-amber-700",
+    cta: "text-amber-700",
+  },
+  positive: {
+    container: "border-emerald-200 bg-emerald-50/80",
+    badge: "bg-emerald-100 text-emerald-700",
+    cta: "text-emerald-700",
+  },
+  neutral: {
+    container: "border-[var(--border-soft)] bg-[var(--surface-light)]",
+    badge: "bg-[var(--border-soft)] text-[var(--fg-muted)]",
+    cta: "text-[var(--accent)]",
+  },
+};
+
 export default function CustomerDetailPage() {
   const params = useParams();
   const customerId = params.customerId as string;
@@ -91,6 +118,12 @@ export default function CustomerDetailPage() {
     const completedOrders = orders.filter(o => o.status === "completed" || o.status === "active" || o.status === "paid").length;
     return { lifetimeValue, totalPaid, completedOrders };
   }, [orders]);
+  const profileInsights = useMemo(() => buildCustomerProfileInsights({
+    customerId,
+    customerName: customer?.name ?? "",
+    stats: customer360Stats,
+    orders,
+  }), [customer?.name, customer360Stats, customerId, orders]);
 
   // Debt comes from customer record (source of truth), NOT computed from orders
   const customerDebt = customer?.debtAmountVnd ?? 0;
@@ -397,6 +430,114 @@ export default function CustomerDetailPage() {
 
           {/* ── Right Column ─────────────────────────────── */}
           <div className="col-span-12 lg:col-span-8 space-y-6">
+            <div
+              id="health-panel"
+              className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,0.95fr)]"
+            >
+              <div className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+                <div className="flex items-start justify-between gap-4 border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-5 py-4">
+                  <div>
+                    <h3 className="text-[15px] font-bold tracking-tight text-[var(--fg-base)]">360 profile health</h3>
+                    <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
+                      Tong hop toc do thu tien, nhip mua va mix trang thai don de uu tien xu ly.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-1 text-[11px] font-bold text-[var(--accent)]">
+                    {profileInsights.statusBreakdown.length > 0 ? `${profileInsights.statusBreakdown.length} tin hieu` : "No signals"}
+                  </span>
+                </div>
+
+                <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Collection rate</p>
+                    <p className="mt-1 text-2xl font-black text-[var(--fg-base)]">{profileInsights.collectionRate}%</p>
+                    <p className="mt-1 text-[11px] text-[var(--fg-muted)]">Ty le da thu tren tong doanh so cua khach nay.</p>
+                  </div>
+                  <div className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Recent 30d</p>
+                    <p className="mt-1 text-2xl font-black text-[var(--fg-base)]">{profileInsights.recentOrders30d}</p>
+                    <p className="mt-1 text-[11px] text-[var(--fg-muted)]">So don moi phat sinh trong 30 ngay gan nhat.</p>
+                  </div>
+                  <div className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Cadence</p>
+                    <p className="mt-1 text-2xl font-black text-[var(--fg-base)]">
+                      {profileInsights.averageDaysBetweenOrders === null ? "—" : `${profileInsights.averageDaysBetweenOrders}d`}
+                    </p>
+                    <p className="mt-1 text-[11px] text-[var(--fg-muted)]">Khoang cach trung binh giua hai lan mua hang.</p>
+                  </div>
+                  <div className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Debt orders</p>
+                    <p className="mt-1 text-2xl font-black text-[var(--fg-base)]">{profileInsights.activeDebtOrders}</p>
+                    <p className="mt-1 text-[11px] text-[var(--fg-muted)]">So don con balance can theo doi tiep.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 border-t border-[var(--border-soft)] px-5 py-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="text-[13px] font-bold text-[var(--fg-base)]">Status mix</h4>
+                    <span className="text-[11px] font-medium text-[var(--fg-muted)]">
+                      {customer360Stats?.totalOrders ?? orders.length} don da ghi nhan
+                    </span>
+                  </div>
+                  {profileInsights.statusBreakdown.length > 0 ? (
+                    <div className="space-y-3">
+                      {profileInsights.statusBreakdown.map((item) => (
+                        <div key={item.status} className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-3 text-[12px]">
+                            <span className="font-bold text-[var(--fg-base)]">{item.label}</span>
+                            <span className="text-[var(--fg-muted)]">{item.count} don · {item.share}%</span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-[var(--border-soft)]">
+                            <div
+                              className="h-full rounded-full bg-[linear-gradient(90deg,var(--accent),var(--accent-strong))]"
+                              style={{ width: `${item.share}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[12px] text-[var(--fg-muted)]">Chua co du lieu don hang de phan tich status mix.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+                <div className="border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-5 py-4">
+                  <h3 className="text-[15px] font-bold tracking-tight text-[var(--fg-base)]">Next best actions</h3>
+                  <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
+                    Goi y thao tac uu tien dua tren cong no, pipeline va nhiet do mua hang hien tai.
+                  </p>
+                </div>
+                <div className="space-y-3 p-5">
+                  {profileInsights.nextActions.map((action) => {
+                    const toneStyle = ACTION_TONE_STYLES[action.tone];
+
+                    return (
+                      <Link
+                        key={action.id}
+                        href={action.href}
+                        className={`block rounded-[1rem] border p-4 transition-transform hover:-translate-y-0.5 ${toneStyle.container}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${toneStyle.badge}`}>
+                              {action.tone}
+                            </span>
+                            <h4 className="mt-2 text-[14px] font-bold tracking-tight text-[var(--fg-base)]">{action.title}</h4>
+                            <p className="mt-1 text-[12px] leading-6 text-[var(--fg-muted)]">{action.description}</p>
+                          </div>
+                          <span className={`shrink-0 text-[11px] font-bold ${toneStyle.cta}`}>
+                            {action.cta}
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
             {/* Tab Navigation */}
             <div className="app-card flex items-center gap-1 border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] p-1 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
               {TABS.map(tab => (
@@ -418,6 +559,7 @@ export default function CustomerDetailPage() {
             {/* Tab: Orders & Payments */}
             {activeTab === "orders" && (
               <CustomerOrdersPanel
+                panelId="orders-panel"
                 orders={orders}
                 isLoading={isOrdersLoading}
                 onOpenPayment={setPayingOrder}
@@ -431,7 +573,10 @@ export default function CustomerDetailPage() {
 
             {/* Tab: Activity History Timeline */}
             {activeTab === "activity" && (
-              <div className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+              <div
+                id="activity-panel"
+                className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]"
+              >
                 <div className="flex items-center justify-between border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-5 py-4">
                   <h3 className="flex items-center gap-2 text-[15px] font-bold text-[var(--fg-base)]">
                     <Clock className="text-[var(--accent)] size-5" />

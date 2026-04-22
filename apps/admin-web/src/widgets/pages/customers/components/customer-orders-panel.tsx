@@ -9,6 +9,7 @@ interface CustomerOrdersPanelProps {
   orders: CustomerOrder[];
   isLoading: boolean;
   onOpenPayment: (order: CustomerOrder) => void;
+  panelId?: string;
 }
 
 const text = vi.customers.detail.ordersPanel;
@@ -23,9 +24,13 @@ export function CustomerOrdersPanel({
   orders,
   isLoading,
   onOpenPayment,
+  panelId,
 }: CustomerOrdersPanelProps) {
   return (
-    <div className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+    <div
+      id={panelId}
+      className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]"
+    >
       <div className="flex items-start justify-between gap-3 border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-5 py-4">
         <div>
           <h3 className="flex items-center gap-2 text-[15px] font-bold tracking-tight text-[var(--fg-base)]">
