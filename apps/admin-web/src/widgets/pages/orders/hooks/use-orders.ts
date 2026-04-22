@@ -115,6 +115,62 @@ export function useUpdateOrder() {
   });
 }
 
+export interface RecordOrderPaymentInput {
+  orderId: string;
+  amount: number;
+  payment_terms?: string;
+  payment_source_id?: string;
+  payment_method?: string;
+  note?: string;
+  proof_image_url?: string;
+}
+
+export interface RecordOrderPaymentResult {
+  data: {
+    id: string;
+    customer_id?: string | null;
+    total_paid?: number | null;
+    payment_terms?: string | null;
+    payment_method?: string | null;
+    payment_source_id?: string | null;
+    status?: string | null;
+  };
+  payment: {
+    id?: string;
+    new_total_paid: number;
+    remaining: number;
+    fully_paid: boolean;
+    order_total: number;
+  };
+}
+
+export function useRecordOrderPayment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ orderId, ...data }: RecordOrderPaymentInput) =>
+      fetcher<RecordOrderPaymentResult>(`/api/orders/${orderId}/payment`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders });
+      queryClient.invalidateQueries({ queryKey: queryKeys.order(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orderStatusHistory(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payments(variables.orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+
+      const customerId = result.data.customer_id;
+      if (customerId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.customer(customerId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.customer360Stats(customerId) });
+        queryClient.invalidateQueries({ queryKey: ["customer", customerId] });
+        queryClient.invalidateQueries({ queryKey: ["customer-orders", customerId] });
+      }
+    },
+  });
+}
+
 export function useDeleteOrder() {
   const queryClient = useQueryClient();
   return useMutation({

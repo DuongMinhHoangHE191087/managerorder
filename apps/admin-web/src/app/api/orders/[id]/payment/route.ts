@@ -6,6 +6,7 @@ import { createOrderStatusHistory } from "@/lib/supabase/repositories/order-stat
 import { withAccount } from "@/lib/api/with-account";
 import { withErrorHandler, createErrorResponse } from "@/lib/api/with-error-handler";
 import { hasPermission, resolveUser } from "@/lib/api/rbac";
+import { normalizePaymentTerms, toLegacyPaymentMethod } from "@/lib/domain/financial";
 import { formatMoney } from "@/lib/utils";
 
 /**
@@ -30,6 +31,8 @@ export const POST = withErrorHandler(
     const body = await request.json() as {
       amount: number;
       payment_source?: string;
+      payment_source_id?: string;
+      payment_terms?: string;
       payment_method?: string;
       proof_image_url?: string;
       note?: string;
@@ -38,6 +41,22 @@ export const POST = withErrorHandler(
     if (!body.amount || body.amount <= 0) {
       return createErrorResponse("Số tiền thanh toán phải lớn hơn 0", "INVALID_AMOUNT", 400);
     }
+
+    const normalizedPaymentTerms = body.payment_terms !== undefined
+      ? normalizePaymentTerms(body.payment_terms)
+      : null;
+
+    if (body.payment_terms !== undefined && !normalizedPaymentTerms) {
+      return createErrorResponse("Điều khoản thanh toán không hợp lệ", "INVALID_PAYMENT_TERMS", 400);
+    }
+
+    const orderPaymentMethod = normalizedPaymentTerms
+      ? toLegacyPaymentMethod(normalizedPaymentTerms)
+      : null;
+    const resolvedPaymentSourceId = body.payment_source_id ?? body.payment_source ?? null;
+    const paymentRecordMethod = normalizedPaymentTerms
+      ? orderPaymentMethod
+      : body.payment_method ?? null;
 
     // 1. Fetch order — use ONLY the frozen snapshot fields for reconciliation
     const { data: order, error: fetchError } = await supabaseAdmin
@@ -88,6 +107,13 @@ export const POST = withErrorHandler(
       total_paid: newPaid,
       updated_at: new Date().toISOString(),
     };
+    if (normalizedPaymentTerms) {
+      updateData.payment_terms = normalizedPaymentTerms;
+      updateData.payment_method = orderPaymentMethod;
+    }
+    if (body.payment_source_id !== undefined || body.payment_source !== undefined) {
+      updateData.payment_source_id = resolvedPaymentSourceId;
+    }
     if (isFullyPaid && order.status === "pending_payment") {
       updateData.status = "paid";
     }
@@ -116,8 +142,8 @@ export const POST = withErrorHandler(
       createPayment(accountId, {
         order_id: id,
         amount: body.amount,
-        payment_method: body.payment_method ?? null,
-        payment_source_id: body.payment_source ?? null,
+        payment_method: paymentRecordMethod,
+        payment_source_id: resolvedPaymentSourceId,
         proof_image_url: body.proof_image_url ?? null,
         note: body.note ?? null,
         paid_by: user.email,
@@ -129,7 +155,9 @@ export const POST = withErrorHandler(
         order_id: id,
         details: {
           amount: body.amount,
-          payment_method: body.payment_method || null,
+          payment_method: paymentRecordMethod,
+          payment_terms: normalizedPaymentTerms,
+          payment_source_id: resolvedPaymentSourceId,
           note: body.note || null,
           new_total_paid: newPaid,
           fully_paid: isFullyPaid,

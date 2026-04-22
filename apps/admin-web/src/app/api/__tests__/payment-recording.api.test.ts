@@ -183,6 +183,15 @@ describe("POST /api/orders/[id]/payment — Payment Recording", () => {
       const res = await postPayment(ORDER_ID, {});
       expect(res.status).toBe(400);
     });
+
+    it("rejects invalid payment terms → 400", async () => {
+      const res = await postPayment(ORDER_ID, {
+        amount: 50000,
+        payment_terms: "wire_transfer",
+      });
+
+      expect(res.status).toBe(400);
+    });
   });
 
   // ─── Partial Payment ────────────────────────────────────
@@ -273,6 +282,43 @@ describe("POST /api/orders/[id]/payment — Payment Recording", () => {
           amount: 100000,
           payment_method: "bank_transfer",
           note: "Full payment",
+        })
+      );
+    });
+
+    it("persists order-level payment terms and source when provided", async () => {
+      setupPaymentFlow(
+        makeFetchResult({ total_paid: 0, total_amount_vnd: 100000 }),
+        makeUpdateResult({
+          total_paid: 50000,
+          status: "pending_payment",
+          payment_terms: "credit",
+          payment_method: "debt",
+          payment_source_id: "ps-001",
+        })
+      );
+
+      await postPayment(ORDER_ID, {
+        amount: 50000,
+        payment_terms: "credit",
+        payment_source_id: "ps-001",
+        note: "Dot 2",
+      });
+
+      expect(supabaseChain.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          total_paid: 50000,
+          payment_terms: "credit",
+          payment_method: "debt",
+          payment_source_id: "ps-001",
+        })
+      );
+      expect(createPayment).toHaveBeenCalledWith(
+        TEST_ACCOUNT_ID,
+        expect.objectContaining({
+          payment_method: "debt",
+          payment_source_id: "ps-001",
+          note: "Dot 2",
         })
       );
     });

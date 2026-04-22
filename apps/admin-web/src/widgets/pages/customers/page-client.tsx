@@ -17,6 +17,7 @@ import {
   useBatchDeleteCustomers,
   useBatchUpdateTier,
   useCheckCustomerDependencies,
+  useDebtSummary,
   useRecalculateRfm,
   useCustomersRealtime,
 } from "@/widgets/pages/customers/hooks/use-customers";
@@ -62,6 +63,7 @@ export default function CustomersPage() {
   const [tagFilter, setTagFilter] = useState("");
   const [showStats, setShowStats] = useState(false);
   const [showGroupTag, setShowGroupTag] = useState(false);
+  const { data: debtSummary, isLoading: isDebtSummaryLoading } = useDebtSummary(showStats);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
@@ -371,7 +373,13 @@ export default function CustomersPage() {
 
         {showStats ? (
           <div className="mb-6">
-            <CustomerStatsDashboard customers={customers} groups={groups} />
+            <CustomerStatsDashboard
+              customers={customers}
+              groups={groups}
+              debtSummary={debtSummary}
+              isDebtSummaryLoading={isDebtSummaryLoading}
+              onOpenCustomer={handleOpenCustomer}
+            />
           </div>
         ) : null}
         {showGroupTag ? (

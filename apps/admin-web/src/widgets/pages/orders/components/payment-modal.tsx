@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { appToast } from "@/shared/ui/app-toast";
-import { Banknote, CreditCard } from "lucide-react";
+import { Banknote, CreditCard, TrendingUp, Wallet } from "lucide-react";
 
 import { Modal } from "@/shared/ui/modal";
 import { Button } from "@/shared/ui/button";
@@ -11,11 +11,11 @@ import { Select } from "@/shared/ui/select";
 import { SmartSelector } from "@/shared/ui/smart-selector";
 import { formatMoney } from "@/lib/utils";
 import { usePaymentSources } from "@/widgets/pages/settings/hooks/use-settings";
-import { useUpdateOrder } from "@/widgets/pages/orders/hooks/use-orders";
+import { useRecordOrderPayment } from "@/widgets/pages/orders/hooks/use-orders";
 import {
+  buildFinancialSummary,
   PAYMENT_TERM_DISPLAY_LABELS,
   normalizePaymentTerms,
-  toLegacyPaymentMethod,
 } from "@/lib/domain/financial";
 
 interface PaymentModalProps {
@@ -53,33 +53,62 @@ export function PaymentModal({
   const [note, setNote] = useState<string>("");
 
   const { data: paymentSources = [] } = usePaymentSources();
-  const { mutateAsync: updateOrder, isPending } = useUpdateOrder();
+  const { mutateAsync: recordPayment, isPending } = useRecordOrderPayment();
+  const remaining = Math.max(totalAmountVnd - totalPaid, 0);
+  const parsedAmount = Number(paidInput);
+  const amountToRecord = Number.isFinite(parsedAmount) ? parsedAmount : 0;
+  const projectedPaid = totalPaid + Math.max(amountToRecord, 0);
+  const projectedSummary = useMemo(
+    () =>
+      buildFinancialSummary({
+        total_amount_vnd: totalAmountVnd,
+        total_paid: projectedPaid,
+        payment_terms: paymentTerms,
+      }),
+    [paymentTerms, projectedPaid, totalAmountVnd],
+  );
+  const amountError = useMemo(() => {
+    if (paidInput.trim().length === 0) {
+      return "Nhập số tiền cần ghi nhận";
+    }
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return "Số tiền thanh toán phải lớn hơn 0";
+    }
+
+    if (parsedAmount > remaining) {
+      return `Số tiền vượt quá phần còn lại (${formatMoney(remaining)})`;
+    }
+
+    return null;
+  }, [paidInput, parsedAmount, remaining]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const paidAmount = Number(paidInput) || 0;
-    const newTotalPaid = totalPaid + paidAmount;
-
-    let newStatus: string | undefined;
-    if (newTotalPaid >= totalAmountVnd) {
-      newStatus = "paid";
+    if (amountError) {
+      appToast.error(amountError);
+      return;
     }
 
     try {
-      await updateOrder({
-        id: orderId,
-        total_paid: newTotalPaid,
+      const result = await recordPayment({
+        orderId,
+        amount: amountToRecord,
         payment_terms: paymentTerms,
-        payment_method: toLegacyPaymentMethod(paymentTerms) || undefined,
         payment_source_id: sourceId || undefined,
-        sales_note: note || undefined,
-        ...(newStatus ? { status: newStatus } : {}),
+        note: note.trim() || undefined,
       });
-      appToast.success("Ghi nhận thanh toán thành công");
+
+      appToast.success(
+        result.payment.fully_paid
+          ? "Đã ghi nhận thanh toán đủ và khóa công nợ"
+          : `Đã ghi nhận thêm ${formatMoney(amountToRecord)}`,
+      );
       onClose();
       onSuccess?.();
-    } catch {
-      appToast.error("Có lỗi xảy ra khi ghi nhận thanh toán");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Có lỗi xảy ra khi ghi nhận thanh toán";
+      appToast.error(message);
     }
   };
 
@@ -87,8 +116,6 @@ export function PaymentModal({
     id: source.id,
     label: `${source.icon} ${source.name}`,
   }));
-
-  const remaining = Math.max(totalAmountVnd - totalPaid, 0);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Ghi nhận thanh toán: ${orderId}`} size="md">
@@ -121,10 +148,31 @@ export function PaymentModal({
               required
               value={paidInput}
               onChange={(e) => setPaidInput(e.target.value)}
+              error={Boolean(amountError)}
               className="text-lg font-bold"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--fg-muted)] font-medium">VND</div>
           </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {[
+              { label: "25%", value: remaining * 0.25 },
+              { label: "50%", value: remaining * 0.5 },
+              { label: "Toàn bộ", value: remaining },
+            ].map((quickAmount) => (
+              <button
+                key={quickAmount.label}
+                type="button"
+                disabled={remaining <= 0}
+                onClick={() => setPaidInput(String(Math.round(quickAmount.value)))}
+                className="rounded-full border border-[var(--accent)]/15 bg-[var(--accent)]/5 px-3 py-1.5 text-[11px] font-bold text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/10 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {quickAmount.label}
+              </button>
+            ))}
+          </div>
+          {amountError ? (
+            <p className="mt-2 text-[12px] font-medium text-[var(--danger)]">{amountError}</p>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -156,20 +204,55 @@ export function PaymentModal({
 
         <div>
           <label className="block text-[11px] font-bold text-[var(--fg-muted)] mb-2 uppercase tracking-widest">
-            Ghi chú bộ phận kế toán
+            Ghi chú giao dịch
           </label>
           <Input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Chuyển khoản / Thu tiền mặt, v.v..."
+            placeholder="Ví dụ: dot 2, doi chieu cong no, thu tien mat..."
           />
+        </div>
+
+        <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)]/80 p-4">
+          <div className="mb-3 flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+            <TrendingUp className="size-3.5 text-[var(--accent)]" />
+            Preview sau khi ghi nhận
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-[var(--border-soft)] bg-white px-3 py-3">
+              <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                <Wallet className="size-3.5 text-emerald-500" />
+                Đã thu
+              </div>
+              <p className="text-[16px] font-black text-[var(--fg-base)]">{formatMoney(projectedPaid)}</p>
+            </div>
+            <div className="rounded-xl border border-[var(--border-soft)] bg-white px-3 py-3">
+              <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                <Banknote className="size-3.5 text-[var(--danger)]" />
+                Còn lại
+              </div>
+              <p className="text-[16px] font-black text-[var(--danger)]">{formatMoney(projectedSummary.balance_due_vnd)}</p>
+            </div>
+            <div className="rounded-xl border border-[var(--border-soft)] bg-white px-3 py-3">
+              <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                <CreditCard className="size-3.5 text-[var(--accent)]" />
+                Trạng thái
+              </div>
+              <p className="text-[16px] font-black text-[var(--fg-base)]">
+                {projectedSummary.is_fully_paid ? "Đủ thanh toán" : "Còn công nợ"}
+              </p>
+              <p className="mt-1 text-[12px] text-[var(--fg-muted)]">
+                {PAYMENT_TERM_DISPLAY_LABELS[normalizePaymentTerms(paymentTerms) || "prepaid"]}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-5">
           <Button type="button" variant="secondary" onClick={onClose}>
             Hủy
           </Button>
-          <Button type="submit" variant="primary" isLoading={isPending} disabled={isPending}>
+          <Button type="submit" variant="primary" isLoading={isPending} disabled={isPending || Boolean(amountError) || remaining <= 0}>
             Xác nhận
           </Button>
         </div>

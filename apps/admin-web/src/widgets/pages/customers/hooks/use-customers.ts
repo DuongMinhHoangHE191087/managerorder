@@ -175,10 +175,11 @@ export interface DebtSummary {
   segmentBreakdown: Record<string, { count: number; totalDebt: number }>;
 }
 
-export function useDebtSummary() {
+export function useDebtSummary(enabled = true) {
   return useQuery({
     queryKey: queryKeys.debtSummary,
     queryFn: () => fetcher<DebtSummary>("/api/customers/debt-summary"),
+    enabled,
     staleTime: 60_000,         // 60s — summary is expensive
     gcTime: 10 * 60_000,       // 10min
   });
