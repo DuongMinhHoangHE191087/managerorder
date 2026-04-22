@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   AlertTriangle,
   ArrowUpRight,
   Clock3,
+  Download,
   Loader2,
   ShieldCheck,
   TrendingUp,
@@ -18,6 +19,7 @@ import {
   buildCustomerStatsDashboardModel,
   formatSegmentLabel,
 } from "@/widgets/pages/customers/lib/customer-stats-dashboard";
+import { buildCustomerDebtSummaryCsv } from "@/widgets/pages/customers/lib/customer-debt-export";
 
 interface CustomerStatsDashboardProps {
   customers: Customer[];
@@ -38,6 +40,19 @@ export const CustomerStatsDashboard = React.memo(function CustomerStatsDashboard
     () => buildCustomerStatsDashboardModel({ customers, debtSummary }),
     [customers, debtSummary],
   );
+
+  const handleExportCsv = useCallback(() => {
+    const csv = buildCustomerDebtSummaryCsv(model);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `customer-debt-summary-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, [model]);
 
   return (
     <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
@@ -75,9 +90,19 @@ export const CustomerStatsDashboard = React.memo(function CustomerStatsDashboard
         </div>
 
         <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <Wallet className="size-4 text-[var(--danger)]" />
-            <h4 className="text-[13px] font-bold text-[var(--fg-base)]">Debt overview</h4>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Wallet className="size-4 text-[var(--danger)]" />
+              <h4 className="text-[13px] font-bold text-[var(--fg-base)]">Debt overview</h4>
+            </div>
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/15 bg-[var(--accent)]/5 px-3 py-1.5 text-[11px] font-bold text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/10"
+            >
+              <Download className="size-3.5" />
+              Xuất CSV
+            </button>
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
