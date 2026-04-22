@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { ActionMenu } from "@/shared/ui/action-menu";
+import { FieldLabel } from "@/shared/ui/form-primitives";
+import { Input } from "@/shared/ui/input";
 import { PageContainer, PageHeader, SurfaceCard, StatsGrid, SectionHeader, EmptyState } from "@/shared/ui/page-layout";
 import { Button } from "@/shared/ui/button";
 import { useContextMenu } from "@/shared/ui/context-menu";
@@ -24,15 +26,57 @@ type RenewalRow = SubscriptionRenewal & {
   service_name: string;
 };
 
+type AutoRenewalRunCreatedItem = {
+  accountId: string;
+  subscriptionId: string;
+  renewalId: string;
+  customerId: string;
+  customerName: string;
+  daysRemaining: number;
+};
+
+type AutoRenewalRunReport = {
+  scannedCount: number;
+  eligibleCount: number;
+  createdCount: number;
+  skippedCount: number;
+  skippedReasons: Record<string, number>;
+  created: AutoRenewalRunCreatedItem[];
+};
+
 type RenewalStatusFilter = "pending" | "completed" | "denied";
+type EngineFormState = {
+  daysThreshold: number;
+  maxCreated: number;
+  minReliabilityScore: number;
+};
 
 const RENEWAL_STATUSES: RenewalStatusFilter[] = ["pending", "completed", "denied"];
+const DEFAULT_ENGINE_FORM: EngineFormState = {
+  daysThreshold: 7,
+  maxCreated: 20,
+  minReliabilityScore: 70,
+};
 
 const EMPTY_RENEWAL_BUCKETS: Record<RenewalStatusFilter, RenewalRow[]> = {
   pending: [],
   completed: [],
   denied: [],
 };
+
+const AUTO_RENEWAL_SKIP_REASON_LABELS: Record<string, string> = {
+  customer_missing: "Thiếu khách hàng",
+  customer_has_debt: "Khách còn nợ",
+  customer_overdue: "Khách quá hạn",
+  low_reliability: "Reliability thấp",
+  renewal_not_allowed: "Không đủ điều kiện",
+  renewal_pending: "Đã có request chờ",
+  renewal_creation_failed: "Tạo request lỗi",
+};
+
+function formatAutoRenewalSkipReason(reason: string) {
+  return AUTO_RENEWAL_SKIP_REASON_LABELS[reason] ?? reason.replaceAll("_", " ");
+}
 
 type DynamicDataTableComponent = <TData, TValue>(props: {
   columns: ColumnDef<TData, TValue>[];
@@ -112,6 +156,9 @@ export default function PremiumRenewalsPage() {
   const [renewalsByStatus, setRenewalsByStatus] = useState<Record<RenewalStatusFilter, RenewalRow[]>>(EMPTY_RENEWAL_BUCKETS);
   const [isLoading, setIsLoading] = useState(true);
   const [actioningRenewalId, setActioningRenewalId] = useState<string | null>(null);
+  const [engineForm, setEngineForm] = useState<EngineFormState>(DEFAULT_ENGINE_FORM);
+  const [isRunningEngine, setIsRunningEngine] = useState(false);
+  const [lastRunReport, setLastRunReport] = useState<AutoRenewalRunReport | null>(null);
 
   const fetchRenewalsByStatus = useCallback(async (statusFilter: RenewalStatusFilter): Promise<RenewalRow[]> => {
     try {
@@ -156,6 +203,36 @@ export default function PremiumRenewalsPage() {
   useEffect(() => {
     void refreshRenewalBuckets();
   }, [refreshRenewalBuckets]);
+
+  const handleRunAutoRenewalEngine = useCallback(async () => {
+    setIsRunningEngine(true);
+
+    try {
+      const response = await fetch("/api/premium/renewals/auto-run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(engineForm),
+      });
+      const payload = await readApiEnvelope<AutoRenewalRunReport>(response);
+
+      if (!response.ok) {
+        appToast.error(payload.error || "Không thể chạy auto-renewal engine");
+        return;
+      }
+
+      const report = payload.data ?? null;
+      setLastRunReport(report);
+      appToast.success(`Đã chạy engine: ${report?.createdCount ?? 0} request mới`);
+      await refreshRenewalBuckets("pending");
+    } catch (error) {
+      console.error("[handleRunAutoRenewalEngine]", error);
+      appToast.error("Không thể chạy auto-renewal engine");
+    } finally {
+      setIsRunningEngine(false);
+    }
+  }, [engineForm, refreshRenewalBuckets]);
 
   async function handleRenewalAction(
     renewalId: string,
@@ -355,6 +432,180 @@ export default function PremiumRenewalsPage() {
               <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Từ chối</p>
               <p className="mt-2 text-3xl font-black text-[var(--danger)]">{deniedCount}</p>
             </div>
+          </div>
+
+          <div className="mt-6 border-t border-[var(--border-soft)] pt-6">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+              <div className="max-w-3xl">
+                <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-[var(--accent)]">
+                  Admin action
+                </p>
+                <h4 className="mt-2 text-[16px] font-black text-[var(--fg-base)]">
+                  Chạy Auto-Renewal Engine cho account hiện tại
+                </h4>
+                <p className="mt-2 text-[13px] leading-6 text-[var(--fg-muted)]">
+                  Dùng để tạo renewal request ngay khi khách đạt ngưỡng gia hạn. Tham số được
+                  kiểm tra trên server; nếu người dùng không có quyền admin_owner, request sẽ bị từ chối.
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                onClick={() => void handleRunAutoRenewalEngine()}
+                disabled={isRunningEngine}
+                className="inline-flex items-center gap-2 rounded-full"
+              >
+                <RefreshCw className={`size-4 ${isRunningEngine ? "animate-spin" : ""}`} />
+                {isRunningEngine ? "Đang chạy..." : "Chạy engine"}
+              </Button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div>
+                <FieldLabel>Days threshold</FieldLabel>
+                <Input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={engineForm.daysThreshold}
+                  onChange={(event) =>
+                    setEngineForm((current) => ({
+                      ...current,
+                      daysThreshold: Number(event.target.value) || DEFAULT_ENGINE_FORM.daysThreshold,
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <FieldLabel>Max created</FieldLabel>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={engineForm.maxCreated}
+                  onChange={(event) =>
+                    setEngineForm((current) => ({
+                      ...current,
+                      maxCreated: Number(event.target.value) || DEFAULT_ENGINE_FORM.maxCreated,
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <FieldLabel>Min reliability</FieldLabel>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={engineForm.minReliabilityScore}
+                  onChange={(event) =>
+                    setEngineForm((current) => ({
+                      ...current,
+                      minReliabilityScore: Number(event.target.value) || DEFAULT_ENGINE_FORM.minReliabilityScore,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+
+            {lastRunReport ? (
+              <div className="mt-6 grid gap-4 xl:grid-cols-[0.88fr_1.12fr]">
+                <div className="rounded-[1.4rem] border border-[var(--border-soft)] bg-white p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                        Lần chạy gần nhất
+                      </p>
+                      <p className="mt-1 text-[13px] font-bold text-[var(--fg-base)]">
+                        {lastRunReport.createdCount} request mới / {lastRunReport.scannedCount} subscription
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-bold text-emerald-600">
+                      {lastRunReport.eligibleCount} eligible
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)]/50 p-3">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Created</p>
+                      <p className="mt-1 text-2xl font-black text-[var(--accent)]">{lastRunReport.createdCount}</p>
+                    </div>
+                    <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)]/50 p-3">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Skipped</p>
+                      <p className="mt-1 text-2xl font-black text-[var(--danger)]">{lastRunReport.skippedCount}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                      Skipped reasons
+                    </p>
+                    {Object.entries(lastRunReport.skippedReasons).length === 0 ? (
+                      <p className="mt-2 text-[12px] text-[var(--fg-muted)]">Không có subscription nào bị loại.</p>
+                    ) : (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {Object.entries(lastRunReport.skippedReasons).map(([reason, count]) => (
+                          <span
+                            key={reason}
+                            className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-light)]/60 px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]"
+                          >
+                            {formatAutoRenewalSkipReason(reason)}: {count}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-[1.4rem] border border-[var(--border-soft)] bg-white p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                        Request tạo mới
+                      </p>
+                      <p className="mt-1 text-[13px] font-bold text-[var(--fg-base)]">
+                        Danh sách renewal request vừa được sinh
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-bold text-[var(--accent)]">
+                      {lastRunReport.created.length}
+                    </span>
+                  </div>
+
+                  {lastRunReport.created.length === 0 ? (
+                    <div className="mt-4 rounded-2xl border border-dashed border-[var(--border-soft)] bg-[var(--surface-light)]/40 px-4 py-6 text-center text-[12px] text-[var(--fg-muted)]">
+                      Chưa có request nào được tạo trong lần chạy này.
+                    </div>
+                  ) : (
+                    <div className="mt-4 space-y-2">
+                      {lastRunReport.created.slice(0, 5).map((item) => (
+                        <div
+                          key={item.renewalId}
+                          className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)]/50 px-4 py-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-[12px] font-bold text-[var(--fg-base)]">{item.customerName}</p>
+                              <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
+                                Subscription {item.subscriptionId.slice(0, 8)} • Renewal {item.renewalId.slice(0, 8)}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[12px] font-black text-[var(--accent)]">{item.daysRemaining} ngày</p>
+                              <p className="text-[11px] text-[var(--fg-muted)]">còn lại</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 text-[12px] text-[var(--fg-muted)]">
+                Chưa chạy engine trong phiên này.
+              </p>
+            )}
           </div>
         </SurfaceCard>
 

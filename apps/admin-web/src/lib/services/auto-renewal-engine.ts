@@ -26,6 +26,7 @@ type CustomerRiskRow = {
 };
 
 export interface AutoRenewalEngineOptions {
+  accountId?: string;
   daysThreshold?: number;
   maxCreated?: number;
   minReliabilityScore?: number;
@@ -65,6 +66,7 @@ function bumpReason(outcome: AutoRenewalEngineOutcome, reason: string) {
 }
 
 export async function runAutoRenewalEngine(options: AutoRenewalEngineOptions = {}): Promise<AutoRenewalEngineOutcome> {
+  const accountId = options.accountId?.trim() || null;
   const daysThreshold = normalizeLimit(options.daysThreshold, DEFAULT_DAYS_THRESHOLD, 1, 30);
   const maxCreated = normalizeLimit(options.maxCreated, DEFAULT_MAX_CREATED, 1, 100);
   const minReliabilityScore = normalizeLimit(options.minReliabilityScore, DEFAULT_MIN_RELIABILITY_SCORE, 0, 100);
@@ -78,15 +80,20 @@ export async function runAutoRenewalEngine(options: AutoRenewalEngineOptions = {
     created: [],
   };
 
-  const { data: subscriptions, error } = await supabaseAdmin
+  let subscriptionsQuery = supabaseAdmin
     .from("customer_premium_subscriptions")
     .select(
       "id, account_id, customer_id, expiry_date, status, renewal_status, original_price, final_price, billing_cycle",
     )
     .eq("status", "active")
     .eq("renewal_status", "none")
-    .is("deleted_at", null)
-    .order("expiry_date", { ascending: true });
+    .is("deleted_at", null);
+
+  if (accountId) {
+    subscriptionsQuery = subscriptionsQuery.eq("account_id", accountId);
+  }
+
+  const { data: subscriptions, error } = await subscriptionsQuery.order("expiry_date", { ascending: true });
 
   if (error) {
     throw new Error(error.message);
