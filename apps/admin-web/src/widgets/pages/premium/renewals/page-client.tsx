@@ -2,10 +2,10 @@
 
 import dynamic from "next/dynamic";
 import type { ReactElement } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { AlertCircle, CalendarClock, CheckCircle, Copy, HandCoins, User, XCircle } from "lucide-react";
+import { AlertCircle, CalendarClock, CheckCircle, Copy, HandCoins, RefreshCw, User, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { AppLayout } from "@/widgets/layout/app-layout";
@@ -22,6 +22,16 @@ type RenewalRow = SubscriptionRenewal & {
   customer_name: string;
   account_email: string;
   service_name: string;
+};
+
+type RenewalStatusFilter = "pending" | "completed" | "denied";
+
+const RENEWAL_STATUSES: RenewalStatusFilter[] = ["pending", "completed", "denied"];
+
+const EMPTY_RENEWAL_BUCKETS: Record<RenewalStatusFilter, RenewalRow[]> = {
+  pending: [],
+  completed: [],
+  denied: [],
 };
 
 type DynamicDataTableComponent = <TData, TValue>(props: {
@@ -98,28 +108,54 @@ function FilterCard({
 export default function PremiumRenewalsPage() {
   const router = useRouter();
   const { openContextMenu, ContextMenuRender } = useContextMenu();
-  const [renewals, setRenewals] = useState<RenewalRow[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<RenewalStatusFilter>("pending");
+  const [renewalsByStatus, setRenewalsByStatus] = useState<Record<RenewalStatusFilter, RenewalRow[]>>(EMPTY_RENEWAL_BUCKETS);
   const [isLoading, setIsLoading] = useState(true);
   const [actioningRenewalId, setActioningRenewalId] = useState<string | null>(null);
 
-  useEffect(() => {
-    void fetchRenewals("pending");
-  }, []);
-
-  async function fetchRenewals(statusFilter: string) {
-    setIsLoading(true);
+  const fetchRenewalsByStatus = useCallback(async (statusFilter: RenewalStatusFilter): Promise<RenewalRow[]> => {
     try {
       const res = await fetch(`/api/premium/renewals?status=${statusFilter}`);
       const payload = await readApiEnvelope<RenewalRow[]>(res);
-      if (res.ok) setRenewals(payload.data ?? []);
-      else appToast.error(`Lỗi tải yêu cầu gia hạn: ${payload.error ?? "Lỗi không xác định"}`);
+      if (res.ok) {
+        return payload.data ?? [];
+      }
+
+      appToast.error(`Lỗi tải yêu cầu gia hạn: ${payload.error ?? "Lỗi không xác định"}`);
+      return [];
     } catch (err) {
-      console.error("[fetchRenewals]", err);
+      console.error("[fetchRenewalsByStatus]", err);
       appToast.error("Lỗi kết nối");
+      return [];
+    }
+  }, []);
+
+  const refreshRenewalBuckets = useCallback(async (nextStatus?: RenewalStatusFilter) => {
+    setIsLoading(true);
+
+    try {
+      const results = await Promise.all(
+        RENEWAL_STATUSES.map(async (status) => [status, await fetchRenewalsByStatus(status)] as const),
+      );
+
+      const nextBuckets = { ...EMPTY_RENEWAL_BUCKETS };
+      for (const [status, rows] of results) {
+        nextBuckets[status] = rows;
+      }
+
+      setRenewalsByStatus(nextBuckets);
+
+      if (nextStatus) {
+        setSelectedStatus(nextStatus);
+      }
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [fetchRenewalsByStatus]);
+
+  useEffect(() => {
+    void refreshRenewalBuckets();
+  }, [refreshRenewalBuckets]);
 
   async function handleRenewalAction(
     renewalId: string,
@@ -135,7 +171,7 @@ export default function PremiumRenewalsPage() {
 
       if (response.ok) {
         appToast.success(successMessage);
-        void fetchRenewals("pending");
+        await refreshRenewalBuckets(selectedStatus);
         return;
       }
 
@@ -243,19 +279,84 @@ export default function PremiumRenewalsPage() {
     },
   ];
 
-  const pendingCount = renewals.filter((r) => r.status === "pending").length;
-  const completedCount = renewals.filter((r) => r.status === "completed").length;
-  const deniedCount = renewals.filter((r) => r.status === "denied").length;
+  const pendingCount = renewalsByStatus.pending.length;
+  const completedCount = renewalsByStatus.completed.length;
+  const deniedCount = renewalsByStatus.denied.length;
+  const totalCount = pendingCount + completedCount + deniedCount;
+  const reviewQueueCount = pendingCount;
+  const visibleRenewals = renewalsByStatus[selectedStatus];
 
   return (
     <AppLayout>
       <ContextMenuRender />
       <PageContainer className="relative">
         <PageHeader
-          eyebrow={<span>Premium / Renewals</span>}
+          eyebrow={<span>Premium / Renewals / Auto-Renewal Engine</span>}
           title="Xử lý gia hạn"
-          description="Danh sách khách hàng đến ngày cần đóng tiền gia hạn dịch vụ, gom nhóm theo trạng thái."
+          description="Hàng đợi gia hạn do engine sinh ra. Duyệt, từ chối, hoặc lọc nhanh theo trạng thái ngay trên cùng một surface."
         />
+
+        <SurfaceCard className="mt-6 border-[var(--accent)]/10 bg-gradient-to-br from-white via-[var(--surface-light)]/35 to-white">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-[var(--accent)]">
+                Auto-Renewal Engine
+              </p>
+              <h3 className="mt-2 text-[18px] font-black text-[var(--fg-base)]">
+                Hàng đợi review cho renewal request
+              </h3>
+              <p className="mt-2 text-[13px] leading-6 text-[var(--fg-muted)]">
+                Engine chỉ tạo request cho subscription đang active, chưa có renewal pending,
+                không còn công nợ, không quá hạn và đạt ngưỡng reliability. Các request mới sẽ
+                xuất hiện ở tab pending để đội vận hành duyệt hoặc từ chối.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="rounded-full border border-[var(--accent)]/15 bg-[var(--accent)]/5 px-3 py-1 text-[11px] font-bold text-[var(--accent)]">
+                  Active only
+                </span>
+                <span className="rounded-full border border-[var(--danger)]/15 bg-[var(--danger)]/5 px-3 py-1 text-[11px] font-bold text-[var(--danger)]">
+                  Debt-free
+                </span>
+                <span className="rounded-full border border-emerald-500/15 bg-emerald-500/5 px-3 py-1 text-[11px] font-bold text-emerald-600">
+                  Reliability threshold
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-start gap-3 xl:items-end">
+              <Button
+                type="button"
+                onClick={() => void refreshRenewalBuckets()}
+                className="inline-flex items-center gap-2 rounded-full"
+              >
+                <RefreshCw className="size-4" />
+                Làm mới hàng đợi
+              </Button>
+              <p className="max-w-sm text-right text-[11px] leading-5 text-[var(--fg-muted)]">
+                Cập nhật đồng thời pending, completed và denied để giữ overview nhất quán trước khi duyệt.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Tổng yêu cầu</p>
+              <p className="mt-2 text-3xl font-black text-[var(--fg-base)]">{totalCount}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Chờ duyệt</p>
+              <p className="mt-2 text-3xl font-black text-amber-600">{reviewQueueCount}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Đã duyệt</p>
+              <p className="mt-2 text-3xl font-black text-emerald-600">{completedCount}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Từ chối</p>
+              <p className="mt-2 text-3xl font-black text-[var(--danger)]">{deniedCount}</p>
+            </div>
+          </div>
+        </SurfaceCard>
 
         <StatsGrid className="mt-6">
           <FilterCard
@@ -263,29 +364,29 @@ export default function PremiumRenewalsPage() {
             count={pendingCount}
             color="rgb(245 158 11)"
             icon={<AlertCircle className="size-5" />}
-            onClick={() => void fetchRenewals("pending")}
+            onClick={() => setSelectedStatus("pending")}
           />
           <FilterCard
             label="Đã duyệt"
             count={completedCount}
             color="rgb(34 197 94)"
             icon={<CheckCircle className="size-5" />}
-            onClick={() => void fetchRenewals("completed")}
+            onClick={() => setSelectedStatus("completed")}
           />
           <FilterCard
             label="Khách từ chối"
             count={deniedCount}
             color="rgb(239 68 68)"
             icon={<XCircle className="size-5" />}
-            onClick={() => void fetchRenewals("denied")}
+            onClick={() => setSelectedStatus("denied")}
           />
         </StatsGrid>
 
         <SurfaceCard className="mt-6">
           <SectionHeader
             title="Danh sách xử lý"
-            description="Bấm chuột phải vào dòng để mở nhanh khách hàng, sao chép ID, hoặc cập nhật trạng thái gia hạn ngay từ danh sách."
-          />
+                description={`Bấm chuột phải vào dòng để mở nhanh khách hàng, sao chép ID, hoặc cập nhật trạng thái gia hạn trong hàng đợi ${selectedStatus}.`}
+              />
 
           {isLoading ? (
             <div className="p-6">
@@ -293,12 +394,12 @@ export default function PremiumRenewalsPage() {
                 <div className="size-8 animate-spin rounded-full border-4 border-[var(--border-soft)] border-t-[var(--accent)]" />
               </div>
             </div>
-          ) : renewals.length === 0 ? (
+          ) : visibleRenewals.length === 0 ? (
             <div className="p-6">
               <EmptyState
                 icon={<CalendarClock className="size-6" />}
                 title="Không có yêu cầu gia hạn nào"
-                description="Thử bộ lọc hiện tại hoặc kiểm tra lại dữ liệu đồng bộ."
+                description="Thử chuyển sang bộ lọc khác hoặc kiểm tra lại trạng thái đồng bộ của engine."
               />
             </div>
           ) : (
@@ -328,7 +429,7 @@ export default function PremiumRenewalsPage() {
                 }}
                 emptyMessage="Không có yêu cầu gia hạn nào trong bộ lọc này."
                 columns={columns}
-                data={renewals}
+                data={visibleRenewals}
               />
             </div>
           )}
