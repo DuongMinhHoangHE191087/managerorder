@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DashboardStats } from "@/shared/types/dashboard";
-import { buildDashboardExportData } from "../dashboard-export";
+import { buildDashboardExportData, buildDashboardPrintHtml } from "../dashboard-export";
 
 const sampleStats = {
   totalRevenue: 1_250_000,
@@ -183,5 +183,18 @@ describe("buildDashboardExportData", () => {
       "Kho sắp hết hạn",
       "Công nợ quá hạn",
     ]);
+  });
+
+  it("builds printable html for PDF export", () => {
+    const html = buildDashboardPrintHtml(sampleStats, {
+      days: 30,
+      rangeLabel: "30 ngày",
+    });
+
+    expect(html).toContain("Báo cáo dashboard ManagerOrder");
+    expect(html).toContain("dashboard-report-30d-");
+    expect(html).toContain("Tổng quan");
+    expect(html).toContain("Doanh thu &amp; vốn");
+    expect(html).toContain("window.print()");
   });
 });

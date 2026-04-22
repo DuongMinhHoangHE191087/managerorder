@@ -1,15 +1,16 @@
 "use client";
 
-import { Download, Loader2, RefreshCw } from "lucide-react";
+import { Download, FileText, Loader2, RefreshCw } from "lucide-react";
 import { formatDateCustom } from "@/lib/utils";
 import { TIME_TABS, type TimeRange } from "../constants";
+import type { DashboardExportFormat } from "../lib/dashboard-export";
 import { vi } from "@/shared/messages/vi";
 
 type DashboardHeaderProps = {
   calculatedAt?: string | null;
+  exportingFormat: DashboardExportFormat | null;
   isFetching: boolean;
-  isExporting: boolean;
-  onExport: () => void | Promise<void>;
+  onExport: (format: DashboardExportFormat) => void | Promise<void>;
   onRefresh: () => void;
   onTimeRangeChange: (value: TimeRange) => void;
   timeRange: TimeRange;
@@ -17,13 +18,15 @@ type DashboardHeaderProps = {
 
 export function DashboardHeader({
   calculatedAt,
+  exportingFormat,
   isFetching,
-  isExporting,
   onExport,
   onRefresh,
   onTimeRangeChange,
   timeRange,
 }: DashboardHeaderProps) {
+  const isExporting = exportingFormat !== null;
+
   return (
     <div className="app-card mb-2 flex flex-col gap-4 border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-5 py-5 shadow-[0_18px_44px_rgba(15,23,42,0.05)] md:flex-row md:items-center md:justify-between">
       <div>
@@ -64,16 +67,29 @@ export function DashboardHeader({
           <RefreshCw className={`size-4 ${isFetching ? "animate-spin" : ""}`} />
         </button>
 
-        <button
-          type="button"
-          onClick={onExport}
-          disabled={isExporting}
-          aria-busy={isExporting}
-          className="inline-flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {isExporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-          {isExporting ? "Đang xuất..." : vi.dashboard.header.export}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onExport("xlsx")}
+            disabled={isExporting}
+            aria-busy={exportingFormat === "xlsx"}
+            className="inline-flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {exportingFormat === "xlsx" ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+            {exportingFormat === "xlsx" ? "Đang xuất Excel..." : "Xuất Excel"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onExport("pdf")}
+            disabled={isExporting}
+            aria-busy={exportingFormat === "pdf"}
+            className="inline-flex items-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] px-4 py-2 text-[13px] font-bold text-[var(--fg-muted)] transition-all hover:border-[var(--accent)]/30 hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {exportingFormat === "pdf" ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />}
+            {exportingFormat === "pdf" ? "Đang mở PDF..." : "Xuất PDF"}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -19,7 +19,6 @@ const mockListProducts = vi.fn();
 const mockCreateProduct = vi.fn();
 const mockUpdateProduct = vi.fn();
 const mockDeleteProduct = vi.fn();
-const mockGetProductById = vi.fn();
 
 vi.mock("@/domains/products", () => ({
   listProductsForAccount: (...a: unknown[]) => mockListProducts(...a),

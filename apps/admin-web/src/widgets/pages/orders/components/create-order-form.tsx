@@ -378,7 +378,16 @@ const OrderProductItem = memo(function OrderProductItem({
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
-  const topSuggestion = allocationQuery.data?.[0];
+  const rankedSuggestions = allocationQuery.data ?? [];
+
+  function applySuggestedAccount(suggestion: AccountSuggestion) {
+    setValue(`items.${index}.assignedSourceAccountId`, suggestion.sourceAccountId, { shouldValidate: true });
+    const account = sourceAccounts.find((candidate) => candidate.id === suggestion.sourceAccountId);
+    if (account?.reservedNicks?.length && !customerNickUsed) {
+      setValue(`items.${index}.customerNickUsed`, account.reservedNicks[0], { shouldValidate: true });
+      appToast.success(orderText.labels.autoNick + ` ${account.reservedNicks[0]}`);
+    }
+  }
 
   return (
     <div className="group/item relative flex flex-col gap-4 rounded-2xl border-2 border-[var(--border-soft)] bg-[var(--surface-light)] p-5 shadow-sm transition-all hover:border-[var(--accent)]/30">
@@ -514,35 +523,71 @@ const OrderProductItem = memo(function OrderProductItem({
                   }
                 }}
               />
-              {topSuggestion && !sourceAccountId ? (
+              {allocationQuery.isLoading ? (
+                <div className="mt-3 rounded-xl border border-[var(--border-soft)]/70 bg-[var(--surface-light)] px-3 py-3 text-[11px] font-medium text-[var(--fg-muted)]">
+                  Đang phân tích kho phù hợp...
+                </div>
+              ) : null}
+              {rankedSuggestions.length > 0 ? (
                 <div className="mt-3 rounded-xl border border-amber-300/40 bg-amber-50/80 p-3">
-                  <div className="flex items-start gap-3">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-                      <Sparkles className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-700">
-                        Gợi ý kho tối ưu
-                      </div>
-                      <p className="mt-1 text-[12px] font-bold text-[var(--fg-base)]">
-                        {topSuggestion.email}
-                      </p>
-                      <p className="text-[11px] text-[var(--fg-muted)]">
-                        {topSuggestion.reason} • Còn {topSuggestion.availableSlots} slot • HH {topSuggestion.daysLeft} ngày
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => {
-                        setValue(`items.${index}.assignedSourceAccountId`, topSuggestion.sourceAccountId, { shouldValidate: true });
-                        appToast.success(`Đã áp dụng gợi ý: ${topSuggestion.email}`);
-                      }}
-                      className="h-9 shrink-0 rounded-lg border border-amber-300 bg-white px-3 text-[11px] font-bold text-amber-700 hover:bg-amber-100"
-                    >
-                      Áp dụng
-                      <ArrowRight className="ml-1.5 size-3.5" />
-                    </Button>
+                  <div className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-700">
+                    <Sparkles className="size-4" />
+                    Gợi ý kho tối ưu
+                  </div>
+                  <div className="space-y-2">
+                    {rankedSuggestions.map((suggestion, suggestionIndex) => {
+                      const isSelected = sourceAccountId === suggestion.sourceAccountId;
+
+                      return (
+                        <div
+                          key={suggestion.sourceAccountId}
+                          className={`flex flex-col gap-3 rounded-xl border px-3 py-3 sm:flex-row sm:items-center sm:justify-between ${
+                            isSelected
+                              ? "border-emerald-300 bg-emerald-50/80"
+                              : "border-amber-200 bg-white"
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 text-[12px] font-bold text-[var(--fg-base)]">
+                              <span>{suggestion.email}</span>
+                              {suggestionIndex === 0 ? (
+                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-700">
+                                  Tốt nhất
+                                </span>
+                              ) : null}
+                              {isSelected ? (
+                                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700">
+                                  Đang dùng
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
+                              {suggestion.reason}
+                            </p>
+                            <p className="text-[11px] text-[var(--fg-muted)]">
+                              Còn {suggestion.availableSlots} slot • Hết hạn sau {suggestion.daysLeft} ngày
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => {
+                              applySuggestedAccount(suggestion);
+                              appToast.success(`Đã áp dụng gợi ý: ${suggestion.email}`);
+                            }}
+                            disabled={isSelected}
+                            className={`h-9 shrink-0 rounded-lg px-3 text-[11px] font-bold ${
+                              isSelected
+                                ? "border border-emerald-300 bg-emerald-100 text-emerald-700"
+                                : "border border-amber-300 bg-white text-amber-700 hover:bg-amber-100"
+                            }`}
+                          >
+                            {isSelected ? "Đã chọn" : "Áp dụng"}
+                            <ArrowRight className="ml-1.5 size-3.5" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : null}
@@ -916,7 +961,8 @@ export function CreateOrderForm() {
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
-  const formItems = (useWatch({ control, name: "items" }) ?? []) as FormItem[];
+  const watchedFormItems = useWatch({ control, name: "items" }) as FormItem[] | undefined;
+  const formItems = useMemo(() => watchedFormItems ?? [], [watchedFormItems]);
   const total = formItems.reduce((a, i) => {
     const p = products.find(p => p.id === i.productId);
     const unitPrice = i.sellPriceVnd ?? p?.sellPriceVnd ?? 0;

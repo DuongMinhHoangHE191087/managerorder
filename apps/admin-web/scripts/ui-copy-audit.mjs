@@ -19,50 +19,6 @@ const IGNORE_DIR_FRAGMENTS = [
   "/src/app/api/",
 ];
 
-const TEXT_ATTR_NAMES = new Set([
-  "aria-label",
-  "ariaLabel",
-  "confirmLabel",
-  "description",
-  "desc",
-  "emptyText",
-  "helperText",
-  "label",
-  "name",
-  "placeholder",
-  "prompt",
-  "resetLabel",
-  "subTitle",
-  "subtitle",
-  "successLabel",
-  "tab",
-  "text",
-  "title",
-  "tooltip",
-]);
-
-const TEXT_PROP_NAMES = new Set([
-  "ariaLabel",
-  "confirmLabel",
-  "description",
-  "desc",
-  "emptyText",
-  "helperText",
-  "label",
-  "message",
-  "name",
-  "placeholder",
-  "prompt",
-  "resetLabel",
-  "subTitle",
-  "subtitle",
-  "success",
-  "tab",
-  "text",
-  "title",
-  "tooltip",
-]);
-
 const TECHNICAL_PROP_NAMES = new Set([
   "as",
   "background",

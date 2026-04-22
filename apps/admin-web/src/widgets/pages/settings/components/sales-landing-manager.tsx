@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Link2, ShieldAlert, Sparkles } from "lucide-react";
+import { Link2, Sparkles } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";

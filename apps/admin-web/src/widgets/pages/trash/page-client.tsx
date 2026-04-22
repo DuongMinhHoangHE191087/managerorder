@@ -156,7 +156,6 @@ export default function TrashPage() {
 
   // Reset pagination when changing tab or search
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage(1);
   }, [activeTab, searchQuery]);
 

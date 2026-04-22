@@ -60,7 +60,6 @@ export default function ProvidersPage() {
   const [pageSize, setPageSize] = useState(20);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPageIndex(0);
   }, [searchQuery, tierFilter]);
 

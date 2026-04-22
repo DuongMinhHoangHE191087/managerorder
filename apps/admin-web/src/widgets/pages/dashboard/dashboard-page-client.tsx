@@ -13,7 +13,7 @@ import { DashboardAnalyticsSkeleton, DashboardGrowthSkeleton, DashboardOrdersSke
 import { DashboardHeader } from "./components/dashboard-header";
 import { DashboardInsightPanels } from "./components/dashboard-insight-panels";
 import { DashboardRecentOrders } from "./components/dashboard-recent-orders";
-import { downloadDashboardReport } from "./lib/dashboard-export";
+import { downloadDashboardReport, type DashboardExportFormat } from "./lib/dashboard-export";
 import { TIME_TABS, type TimeRange } from "./constants";
 import type { DashboardRecentOrder } from "./types";
 import { vi } from "@/shared/messages/vi";
@@ -41,7 +41,7 @@ const DashboardGrowthPanels = dynamic(
 
 export default function DashboardPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>("30");
-  const [isExporting, setIsExporting] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<DashboardExportFormat | null>(null);
   const selectedTimeTab = useMemo(
     () => TIME_TABS.find((tab) => tab.value === timeRange) ?? TIME_TABS[0],
     [timeRange]
@@ -79,25 +79,25 @@ export default function DashboardPage() {
     [stats?.recentOrders]
   );
 
-  async function handleExportDashboard() {
+  async function handleExportDashboard(format: DashboardExportFormat) {
     if (!stats) {
       appToast.error("Chưa có dữ liệu tổng quan để xuất");
       return;
     }
 
-    setIsExporting(true);
+    setExportingFormat(format);
     try {
       const fileName = await downloadDashboardReport(stats, {
         days,
         rangeLabel: selectedTimeTab.short,
-      });
-      appToast.success("Đã xuất báo cáo Excel", {
+      }, format);
+      appToast.success(format === "pdf" ? "Đã mở bản in PDF" : "Đã xuất báo cáo Excel", {
         description: fileName,
       });
     } catch (error) {
       appToast.error(error instanceof Error ? error.message : "Không thể xuất báo cáo tổng quan");
     } finally {
-      setIsExporting(false);
+      setExportingFormat(null);
     }
   }
 
@@ -119,8 +119,8 @@ export default function DashboardPage() {
       <PageContainer>
         <DashboardHeader
           calculatedAt={stats?.calculatedAt}
+          exportingFormat={exportingFormat}
           isFetching={isFetching}
-          isExporting={isExporting}
           onExport={handleExportDashboard}
           onRefresh={refresh}
           onTimeRangeChange={setTimeRange}

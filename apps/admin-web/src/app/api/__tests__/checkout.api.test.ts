@@ -29,6 +29,9 @@ vi.mock("@/lib/supabase/repositories/orders.repo", () => ({
 vi.mock("@/lib/services/order.service", () => ({
   createOrderWithItems: vi.fn(),
 }));
+vi.mock("@/lib/supabase/repositories/order-status-history.repo", () => ({
+  createOrderStatusHistory: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock("@/lib/utils/api-helpers", () => ({
   getPaginationParams: vi.fn((sp: URLSearchParams) => ({
     page: parseInt(sp.get("page") || "1"),
@@ -38,6 +41,7 @@ vi.mock("@/lib/utils/api-helpers", () => ({
 }));
 
 import { createOrderWithItems } from "@/lib/services/order.service";
+import { createOrderStatusHistory } from "@/lib/supabase/repositories/order-status-history.repo";
 import { POST } from "@/app/api/orders/route";
 
 // ── Fixtures ─────────────────────────────────────────────────
@@ -92,6 +96,7 @@ describe("POST /api/orders — Checkout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(createOrderWithItems).mockResolvedValue(mockCreatedOrder as any);
+    vi.mocked(createOrderStatusHistory).mockResolvedValue(undefined as any);
   });
 
   // ─── Happy Path ──────────────────────────────────────────
@@ -135,6 +140,24 @@ describe("POST /api/orders — Checkout", () => {
             expect.objectContaining({ productId: "prod-001", quantity: 1 }),
           ]),
         })
+      );
+    });
+
+    it("logs the initial order timeline entry after creation", async () => {
+      await postOrder(validSingleItemBody);
+
+      expect(createOrderStatusHistory).toHaveBeenCalledWith(
+        expect.objectContaining({
+          order_id: "ord-new-001",
+          old_status: null,
+          new_status: "pending_payment",
+          changed_by: "Test User",
+          change_reason: "Tạo đơn hàng mới",
+          metadata: expect.objectContaining({
+            source: "admin-web",
+            items_count: 1,
+          }),
+        }),
       );
     });
 

@@ -61,7 +61,7 @@ function resolveTone({
 }
 
 export function RuntimeStatusChip() {
-  const { data: status, isLoading, isFetching } = useBotRuntimeStatus();
+  const { data: status, isLoading } = useBotRuntimeStatus();
 
   const runtimeMode = status?.operational.runtimeMode;
   const runtimeLabel = isLoading && !status ? vi.common.loadingData : resolveRuntimeLabel(runtimeMode);

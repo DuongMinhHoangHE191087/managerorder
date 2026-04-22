@@ -213,8 +213,6 @@ export async function createPremiumMigrationRequest(
   accountId: string,
   input: CreatePremiumMigrationInput,
 ) {
-  const startedAt = new Date().toISOString();
-
   try {
     const normalizedReason = input.reason?.trim() ?? "";
     if (!normalizedReason) {

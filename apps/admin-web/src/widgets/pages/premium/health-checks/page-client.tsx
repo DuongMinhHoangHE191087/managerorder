@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Activity, Package, RefreshCw, X } from "lucide-react";
 import { AppLayout } from "@/widgets/layout/app-layout";
@@ -54,21 +54,6 @@ export default function PremiumHealthChecksPage() {
   useEffect(() => {
     void bootstrapLookups();
   }, []);
-
-  useEffect(() => {
-    void fetchLogs();
-    // Keep the log list server-side filtered so the page can scale without loading everything.
-  }, [
-    pageIndex,
-    pageSize,
-    selectedStatus,
-    selectedCheckType,
-    selectedAccountId,
-    selectedServiceId,
-    fromDate,
-    toDate,
-    refreshTick,
-  ]);
 
   const serviceMap = useMemo(
     () =>
@@ -145,7 +130,7 @@ export default function PremiumHealthChecksPage() {
     }
   }
 
-  async function fetchLogs() {
+  const fetchLogs = useCallback(async () => {
     setIsLoading(true);
 
     try {
@@ -195,7 +180,21 @@ export default function PremiumHealthChecksPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [
+    fromDate,
+    pageIndex,
+    pageSize,
+    selectedAccountId,
+    selectedCheckType,
+    selectedServiceId,
+    selectedStatus,
+    toDate,
+  ]);
+
+  useEffect(() => {
+    void fetchLogs();
+    // Keep the log list server-side filtered so the page can scale without loading everything.
+  }, [fetchLogs, refreshTick]);
 
   function resetPagination() {
     setPageIndex(0);

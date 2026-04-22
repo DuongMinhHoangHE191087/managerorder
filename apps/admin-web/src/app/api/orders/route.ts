@@ -10,6 +10,7 @@ import { withAccount } from "@/lib/api/with-account";
 import { withErrorHandler } from "@/lib/api/with-error-handler";
 import { getPaginationParams } from "@/lib/utils/api-helpers";
 import { requirePermissions } from "@/lib/api/rbac";
+import { createOrderStatusHistory } from "@/lib/supabase/repositories/order-status-history.repo";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ export const GET = withErrorHandler(
 );
 
 export const POST = withErrorHandler(
-  withAccount(requirePermissions(["order:create"])(async (request: NextRequest, { accountId }) => {
+  withAccount(requirePermissions(["order:create"])(async (request: NextRequest, { accountId, user }) => {
     // 1. Zod Validation Input
     const body = await request.json();
     const validatedData = createOrderInputSchema.parse(body);
@@ -65,6 +66,19 @@ export const POST = withErrorHandler(
     // 2. Delegate to service layer
     try {
       const result = await createOrderWithItems(accountId, validatedData);
+      await createOrderStatusHistory({
+        order_id: result.order.id,
+        old_status: null,
+        new_status: result.order.status,
+        changed_by: user.displayName ?? user.email,
+        change_reason: "Tạo đơn hàng mới",
+        metadata: {
+          source: "admin-web",
+          items_count: result.items.length,
+          payment_terms: validatedData.paymentTerms ?? validatedData.paymentMethod ?? null,
+        },
+      });
+
       return NextResponse.json(
         {
           data: {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createProductInputSchema } from "@/lib/domain/schemas";
-import { deleteProductForAccount, getProductForAccount, updateProductForAccount } from "@/domains/products";
+import { deleteProductForAccount, updateProductForAccount } from "@/domains/products";
 import { withAccount } from "@/lib/api/with-account";
 import { withErrorHandler } from "@/lib/api/with-error-handler";
 

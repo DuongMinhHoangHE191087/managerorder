@@ -8,6 +8,7 @@ import type {
 import type ExcelJs from "exceljs";
 
 const XLSX_MIME_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+export type DashboardExportFormat = "xlsx" | "pdf";
 
 type CellKind = "text" | "currency" | "number";
 
@@ -46,8 +47,8 @@ function formatFileDate(date = new Date()) {
   return date.toISOString().slice(0, 10);
 }
 
-function makeFileName(days: number) {
-  return `dashboard-report-${days}d-${formatFileDate()}.xlsx`;
+function makeFileName(days: number, format: DashboardExportFormat = "xlsx") {
+  return `dashboard-report-${days}d-${formatFileDate()}.${format}`;
 }
 
 function makeSummarySheet(stats: DashboardStats, options: DashboardExportOptions): DashboardExportSheet {
@@ -348,9 +349,141 @@ export function buildDashboardExportData(
   );
 
   return {
-    fileName: makeFileName(options.days),
+    fileName: makeFileName(options.days, "xlsx"),
     sheets,
   };
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function formatSheetCellValue(
+  value: string | number,
+  column: DashboardExportColumn,
+) {
+  if (typeof value === "number" && column.kind === "currency") {
+    return formatMoney(value);
+  }
+
+  if (typeof value === "number" && column.kind === "number") {
+    return value.toLocaleString("vi-VN");
+  }
+
+  return String(value);
+}
+
+export function buildDashboardPrintHtml(
+  stats: DashboardStats,
+  options: DashboardExportOptions,
+) {
+  const data = buildDashboardExportData(stats, options);
+  const fileName = makeFileName(options.days, "pdf");
+  const generatedAt = formatDateCustom(new Date().toISOString(), undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
+  const sections = data.sheets.map((sheet) => {
+    const headerCells = sheet.columns
+      .map((column) => `<th>${escapeHtml(column.header)}</th>`)
+      .join("");
+    const bodyRows = sheet.rows.length > 0
+      ? sheet.rows.map((row) => {
+          const cells = sheet.columns
+            .map((column) => {
+              const rawValue = row[column.key];
+              const renderedValue =
+                rawValue === undefined || rawValue === null || rawValue === ""
+                  ? "—"
+                  : formatSheetCellValue(rawValue, column);
+              const alignClass = column.kind === "currency" || column.kind === "number"
+                ? " class=\"numeric\""
+                : "";
+              return `<td${alignClass}>${escapeHtml(renderedValue)}</td>`;
+            })
+            .join("");
+          return `<tr>${cells}</tr>`;
+        }).join("")
+      : `<tr><td colspan="${sheet.columns.length}">Không có dữ liệu trong khoảng này.</td></tr>`;
+
+    return [
+      `<section class="sheet">`,
+      `<div class="sheet-header">`,
+      `<h2>${escapeHtml(sheet.name)}</h2>`,
+      `<span>${sheet.rows.length.toLocaleString("vi-VN")} dòng</span>`,
+      `</div>`,
+      `<table>`,
+      `<thead><tr>${headerCells}</tr></thead>`,
+      `<tbody>${bodyRows}</tbody>`,
+      `</table>`,
+      `</section>`,
+    ].join("");
+  }).join("");
+
+  return [
+    "<!DOCTYPE html>",
+    "<html lang=\"vi\">",
+    "<head>",
+    "<meta charset=\"utf-8\" />",
+    `<title>${escapeHtml(fileName)}</title>`,
+    "<style>",
+    "body{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f8fafc;color:#0f172a;}",
+    ".page{padding:32px;}",
+    ".hero{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin-bottom:24px;padding-bottom:18px;border-bottom:2px solid #e2e8f0;}",
+    ".hero h1{margin:0;font-size:28px;line-height:1.1;}",
+    ".hero p{margin:6px 0 0;color:#475569;font-size:13px;}",
+    ".meta{display:grid;gap:6px;font-size:12px;color:#475569;text-align:right;}",
+    ".sheet{margin-bottom:28px;break-inside:avoid;}",
+    ".sheet-header{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:10px;}",
+    ".sheet-header h2{margin:0;font-size:18px;}",
+    ".sheet-header span{font-size:12px;color:#475569;}",
+    "table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #cbd5e1;}",
+    "th,td{padding:8px 10px;border:1px solid #e2e8f0;font-size:12px;vertical-align:top;text-align:left;}",
+    "th{background:#0f172a;color:#fff;font-weight:700;}",
+    ".numeric{text-align:right;white-space:nowrap;}",
+    "@media print{body{background:#fff;}.page{padding:0 0 8mm;} .sheet{page-break-inside:avoid;}}",
+    "</style>",
+    "</head>",
+    "<body>",
+    "<main class=\"page\">",
+    "<header class=\"hero\">",
+    "<div>",
+    "<h1>Báo cáo dashboard ManagerOrder</h1>",
+    `<p>Khoảng thời gian: ${escapeHtml(options.rangeLabel || `${options.days} ngày`)}</p>`,
+    "</div>",
+    "<div class=\"meta\">",
+    `<span>Tệp: ${escapeHtml(fileName)}</span>`,
+    `<span>Xuất lúc: ${escapeHtml(generatedAt)}</span>`,
+    `<span>Cập nhật dữ liệu: ${escapeHtml(formatDateCustom(stats.calculatedAt, undefined, { dateStyle: "medium", timeStyle: "short" }))}</span>`,
+    "</div>",
+    "</header>",
+    sections,
+    "</main>",
+    "<script>",
+    "window.addEventListener('load',()=>{setTimeout(()=>window.print(),150);});",
+    "window.addEventListener('afterprint',()=>{window.close();});",
+    "</script>",
+    "</body>",
+    "</html>",
+  ].join("");
+}
+
+function openDashboardPrintPreview(fileName: string, html: string) {
+  const printWindow = window.open("", "_blank", "noopener,noreferrer");
+  if (!printWindow) {
+    throw new Error("Trình duyệt đã chặn cửa sổ in PDF. Hãy cho phép popup rồi thử lại.");
+  }
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  return fileName;
 }
 
 async function loadExcelJs() {
@@ -405,8 +538,14 @@ function addSheet(workbook: ExcelJs.Workbook, sheet: DashboardExportSheet) {
 
 export async function downloadDashboardReport(
   stats: DashboardStats,
-  options: DashboardExportOptions
+  options: DashboardExportOptions,
+  format: DashboardExportFormat = "xlsx",
 ) {
+  if (format === "pdf") {
+    const fileName = makeFileName(options.days, "pdf");
+    return openDashboardPrintPreview(fileName, buildDashboardPrintHtml(stats, options));
+  }
+
   const ExcelJS = await loadExcelJs();
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "ManagerOrder";

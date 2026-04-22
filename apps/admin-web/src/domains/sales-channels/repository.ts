@@ -5,11 +5,7 @@ import type {
   SalesChannelRuntimeSummary,
 } from "@/lib/domain/types";
 import {
-  createSalesChannel,
-  deleteSalesChannel,
-  getSalesChannelById,
   listSalesChannels,
-  updateSalesChannel,
   type SalesChannelRow,
 } from "@/lib/supabase/repositories/settings.repo";
 

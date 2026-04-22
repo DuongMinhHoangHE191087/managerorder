@@ -13,6 +13,7 @@ import { formatDateCustom, formatNumber } from '@/lib/utils';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { createOrderWithItems } from '@/lib/services/order.service';
 import { getOrderWithItemsByCode } from '@/lib/supabase/repositories/orders.repo';
+import { createOrderStatusHistory } from '@/lib/supabase/repositories/order-status-history.repo';
 import { loadRowsByIds } from '@/lib/supabase/relation-fallback';
 import { decryptNotes } from '@/lib/utils/credential-crypto';
 import { buildFinancialSummary, formatPaymentMethodLabel, mapLegacyStatusAlias, PAYMENT_STATE_VALUES, toLegacyPaymentMethod } from '@/lib/domain/financial';
@@ -2417,6 +2418,18 @@ async function handleNewOrderCallback(chatId: number, data: string) {
       // Use adapter to build consistent input (with registeredAt)
       const orderInput = buildTelegramOrderInput(d);
       const result = await createOrderWithItems(BOT_ACCOUNT_ID, orderInput);
+      await createOrderStatusHistory({
+        order_id: result.order.id,
+        old_status: null,
+        new_status: result.order.status,
+        changed_by: "Telegram bot",
+        change_reason: "Tạo đơn từ Telegram bot",
+        metadata: {
+          source: "telegram-bot",
+          items_count: result.items.length,
+          payment_terms: orderInput.paymentTerms ?? orderInput.paymentMethod ?? null,
+        },
+      });
 
       const order = result.order;
       const cartItems = (d.cartItems ?? []) as Array<{ productName: string; price: number; quantity: number; nick?: string }>;

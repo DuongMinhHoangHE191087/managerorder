@@ -18,7 +18,6 @@ export function ProofUploader({ value, onChange }: { value: string[]; onChange: 
     prevValueRef.current = value;
     // Parent cleared all images → reset internal files + revoke blob URLs
     if (value.length === 0 && prev.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFiles(current => {
         current.forEach(f => { if (f.file) URL.revokeObjectURL(f.url); });
         return [];

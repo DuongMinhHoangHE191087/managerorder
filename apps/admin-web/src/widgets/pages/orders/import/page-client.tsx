@@ -36,10 +36,11 @@ const STEPS = [
   { id: 2, label: vi.orders.importPage.steps.mapping, icon: FileSpreadsheet },
   { id: 3, label: vi.orders.importPage.steps.preview, icon: CheckCircle2 },
 ] as const;
+const IMPORT_TEXT = vi.orders.importPage;
 
 
 export default function ImportOrdersPage() {
-  const importText = vi.orders.importPage;
+  const importText = IMPORT_TEXT;
   const router = useRouter();
 
   // Wizard state
@@ -117,7 +118,7 @@ export default function ImportOrdersPage() {
         setSelectedSheet(firstSheet?.name ?? "");
 
         if (!firstSheet) {
-          appToast.error(importText.fileWithoutSheet);
+          appToast.error(IMPORT_TEXT.fileWithoutSheet);
           return;
         }
 
@@ -137,9 +138,9 @@ export default function ImportOrdersPage() {
         setDynamicDuolingoFields(matchedDuoFields);
 
         setStep(2);
-        appToast.success(importText.fileUploaded);
+        appToast.success(IMPORT_TEXT.fileUploaded);
       } catch {
-        appToast.error(importText.fileReadError);
+        appToast.error(IMPORT_TEXT.fileReadError);
       }
     };
     reader.readAsArrayBuffer(file);
@@ -163,7 +164,7 @@ export default function ImportOrdersPage() {
     setSelectedSheet(sheetName);
     const ws = workbook.getWorksheet(sheetName);
     if (!ws) {
-      appToast.error(importText.sheetNotFound);
+      appToast.error(IMPORT_TEXT.sheetNotFound);
       return;
     }
     const jsonData = worksheetToMatrix(ws);
@@ -250,17 +251,17 @@ export default function ImportOrdersPage() {
   const handleImport = useCallback(async () => {
     const validOrders = parsedOrders.filter(o => !o._error);
     if (validOrders.length === 0) {
-      appToast.error(importText.noValidOrders);
+      appToast.error(IMPORT_TEXT.noValidOrders);
       return;
     }
 
     if (validOrders.length > MAX_IMPORT) {
-      appToast.error(importText.tooManyOrders(validOrders.length, formatNumber(MAX_IMPORT)));
+      appToast.error(IMPORT_TEXT.tooManyOrders(validOrders.length, formatNumber(MAX_IMPORT)));
       return;
     }
 
     setIsImporting(true);
-    appToast.loading(importText.importLoading(validOrders.length), { id: "import-progress" });
+    appToast.loading(IMPORT_TEXT.importLoading(validOrders.length), { id: "import-progress" });
 
     try {
       const res = await fetch("/api/orders/import", {
@@ -272,25 +273,25 @@ export default function ImportOrdersPage() {
 
       if (res.ok && result.success) {
         const details = [
-          `${result.importedCount} ${importText.importedCount}`,
-          result.customersCreated > 0 ? `${result.customersCreated} ${importText.customersNew}` : null,
-          result.ctvCreated > 0 ? `${result.ctvCreated} ${importText.ctvNew}` : null,
-          result.productsCreated > 0 ? `${result.productsCreated} ${importText.productsNew}` : null,
-          result.skippedRows?.length > 0 ? `${result.skippedRows.length} ${importText.skippedRows}` : null,
+          `${result.importedCount} ${IMPORT_TEXT.importedCount}`,
+          result.customersCreated > 0 ? `${result.customersCreated} ${IMPORT_TEXT.customersNew}` : null,
+          result.ctvCreated > 0 ? `${result.ctvCreated} ${IMPORT_TEXT.ctvNew}` : null,
+          result.productsCreated > 0 ? `${result.productsCreated} ${IMPORT_TEXT.productsNew}` : null,
+          result.skippedRows?.length > 0 ? `${result.skippedRows.length} ${IMPORT_TEXT.skippedRows}` : null,
         ].filter(Boolean).join(', ');
-        appToast.success(`${importText.importedSuccessTitle}: ${details}`, { id: "import-progress" });
+        appToast.success(`${IMPORT_TEXT.importedSuccessTitle}: ${details}`, { id: "import-progress" });
         setImportResult(result);
         setStep(4); // Step 4 = success view
       } else if (res.status === 422) {
         const msgs = (result.validationErrors || []).slice(0, 5)
-          .map((e: { row: number; message: string }) => `${importText.rowPrefix} ${e.row}: ${e.message}`)
+          .map((e: { row: number; message: string }) => `${IMPORT_TEXT.rowPrefix} ${e.row}: ${e.message}`)
           .join('\n');
-        appToast.error(`${importText.validationErrorTitle}:\n${msgs}`, { id: "import-progress" });
+        appToast.error(`${IMPORT_TEXT.validationErrorTitle}:\n${msgs}`, { id: "import-progress" });
       } else {
-        appToast.error(`${importText.importFailed}: ${result.details || result.error}`, { id: "import-progress" });
+        appToast.error(`${IMPORT_TEXT.importFailed}: ${result.details || result.error}`, { id: "import-progress" });
       }
     } catch (err) {
-      appToast.error(`${importText.connectionError}: ${err instanceof Error ? err.message : importText.unknownError}`, { id: "import-progress" });
+      appToast.error(`${IMPORT_TEXT.connectionError}: ${err instanceof Error ? err.message : IMPORT_TEXT.unknownError}`, { id: "import-progress" });
     } finally {
       setIsImporting(false);
     }
