@@ -5,10 +5,14 @@ type RouteModule = typeof import("@/app/api/cron/auto-renewal-engine/route");
 
 const mocks = vi.hoisted(() => ({
   runAutoRenewalEngine: vi.fn(),
+  recordAutoRenewalEngineRun: vi.fn(),
 }));
 
 vi.mock("@/lib/services/auto-renewal-engine", () => ({
   runAutoRenewalEngine: mocks.runAutoRenewalEngine,
+}));
+vi.mock("@/lib/services/auto-renewal-engine-audit", () => ({
+  recordAutoRenewalEngineRun: mocks.recordAutoRenewalEngineRun,
 }));
 
 async function loadRoute(): Promise<RouteModule> {
@@ -86,6 +90,29 @@ describe("GET /api/cron/auto-renewal-engine", () => {
           daysRemaining: 4,
         },
       ],
+      accountSummaries: [
+        {
+          accountId: "acc-1",
+          scannedCount: 3,
+          eligibleCount: 1,
+          createdCount: 1,
+          skippedCount: 2,
+          skippedReasons: {
+            customer_has_debt: 1,
+            low_reliability: 1,
+          },
+          created: [
+            {
+              accountId: "acc-1",
+              subscriptionId: "sub-1",
+              renewalId: "renew-1",
+              customerId: "cust-1",
+              customerName: "Nguyen Van A",
+              daysRemaining: 4,
+            },
+          ],
+        },
+      ],
     };
 
     mocks.runAutoRenewalEngine.mockResolvedValue(report);
@@ -107,6 +134,17 @@ describe("GET /api/cron/auto-renewal-engine", () => {
       daysThreshold: 5,
       maxCreated: 3,
       minReliabilityScore: 80,
+    });
+    expect(mocks.recordAutoRenewalEngineRun).toHaveBeenCalledWith({
+      accountId: "acc-1",
+      createdBy: null,
+      mode: "cron",
+      snapshot: report.accountSummaries[0],
+      options: {
+        daysThreshold: 5,
+        maxCreated: 3,
+        minReliabilityScore: 80,
+      },
     });
     expect(await response.json()).toEqual({
       success: true,

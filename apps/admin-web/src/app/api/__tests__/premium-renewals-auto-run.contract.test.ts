@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createTestRequest,
   TEST_ACCOUNT_ID,
+  TEST_USER_ID,
   mockRBAC,
   mockWithAccount,
   mockWithErrorHandler,
@@ -11,6 +12,7 @@ type RouteModule = typeof import("@/app/api/premium/renewals/auto-run/route");
 
 const mocks = vi.hoisted(() => ({
   runAutoRenewalEngine: vi.fn(),
+  recordAutoRenewalEngineRun: vi.fn(),
 }));
 
 async function loadRoute(options?: { allowRoles?: boolean; role?: string }) {
@@ -25,6 +27,9 @@ async function loadRoute(options?: { allowRoles?: boolean; role?: string }) {
   );
   vi.doMock("@/lib/services/auto-renewal-engine", () => ({
     runAutoRenewalEngine: mocks.runAutoRenewalEngine,
+  }));
+  vi.doMock("@/lib/services/auto-renewal-engine-audit", () => ({
+    recordAutoRenewalEngineRun: mocks.recordAutoRenewalEngineRun,
   }));
 
   return import("@/app/api/premium/renewals/auto-run/route") as Promise<RouteModule>;
@@ -90,6 +95,29 @@ describe("POST /api/premium/renewals/auto-run", () => {
           daysRemaining: 4,
         },
       ],
+      accountSummaries: [
+        {
+          accountId: TEST_ACCOUNT_ID,
+          scannedCount: 4,
+          eligibleCount: 1,
+          createdCount: 1,
+          skippedCount: 3,
+          skippedReasons: {
+            customer_has_debt: 2,
+            low_reliability: 1,
+          },
+          created: [
+            {
+              accountId: TEST_ACCOUNT_ID,
+              subscriptionId: "sub-1",
+              renewalId: "renew-1",
+              customerId: "cust-1",
+              customerName: "Nguyen Van A",
+              daysRemaining: 4,
+            },
+          ],
+        },
+      ],
     };
 
     mocks.runAutoRenewalEngine.mockResolvedValue(report);
@@ -113,6 +141,17 @@ describe("POST /api/premium/renewals/auto-run", () => {
       daysThreshold: 5,
       maxCreated: 3,
       minReliabilityScore: 80,
+    });
+    expect(mocks.recordAutoRenewalEngineRun).toHaveBeenCalledWith({
+      accountId: TEST_ACCOUNT_ID,
+      createdBy: TEST_USER_ID,
+      mode: "manual",
+      snapshot: report.accountSummaries[0],
+      options: {
+        daysThreshold: 5,
+        maxCreated: 3,
+        minReliabilityScore: 80,
+      },
     });
     const body = await response.json();
     expect(body.data).toEqual(report);

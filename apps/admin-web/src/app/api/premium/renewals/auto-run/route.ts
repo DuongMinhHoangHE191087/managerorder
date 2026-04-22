@@ -3,6 +3,7 @@ import { createSuccessResponse, withErrorHandler } from "@/lib/api/with-error-ha
 import { withAccount } from "@/lib/api/with-account";
 import { requireRole } from "@/lib/api/rbac";
 import { runAutoRenewalEngine } from "@/lib/services/auto-renewal-engine";
+import { recordAutoRenewalEngineRun } from "@/lib/services/auto-renewal-engine-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -26,21 +27,46 @@ function parseOptionalNumber(value: unknown): number | undefined {
 
 export const POST = withErrorHandler(
   withAccount(
-    requireRole(["admin_owner"])(async (request: NextRequest, { accountId }) => {
+    requireRole(["admin_owner"])(async (request: NextRequest, { accountId, user }) => {
       const body = (await request.json().catch(() => ({}))) as AutoRenewalRunBody;
       const searchParams = new URL(request.url).searchParams;
+      const daysThreshold = parseOptionalNumber(
+        body.daysThreshold ?? body.days_threshold ?? searchParams.get("days_threshold"),
+      );
+      const maxCreated = parseOptionalNumber(
+        body.maxCreated ?? body.max_created ?? searchParams.get("max_created"),
+      );
+      const minReliabilityScore = parseOptionalNumber(
+        body.minReliabilityScore ?? body.min_reliability_score ?? searchParams.get("min_reliability_score"),
+      );
 
       const report = await runAutoRenewalEngine({
         accountId,
-        daysThreshold: parseOptionalNumber(
-          body.daysThreshold ?? body.days_threshold ?? searchParams.get("days_threshold"),
-        ),
-        maxCreated: parseOptionalNumber(
-          body.maxCreated ?? body.max_created ?? searchParams.get("max_created"),
-        ),
-        minReliabilityScore: parseOptionalNumber(
-          body.minReliabilityScore ?? body.min_reliability_score ?? searchParams.get("min_reliability_score"),
-        ),
+        daysThreshold,
+        maxCreated,
+        minReliabilityScore,
+      });
+
+      const summary = report.accountSummaries.find((item) => item.accountId === accountId) ?? {
+        accountId,
+        scannedCount: report.scannedCount,
+        eligibleCount: report.eligibleCount,
+        createdCount: report.createdCount,
+        skippedCount: report.skippedCount,
+        skippedReasons: report.skippedReasons,
+        created: report.created.filter((item) => item.accountId === accountId),
+      };
+
+      await recordAutoRenewalEngineRun({
+        accountId,
+        createdBy: user.userId,
+        mode: "manual",
+        snapshot: summary,
+        options: {
+          daysThreshold,
+          maxCreated,
+          minReliabilityScore,
+        },
       });
 
       return createSuccessResponse(report, {

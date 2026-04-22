@@ -18,6 +18,11 @@ import { useContextMenu } from "@/shared/ui/context-menu";
 import { appToast } from "@/shared/lib/toast";
 import { readApiEnvelope } from "@/shared/lib/api-client";
 import { formatMoney } from "@/lib/utils";
+import type { AutoRenewalEngineOutcome } from "@/lib/services/auto-renewal-engine";
+import type {
+  AutoRenewalEngineRunHistoryItem,
+  AutoRenewalEngineRunHistoryResult,
+} from "@/lib/services/auto-renewal-engine-audit";
 import type { SubscriptionRenewal } from "@/lib/domain/premium-types";
 
 type RenewalRow = SubscriptionRenewal & {
@@ -26,23 +31,7 @@ type RenewalRow = SubscriptionRenewal & {
   service_name: string;
 };
 
-type AutoRenewalRunCreatedItem = {
-  accountId: string;
-  subscriptionId: string;
-  renewalId: string;
-  customerId: string;
-  customerName: string;
-  daysRemaining: number;
-};
-
-type AutoRenewalRunReport = {
-  scannedCount: number;
-  eligibleCount: number;
-  createdCount: number;
-  skippedCount: number;
-  skippedReasons: Record<string, number>;
-  created: AutoRenewalRunCreatedItem[];
-};
+type AutoRenewalRunReport = AutoRenewalEngineOutcome;
 
 type RenewalStatusFilter = "pending" | "completed" | "denied";
 type EngineFormState = {
@@ -76,6 +65,10 @@ const AUTO_RENEWAL_SKIP_REASON_LABELS: Record<string, string> = {
 
 function formatAutoRenewalSkipReason(reason: string) {
   return AUTO_RENEWAL_SKIP_REASON_LABELS[reason] ?? reason.replaceAll("_", " ");
+}
+
+function formatAutoRenewalEngineRunMode(mode: AutoRenewalEngineRunHistoryItem["mode"]) {
+  return mode === "cron" ? "Cron" : "Manual";
 }
 
 type DynamicDataTableComponent = <TData, TValue>(props: {
@@ -159,6 +152,8 @@ export default function PremiumRenewalsPage() {
   const [engineForm, setEngineForm] = useState<EngineFormState>(DEFAULT_ENGINE_FORM);
   const [isRunningEngine, setIsRunningEngine] = useState(false);
   const [lastRunReport, setLastRunReport] = useState<AutoRenewalRunReport | null>(null);
+  const [engineRunHistory, setEngineRunHistory] = useState<AutoRenewalEngineRunHistoryResult | null>(null);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   const fetchRenewalsByStatus = useCallback(async (statusFilter: RenewalStatusFilter): Promise<RenewalRow[]> => {
     try {
@@ -176,6 +171,35 @@ export default function PremiumRenewalsPage() {
       return [];
     }
   }, []);
+
+  const fetchEngineRunHistory = useCallback(async (): Promise<AutoRenewalEngineRunHistoryResult | null> => {
+    try {
+      const response = await fetch("/api/premium/renewals/auto-run/history?limit=5&page=1");
+      const payload = await readApiEnvelope<AutoRenewalEngineRunHistoryResult>(response);
+
+      if (response.ok) {
+        return payload.data ?? null;
+      }
+
+      appToast.error(`Lỗi tải lịch sử chạy engine: ${payload.error ?? "Lỗi không xác định"}`);
+      return null;
+    } catch (error) {
+      console.error("[fetchEngineRunHistory]", error);
+      appToast.error("Lỗi kết nối");
+      return null;
+    }
+  }, []);
+
+  const refreshEngineRunHistory = useCallback(async () => {
+    setIsHistoryLoading(true);
+
+    try {
+      const history = await fetchEngineRunHistory();
+      setEngineRunHistory(history);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }, [fetchEngineRunHistory]);
 
   const refreshRenewalBuckets = useCallback(async (nextStatus?: RenewalStatusFilter) => {
     setIsLoading(true);
@@ -201,8 +225,8 @@ export default function PremiumRenewalsPage() {
   }, [fetchRenewalsByStatus]);
 
   useEffect(() => {
-    void refreshRenewalBuckets();
-  }, [refreshRenewalBuckets]);
+    void Promise.all([refreshRenewalBuckets(), refreshEngineRunHistory()]);
+  }, [refreshEngineRunHistory, refreshRenewalBuckets]);
 
   const handleRunAutoRenewalEngine = useCallback(async () => {
     setIsRunningEngine(true);
@@ -225,14 +249,14 @@ export default function PremiumRenewalsPage() {
       const report = payload.data ?? null;
       setLastRunReport(report);
       appToast.success(`Đã chạy engine: ${report?.createdCount ?? 0} request mới`);
-      await refreshRenewalBuckets("pending");
+      await Promise.all([refreshRenewalBuckets("pending"), refreshEngineRunHistory()]);
     } catch (error) {
       console.error("[handleRunAutoRenewalEngine]", error);
       appToast.error("Không thể chạy auto-renewal engine");
     } finally {
       setIsRunningEngine(false);
     }
-  }, [engineForm, refreshRenewalBuckets]);
+  }, [engineForm, refreshEngineRunHistory, refreshRenewalBuckets]);
 
   async function handleRenewalAction(
     renewalId: string,
@@ -362,6 +386,8 @@ export default function PremiumRenewalsPage() {
   const totalCount = pendingCount + completedCount + deniedCount;
   const reviewQueueCount = pendingCount;
   const visibleRenewals = renewalsByStatus[selectedStatus];
+  const recentEngineRuns = engineRunHistory?.items ?? [];
+  const engineRunHistoryCount = engineRunHistory?.meta.count ?? 0;
 
   return (
     <AppLayout>
@@ -606,6 +632,156 @@ export default function PremiumRenewalsPage() {
                 Chưa chạy engine trong phiên này.
               </p>
             )}
+
+            <div className="mt-6 rounded-[1.4rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/25 p-4">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-[var(--accent)]">
+                    Audit trail
+                  </p>
+                  <h4 className="mt-2 text-[16px] font-black text-[var(--fg-base)]">
+                    Lịch sử chạy Auto-Renewal Engine
+                  </h4>
+                  <p className="mt-2 text-[13px] leading-6 text-[var(--fg-muted)]">
+                    Mỗi lần chạy được ghi lại theo account để đối chiếu hiệu quả, lý do bỏ qua và số request đã tạo.
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => void refreshEngineRunHistory()}
+                  disabled={isHistoryLoading}
+                  className="inline-flex items-center gap-2 rounded-full"
+                >
+                  <RefreshCw className={`size-4 ${isHistoryLoading ? "animate-spin" : ""}`} />
+                  {isHistoryLoading ? "Đang tải history..." : "Làm mới history"}
+                </Button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]">
+                  {engineRunHistoryCount} lần chạy
+                </span>
+                <span className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]">
+                  {recentEngineRuns.length} bản ghi mới nhất
+                </span>
+              </div>
+
+              {isHistoryLoading ? (
+                <div className="mt-4 space-y-3">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="animate-pulse rounded-[1.2rem] border border-[var(--border-soft)] bg-white/70 p-4"
+                    >
+                      <div className="h-4 w-32 rounded bg-[var(--border-soft)]" />
+                      <div className="mt-3 h-3 w-full rounded bg-[var(--border-soft)]" />
+                      <div className="mt-2 h-3 w-5/6 rounded bg-[var(--border-soft)]" />
+                    </div>
+                  ))}
+                </div>
+              ) : recentEngineRuns.length === 0 ? (
+                <div className="mt-4">
+                  <EmptyState
+                    icon={<CalendarClock className="size-6" />}
+                    title="Chưa có lịch sử chạy"
+                    description="Chạy engine một lần để bắt đầu ghi audit trail và theo dõi hiệu quả."
+                  />
+                </div>
+              ) : (
+                <div className="mt-4 grid gap-3">
+                  {recentEngineRuns.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="rounded-[1.2rem] border border-[var(--border-soft)] bg-white p-4"
+                    >
+                      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                        <div>
+                          <p className="text-[12px] font-black text-[var(--fg-base)]">
+                            {format(new Date(entry.createdAt), "dd/MM/yyyy HH:mm")}
+                          </p>
+                          <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
+                            {formatAutoRenewalEngineRunMode(entry.mode)} • {entry.createdBy ?? "system"}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-bold text-[var(--accent)]">
+                            {entry.createdCount} created
+                          </span>
+                          <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-bold text-emerald-600">
+                            {entry.scannedCount} scanned
+                          </span>
+                          <span className="rounded-full bg-[var(--danger)]/10 px-3 py-1 text-[11px] font-bold text-[var(--danger)]">
+                            {entry.skippedCount} skipped
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-light)]/60 px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]">
+                          Days {entry.daysThreshold ?? DEFAULT_ENGINE_FORM.daysThreshold}
+                        </span>
+                        <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-light)]/60 px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]">
+                          Max {entry.maxCreated ?? DEFAULT_ENGINE_FORM.maxCreated}
+                        </span>
+                        <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-light)]/60 px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]">
+                          Min reliability {entry.minReliabilityScore ?? DEFAULT_ENGINE_FORM.minReliabilityScore}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
+                        <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)]/40 p-3">
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                            Request vừa tạo
+                          </p>
+                          {entry.created.length === 0 ? (
+                            <p className="mt-2 text-[12px] text-[var(--fg-muted)]">Không có request mới trong run này.</p>
+                          ) : (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {entry.created.slice(0, 3).map((item) => (
+                                <span
+                                  key={item.renewalId}
+                                  className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]"
+                                >
+                                  {item.customerName}
+                                </span>
+                              ))}
+                              {entry.created.length > 3 ? (
+                                <span className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-bold text-[var(--fg-muted)]">
+                                  +{entry.created.length - 3}
+                                </span>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)]/40 p-3">
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                            Lý do bỏ qua
+                          </p>
+                          {Object.entries(entry.skippedReasons).length === 0 ? (
+                            <p className="mt-2 text-[12px] text-[var(--fg-muted)]">Không có bản ghi loại bỏ nào.</p>
+                          ) : (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {Object.entries(entry.skippedReasons).map(([reason, count]) => (
+                                <span
+                                  key={reason}
+                                  className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]"
+                                >
+                                  {formatAutoRenewalSkipReason(reason)}: {count}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </SurfaceCard>
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runAutoRenewalEngine } from "@/lib/services/auto-renewal-engine";
+import { recordAutoRenewalEngineRun } from "@/lib/services/auto-renewal-engine-audit";
 
 const CRON_SECRET = process.env.CRON_SECRET ?? "";
 
@@ -24,6 +25,22 @@ export async function GET(request: NextRequest) {
       maxCreated,
       minReliabilityScore,
     });
+
+    await Promise.all(
+      report.accountSummaries.map((summary) =>
+        recordAutoRenewalEngineRun({
+          accountId: summary.accountId,
+          createdBy: null,
+          mode: "cron",
+          snapshot: summary,
+          options: {
+            daysThreshold,
+            maxCreated,
+            minReliabilityScore,
+          },
+        }),
+      ),
+    );
 
     return NextResponse.json({
       success: true,

@@ -25,6 +25,25 @@ type CustomerRiskRow = {
   segment: string | null;
 };
 
+export interface AutoRenewalEngineCreatedItem {
+  accountId: string;
+  subscriptionId: string;
+  renewalId: string;
+  customerId: string;
+  customerName: string;
+  daysRemaining: number;
+}
+
+export interface AutoRenewalEngineAccountSummary {
+  accountId: string;
+  scannedCount: number;
+  eligibleCount: number;
+  createdCount: number;
+  skippedCount: number;
+  skippedReasons: Record<string, number>;
+  created: AutoRenewalEngineCreatedItem[];
+}
+
 export interface AutoRenewalEngineOptions {
   accountId?: string;
   daysThreshold?: number;
@@ -38,14 +57,8 @@ export interface AutoRenewalEngineOutcome {
   createdCount: number;
   skippedCount: number;
   skippedReasons: Record<string, number>;
-  created: Array<{
-    accountId: string;
-    subscriptionId: string;
-    renewalId: string;
-    customerId: string;
-    customerName: string;
-    daysRemaining: number;
-  }>;
+  created: AutoRenewalEngineCreatedItem[];
+  accountSummaries: AutoRenewalEngineAccountSummary[];
 }
 
 const DEFAULT_DAYS_THRESHOLD = 7;
@@ -60,9 +73,21 @@ function normalizeLimit(value: number | undefined, fallback: number, min: number
   return Math.min(max, Math.max(min, Math.floor(value)));
 }
 
-function bumpReason(outcome: AutoRenewalEngineOutcome, reason: string) {
-  outcome.skippedReasons[reason] = (outcome.skippedReasons[reason] ?? 0) + 1;
-  outcome.skippedCount += 1;
+function bumpReason(target: { skippedReasons: Record<string, number>; skippedCount: number }, reason: string) {
+  target.skippedReasons[reason] = (target.skippedReasons[reason] ?? 0) + 1;
+  target.skippedCount += 1;
+}
+
+function createAccountSummary(accountId: string): AutoRenewalEngineAccountSummary {
+  return {
+    accountId,
+    scannedCount: 0,
+    eligibleCount: 0,
+    createdCount: 0,
+    skippedCount: 0,
+    skippedReasons: {},
+    created: [],
+  };
 }
 
 export async function runAutoRenewalEngine(options: AutoRenewalEngineOptions = {}): Promise<AutoRenewalEngineOutcome> {
@@ -78,6 +103,7 @@ export async function runAutoRenewalEngine(options: AutoRenewalEngineOptions = {
     skippedCount: 0,
     skippedReasons: {},
     created: [],
+    accountSummaries: [],
   };
 
   let subscriptionsQuery = supabaseAdmin
@@ -112,10 +138,29 @@ export async function runAutoRenewalEngine(options: AutoRenewalEngineOptions = {
     subscriptionsByAccount.set(subscription.account_id, list);
   }
 
+  const accountSummaries = new Map<string, AutoRenewalEngineAccountSummary>();
+  function getAccountSummary(accountId: string): AutoRenewalEngineAccountSummary {
+    const existing = accountSummaries.get(accountId);
+    if (existing) {
+      return existing;
+    }
+
+    const created = createAccountSummary(accountId);
+    accountSummaries.set(accountId, created);
+    return created;
+  }
+
+  if (accountId && subscriptionsByAccount.size === 0) {
+    getAccountSummary(accountId);
+  }
+
   for (const [accountId, accountSubscriptions] of subscriptionsByAccount.entries()) {
     if (report.createdCount >= maxCreated) {
       break;
     }
+
+    const accountReport = getAccountSummary(accountId);
+    accountReport.scannedCount += accountSubscriptions.length;
 
     const customerIds = [...new Set(accountSubscriptions.map((subscription) => subscription.customer_id))];
     const customers = await loadRowsByIds<CustomerRiskRow>(
@@ -135,6 +180,7 @@ export async function runAutoRenewalEngine(options: AutoRenewalEngineOptions = {
       const daysRemaining = getDaysRemaining(subscription.expiry_date);
 
       if (!customer) {
+        bumpReason(accountReport, "customer_missing");
         bumpReason(report, "customer_missing");
         continue;
       }
@@ -144,16 +190,19 @@ export async function runAutoRenewalEngine(options: AutoRenewalEngineOptions = {
       const reliabilityScore = Number(customer.reliability_score ?? 100);
 
       if (debtAmount > 0) {
+        bumpReason(accountReport, "customer_has_debt");
         bumpReason(report, "customer_has_debt");
         continue;
       }
 
       if (overdueDays > 0) {
+        bumpReason(accountReport, "customer_overdue");
         bumpReason(report, "customer_overdue");
         continue;
       }
 
       if (reliabilityScore < minReliabilityScore) {
+        bumpReason(accountReport, "low_reliability");
         bumpReason(report, "low_reliability");
         continue;
       }
@@ -165,24 +214,30 @@ export async function runAutoRenewalEngine(options: AutoRenewalEngineOptions = {
         });
       } catch (error) {
         bumpReason(report, error instanceof Error ? error.message : "renewal_not_allowed");
+        bumpReason(accountReport, error instanceof Error ? error.message : "renewal_not_allowed");
         continue;
       }
 
       try {
         const renewal = await createRenewalRequest(accountId, subscription.id, subscription.customer_id);
-        report.created.push({
+        const createdItem = {
           accountId,
           subscriptionId: subscription.id,
           renewalId: (renewal as { id?: string } | null)?.id ?? subscription.id,
           customerId: subscription.customer_id,
           customerName: customer.full_name,
           daysRemaining,
-        });
+        };
+        report.created.push(createdItem);
+        accountReport.created.push(createdItem);
         report.createdCount += 1;
+        accountReport.createdCount += 1;
         report.eligibleCount += 1;
+        accountReport.eligibleCount += 1;
       } catch (error) {
         const message = error instanceof Error ? error.message : "renewal_creation_failed";
         if (message.toLowerCase().includes("pending")) {
+          bumpReason(accountReport, "renewal_pending");
           bumpReason(report, "renewal_pending");
           continue;
         }
@@ -191,6 +246,8 @@ export async function runAutoRenewalEngine(options: AutoRenewalEngineOptions = {
       }
     }
   }
+
+  report.accountSummaries = [...accountSummaries.values()];
 
   return report;
 }
