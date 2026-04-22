@@ -1,0 +1,44 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/telegram-reminder",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/telegram-reminder",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/order-expiry-reminder",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/auto-escalation",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/premium-renewal-reminder",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/premium-health-checks",
+      "schedule": "15 3 * * *"
+    },
+    {
+      "path": "/api/cron/revenue-report",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/revenue-report?type=weekly",
+      "schedule": "0 1 * * 1"
+    },
+    {
+      "path": "/api/cron/webhook-retry",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/best-super-link",
+      "schedule": "0 1 * * *"
+    }
+  ]
+}

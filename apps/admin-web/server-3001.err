@@ -1,0 +1,198 @@
+[Supervisor] Zalo config: Missing ZALO_BOT_TOKEN; Zalo bot will be skipped.
+[Supervisor] Zalo config: Missing ADMIN_ZALO_USER_IDS; startup notifications and human handoff will be disabled.
+[Supervisor] Skipping Zalo bot: ZALO_BOT_TOKEN is missing.
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at handleMessage (node:internal/modules/esm/worker:201:24)
+    at checkForMessages (node:internal/modules/esm/worker:143:28) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 2000ms...
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at handleMessage (node:internal/modules/esm/worker:201:24)
+    at checkForMessages (node:internal/modules/esm/worker:143:28) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 4000ms...
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at handleMessage (node:internal/modules/esm/worker:201:24)
+    at checkForMessages (node:internal/modules/esm/worker:143:28) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 8000ms...
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at handleMessage (node:internal/modules/esm/worker:201:24)
+    at Immediate.checkForMessages (node:internal/modules/esm/worker:143:28) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 16000ms...
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at handleMessage (node:internal/modules/esm/worker:201:24)
+    at Immediate.checkForMessages (node:internal/modules/esm/worker:143:28) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 30000ms...
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at handleMessage (node:internal/modules/esm/worker:201:24)
+    at checkForMessages (node:internal/modules/esm/worker:143:28) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 30000ms...
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at MessagePort.handleMessage (node:internal/modules/esm/worker:201:24)
+    at [nodejs.internal.kHybridDispatch] (node:internal/event_target:845:20) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 30000ms...
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at handleMessage (node:internal/modules/esm/worker:201:24)
+    at checkForMessages (node:internal/modules/esm/worker:143:28) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 30000ms...
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at MessagePort.handleMessage (node:internal/modules/esm/worker:201:24)
+    at [nodejs.internal.kHybridDispatch] (node:internal/event_target:845:20) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 30000ms...
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at MessagePort.handleMessage (node:internal/modules/esm/worker:201:24)
+    at [nodejs.internal.kHybridDispatch] (node:internal/event_target:845:20) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 30000ms...
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at handleMessage (node:internal/modules/esm/worker:201:24)
+    at checkForMessages (node:internal/modules/esm/worker:143:28) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 30000ms...
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at handleMessage (node:internal/modules/esm/worker:201:24)
+    at Immediate.checkForMessages (node:internal/modules/esm/worker:143:28) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 30000ms...
+❌ Failed to load bot router: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'server-only' imported from D:\GITHUB\managerorder\premium-admin-web\src\lib\supabase\admin.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolve (file:///D:/GITHUB/managerorder/premium-admin-web/scripts/ts-path-alias-loader.mjs:72:10)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30)
+    at handleMessage (node:internal/modules/esm/worker:201:24)
+    at Immediate.checkForMessages (node:internal/modules/esm/worker:143:28) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+[Supervisor] telegram exited with code 1.
+[Supervisor] Restarting telegram in 30000ms...

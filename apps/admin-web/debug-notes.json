@@ -1,0 +1,23 @@
+[
+  {
+    "id": "c1223dff-cf87-4f7c-a730-51de9a9d449c",
+    "email": "erin.mulhall@mmula.shop",
+    "provider": "064a7f78-db26-4f43-9455-f14fb8ea3c7c",
+    "notes": {
+      "credentials": [
+        {
+          "id": "9fff41cd-72bb-4ed9-b273-dd85406260c1",
+          "type": "other",
+          "label": "1",
+          "value": "2279"
+        },
+        {
+          "id": "da8a59f2-be77-404b-9da3-2ed657e23f0f",
+          "type": "other",
+          "label": "2",
+          "value": "1379"
+        }
+      ]
+    }
+  }
+]

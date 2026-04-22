@@ -1,0 +1,16 @@
+
+> premium-admin-web@0.1.0 dev
+> node --experimental-strip-types --import ./scripts/register-ts-loader.mjs ./scripts/runtime-supervisor.ts --mode=dev --port 3001
+
+[Supervisor] Starting runtime in dev mode.
+[Supervisor] Telegram runtime mode: polling.
+[Supervisor] Zalo runtime: app=Quản Lý Premium Admin, account=550e8400-e29b-41d4-a716-446655440000, admins=2, ai=on, catalog=on, lookup=on, handoff=on, gemini=off
+🚀 Starting Telegram Bot (Polling Relay Mode)...
+[Zalo] Runtime config: app=Quản Lý Premium Admin, account=550e8400-e29b-41d4-a716-446655440000, admins=2, ai=on, catalog=on, lookup=on, handoff=on, gemini=off
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://10.252.57.14:3001
+- Environments: .env.local
+✓ Ready in 1070ms
+✅ Webhook deleted to enable long polling.
+[?25h

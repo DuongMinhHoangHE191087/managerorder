@@ -1,0 +1,67 @@
+{
+  "name": "@managerorder/zalo-bot-js",
+  "version": "0.1.1",
+  "private": true,
+  "packageManager": "pnpm@10.17.1",
+  "engines": {
+    "node": ">=22 <25",
+    "pnpm": ">=9 <11"
+  },
+  "description": "TypeScript SDK for the Zalo Bot API.",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "require": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "lint": "corepack pnpm run check",
+    "typecheck": "corepack pnpm run check",
+    "docs:translate:en": "node ./scripts/translate-docs-vi-to-en.mjs",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "prepack": "corepack pnpm run build",
+    "prepublishOnly": "corepack pnpm run build",
+    "test:bot-api": "corepack pnpm run build && node ./dist/test/bot-api.js",
+    "test:event-debug": "corepack pnpm run build && node ./dist/test/event-debug.js",
+    "test:hello-bot": "corepack pnpm run build && node ./dist/test/hello-bot.js",
+    "test:support-bot": "corepack pnpm run build && node ./dist/examples/support-ticket-bot.js",
+    "start:ai-bot": "corepack pnpm run build && node ./dist/examples/ai-sales-bot.js",
+    "start:bot": "corepack pnpm run build && node ./dist/src/app.js",
+    "test:token": "corepack pnpm run build && node ./dist/test/check-token.js",
+    "test:integration": "corepack pnpm run test:bot-api",
+    "smoke": "node -e \"const sdk=require('./dist/src/index.js'); const bot=new sdk.Bot({token:'test-token',request:{initialize:async()=>{},shutdown:async()=>{},post:async()=>({id:'1'})},pollingRequest:{initialize:async()=>{},shutdown:async()=>{},post:async()=>[]}}); if(!sdk.Bot||!sdk.ApplicationBuilder||!sdk.filters){throw new Error('SDK exports are incomplete');} if(typeof bot.on!=='function'||typeof bot.onText!=='function'||typeof bot.startPolling!=='function'||typeof bot.processUpdate!=='function'||typeof bot.setWebHook!=='function'){throw new Error('Node-style bot API is incomplete');} console.log('smoke ok');\"",
+    "test": "corepack pnpm run check && corepack pnpm run build && corepack pnpm run smoke"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KaiyoDev/zalo-bot-js.git"
+  },
+  "keywords": [],
+  "author": "KaiyoDev",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "translate-google": "^1.5.0",
+    "typescript": "^6.0.2",
+    "vitepress": "^2.0.0-alpha.12"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.101.1",
+    "@types/express": "^5.0.6",
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1",
+    "sharp": "^0.34.5"
+  }
+}

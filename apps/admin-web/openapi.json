@@ -1,0 +1,2560 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Duolingo Unofficial API (Main)",
+    "description": "Unofficial API description for Duolingo.",
+    "version": "1.0.0"
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/vocabulary/overview": {
+      "get": {
+        "tags": [
+          "Vocabulary"
+        ],
+        "operationId": "getVocabularyOverview",
+        "summary": "Returns vocabulary",
+        "description": "User's vocabulary",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A vocabulary object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Vocabulary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The specified user ID is invalid (e.g. not a number)."
+          },
+          "404": {
+            "description": "A user with the specified ID was not found."
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/2017-06-30/login": {
+      "post": {
+        "tags": [
+          "Login"
+        ],
+        "summary": "Returns token in header.",
+        "description": "Login user",
+        "security": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          },
+          "400": {
+            "description": "Invalid data"
+          },
+          "403": {
+            "description": "Login failed"
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/users/{username}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "getUserByYsername",
+        "summary": "Returns user information by username",
+        "description": "User information by username",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "username",
+            "required": true,
+            "description": "Username",
+            "schema": {
+              "type": "string",
+              "minimum": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "fields",
+            "description": "Fields to retrieve",
+            "style": "form",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A User object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserByUsername"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The specified user ID is invalid (e.g. not a number)."
+          },
+          "404": {
+            "description": "A user with the specified ID was not found."
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/v2/mistakes/users/{userID}/courses/{courseID}/count": {
+      "get": {
+        "tags": [
+          "Mistakes"
+        ],
+        "operationId": "getMistakesCount",
+        "summary": "Returns mistakes count",
+        "description": "Mistakes count",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "includeListening",
+            "description": "Include Listening",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeSpeaking",
+            "description": "Include Speaking",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "userID",
+            "required": true,
+            "description": "UserID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "courseID",
+            "required": true,
+            "description": "CourseID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mistakes count response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "numberMistakes": {
+                      "type": "integer",
+                      "example": 49
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/2017-06-30/users/{userID}": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "userID",
+          "required": true,
+          "description": "User ID",
+          "schema": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        {
+          "in": "query",
+          "name": "fields",
+          "description": "Fields to retrieve",
+          "style": "form",
+          "explode": false,
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      ],
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "setLanguage",
+        "summary": "Set User Language",
+        "description": "Set User Language/Course",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "courseId": {
+                    "type": "string",
+                    "example": "DUOLINGO_KO_EN"
+                  },
+                  "fromLanguage": {
+                    "type": "string",
+                    "example": "en"
+                  },
+                  "learningLanguage": {
+                    "type": "string",
+                    "example": "ko"
+                  }
+                }
+              }
+            }
+          },
+          "description": "The user to create."
+        },
+        "responses": {
+          "200": {
+            "description": "An empty object"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "getUser",
+        "summary": "Returns user information.",
+        "description": "User information.",
+        "responses": {
+          "200": {
+            "description": "A User object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The specified user ID is invalid (e.g. not a number)."
+          },
+          "404": {
+            "description": "A user with the specified ID was not found."
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/2017-06-30/friends/{userID}/matches": {
+      "get": {
+        "tags": [
+          "Friends"
+        ],
+        "operationId": "getFriendsMatches",
+        "summary": "Returns friends matches",
+        "description": "Friends matches for a user",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "activityName",
+            "description": "Activity name",
+            "example": "friendsStreak",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "userID",
+            "required": true,
+            "description": "UserID",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A friends matches response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FriendsMatchesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The specified user ID is invalid (e.g. not a number)."
+          },
+          "404": {
+            "description": "A user with the specified ID was not found."
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/2017-06-30/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "getUsers",
+        "summary": "Returns user information when not logged in.",
+        "description": "User information when not logged in.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "username",
+            "required": true,
+            "description": "User Name",
+            "schema": {
+              "type": "string",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A Users object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The specified user ID is invalid (e.g. not a number)."
+          },
+          "404": {
+            "description": "A user with the specified ID was not found."
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/2017-06-30/users/{userID}/subscriptions": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "getSubscriptions",
+        "summary": "Returns user subscription list.",
+        "description": "User subscription.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userID",
+            "required": true,
+            "description": "UserID",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A Users SubscriptionList object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The specified user ID is invalid (e.g. not a number)."
+          },
+          "404": {
+            "description": "A user with the specified ID was not found."
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/2017-06-30/users/{userID}/xp_summaries": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "getXpSummaries",
+        "summary": "Returns user XP summaries",
+        "description": "User summaries.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "timezone",
+            "required": true,
+            "description": "Time zone",
+            "schema": {
+              "type": "string",
+              "minimum": 1
+            }
+          },
+          {
+            "in": "path",
+            "name": "userID",
+            "required": true,
+            "description": "UserID",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A Users summaries object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summaries": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/XpSummary"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The specified user ID is invalid (e.g. not a number)."
+          },
+          "404": {
+            "description": "A user with the specified ID was not found."
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/2017-06-30/shop-items": {
+      "get": {
+        "tags": [
+          "ShopItems"
+        ],
+        "operationId": "getShopItems",
+        "summary": "Returns shop items list.",
+        "description": "User shop items list",
+        "responses": {
+          "200": {
+            "description": "A Users shop items list object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "shopItems": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ShopItemsList"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "getNotifications",
+        "summary": "Returns notification list.",
+        "description": "Notification list",
+        "responses": {
+          "200": {
+            "description": "Notification list object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Notification"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://www.duolingo.com"
+    },
+    {
+      "url": "https://www.duolingo.com"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "PronounMappingItemTenses": {
+        "type": "object",
+        "properties": {
+          "cni": {
+            "type": "string",
+            "example": "conditional_indicative_first_person_plural"
+          },
+          "ger": {
+            "type": "string",
+            "example": "gerund"
+          },
+          "ifi": {
+            "type": "string",
+            "example": "preterite_indicative_first_person_plural"
+          },
+          "imp": {
+            "type": "string",
+            "example": "imperative_second_person_singular_tu"
+          },
+          "inf": {
+            "type": "string",
+            "example": "infinitive"
+          },
+          "pii": {
+            "type": "string",
+            "example": "copreterite_indicative_first_person_plural"
+          },
+          "pis": {
+            "type": "string",
+            "example": "preterite_subjunctive_first_person_plural"
+          },
+          "pp": {
+            "type": "string",
+            "example": "participle"
+          },
+          "pri": {
+            "type": "string",
+            "example": "present_indicative_first_person_plural"
+          },
+          "prs": {
+            "type": "string",
+            "example": "present_subjunctive_first_person_plural"
+          }
+        }
+      },
+      "PronounMappingItem": {
+        "type": "object",
+        "properties": {
+          "pronoun": {
+            "type": "string",
+            "example": "yo"
+          },
+          "tenses": {
+            "$ref": "#/components/schemas/PronounMappingItemTenses"
+          }
+        }
+      },
+      "LanguageInformationTense": {
+        "type": "object",
+        "properties": {
+          "tense_string": {
+            "type": "string",
+            "example": "Gerund"
+          },
+          "tense": {
+            "type": "string",
+            "example": "ger"
+          }
+        }
+      },
+      "LanguageInformationTenses": {
+        "type": "object",
+        "properties": {
+          "indicative": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LanguageInformationTense"
+            }
+          },
+          "others": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LanguageInformationTense"
+            }
+          },
+          "subjunctive": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LanguageInformationTense"
+            }
+          }
+        }
+      },
+      "LanguageInformation": {
+        "type": "object",
+        "properties": {
+          "pronoun_mapping": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PronounMappingItem"
+            }
+          },
+          "tenses": {
+            "$ref": "#/components/schemas/LanguageInformationTenses"
+          }
+        }
+      },
+      "VocabularyOverviewItem": {
+        "type": "object",
+        "properties": {
+          "gender": {
+            "type": "string",
+            "example": "Masculine"
+          },
+          "id": {
+            "type": "string",
+            "example": "2a5f9687f146bdb703ab03f7bedf2d3c"
+          },
+          "infinitive": {
+            "type": "string",
+            "example": "hacer"
+          },
+          "last_practiced": {
+            "type": "string",
+            "example": "2022-06-17T20:19:36Z"
+          },
+          "last_practiced_ms": {
+            "type": "integer",
+            "example": 1655497176000
+          },
+          "lexeme_id": {
+            "type": "string",
+            "example": "39007b3c41faaa99f950e934fe5429f8"
+          },
+          "normalized_string": {
+            "type": "string",
+            "example": "hacer"
+          },
+          "pos": {
+            "type": "string",
+            "example": "Verb"
+          },
+          "related_lexemes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "skill": {
+            "type": "string",
+            "example": "Routines 2"
+          },
+          "skill_url_title": {
+            "type": "string",
+            "example": "Routines-2"
+          },
+          "strength": {
+            "type": "number",
+            "format": "double",
+            "example": 0.999986
+          },
+          "strength_bars": {
+            "type": "integer",
+            "example": 4
+          },
+          "word_string": {
+            "type": "string",
+            "example": "hacer"
+          }
+        }
+      },
+      "Vocabulary": {
+        "properties": {
+          "from_language": {
+            "type": "string",
+            "example": "en"
+          },
+          "language_string": {
+            "type": "string",
+            "example": "Spanish"
+          },
+          "learning_language": {
+            "type": "string",
+            "example": "es"
+          },
+          "language_information": {
+            "$ref": "#/components/schemas/LanguageInformation"
+          },
+          "vocab_overview": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VocabularyOverviewItem"
+            }
+          }
+        }
+      },
+      "LoginData": {
+        "properties": {
+          "distinctId": {
+            "type": "string"
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "landingUrl": {
+            "type": "string"
+          },
+          "lastReferrer": {
+            "type": "string"
+          }
+        }
+      },
+      "LevelTest": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "example": 0
+          },
+          "attempts": {
+            "type": "integer",
+            "example": 3
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "level": {
+            "type": "integer",
+            "example": 6
+          }
+        }
+      },
+      "Notifications": {
+        "type": "object",
+        "properties": {
+          "chrome_app_ad": {
+            "type": "boolean"
+          },
+          "net_promoter": {
+            "type": "boolean"
+          },
+          "schools_2016_07_ad": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CalendarItem": {
+        "type": "object",
+        "properties": {
+          "skill_id": {
+            "type": "string",
+            "example": "ab367af4584214cc1fb3bb63cd8a6136"
+          },
+          "improvement": {
+            "type": "integer",
+            "example": 20
+          },
+          "event_type": {
+            "type": "string",
+            "example": "lesson"
+          },
+          "datetime": {
+            "type": "integer",
+            "example": 1653810257000
+          }
+        }
+      },
+      "TrackingProperties": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "type": "string",
+            "example": "ko<-en"
+          },
+          "latest_referring_domain": {
+            "type": "string",
+            "example": "www.duolingo.com"
+          },
+          "took_placementtest": {
+            "type": "boolean"
+          },
+          "learning_language": {
+            "type": "string",
+            "example": "ko"
+          },
+          "utc_offset": {
+            "type": "number",
+            "format": "float",
+            "example": 2
+          },
+          "unsafe_lexeme_restriction": {
+            "type": "boolean"
+          },
+          "ui_language": {
+            "type": "string",
+            "example": "en"
+          },
+          "max_tree_level": {
+            "type": "integer",
+            "example": 3
+          },
+          "latest_referrer": {
+            "type": "string",
+            "example": "https://www.duolingo.com/"
+          }
+        }
+      },
+      "NextLesson": {
+        "type": "object",
+        "properties": {
+          "lesson_number": {
+            "type": "integer",
+            "example": 4
+          },
+          "skill_title": {
+            "type": "string",
+            "example": "Belongings"
+          },
+          "skill_url": {
+            "type": "string",
+            "example": "Belongings"
+          }
+        }
+      },
+      "SkillProgress": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "integer",
+            "example": 0
+          }
+        }
+      },
+      "Skill": {
+        "type": "object",
+        "properties": {
+          "language_string": {
+            "type": "string",
+            "example": "Korean"
+          },
+          "dependencies_name": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "practice_recommended": {
+            "type": "boolean"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "test_count": {
+            "type": "integer",
+            "example": 3
+          },
+          "missing_lessons": {
+            "type": "integer",
+            "example": 3
+          },
+          "skill_progress": {
+            "$ref": "#/components/schemas/SkillProgress"
+          },
+          "lesson": {
+            "type": "boolean"
+          },
+          "has_explanation": {
+            "type": "string"
+          },
+          "url_title": {
+            "type": "string",
+            "example": "Quotation"
+          },
+          "icon_color": {
+            "type": "string",
+            "example": "red"
+          },
+          "category": {
+            "type": "string"
+          },
+          "num_lessons": {
+            "type": "integer",
+            "example": 3
+          },
+          "strength": {
+            "type": "integer",
+            "example": 0
+          },
+          "beginner": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string",
+            "example": "Indirect Quotation 1"
+          },
+          "num_levels": {
+            "type": "integer",
+            "example": 6
+          },
+          "coords_y": {
+            "type": "integer",
+            "example": 37
+          },
+          "coords_x": {
+            "type": "integer",
+            "example": 1
+          },
+          "progress_level_session_index": {
+            "type": "integer",
+            "example": 0
+          },
+          "id": {
+            "type": "string",
+            "example": "b3de0ee8a143650ff224a6b9721b054a"
+          },
+          "level_sessions_finished": {
+            "type": "integer",
+            "example": 0
+          },
+          "levels_finished": {
+            "type": "integer",
+            "example": 0
+          },
+          "test": {
+            "type": "boolean"
+          },
+          "lesson_number": {
+            "type": "integer",
+            "example": 1
+          },
+          "learned": {
+            "type": "boolean"
+          },
+          "num_translation_nodes": {
+            "type": "integer",
+            "example": 0
+          },
+          "description": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer",
+            "example": 0
+          },
+          "bonus": {
+            "type": "boolean"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "explanation": {
+            "type": "string",
+            "example": "<h3><strong>Native Korean Numbers</strong></h3>\n<p>Korean has two sets of numbers, <strong>Native Korean</strong> and <strong>Sino-Korean</strong>. Before that scares you away, let's take a closer look at Native Korean Numbers.</p>\n<h4><strong>Usage</strong></h4>\n<p>Native Korean numbers are used for numbering things, just as you would any number system. In contrast, Sino-Korean numbers are used in specific cases, such as dates, telephone numbers, addresses, and counting money.</p>\n<p>Native Korean can be used for counting as well. When taking pictures, you may hear Koreans say \"하나, 둘, 셋!\" before snapping the photo.</p>\n<p>Native Korean has the numbers 1-10, then 11-19 simply combine 10 and the small number, so 11 would be \"ten-one.\" There are separate words for each of the tens, which are used to create compounds the same way that 10 is. </p>\n<p>Some of the tens are derived from their \"base\" as in English, 여덟/eight=&gt; 여든/eighty, but others have no obvious relationship.</p>\n<h4><strong>Irregulars</strong></h4>\n<p>Native Korean has five numbers that take a \"short\" form before a counter.</p>\n<table>\n<thead>\n<tr>\n<th>Number</th>\n<th>Base Form</th>\n<th>Short Form</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>1</td>\n<td>하나</td>\n<td>한</td>\n</tr>\n<tr>\n<td>2</td>\n<td>둘</td>\n<td>두</td>\n</tr>\n<tr>\n<td>3</td>\n<td>셋</td>\n<td>세</td>\n</tr>\n<tr>\n<td>4</td>\n<td>넷</td>\n<td>네</td>\n</tr>\n<tr>\n<td>20</td>\n<td>스물</td>\n<td>스무</td>\n</tr>\n</tbody>\n</table>\n<h4><strong>Counters</strong></h4>\n<p>What are these <strong>counters</strong> we've mentioned? Think of words in English like paper or milk. Usually we cannot say \"a paper\" or \"a milk,\" except in some limited circumstances. We have to be specific, \"a sheet/piece/pack of paper\" or \"a cup/glass/carton/jug of milk.\" Now apply that to every noun in Korean.</p>\n<p>The most common counter is 개 and can be used in most situations. As a non-native Korean speaker, you can often get away with using 개 in cases where Koreans would use a specific counter. Exceptions include 명 for people, 마리 for animals, and some food terms where more specificity is required.</p>\n<p>The general usage is Noun+Number+Counter+Particle in a sentence. </p>\n<ul>\n<li>사람 한 명이 있어요=There is one person</li>\n</ul>\n<p>Particles can sometimes be attached to the noun instead of the counter.</p>\n<p>Usually in writing the number and counter are written separately, with a space, but without a space when using a numeral (두 명 vs 2명).</p>\n<p>Other word orders are also possible in some circumstances, but less popular:</p>\n<ul>\n<li>\n<p>Number+Noun (한 사람)</p>\n</li>\n<li>\n<p>Number+Counter+의+Noun (한 명의 사람)</p>\n</li>\n<li>\n<p>Noun+Number (사람 하나)</p>\n</li>\n</ul>\n<table>\n<thead>\n<tr>\n<th>Counter</th>\n<th>Nouns</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>개</td>\n<td>General counter</td>\n</tr>\n<tr>\n<td>명</td>\n<td>People</td>\n</tr>\n<tr>\n<td>살</td>\n<td>Age</td>\n</tr>\n<tr>\n<td>마리</td>\n<td>Animals</td>\n</tr>\n<tr>\n<td>자루</td>\n<td>Long thing things</td>\n</tr>\n<tr>\n<td>대</td>\n<td>Machines/cars</td>\n</tr>\n</tbody>\n</table>\n<h4><strong>Age</strong></h4>\n<p>Age in Korean is marked with the counter 살. \n저는 스무 살이에요=I am twenty</p>\n<p>In Korea, age is calculated differently than in most other countries. It is based on the traditional Asian lunar cycle. A baby is one when it is born and turns two on New Year's Day. Depending on who you are talking to, this may be either January 1st or Lunar New Year. Therefore, most of us are 1 or 2 years older in Korea than we are at home.</p>\n<h4><strong>Large Numbers</strong></h4>\n<p>Although Native Korean was the original number system, it now only goes up to 99 in regular language. Larger numbers are said in Sino-Korean except in some more academic cases, mostly poetry, as the large Native Korean numbers are fairly archaic.</p>\n<p>For these numbers of 100, some people may mix the two forms. 150, for example, could be said with 100 in Sino-Korean and 50 in Native Korean. This is more common in speaking than in writing.</p>\n<p>It is not uncommon for numbers over 19 to be said in Sino-Korean, especially by children who do not yet have the trickier Native Korean digits memorized.</p>\n<table>\n<thead>\n<tr>\n<th>Number</th>\n<th>Native Korean</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>10</td>\n<td>열</td>\n</tr>\n<tr>\n<td>20</td>\n<td>스물</td>\n</tr>\n<tr>\n<td>30</td>\n<td>서른</td>\n</tr>\n<tr>\n<td>40</td>\n<td>마흔</td>\n</tr>\n<tr>\n<td>50</td>\n<td>쉰</td>\n</tr>\n<tr>\n<td>60</td>\n<td>예순</td>\n</tr>\n<tr>\n<td>70</td>\n<td>일흔</td>\n</tr>\n<tr>\n<td>80</td>\n<td>여든</td>\n</tr>\n<tr>\n<td>90</td>\n<td>아흔</td>\n</tr>\n</tbody>\n</table>\n<h4><strong>Ordinal Numbers</strong></h4>\n<p>Ordinal Numbers (first, second, third) are created by combining the Native Korean number with 번째. This uses the short form for those numbers that have one, except for 1, which uses 첫 instead of 한, giving us 첫 번째 for \"first.\"</p>\n<h4><strong>Roots</strong></h4>\n<ul>\n<li>명 - name (名)</li>\n</ul>"
+          },
+          "num_lexemes": {
+            "type": "integer",
+            "example": 21
+          },
+          "num_missing": {
+            "type": "integer",
+            "example": 21
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "known_lexemes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": [
+                "4ed12bd7fbaf821182a32a1822971ce3",
+                "8848fe62ccc44f69b54aae32f5c860c3"
+              ]
+            }
+          },
+          "words": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "num_sessions_for_level": {
+            "type": "integer",
+            "example": 3
+          },
+          "strength_no_disabled_no_character": {
+            "type": "integer",
+            "example": 0
+          },
+          "strength_no_disabled": {
+            "type": "integer",
+            "example": 0
+          },
+          "short": {
+            "type": "string",
+            "example": "Quote 1"
+          },
+          "grammar": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string",
+            "example": "Indirect Quotation"
+          },
+          "language": {
+            "type": "string",
+            "example": "ko"
+          },
+          "is_new_grammar": {
+            "type": "boolean"
+          },
+          "new_index": {
+            "type": "integer",
+            "example": 52
+          },
+          "progress_percent": {
+            "type": "integer",
+            "example": 0
+          },
+          "mastered": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PlacementTest": {
+        "type": "object",
+        "properties": {
+          "attempts": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "LanguageData": {
+        "type": "object",
+        "properties": {
+          "streak": {
+            "type": "integer",
+            "example": 1975
+          },
+          "language_string": {
+            "type": "string",
+            "example": "Korean"
+          },
+          "level_progress": {
+            "type": "integer",
+            "example": 367
+          },
+          "first_time": {
+            "type": "boolean"
+          },
+          "fluency_score": {
+            "type": "number",
+            "format": "float",
+            "example": 0
+          },
+          "push_practice": {
+            "type": "boolean"
+          },
+          "max_section_index": {
+            "type": "integer",
+            "example": 0
+          },
+          "level_tests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LevelTest"
+            }
+          },
+          "direction_status": {
+            "type": "string",
+            "example": "released"
+          },
+          "next_level": {
+            "type": "integer",
+            "example": 0
+          },
+          "linkedin_share_url": {
+            "type": "string",
+            "example": "https://www.duolingo.com"
+          },
+          "notifications": {
+            "$ref": "#/components/schemas/Notifications"
+          },
+          "notify_time": {
+            "type": "integer",
+            "example": 780
+          },
+          "notify_practice": {
+            "type": "boolean"
+          },
+          "num_skills_learned": {
+            "type": "integer",
+            "example": 4
+          },
+          "calendar": {
+            "$ref": "#/components/schemas/CalendarItem"
+          },
+          "can_transliterate": {
+            "type": "boolean"
+          },
+          "level_left": {
+            "type": "integer",
+            "example": 233
+          },
+          "no_dep": {
+            "type": "boolean"
+          },
+          "tracking_properties": {
+            "$ref": "#/components/schemas/TrackingProperties"
+          },
+          "language_strength": {
+            "type": "number",
+            "format": "float",
+            "example": 1
+          },
+          "next_lesson": {
+            "$ref": "#/components/schemas/NextLesson"
+          },
+          "max_level": {
+            "type": "boolean"
+          },
+          "level_percent": {
+            "type": "integer",
+            "example": 61
+          },
+          "language": {
+            "type": "string",
+            "example": "ko"
+          },
+          "level": {
+            "type": "integer",
+            "example": 9
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Skill"
+            }
+          },
+          "level_points": {
+            "type": "integer",
+            "example": 600
+          },
+          "useSmartReminderTime": {
+            "type": "boolean"
+          },
+          "max_depth_learned": {
+            "type": "integer",
+            "example": 2
+          },
+          "points": {
+            "type": "integer",
+            "example": 2017
+          },
+          "immersion_enabled": {
+            "type": "boolean"
+          },
+          "placement_test": {
+            "$ref": "#/components/schemas/PlacementTest"
+          },
+          "exempt_from_health": {
+            "type": "boolean"
+          },
+          "max_tree_level": {
+            "type": "integer",
+            "example": 3
+          }
+        }
+      },
+      "LanguageDataDict": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/LanguageData"
+        }
+      },
+      "LastStreak": {
+        "type": "object",
+        "properties": {
+          "shortened_product_id": {
+            "type": "string",
+            "example": "streak_12"
+          },
+          "is_available_for_repair": {
+            "type": "boolean"
+          },
+          "google_play_product_id": {
+            "type": "string",
+            "example": "com.duolingo.purchase.streakrepair.12"
+          },
+          "product_id": {
+            "type": "string",
+            "example": "streak_12"
+          },
+          "days_ago": {
+            "type": "integer",
+            "example": 0
+          },
+          "length": {
+            "type": "integer",
+            "example": 1975
+          },
+          "last_reached_goal": {
+            "type": "integer",
+            "example": 1654855200000
+          }
+        }
+      },
+      "Language": {
+        "type": "object",
+        "properties": {
+          "streak": {
+            "type": "integer",
+            "example": 1975
+          },
+          "language_string": {
+            "type": "string",
+            "example": "Greek"
+          },
+          "points": {
+            "type": "integer",
+            "example": 0
+          },
+          "learning": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string",
+            "example": "el"
+          },
+          "level": {
+            "type": "integer",
+            "example": 1
+          },
+          "current_learning": {
+            "type": "boolean"
+          },
+          "sentences_translated": {
+            "type": "integer",
+            "example": 0
+          },
+          "to_next_level": {
+            "type": "integer",
+            "example": 60
+          }
+        }
+      },
+      "Intentory": {
+        "type": "object",
+        "properties": {
+          "idioms_es": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "streak_freeze": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "timed_practice": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "idioms_fr": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "flirting_es": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "christmas_de": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "superhero_outfit": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "luxury_outfit": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "flirting_fr": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "streak_repair": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "formal_outfit": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "premium_subscription": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "idioms_de": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "flirting_de": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "society_streak_freeze": {
+            "type": "string",
+            "example": "2017-04-08 21:48:10.579000"
+          },
+          "gem_wager": {
+            "type": "integer",
+            "example": 4
+          }
+        }
+      },
+      "UserByUsername": {
+        "properties": {
+          "filter_stream": {
+            "type": "boolean"
+          },
+          "language_data": {
+            "$ref": "#/components/schemas/LanguageDataDict"
+          },
+          "last_streak": {
+            "$ref": "#/components/schemas/LastStreak"
+          },
+          "push_night_owl": {
+            "type": "boolean"
+          },
+          "deactivated": {
+            "type": "boolean"
+          },
+          "auto_facebook_post": {
+            "type": "boolean"
+          },
+          "notify_schools_newsletter": {
+            "type": "boolean"
+          },
+          "push_clubs": {
+            "type": "boolean"
+          },
+          "site_streak": {
+            "type": "integer"
+          },
+          "notification_sms_disabled": {
+            "type": "boolean"
+          },
+          "email_det_marketing": {
+            "type": "boolean"
+          },
+          "notify_edit_suggested": {
+            "type": "boolean"
+          },
+          "dict_base_url": {
+            "type": "string"
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Language"
+            }
+          },
+          "push_edit_suggested": {
+            "type": "boolean"
+          },
+          "twitter_id": {
+            "type": "string"
+          },
+          "transliterate": {
+            "type": "boolean"
+          },
+          "push_follow": {
+            "type": "boolean"
+          },
+          "email_events_digest": {
+            "type": "boolean"
+          },
+          "sound_effects": {
+            "type": "boolean"
+          },
+          "location": {
+            "type": "string"
+          },
+          "facebook_id": {
+            "type": "string"
+          },
+          "browser_language": {
+            "type": "string"
+          },
+          "notify_schools_promotion": {
+            "type": "boolean"
+          },
+          "intentory": {
+            "$ref": "#/components/schemas/Intentory"
+          },
+          "username": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "tts_cdn_url": {
+            "type": "string"
+          },
+          "created": {
+            "type": "string"
+          },
+          "push_activity_reply": {
+            "type": "boolean"
+          },
+          "learning_language_string": {
+            "type": "string"
+          },
+          "push_comment": {
+            "type": "boolean"
+          },
+          "notification_whatsapp_enabled": {
+            "type": "boolean"
+          },
+          "streak_extended_today": {
+            "type": "boolean"
+          },
+          "notify_activity_comment": {
+            "type": "boolean"
+          },
+          "email_streak_saver": {
+            "type": "boolean"
+          },
+          "requires_parental_consent": {
+            "type": "boolean"
+          },
+          "trial_account": {
+            "type": "boolean"
+          },
+          "push_passed": {
+            "type": "boolean"
+          },
+          "notify_classroom_join": {
+            "type": "boolean"
+          },
+          "notify_classroom_leave": {
+            "type": "boolean"
+          },
+          "notify_assignment": {
+            "type": "boolean"
+          },
+          "push_schools_assignment": {
+            "type": "boolean"
+          },
+          "gplus_id": {
+            "type": "string"
+          },
+          "ui_language": {
+            "type": "string"
+          },
+          "notify_stream_post": {
+            "type": "boolean"
+          },
+          "fullname": {
+            "type": "string"
+          },
+          "notify_pass": {
+            "type": "boolean"
+          },
+          "notify_announcement": {
+            "type": "boolean"
+          },
+          "push_early_bird": {
+            "type": "boolean"
+          },
+          "upload-self-service": {
+            "type": "boolean"
+          },
+          "has_observer": {
+            "type": "boolean"
+          },
+          "tts_base_url_http": {
+            "type": "string"
+          },
+          "creation_date": {
+            "type": "string"
+          },
+          "push_streak_freeze_used": {
+            "type": "boolean"
+          },
+          "push_activity_comment": {
+            "type": "boolean"
+          },
+          "timezone": {
+            "type": "string",
+            "example": "Europe/Berlin"
+          },
+          "calendar": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarItem"
+            }
+          },
+          "insite_sentence_edited": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer",
+            "example": 14397890
+          },
+          "current_time": {
+            "type": "integer",
+            "example": 1654847458585
+          },
+          "push_leaderboards": {
+            "type": "boolean"
+          },
+          "push_announcement": {
+            "type": "boolean"
+          },
+          "ads_enabled": {
+            "type": "boolean"
+          },
+          "change-design": {
+            "type": "boolean"
+          },
+          "speaker": {
+            "type": "boolean"
+          },
+          "created_dt": {
+            "type": "integer",
+            "example": 1383394032000
+          },
+          "is_self_observer": {
+            "type": "boolean"
+          },
+          "notify_activity_reply": {
+            "type": "boolean"
+          },
+          "push_stream_post": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "string",
+            "example": "test@example.com"
+          },
+          "week_old_account": {
+            "type": "boolean"
+          },
+          "avatar": {
+            "type": "string",
+            "example": "//simg-ssl.duolingo.com/avatars/14397890/tYbGH_JcRd"
+          },
+          "daily_goal": {
+            "type": "integer",
+            "example": 30
+          },
+          "email_promotion": {
+            "type": "boolean"
+          },
+          "notify_schools_announcement": {
+            "type": "boolean"
+          },
+          "timezone_offset": {
+            "type": "string",
+            "example": "+0200"
+          },
+          "microphone": {
+            "type": "boolean"
+          },
+          "num_classrooms": {
+            "type": "integer",
+            "example": 0
+          },
+          "snooze_expiration_time": {
+            "type": "integer",
+            "example": 0
+          },
+          "notify_follow": {
+            "type": "boolean"
+          },
+          "invite_url": {
+            "type": "string",
+            "example": "https://invite.duolingo.com/BDHTZTB5CWWKTZIHPSKUUHCZM4"
+          },
+          "freeze-permissions": {
+            "type": "boolean"
+          },
+          "is_observer": {
+            "type": "boolean"
+          },
+          "notify_weekly_report": {
+            "type": "boolean"
+          },
+          "delete-permissions": {
+            "type": "boolean"
+          },
+          "notify_comment": {
+            "type": "boolean"
+          },
+          "insite_immersion_lingots": {
+            "type": "boolean"
+          },
+          "tts_base_url": {
+            "type": "string",
+            "example": "https://tt.cloudfront.net/"
+          },
+          "rupees": {
+            "type": "integer",
+            "example": 21348
+          },
+          "notify_weekly_progress_report": {
+            "type": "boolean"
+          },
+          "notify_assignment_complete": {
+            "type": "boolean"
+          },
+          "admin": {
+            "type": "boolean"
+          },
+          "email_verified": {
+            "type": "boolean"
+          },
+          "learning_language": {
+            "type": "string",
+            "example": "ko"
+          },
+          "push_happy_hour": {
+            "type": "boolean"
+          },
+          "num_observees": {
+            "type": "integer",
+            "example": 0
+          },
+          "email_word_of_the_day": {
+            "type": "boolean"
+          },
+          "notify_clubs": {
+            "type": "boolean"
+          },
+          "push_promotion": {
+            "type": "boolean"
+          },
+          "notify_schools_product_update": {
+            "type": "boolean"
+          },
+          "notification_wechat_enabled": {
+            "type": "boolean"
+          },
+          "autoplay": {
+            "type": "boolean"
+          },
+          "push_streak_saver": {
+            "type": "boolean"
+          },
+          "email_streak_freeze_used": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Achievement": {
+        "properties": {
+          "tier": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "tierCounts": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "shouldShowUnlock": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OptionalFeature": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "SmartTip": {
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "smartTipId": {
+            "type": "string"
+          }
+        }
+      },
+      "definitions-TrackingProperties": {
+        "properties": {
+          "direction": {
+            "type": "string"
+          },
+          "total_crowns": {
+            "type": "integer"
+          },
+          "took_placementtest": {
+            "type": "boolean"
+          },
+          "learning_language": {
+            "type": "string"
+          },
+          "gold_skill_count": {
+            "type": "integer"
+          },
+          "gold_tree_percent": {
+            "type": "number"
+          },
+          "num_skills_newly_decayed": {
+            "type": "integer"
+          },
+          "num_skills_decayed": {
+            "type": "integer"
+          },
+          "ui_language": {
+            "type": "string"
+          },
+          "max_tree_level": {
+            "type": "integer"
+          }
+        }
+      },
+      "ProgressQuizItem": {
+        "properties": {
+          "endTime": {
+            "type": "integer"
+          },
+          "score": {
+            "type": "number"
+          },
+          "startTime": {
+            "type": "integer"
+          }
+        }
+      },
+      "CourseSection": {
+        "properties": {
+          "numRows": {
+            "type": "integer"
+          },
+          "checkpointFinished": {
+            "type": "boolean"
+          },
+          "checkpointAccessible": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "preload": {
+            "type": "boolean"
+          },
+          "extraCrowns": {
+            "type": "integer"
+          },
+          "placementTestAvailable": {
+            "type": "boolean"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "progressVersion": {
+            "type": "integer"
+          }
+        }
+      },
+      "CurrentCourse": {
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "learningLanguage": {
+            "type": "string"
+          },
+          "healthEnabled": {
+            "type": "boolean"
+          },
+          "xp": {
+            "type": "integer"
+          },
+          "wordsLearned": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "fromLanguage": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "smartTips": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SmartTip"
+            }
+          },
+          "trackingProperties": {
+            "$ref": "#/components/schemas/definitions-TrackingProperties"
+          },
+          "crowns": {
+            "type": "integer"
+          },
+          "progressQuizHistory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProgressQuizItem"
+            }
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseSection"
+            }
+          }
+        }
+      },
+      "Course": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "preload": {
+            "type": "boolean"
+          },
+          "placementTestAvailable": {
+            "type": "boolean"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "learningLanguage": {
+            "type": "string"
+          },
+          "xp": {
+            "type": "integer"
+          },
+          "healthEnabled": {
+            "type": "boolean"
+          },
+          "fromLanguage": {
+            "type": "string"
+          },
+          "crowns": {
+            "type": "integer"
+          }
+        }
+      },
+      "XpGain": {
+        "properties": {
+          "eventType": {
+            "type": "string"
+          },
+          "xp": {
+            "type": "integer"
+          },
+          "skillId": {
+            "type": "string"
+          },
+          "time": {
+            "type": "integer"
+          }
+        }
+      },
+      "StreakData": {
+        "properties": {
+          "length": {
+            "type": "integer"
+          },
+          "updatedTimeZone": {
+            "type": "string"
+          },
+          "xpGoal": {
+            "type": "integer"
+          },
+          "updatedTimestamp": {
+            "type": "integer"
+          }
+        }
+      },
+      "ReferralInfo": {
+        "properties": {
+          "inviterName": {
+            "type": "string"
+          },
+          "unconsumedInviteeName": {
+            "type": "string"
+          },
+          "numBonusesReady": {
+            "type": "integer"
+          },
+          "hasReachedCap": {
+            "type": "boolean"
+          },
+          "isEligibleForBonus": {
+            "type": "boolean"
+          }
+        }
+      },
+      "definitions-LastStreak": {
+        "properties": {
+          "isAvailableForRepair": {
+            "type": "boolean"
+          },
+          "googlePlayProductId": {
+            "type": "string"
+          },
+          "googlePlayDevPayload": {
+            "type": "string"
+          },
+          "length": {
+            "type": "integer"
+          },
+          "daysAgo": {
+            "type": "integer"
+          },
+          "lastReachedGoal": {
+            "type": "integer"
+          },
+          "shortenedProductId": {
+            "type": "string"
+          }
+        }
+      },
+      "ShopItem": {
+        "properties": {
+          "wagerDay": {
+            "type": "integer"
+          },
+          "purchaseId": {
+            "type": "string"
+          },
+          "purchaseDate": {
+            "type": "integer"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "purchasePrice": {
+            "type": "integer"
+          }
+        }
+      },
+      "Health": {
+        "properties": {
+          "maxHearts": {
+            "type": "integer"
+          },
+          "healthEnabled": {
+            "type": "boolean"
+          },
+          "eligibleForFreeRefill": {
+            "type": "boolean"
+          },
+          "secondsPerHeartSegment": {
+            "type": "integer"
+          },
+          "hearts": {
+            "type": "integer"
+          },
+          "useHealth": {
+            "type": "boolean"
+          },
+          "secondsUntilNextHeartSegment": {
+            "type": "integer"
+          }
+        }
+      },
+      "User": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "monthlyXp": {
+            "type": "integer"
+          },
+          "streak": {
+            "type": "integer"
+          },
+          "motivation": {
+            "type": "string"
+          },
+          "picture": {
+            "type": "string"
+          },
+          "learningLanguage": {
+            "type": "string"
+          },
+          "hasFacebookId": {
+            "type": "boolean"
+          },
+          "facebookId": {
+            "type": "string"
+          },
+          "inviteURL": {
+            "type": "string"
+          },
+          "canUseModerationTools": {
+            "type": "boolean"
+          },
+          "fromLanguage": {
+            "type": "string"
+          },
+          "_achievements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Achievement"
+            }
+          },
+          "location": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "hasGoogleId": {
+            "type": "boolean"
+          },
+          "optionalFeatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionalFeature"
+            }
+          },
+          "currentCourse": {
+            "$ref": "#/components/schemas/CurrentCourse"
+          },
+          "currentCourseId": {
+            "type": "string"
+          },
+          "hasPhoneNumber": {
+            "type": "boolean"
+          },
+          "creationDate": {
+            "type": "integer"
+          },
+          "hasPlus": {
+            "type": "boolean"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "courses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Course"
+            }
+          },
+          "xpGains": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/XpGain"
+            }
+          },
+          "enableSpeaker": {
+            "type": "boolean"
+          },
+          "deactivated": {
+            "type": "boolean"
+          },
+          "emailEditSuggested": {
+            "type": "boolean"
+          },
+          "emailStreakFreezeUsed": {
+            "type": "boolean"
+          },
+          "gems": {
+            "type": "integer"
+          },
+          "pushEditSuggested": {
+            "type": "boolean"
+          },
+          "pushAnnouncement": {
+            "type": "boolean"
+          },
+          "totalXp": {
+            "type": "integer"
+          },
+          "enableMicrophone": {
+            "type": "boolean"
+          },
+          "insiteImmersionLingots": {
+            "type": "boolean"
+          },
+          "pushPromotion": {
+            "type": "boolean"
+          },
+          "emailStreakSaver": {
+            "type": "boolean"
+          },
+          "insiteSentenceEdited": {
+            "type": "boolean"
+          },
+          "canCreatePearsonClassroom": {
+            "type": "boolean"
+          },
+          "xpGoal": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "timezoneOffset": {
+            "type": "string"
+          },
+          "coachOutfit": {
+            "type": "string"
+          },
+          "weeklyXp": {
+            "type": "integer"
+          },
+          "lingots": {
+            "type": "integer"
+          },
+          "googleId": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "streakData": {
+            "$ref": "#/components/schemas/StreakData"
+          },
+          "referralInfo": {
+            "$ref": "#/components/schemas/ReferralInfo"
+          },
+          "pushStreamPost": {
+            "type": "boolean"
+          },
+          "adsEnabled": {
+            "type": "boolean"
+          },
+          "emailAnnouncement": {
+            "type": "boolean"
+          },
+          "xpGoalMetToday": {
+            "type": "boolean"
+          },
+          "pushLeaderboards": {
+            "type": "boolean"
+          },
+          "zapsRemaining": {
+            "type": "integer"
+          },
+          "emailSchoolsAnnouncement": {
+            "type": "boolean"
+          },
+          "emailWeeklyProgressReport": {
+            "type": "boolean"
+          },
+          "emailWeeklyReport": {
+            "type": "boolean"
+          },
+          "pushComment": {
+            "type": "boolean"
+          },
+          "pushFollow": {
+            "type": "boolean"
+          },
+          "pushClubs": {
+            "type": "boolean"
+          },
+          "pushStreakSaver": {
+            "type": "boolean"
+          },
+          "emailClassroomJoin": {
+            "type": "boolean"
+          },
+          "emailAssignment": {
+            "type": "boolean"
+          },
+          "emailAssignmentComplete": {
+            "type": "boolean"
+          },
+          "lastStreak": {
+            "$ref": "#/components/schemas/definitions-LastStreak"
+          },
+          "shopItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShopItem"
+            }
+          },
+          "health": {
+            "$ref": "#/components/schemas/Health"
+          }
+        }
+      },
+      "UserInMatch": {
+        "properties": {
+          "hasAcknowledgedConfirm": {
+            "type": "boolean"
+          },
+          "hasAcknowledgedEnd": {
+            "type": "boolean"
+          },
+          "isConfirmed": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "picture": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer"
+          }
+        }
+      },
+      "FriendsStreakMatch": {
+        "properties": {
+          "confirmId": {
+            "type": "string"
+          },
+          "confirmTimestamp": {
+            "type": "integer"
+          },
+          "endTimestamp": {
+            "type": "integer"
+          },
+          "initiatedByStranger": {
+            "type": "boolean"
+          },
+          "inviteTimestamp": {
+            "type": "integer"
+          },
+          "matchHistoryCount": {
+            "type": "integer"
+          },
+          "matchId": {
+            "type": "string"
+          },
+          "usersInMatch": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserInMatch"
+            }
+          }
+        }
+      },
+      "FriendsStreak": {
+        "properties": {
+          "emptySlots": {
+            "type": "integer"
+          },
+          "confirmedMatches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FriendsStreakMatch"
+            }
+          },
+          "endedConfirmedMatches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FriendsStreakMatch"
+            }
+          },
+          "pendingMatches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FriendsStreakMatch"
+            }
+          }
+        }
+      },
+      "FriendsMatchesResponse": {
+        "properties": {
+          "FriendsStreak": {
+            "$ref": "#/components/schemas/FriendsStreak"
+          }
+        }
+      },
+      "UserList": {
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          }
+        }
+      },
+      "SubscriptionList": {
+        "properties": {
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          }
+        }
+      },
+      "XpSummary": {
+        "properties": {
+          "gainedXp": {
+            "type": "integer"
+          },
+          "frozen": {
+            "type": "boolean"
+          },
+          "streakExtended": {
+            "type": "boolean"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "dailyGoalXp": {
+            "type": "integer"
+          },
+          "date": {
+            "type": "integer"
+          },
+          "repaired": {
+            "type": "boolean"
+          },
+          "shielded": {
+            "type": "boolean"
+          },
+          "totalSessionTime": {
+            "type": "integer"
+          },
+          "numSessions": {
+            "type": "integer"
+          }
+        }
+      },
+      "ShopItemsList": {
+        "properties": {
+          "iconId": {
+            "type": "integer",
+            "example": 63
+          },
+          "name": {
+            "type": "string",
+            "example": "Idioms and Proverbs"
+          },
+          "localizedDescription": {
+            "type": "string",
+            "example": "Learn some German idioms and proverbs."
+          },
+          "price": {
+            "type": "integer",
+            "example": 30
+          },
+          "id": {
+            "type": "string",
+            "example": "idioms"
+          },
+          "type": {
+            "type": "string",
+            "example": "bonus_skill"
+          },
+          "currencyType": {
+            "type": "string",
+            "example": "XLG"
+          },
+          "skillId": {
+            "type": "string",
+            "example": "167c39ab049e169fb474f18c5ac5c906"
+          }
+        }
+      },
+      "Notification": {
+        "properties": {
+          "comment": {
+            "type": "boolean"
+          },
+          "streak": {
+            "type": "boolean"
+          },
+          "translator_promotion": {
+            "type": "boolean"
+          },
+          "invite": {
+            "type": "boolean"
+          },
+          "pretty_datetime": {
+            "type": "string"
+          },
+          "datetime": {
+            "type": "string"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "username": {
+                "type": "string"
+              },
+              "id": {
+                "type": "integer"
+              },
+              "avatar": {
+                "type": "string"
+              }
+            }
+          },
+          "unseen": {
+            "type": "boolean"
+          },
+          "pass": {
+            "type": "boolean"
+          },
+          "follow": {
+            "type": "boolean"
+          },
+          "translation": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "lingot_icon": {
+            "type": "boolean"
+          },
+          "streak_days": {
+            "type": "integer"
+          },
+          "document_lingots": {
+            "type": "boolean"
+          },
+          "num_rupees": {
+            "type": "integer"
+          },
+          "translation_lingots": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

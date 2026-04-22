@@ -1,0 +1,34 @@
+{
+  "name": "managerorder",
+  "private": true,
+  "packageManager": "pnpm@10.17.1",
+  "engines": {
+    "node": ">=22 <25",
+    "pnpm": ">=9 <11"
+  },
+  "scripts": {
+    "dev": "corepack pnpm --filter @managerorder/admin-web dev",
+    "dev:admin": "corepack pnpm --filter @managerorder/admin-web dev",
+    "dev:bot": "corepack pnpm --filter @managerorder/zalo-bot-js start:bot",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "build": "turbo run build",
+    "audit:prod": "corepack pnpm audit --prod",
+    "check": "corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.3",
+    "turbo": "^2.5.8"
+  },
+  "pnpm": {
+    "overrides": {
+      "next": "^16.2.3",
+      "eslint-config-next": "^16.2.3",
+      "axios": "^1.15.0",
+      "follow-redirects": "^1.15.12",
+      "dompurify": "^3.3.4"
+    }
+  }
+}

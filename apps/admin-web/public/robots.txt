@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+Sitemap: https://celadon-vacherin-3723d0.netlify.app/sitemap.xml

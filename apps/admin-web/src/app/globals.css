@@ -1,0 +1,263 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-app: #f2f6ef;
+  --bg-subtle: #e8efe2;
+  --bg-surface: rgba(255, 255, 255, 0.9);
+  --bg-surface-strong: rgba(255, 255, 255, 0.96);
+  --bg-base: var(--bg-surface);
+  --surface-light: rgba(246, 250, 244, 0.82);
+  --surface-strong: #e9f2e2;
+  --surface-hover: rgba(229, 239, 218, 0.92);
+  --surface-1: var(--surface-light);
+  --surface-base: var(--bg-surface);
+  --fg-base: #142032;
+  --fg-muted: #5d6b7f;
+  --fg-primary: var(--fg-base);
+  --accent: #4fbe0a;
+  --accent-strong: #419a05;
+  --accent-rgb: 79, 190, 10;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --border-soft: #dbe7d1;
+  --border-strong: #c9d8be;
+  --ring: rgba(79, 190, 10, 0.24);
+  --glass-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 18px 44px rgba(15, 23, 42, 0.07);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 12px 28px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 2px 4px rgba(15, 23, 42, 0.07), 0 24px 60px rgba(15, 23, 42, 0.08);
+  --radius-ios: 24px;
+  --radius-ios-sm: 16px;
+  --radius-ios-lg: 30px;
+  --font-geist: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --font-body: var(--font-geist);
+  --font-heading: var(--font-geist);
+  --sidebar-width: 18rem;
+  --app-header-height: 4rem;
+  --z-header: 40;
+  --z-dropdown: 60;
+  --z-drawer: 80;
+  --z-modal: 90;
+  --z-command-palette: 95;
+  --z-toast: 110;
+  --z-top-loader: 120;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg-app);
+  background-image:
+    radial-gradient(circle at top left, rgba(var(--accent-rgb), 0.12), transparent 30%),
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0));
+  color: var(--fg-base);
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--fg-base);
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(219, 231, 209, 0.82);
+    border-radius: var(--radius-ios);
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .glass-card-strong {
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(219, 231, 209, 0.92);
+    border-radius: var(--radius-ios);
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .glass-button {
+    border-radius: var(--radius-ios-sm);
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+  }
+
+  .app-card {
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-ios-lg);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .app-card-muted {
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-ios-lg);
+    background: rgba(246, 250, 244, 0.88);
+  }
+
+  .page-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+
+  .page-container {
+    width: 100%;
+    margin-inline: auto;
+  }
+
+  .page-container--wide {
+    max-width: 1560px;
+  }
+
+  .page-container--narrow {
+    max-width: 1240px;
+  }
+
+  .filters-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-ios-lg);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: var(--shadow-sm);
+    padding: 1rem;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .filters-bar--sticky {
+    position: sticky;
+    top: calc(var(--app-header-height) + 1rem);
+    z-index: 20;
+  }
+
+  .detail-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .empty-state {
+    display: flex;
+    min-height: 240px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.875rem;
+    border: 1px dashed rgba(201, 216, 190, 0.92);
+    border-radius: var(--radius-ios-lg);
+    background: rgba(246, 250, 244, 0.72);
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
+  .overlay-surface {
+    border: 1px solid var(--border-soft);
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: var(--shadow-md);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--fg-muted);
+  }
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .content-visibility-auto {
+    content-visibility: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

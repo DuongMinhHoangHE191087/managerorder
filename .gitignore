@@ -1,2 +1,16 @@
 entities.json
 mempalace.yaml
+node_modules/
+.pnpm-store/
+.turbo/
+pnpm-lock.yaml
+apps/*/node_modules/
+apps/*/.next/
+apps/*/coverage/
+apps/*/playwright-report/
+apps/*/test-results/
+apps/*/.tmp-dev/
+apps/*/.understand-anything/
+packages/*/node_modules/
+packages/*/dist/
+packages/*/.tmp/

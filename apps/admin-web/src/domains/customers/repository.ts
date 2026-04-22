@@ -1,0 +1,18 @@
+export {
+  createCustomer,
+  deleteCustomer,
+  getCustomerById,
+  getCustomerDependencies,
+  listCustomerContactRows,
+  listCustomerOrderRows,
+  listCustomers,
+  searchCustomerContactsForTelegram,
+  searchCustomersForTelegram,
+  softDeleteCustomers,
+  updateCustomersTier,
+  updateCustomer,
+  type ContactRow,
+  type CustomerRow,
+  type TelegramCustomerContactMatch,
+  type TelegramCustomerSummary,
+} from "@/lib/supabase/repositories/customers.repo";

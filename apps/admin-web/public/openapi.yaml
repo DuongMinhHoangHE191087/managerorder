@@ -1,0 +1,1735 @@
+openapi: '3.1.0'
+info:
+  title: ManagerOrder API
+  version: '1.0.0'
+  description: |
+    REST API cho hệ thống quản lý đơn hàng (ManagerOrder).
+    Tất cả endpoints yêu cầu authenticate qua Supabase session cookie hoặc Bearer JWT.
+  contact:
+    name: ManagerOrder Team
+  license:
+    name: Private
+servers:
+  - url: '{baseUrl}/api'
+    description: API Server
+    variables:
+      baseUrl:
+        default: http://localhost:3000
+
+tags:
+  - name: Auth
+    description: Authentication (Google OAuth)
+  - name: Orders
+    description: Quản lý đơn hàng
+  - name: Customers
+    description: Quản lý khách hàng
+  - name: Inventory
+    description: Quản lý kho license keys
+  - name: Source Accounts
+    description: Quản lý tài khoản nguồn (Duolingo, Spotify, etc.)
+  - name: Calendar
+    description: Lịch & ghi nhớ
+  - name: Dashboard
+    description: Thống kê tổng quan
+  - name: Premium
+    description: Gói premium & subscription management
+  - name: Settings
+    description: Cấu hình hệ thống
+  - name: Activity Logs
+    description: Nhật ký hoạt động
+  - name: Products
+    description: Quản lý sản phẩm
+  - name: Cron
+    description: Scheduled jobs
+  - name: Webhooks
+    description: Webhook management
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sb-auth-token
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    PaginationMeta:
+      type: object
+      properties:
+        count:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        tier:
+          type: string
+          enum: [standard, premium, vip]
+        contacts:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              value:
+                type: string
+              isPrimary:
+                type: boolean
+        totalOrders:
+          type: integer
+        totalRevenue:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+    CreateCustomerInput:
+      type: object
+      required: [name, tier, contacts]
+      properties:
+        name:
+          type: string
+        tier:
+          type: string
+          enum: [standard, premium, vip]
+        contacts:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              value:
+                type: string
+              isPrimary:
+                type: boolean
+        tagIds:
+          type: array
+          items:
+            type: string
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        customerId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, confirmed, processing, completed, cancelled, failed]
+        totalAmount:
+          type: number
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        createdAt:
+          type: string
+          format: date-time
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+    CreateOrderInput:
+      type: object
+      required: [customerId, items]
+      properties:
+        customerId:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+              quantity:
+                type: integer
+              unitPrice:
+                type: number
+    CalendarEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        dueAt:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum: [follow_up, renewal, payment, custom]
+        isDone:
+          type: boolean
+        notes:
+          type: string
+    SourceAccount:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        platform:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, expired]
+        totalSlots:
+          type: integer
+        usedSlots:
+          type: integer
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+paths:
+  # ========== AUTH ==========
+  /auth/google/login:
+    get:
+      tags: [Auth]
+      summary: Initiate Google OAuth login
+      security: []
+      responses:
+        '302':
+          description: Redirect to Google OAuth
+  /auth/google/callback:
+    get:
+      tags: [Auth]
+      summary: Google OAuth callback
+      security: []
+      parameters:
+        - name: code
+          in: query
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to app after successful login
+  /auth/callback:
+    get:
+      tags: [Auth]
+      summary: Supabase auth callback
+      security: []
+      responses:
+        '302':
+          description: Redirect after auth
+
+  # ========== DASHBOARD ==========
+  /dashboard/stats:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard statistics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, week, month, year]
+      responses:
+        '200':
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+
+  # ========== ORDERS ==========
+  /orders:
+    get:
+      tags: [Orders]
+      summary: List orders (paginated)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: customer_id
+          in: query
+          schema:
+            type: string
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Paginated order list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      tags: [Orders]
+      summary: Create a new order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderInput'
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Get order by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order detail
+    put:
+      tags: [Orders]
+      summary: Update order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Order updated
+    delete:
+      tags: [Orders]
+      summary: Delete order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order deleted
+
+  /orders/{id}/payment:
+    post:
+      tags: [Orders]
+      summary: Record order payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                method:
+                  type: string
+      responses:
+        '200':
+          description: Payment recorded
+
+  /orders/{id}/payments:
+    get:
+      tags: [Orders]
+      summary: List payments for an order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment list
+
+  /orders/{id}/refunds:
+    get:
+      tags: [Orders]
+      summary: List refunds for an order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Refund list
+    post:
+      tags: [Orders]
+      summary: Create refund for an order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Refund created
+
+  /orders/{id}/refunds/{refundId}:
+    patch:
+      tags: [Orders]
+      summary: Update refund status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: refundId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Refund updated
+
+  /orders/{id}/renew:
+    post:
+      tags: [Orders]
+      summary: Renew an order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                months:
+                  type: integer
+                  enum: [6, 12]
+      responses:
+        '200':
+          description: Order renewed
+
+  /orders/{id}/invoice:
+    get:
+      tags: [Orders]
+      summary: Get invoice for an order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invoice data
+
+  /orders/{id}/status-history:
+    get:
+      tags: [Orders]
+      summary: Get order status change history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Status history
+
+  /orders/stats:
+    get:
+      tags: [Orders]
+      summary: Get order statistics
+      responses:
+        '200':
+          description: Order stats (count by status, revenue)
+
+  /orders/batch:
+    post:
+      tags: [Orders]
+      summary: Batch order operations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Batch result
+
+  /orders/check-duplicate:
+    get:
+      tags: [Orders]
+      summary: Check for duplicate orders
+      parameters:
+        - name: customerId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Duplicate check result
+
+  /orders/export:
+    get:
+      tags: [Orders]
+      summary: Export orders to CSV/Excel
+      responses:
+        '200':
+          description: Exported file
+
+  /orders/import:
+    post:
+      tags: [Orders]
+      summary: Import orders from file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Import result
+
+  /orders/suggest-account:
+    get:
+      tags: [Orders]
+      summary: Suggest source account for order item
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Suggested accounts
+
+  # ========== CUSTOMERS ==========
+  /customers:
+    get:
+      tags: [Customers]
+      summary: List all customers
+      responses:
+        '200':
+          description: Customer list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Customer'
+    post:
+      tags: [Customers]
+      summary: Create a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerInput'
+      responses:
+        '201':
+          description: Customer created
+
+  /customers/{id}:
+    get:
+      tags: [Customers]
+      summary: Get customer by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Customer detail
+    put:
+      tags: [Customers]
+      summary: Update customer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Customer updated
+    delete:
+      tags: [Customers]
+      summary: Delete customer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Customer deleted
+
+  /customers/{id}/stats:
+    get:
+      tags: [Customers]
+      summary: Get customer statistics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Customer stats (orders, revenue, RFM)
+
+  /customers/batch:
+    post:
+      tags: [Customers]
+      summary: Batch customer operations
+      responses:
+        '200':
+          description: Batch result
+
+  /customers/debt-summary:
+    get:
+      tags: [Customers]
+      summary: Get debt summary across customers
+      responses:
+        '200':
+          description: Debt summary
+
+  /customers/duplicates:
+    get:
+      tags: [Customers]
+      summary: Find duplicate customers
+      responses:
+        '200':
+          description: Duplicate list
+
+  /customers/export:
+    get:
+      tags: [Customers]
+      summary: Export customers to CSV
+      responses:
+        '200':
+          description: Exported file
+
+  /customers/import:
+    post:
+      tags: [Customers]
+      summary: Import customers from file
+      responses:
+        '200':
+          description: Import result
+
+  /customers/recalculate-rfm:
+    post:
+      tags: [Customers]
+      summary: Recalculate RFM scores for all customers
+      responses:
+        '200':
+          description: RFM recalculated
+
+  # ========== CUSTOMER GROUPS ==========
+  /customer-groups:
+    get:
+      tags: [Customers]
+      summary: List customer groups
+      responses:
+        '200':
+          description: Group list
+    post:
+      tags: [Customers]
+      summary: Create customer group
+      responses:
+        '201':
+          description: Group created
+
+  /customer-groups/{id}:
+    put:
+      tags: [Customers]
+      summary: Update customer group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Group updated
+    delete:
+      tags: [Customers]
+      summary: Delete customer group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Group deleted
+
+  # ========== CUSTOMER TAGS ==========
+  /customer-tags:
+    get:
+      tags: [Customers]
+      summary: List customer tags
+      responses:
+        '200':
+          description: Tag list
+    post:
+      tags: [Customers]
+      summary: Create customer tag
+      responses:
+        '201':
+          description: Tag created
+
+  /customer-tags/{id}:
+    put:
+      tags: [Customers]
+      summary: Update customer tag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tag updated
+    delete:
+      tags: [Customers]
+      summary: Delete customer tag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tag deleted
+
+  # ========== INVENTORY ==========
+  /inventory:
+    get:
+      tags: [Inventory]
+      summary: List license keys
+      responses:
+        '200':
+          description: License key list
+    post:
+      tags: [Inventory]
+      summary: Create license key
+      responses:
+        '201':
+          description: Key created
+
+  /inventory/{id}:
+    get:
+      tags: [Inventory]
+      summary: Get license key by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Key detail
+    put:
+      tags: [Inventory]
+      summary: Update license key
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Key updated
+    delete:
+      tags: [Inventory]
+      summary: Delete license key
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Key deleted
+
+  /inventory/allocate:
+    post:
+      tags: [Inventory]
+      summary: Allocate inventory to order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orderItemId:
+                  type: string
+                sourceAccountId:
+                  type: string
+      responses:
+        '200':
+          description: Allocation result
+
+  /inventory/dashboard:
+    get:
+      tags: [Inventory]
+      summary: Get inventory dashboard stats
+      responses:
+        '200':
+          description: Inventory stats
+
+  /inventory/profit-report:
+    get:
+      tags: [Inventory]
+      summary: Get profit report
+      responses:
+        '200':
+          description: Profit data
+
+  # ========== SOURCE ACCOUNTS ==========
+  /source-accounts:
+    get:
+      tags: [Source Accounts]
+      summary: List source accounts
+      responses:
+        '200':
+          description: Account list
+    post:
+      tags: [Source Accounts]
+      summary: Create source account
+      responses:
+        '201':
+          description: Account created
+
+  /source-accounts/{id}:
+    get:
+      tags: [Source Accounts]
+      summary: Get source account by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account detail
+    put:
+      tags: [Source Accounts]
+      summary: Update source account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account updated
+    patch:
+      tags: [Source Accounts]
+      summary: Partial update source account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account patched
+    delete:
+      tags: [Source Accounts]
+      summary: Delete source account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account deleted
+
+  /source-accounts/{id}/connections:
+    get:
+      tags: [Source Accounts]
+      summary: List connections for account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Connection list
+
+  /source-accounts/{id}/connections-enriched:
+    get:
+      tags: [Source Accounts]
+      summary: List enriched connections
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Enriched connection list
+
+  /source-accounts/{id}/connections/connect:
+    post:
+      tags: [Source Accounts]
+      summary: Connect user to source account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Connection created
+
+  /source-accounts/{id}/connections/disconnect:
+    post:
+      tags: [Source Accounts]
+      summary: Disconnect user from source account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Disconnected
+
+  /source-accounts/{id}/connections/reconnect:
+    post:
+      tags: [Source Accounts]
+      summary: Reconnect user to source account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reconnected
+
+  /source-accounts/{id}/connections/search:
+    get:
+      tags: [Source Accounts]
+      summary: Search connections
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: query
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+
+  /source-accounts/{id}/slot-breakdown:
+    get:
+      tags: [Source Accounts]
+      summary: Get slot breakdown for account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Slot breakdown
+
+  /source-accounts/{id}/reserved-nicks:
+    post:
+      tags: [Source Accounts]
+      summary: Reserve nickname on account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Nick reserved
+    delete:
+      tags: [Source Accounts]
+      summary: Release reserved nickname
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Nick released
+
+  /source-accounts/smart-match:
+    get:
+      tags: [Source Accounts]
+      summary: Smart match accounts for order
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matched accounts
+
+  /source-accounts/recalculate-all:
+    post:
+      tags: [Source Accounts]
+      summary: Recalculate all account metrics
+      responses:
+        '200':
+          description: Recalculation complete
+
+  # ========== CALENDAR ==========
+  /calendar:
+    get:
+      tags: [Calendar]
+      summary: List calendar events
+      responses:
+        '200':
+          description: Event list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CalendarEvent'
+    post:
+      tags: [Calendar]
+      summary: Create calendar event
+      responses:
+        '201':
+          description: Event created
+    patch:
+      tags: [Calendar]
+      summary: Update calendar event
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event updated
+    delete:
+      tags: [Calendar]
+      summary: Delete calendar event
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event deleted
+
+  /calendar/note:
+    post:
+      tags: [Calendar]
+      summary: Create calendar note
+      responses:
+        '201':
+          description: Note created
+    patch:
+      tags: [Calendar]
+      summary: Update calendar note
+      responses:
+        '200':
+          description: Note updated
+
+  # ========== PREMIUM ==========
+  /premium/accounts/{id}:
+    get:
+      tags: [Premium]
+      summary: Get premium account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Premium account detail
+
+  /premium/accounts/{id}/users:
+    get:
+      tags: [Premium]
+      summary: List users on premium account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User list
+    post:
+      tags: [Premium]
+      summary: Add user to premium account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: User added
+
+  /premium/accounts/{id}/users/{userId}:
+    patch:
+      tags: [Premium]
+      summary: Update premium user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User updated
+    delete:
+      tags: [Premium]
+      summary: Remove premium user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User removed
+
+  /premium/accounts/available:
+    get:
+      tags: [Premium]
+      summary: List available premium accounts
+      responses:
+        '200':
+          description: Available accounts
+
+  /premium/packages/{id}:
+    get:
+      tags: [Premium]
+      summary: Get premium package
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Package detail
+    put:
+      tags: [Premium]
+      summary: Update premium package
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Package updated
+    delete:
+      tags: [Premium]
+      summary: Delete premium package
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Package deleted
+
+  /premium/subscriptions/{id}:
+    get:
+      tags: [Premium]
+      summary: Get subscription detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Subscription detail
+    delete:
+      tags: [Premium]
+      summary: Cancel subscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Subscription cancelled
+
+  /premium/subscriptions/{id}/renew:
+    put:
+      tags: [Premium]
+      summary: Renew subscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Subscription renewed
+
+  /premium/subscriptions/{id}/refund:
+    post:
+      tags: [Premium]
+      summary: Process subscription refund
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Refund processed
+
+  /premium/subscriptions/expiring:
+    get:
+      tags: [Premium]
+      summary: List expiring subscriptions
+      responses:
+        '200':
+          description: Expiring subscriptions
+
+  /premium/renewals/{id}/confirm:
+    post:
+      tags: [Premium]
+      summary: Confirm renewal request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Renewal confirmed
+
+  /premium/renewals/{id}/deny:
+    post:
+      tags: [Premium]
+      summary: Deny renewal request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Renewal denied
+
+  /premium/health-checks:
+    get:
+      tags: [Premium]
+      summary: List health check results
+      responses:
+        '200':
+          description: Health check list
+    post:
+      tags: [Premium]
+      summary: Create health check config
+      responses:
+        '201':
+          description: Config created
+
+  /premium/health-checks/run:
+    post:
+      tags: [Premium]
+      summary: Run health checks
+      responses:
+        '200':
+          description: Health check results
+
+  /premium/migrations/{id}:
+    get:
+      tags: [Premium]
+      summary: Get migration status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Migration detail
+
+  # ========== SETTINGS ==========
+  /settings/system:
+    get:
+      tags: [Settings]
+      summary: Get system settings
+      responses:
+        '200':
+          description: System settings
+    post:
+      tags: [Settings]
+      summary: Update system settings
+      responses:
+        '200':
+          description: Settings updated
+
+  /settings/webhooks:
+    get:
+      tags: [Settings]
+      summary: List webhook configs
+      responses:
+        '200':
+          description: Webhook list
+    post:
+      tags: [Settings]
+      summary: Create webhook
+      responses:
+        '201':
+          description: Webhook created
+    put:
+      tags: [Settings]
+      summary: Update webhook
+      responses:
+        '200':
+          description: Webhook updated
+    delete:
+      tags: [Settings]
+      summary: Delete webhook
+      responses:
+        '200':
+          description: Webhook deleted
+
+  /settings/reminders:
+    get:
+      tags: [Settings]
+      summary: Get reminder settings
+      responses:
+        '200':
+          description: Reminder config
+    post:
+      tags: [Settings]
+      summary: Update reminder settings
+      responses:
+        '200':
+          description: Reminders updated
+
+  /settings/sales-channels:
+    get:
+      tags: [Settings]
+      summary: List sales channels
+      responses:
+        '200':
+          description: Channel list
+    post:
+      tags: [Settings]
+      summary: Create sales channel
+      responses:
+        '201':
+          description: Channel created
+
+  /settings/sales-channels/{id}:
+    put:
+      tags: [Settings]
+      summary: Update sales channel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Channel updated
+    delete:
+      tags: [Settings]
+      summary: Delete sales channel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Channel deleted
+
+  /settings/payment-sources:
+    get:
+      tags: [Settings]
+      summary: List payment sources
+      responses:
+        '200':
+          description: Source list
+    post:
+      tags: [Settings]
+      summary: Create payment source
+      responses:
+        '201':
+          description: Source created
+
+  /settings/payment-sources/{id}:
+    put:
+      tags: [Settings]
+      summary: Update payment source
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Source updated
+    delete:
+      tags: [Settings]
+      summary: Delete payment source
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Source deleted
+
+  # ========== ACTIVITY LOGS ==========
+  /activity-logs:
+    get:
+      tags: [Activity Logs]
+      summary: List activity logs
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: action_type
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Activity log entries
+
+  # ========== PRODUCTS ==========
+  /products:
+    get:
+      tags: [Products]
+      summary: List products
+      responses:
+        '200':
+          description: Product list
+    post:
+      tags: [Products]
+      summary: Create product
+      responses:
+        '201':
+          description: Product created
+
+  /products/{id}:
+    get:
+      tags: [Products]
+      summary: Get product by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product detail
+    put:
+      tags: [Products]
+      summary: Update product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product updated
+
+  # ========== CRON JOBS ==========
+  /cron/auto-escalation:
+    post:
+      tags: [Cron]
+      summary: Run auto-escalation job
+      security: []
+      responses:
+        '200':
+          description: Job completed
+
+  /cron/order-expiry-reminder:
+    post:
+      tags: [Cron]
+      summary: Send order expiry reminders
+      security: []
+      responses:
+        '200':
+          description: Reminders sent
+
+  /cron/revenue-report:
+    post:
+      tags: [Cron]
+      summary: Generate revenue report
+      security: []
+      responses:
+        '200':
+          description: Report generated
+
+  /cron/rfm-calculation:
+    post:
+      tags: [Cron]
+      summary: Run RFM recalculation
+      security: []
+      responses:
+        '200':
+          description: RFM calculated
+
+  /cron/telegram-reminder:
+    post:
+      tags: [Cron]
+      summary: Send Telegram reminders
+      security: []
+      responses:
+        '200':
+          description: Reminders sent
+
+  /cron/webhook-retry:
+    post:
+      tags: [Cron]
+      summary: Retry failed webhooks
+      security: []
+      responses:
+        '200':
+          description: Webhooks retried
+
+  # ========== WEBHOOKS ==========
+  /webhooks:
+    post:
+      tags: [Webhooks]
+      summary: Receive external webhook
+      security: []
+      responses:
+        '200':
+          description: Webhook processed
+
+  # ========== TRASH ==========
+  /trash:
+    get:
+      tags: [Orders]
+      summary: List soft-deleted items
+      responses:
+        '200':
+          description: Trash items
+    delete:
+      tags: [Orders]
+      summary: Permanently delete items
+      responses:
+        '200':
+          description: Items deleted
+
+  # ========== UPLOAD ==========
+  /upload:
+    post:
+      tags: [Settings]
+      summary: Upload file (image, CSV)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Upload result
+
+  # ========== PROXY ==========
+  /proxy:
+    get:
+      tags: [Settings]
+      summary: Proxy external API request
+      responses:
+        '200':
+          description: Proxied response
