@@ -137,16 +137,16 @@ describe("ImportService.buildOrderInserts", () => {
         paymentMethod: "Banking",
       } as ImportRecord,
     ];
-    const customerMap = new Map([["john", "cust-1"]]);
+    const customerMap = new Map([["john", "00000000-0000-4000-8000-000000000005"]]);
     const productMap = new Map([
-      ["premium", { id: "prod-1", name: "Premium" }],
+      ["premium", { id: "00000000-0000-4000-8000-000000000039", name: "Premium" }],
     ]);
 
-    const inserts = service.buildOrderInserts("acc-1", records, customerMap, productMap);
+    const inserts = service.buildOrderInserts("00000000-0000-4000-8000-000000000016", records, customerMap, productMap);
     expect(inserts).toHaveLength(1);
-    expect(inserts[0].account_id).toBe("acc-1");
-    expect(inserts[0].customer_id).toBe("cust-1");
-    expect(inserts[0].product_id).toBe("prod-1");
+    expect(inserts[0].account_id).toBe("00000000-0000-4000-8000-000000000016");
+    expect(inserts[0].customer_id).toBe("00000000-0000-4000-8000-000000000005");
+    expect(inserts[0].product_id).toBe("00000000-0000-4000-8000-000000000039");
     expect(inserts[0].unit_price_vnd).toBe(500); // 1000 / 2
     expect(inserts[0].status).toBe("paid");
   });
@@ -162,7 +162,7 @@ describe("ImportService.buildOrderInserts", () => {
       } as ImportRecord,
     ];
 
-    const inserts = service.buildOrderInserts("acc-1", records, new Map(), new Map());
+    const inserts = service.buildOrderInserts("00000000-0000-4000-8000-000000000016", records, new Map(), new Map());
     expect(inserts[0].customer_id).toBeNull();
     expect(inserts[0].product_id).toBeNull();
   });
@@ -180,7 +180,7 @@ describe("ImportService.buildOrderInserts", () => {
       } as ImportRecord,
     ];
 
-    const inserts = service.buildOrderInserts("acc-1", records, new Map(), new Map());
+    const inserts = service.buildOrderInserts("00000000-0000-4000-8000-000000000016", records, new Map(), new Map());
     expect(inserts[0].sales_note).toContain("CTV: Agent001");
     expect(inserts[0].sales_note).toContain("Family: family-nick");
   });
@@ -192,7 +192,7 @@ describe("ImportService.buildOrderItemInserts", () => {
   const service = new ImportService();
 
   it("builds order items linked to inserted orders", () => {
-    const insertedOrders = [{ id: "ord-1", product_id: "prod-1" }];
+    const insertedOrders = [{ id: "00000000-0000-4000-8000-00000000000f", product_id: "00000000-0000-4000-8000-000000000039" }];
     const records: ImportRecord[] = [
       {
         customerName: "A",
@@ -203,12 +203,12 @@ describe("ImportService.buildOrderItemInserts", () => {
       } as ImportRecord,
     ];
     const productMap = new Map([
-      ["premium", { id: "prod-1", name: "Premium", buy_price_vnd: 100 }],
+      ["premium", { id: "00000000-0000-4000-8000-000000000039", name: "Premium", buy_price_vnd: 100 }],
     ]);
 
     const items = service.buildOrderItemInserts(insertedOrders, records, productMap);
     expect(items).toHaveLength(1);
-    expect(items[0].order_id).toBe("ord-1");
+    expect(items[0].order_id).toBe("00000000-0000-4000-8000-00000000000f");
     expect(items[0].price_vnd).toBe(300); // 900 / 3
     expect(items[0].cost_price_vnd).toBe(100);
   });

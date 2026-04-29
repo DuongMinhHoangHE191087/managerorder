@@ -95,7 +95,7 @@ describe("GET /api/customers", () => {
 
     expect(res.status).toBe(200);
     expect(json.data).toEqual([]);
-    expect(mockListCustomers).toHaveBeenCalledWith(TEST_ACCOUNT_ID);
+    expect(mockListCustomers).toHaveBeenCalledWith(TEST_ACCOUNT_ID, { search: undefined });
   });
 
   it("should return mapped customers", async () => {
@@ -114,6 +114,14 @@ describe("GET /api/customers", () => {
 
     expect(json.data).toHaveLength(1);
     expect(json.data[0].name).toBe("Anh Long");
+  });
+
+  it("should pass accent-insensitive search query to repository layer", async () => {
+    mockListCustomers.mockResolvedValue([]);
+    const req = createTestRequest("http://localhost:3000/api/customers?search=gia%20dinh");
+    await listGET(req, { params: {} } as any);
+
+    expect(mockListCustomers).toHaveBeenCalledWith(TEST_ACCOUNT_ID, { search: "gia dinh" });
   });
 
   it("should propagate errors", async () => {
@@ -140,7 +148,7 @@ describe("POST /api/customers", () => {
       full_name: "Nguyễn Văn A",
       type: "retail",
       contacts: [
-        { id: "ct-1", channel: "phone", value: "0901234567", is_primary: false },
+        { id: "00000000-0000-4000-8000-0000000003e8", channel: "phone", value: "0901234567", is_primary: false },
       ],
     });
     const req = createTestRequest("http://localhost:3000/api/customers", {
@@ -185,6 +193,36 @@ describe("POST /api/customers", () => {
 
     expect(res.status).toBe(201);
     expect(mockAssignTagsToCustomer).toHaveBeenCalledWith("c-new", [tagId]);
+  });
+
+  it("should pass customerType and notes through the create contract", async () => {
+    mockCreateCustomer.mockResolvedValue({
+      id: "c-agency",
+      full_name: "Agency User",
+      type: "agency",
+      notes: "Ưu tiên xử lý gấp",
+      contacts: [],
+    });
+
+    const req = createTestRequest("http://localhost:3000/api/customers", {
+      method: "POST",
+      body: {
+        ...validBody,
+        tier: "agency",
+        customerType: "agency",
+        notes: "Ưu tiên xử lý gấp",
+      },
+    });
+    const res = await POST(req, { params: {} } as any);
+
+    expect(res.status).toBe(201);
+    expect(mockCreateCustomer).toHaveBeenCalledWith(
+      TEST_ACCOUNT_ID,
+      expect.objectContaining({
+        type: "agency",
+        notes: "Ưu tiên xử lý gấp",
+      }),
+    );
   });
 
   it("should create VIP customer → maps to wholesale", async () => {
@@ -251,6 +289,18 @@ describe("POST /api/customers", () => {
     const req = createTestRequest("http://localhost:3000/api/customers", {
       method: "POST",
       body: { ...validBody, tier: "gold" },
+    });
+    const res = await POST(req, { params: {} } as any);
+    expect(res.status).toBe(400);
+  });
+
+  it("should reject notes longer than 1000 characters on create", async () => {
+    const req = createTestRequest("http://localhost:3000/api/customers", {
+      method: "POST",
+      body: {
+        ...validBody,
+        notes: "A".repeat(1001),
+      },
     });
     const res = await POST(req, { params: {} } as any);
     expect(res.status).toBe(400);

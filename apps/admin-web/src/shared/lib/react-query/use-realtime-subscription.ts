@@ -60,6 +60,8 @@ export function useRealtimeSubscription(
   const [reconnectCount, setReconnectCount] = useState(0);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttempts = useRef(0);
+  const MAX_RECONNECT_ATTEMPTS = 1;
 
   // Stable callback ref to avoid re-subscribing on every render
   const onEventRef = useRef(onEvent);
@@ -127,11 +129,16 @@ export function useRealtimeSubscription(
 
       channel.subscribe((subscriptionStatus) => {
         if (subscriptionStatus === "SUBSCRIBED") {
+          reconnectAttempts.current = 0;
           setStatus("connected");
         } else if (subscriptionStatus === "CLOSED") {
           setStatus("disconnected");
         } else if (subscriptionStatus === "CHANNEL_ERROR") {
           setStatus("error");
+          if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
+            return;
+          }
+          reconnectAttempts.current += 1;
           reconnectTimer.current = setTimeout(() => {
             cleanup();
             setReconnectCount((count) => count + 1);

@@ -93,6 +93,8 @@ export interface CustomerPremiumSubscription {
   account_id: string;
   premium_account_id: string;
   premium_account_user_id: string | null;
+  service_type_id: string;
+  package_id: string;
   purchase_date: string;
   billing_cycle: string;
   cycle_months: number;
@@ -100,24 +102,55 @@ export interface CustomerPremiumSubscription {
   expiry_date: string;
   days_remaining: number;
   original_price: number;
+  final_price: number;
+  discount?: number | null;
   renewal_price: number | null;
   renewal_status: "none" | "pending" | "confirmed" | "denied" | "migrated" | "refunded";
   status: "active" | "waiting_renewal" | "renewed" | "expired" | "migrated" | "refunded" | "suspended";
+  refund_amount?: number | null;
+  renewal_asked_at?: string | null;
+  renewal_confirmed_at?: string | null;
+  renewal_denied_at?: string | null;
+  renewal_denied_reason?: string | null;
+  notes?: string | null;
+  package_default_price?: number | null;
+  renewal_price_factor?: number | null;
   created_at: string;
+  updated_at?: string;
+  deleted_at?: string | null;
 }
 
 export interface SubscriptionRenewal {
   id: string;
   account_id: string;
   original_subscription_id: string;
-  renewal_order_id: string;
+  renewal_order_id: string | null;
   customer_id: string;
-  premium_account_id: string;
+  premium_account_id: string | null;
   renewal_requested_date: string;
+  renewal_confirmed_date?: string | null;
+  renewal_date?: string | null;
+  new_expiry_date?: string | null;
   status: "pending" | "confirmed" | "denied" | "completed" | "failed" | "refunded";
-  original_price: number;
+  original_price: number | null;
   renewal_price: number | null;
+  total_price?: number | null;
+  new_billing_cycle?: string | null;
+  new_cycle_months?: number | null;
+  cost_price?: number | null;
+  collected_amount?: number | null;
+  profit_amount?: number | null;
+  refund_calculated?: boolean;
+  refund_amount?: number | null;
+  refund_calculation_method?: string | null;
+  customer_response?: "accept" | "decline" | null;
+  customer_response_date?: string | null;
+  decline_reason?: string | null;
+  payment_status?: string | null;
+  payment_method?: string | null;
+  notes?: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface AccountMigration {

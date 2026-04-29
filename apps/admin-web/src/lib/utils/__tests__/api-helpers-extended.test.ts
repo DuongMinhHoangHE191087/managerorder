@@ -184,7 +184,7 @@ describe("getSearchParam", () => {
 
 describe("validateAccountAccess", () => {
   it("valid for non-null accountId", () => {
-    expect(validateAccountAccess("acc-1").isValid).toBe(true);
+    expect(validateAccountAccess("00000000-0000-4000-8000-000000000016").isValid).toBe(true);
   });
 
   it("invalid for null accountId", () => {

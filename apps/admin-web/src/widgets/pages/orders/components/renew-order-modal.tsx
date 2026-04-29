@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { appToast } from "@/shared/ui/app-toast";
-import { RefreshCw, Calendar } from "lucide-react";
-
-import { Modal } from "@/shared/ui/modal";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { formatDateShort } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { Calendar } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
+import { appToast } from "@/shared/ui/app-toast";
+import { Input } from "@/shared/ui/input";
+import {
+  CreateActionFooter,
+  CreateFlowDialog,
+  CreateFormSection,
+} from "@/shared/ui/create-flow-shell";
+import { formatDateShort, formatMoney } from "@/lib/utils";
 
 interface RenewOrderModalProps {
   isOpen: boolean;
@@ -30,45 +32,37 @@ export function RenewOrderModal({
   const [addPaidVnd, setAddPaidVnd] = useState<string>("0");
   const [note, setNote] = useState<string>("");
 
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setDurationMonths(1);
+    setAddAmountVnd("0");
+    setAddPaidVnd("0");
+    setNote("");
+  }, [isOpen, orderId]);
+
   const { mutateAsync: renewOrder, isPending } = useMutation({
-    mutationFn: async (payload: { durationMonths: number; addAmountVnd: number; addPaidVnd: number; note?: string; proofUrls: string[] }) => {
-      const res = await fetch(`/api/orders/${orderId}/renew`, {
+    mutationFn: async (payload: {
+      durationMonths: number;
+      addAmountVnd: number;
+      addPaidVnd: number;
+      note?: string;
+      proofUrls: string[];
+    }) => {
+      const response = await fetch(`/api/orders/${orderId}/renew`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const data = await res.json();
+      if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.error || "Lỗi gia hạn");
       }
-      return res.json();
-    }
+      return response.json();
+    },
   });
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (durationMonths <= 0) {
-        appToast.error("Số tháng gia hạn phải lớn hơn 0");
-        return;
-      }
-      
-      const payload = {
-        durationMonths: Number(durationMonths),
-        addAmountVnd: Number(addAmountVnd) || 0,
-        addPaidVnd: Number(addPaidVnd) || 0,
-        note: note || undefined,
-        proofUrls: []
-      };
-
-      await renewOrder(payload);
-      appToast.success("Gia hạn đơn hàng thành công");
-      onClose();
-      onSuccess?.();
-    } catch (err: unknown) {
-      appToast.error(err instanceof Error ? err.message : "Có lỗi xảy ra khi gia hạn đơn hàng");
-    }
-  };
 
   const calculateNewDatePreview = () => {
     const baseDate = currentExpiresAt ? new Date(currentExpiresAt) : new Date();
@@ -76,27 +70,73 @@ export function RenewOrderModal({
     return formatDateShort(baseDate);
   };
 
+  const handleUpdate = async () => {
+    try {
+      if (durationMonths <= 0) {
+        appToast.error("Số tháng gia hạn phải lớn hơn 0");
+        return;
+      }
+
+      const payload = {
+        durationMonths: Number(durationMonths),
+        addAmountVnd: Number(addAmountVnd) || 0,
+        addPaidVnd: Number(addPaidVnd) || 0,
+        note: note || undefined,
+        proofUrls: [],
+      };
+
+      await renewOrder(payload);
+      appToast.success("Gia hạn đơn hàng thành công");
+      onClose();
+      onSuccess?.();
+    } catch (error: unknown) {
+      appToast.error(
+        error instanceof Error ? error.message : "Có lỗi xảy ra khi gia hạn đơn hàng",
+      );
+    }
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Gia hạn đơn hàng: #${orderId.slice(0, 8)}`} size="md">
-      <form onSubmit={handleUpdate} className="space-y-4 py-2">
-        <div className="bg-[var(--surface-light)] p-4 rounded-xl border border-[var(--border-soft)] mb-4 flex flex-col gap-2">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-[var(--fg-muted)]">Hạn hiện tại:</span>
+    <CreateFlowDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      title={`Gia hạn đơn hàng #${orderId.slice(0, 8)}`}
+      description="Flow gia hạn được gom về một modal rõ ràng hơn để sales và kế toán nhìn ngay hạn mới, phí tăng thêm và phần khách đã thanh toán."
+      footer={
+        <CreateActionFooter
+          primaryLabel="Xác nhận gia hạn"
+          onPrimary={() => {
+            void handleUpdate();
+          }}
+          onCancel={onClose}
+          pending={isPending}
+        />
+      }
+      contentClassName="gap-5 lg:grid-cols-[minmax(0,1fr)_300px]"
+    >
+      <CreateFormSection
+        title="Thông tin gia hạn"
+        description="Điền số tháng, phí cộng thêm và khoản khách đã thanh toán trong cùng một surface."
+      >
+        <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[var(--fg-muted)]">Hạn hiện tại</span>
             <span className="font-bold">
               {currentExpiresAt ? formatDateShort(currentExpiresAt) : "Khách chưa có hạn"}
             </span>
           </div>
-          <div className="flex justify-between items-center text-sm pt-2 border-t border-[var(--border-soft)]">
-            <span className="text-[var(--fg-muted)]">Hạn mới (Dự kiến):</span>
-            <span className="font-bold text-[var(--warning)] flex items-center gap-1">
+          <div className="mt-3 flex items-center justify-between border-t border-[var(--border-soft)] pt-3 text-sm">
+            <span className="text-[var(--fg-muted)]">Hạn mới dự kiến</span>
+            <span className="flex items-center gap-1 font-bold text-[var(--warning)]">
               <Calendar className="size-3.5" />
               {calculateNewDatePreview()}
             </span>
           </div>
         </div>
 
-        <div>
-          <label className="block text-[11px] font-bold text-[var(--fg-muted)] mb-2 uppercase tracking-widest">
+        <div className="space-y-2">
+          <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
             Số tháng gia hạn
           </label>
           <div className="relative">
@@ -105,16 +145,18 @@ export function RenewOrderModal({
               min="1"
               required
               value={durationMonths.toString()}
-              onChange={(e) => setDurationMonths(parseInt(e.target.value) || 0)}
-              className="font-bold"
+              onChange={(event) => setDurationMonths(parseInt(event.target.value, 10) || 0)}
+              className="h-11 font-bold"
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--fg-muted)] font-medium">Tháng</div>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--fg-muted)] font-medium">
+              Tháng
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[11px] font-bold text-[var(--fg-muted)] mb-2 uppercase tracking-widest">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
               Phí gia hạn
             </label>
             <Input
@@ -122,12 +164,13 @@ export function RenewOrderModal({
               min="0"
               required
               value={addAmountVnd}
-              onChange={(e) => setAddAmountVnd(e.target.value)}
+              onChange={(event) => setAddAmountVnd(event.target.value)}
+              className="h-11"
             />
-            <p className="text-[10px] text-[var(--fg-muted)] mt-1">Cộng thêm vào tổng đơn</p>
+            <p className="text-[11px] text-[var(--fg-muted)]">Khoản này sẽ cộng thêm vào tổng đơn.</p>
           </div>
-          <div>
-             <label className="block text-[11px] font-bold text-[var(--fg-muted)] mb-2 uppercase tracking-widest">
+          <div className="space-y-2">
+            <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
               Khách đã thanh toán
             </label>
             <Input
@@ -135,33 +178,45 @@ export function RenewOrderModal({
               min="0"
               required
               value={addPaidVnd}
-              onChange={(e) => setAddPaidVnd(e.target.value)}
+              onChange={(event) => setAddPaidVnd(event.target.value)}
+              className="h-11"
             />
-            <p className="text-[10px] text-[var(--fg-muted)] mt-1">Ghi nhận tiền thanh toán</p>
+            <p className="text-[11px] text-[var(--fg-muted)]">Ghi nhận ngay phần tiền thu trong lần gia hạn này.</p>
           </div>
         </div>
 
-        <div>
-           <label className="block text-[11px] font-bold text-[var(--fg-muted)] mb-2 uppercase tracking-widest">
-            Ghi chú bộ phận kế toán / Sale
+        <div className="space-y-2">
+          <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+            Ghi chú bộ phận kế toán / sales
           </label>
-          <Input 
+          <Input
             value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Khách CK qua Zalo..." 
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="Ví dụ: khách CK qua Zalo, bù công nợ tháng trước..."
+            className="h-11"
           />
         </div>
+      </CreateFormSection>
 
-        <div className="flex justify-end gap-3 pt-5">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Hủy
-          </Button>
-          <Button type="submit" variant="primary" isLoading={isPending} disabled={isPending}>
-            <RefreshCw className="size-4 mr-2" />
-            Xác nhận Gia hạn
-          </Button>
+      <CreateFormSection
+        title="Preview nhanh"
+        description="Giúp đội vận hành nhìn nhanh số tháng tăng thêm và phần tiền vừa ghi nhận trước khi lưu."
+      >
+        <div className="grid gap-3">
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Thời lượng tăng thêm</div>
+            <p className="mt-1 text-lg font-black text-[var(--fg-base)]">{durationMonths} tháng</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Doanh thu cộng thêm</div>
+            <p className="mt-1 text-lg font-black text-[var(--accent)]">{formatMoney(Number(addAmountVnd) || 0)}</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Khách đã trả</div>
+            <p className="mt-1 text-lg font-black text-emerald-600">{formatMoney(Number(addPaidVnd) || 0)}</p>
+          </div>
         </div>
-      </form>
-    </Modal>
+      </CreateFormSection>
+    </CreateFlowDialog>
   );
 }

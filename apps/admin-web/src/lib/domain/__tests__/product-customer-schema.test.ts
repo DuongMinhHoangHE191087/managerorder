@@ -191,11 +191,11 @@ describe("contactInfoSchema", () => {
 
   it("should make id optional", () => {
     const result = contactInfoSchema.parse({
-      id: "ct-1",
+      id: "00000000-0000-4000-8000-0000000003e8",
       type: "zalo",
       value: "0909",
     });
-    expect(result.id).toBe("ct-1");
+    expect(result.id).toBe("00000000-0000-4000-8000-0000000003e8");
   });
 });
 

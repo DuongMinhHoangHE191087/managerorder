@@ -16,6 +16,11 @@ import {
   normalizePaymentTerms,
   toLegacyPaymentMethod,
 } from "@/lib/domain/financial";
+import {
+  addOrderDuration,
+  resolveOrderDuration,
+  type OrderDurationType,
+} from "@/lib/domain/order-duration";
 import { normalizeSystemSettings } from "@/lib/settings/system-settings";
 
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
@@ -41,6 +46,9 @@ export interface CreateOrderInput {
     quantity: number;
     costPriceVnd?: number;
     sellPriceVnd?: number;
+    durationType?: OrderDurationType;
+    durationValue?: number;
+    bonusDurationValue?: number;
     notes?: string;
     assignedSourceAccountId?: string;
     customerNickUsed?: string;
@@ -60,6 +68,7 @@ export interface CreateOrderInput {
   };
   registeredAt?: string;
   orderNotes?: string;
+  createdBy?: string | null;
 }
 
 export interface CreateOrderResult {
@@ -82,47 +91,106 @@ interface LineItem {
   customer_nick_used: string | null;
   duration_type: 'days' | 'months' | 'years';
   duration_value: number;
+  bonus_duration_value: number;
+  effective_duration_value: number;
+}
+
+function createOrderInputError(message: string) {
+  return Object.assign(new Error(message), { status: 400 });
+}
+
+function validateCreateOrderInput(input: CreateOrderInput): Date {
+  if (!input.customerId?.trim()) {
+    throw createOrderInputError("Thiếu khách hàng cho đơn hàng");
+  }
+
+  if (!Array.isArray(input.items) || input.items.length === 0) {
+    throw createOrderInputError("Đơn hàng phải có ít nhất 1 sản phẩm");
+  }
+
+  for (const [index, item] of input.items.entries()) {
+    if (!item.productId?.trim()) {
+      throw createOrderInputError(`Thiếu sản phẩm ở dòng ${index + 1}`);
+    }
+
+    if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+      throw createOrderInputError(`Số lượng không hợp lệ cho sản phẩm ${item.productId}`);
+    }
+
+    if (item.sellPriceVnd !== undefined && (!Number.isFinite(item.sellPriceVnd) || item.sellPriceVnd < 0)) {
+      throw createOrderInputError(`Giá bán không hợp lệ cho sản phẩm ${item.productId}`);
+    }
+
+    if (item.costPriceVnd !== undefined && (!Number.isFinite(item.costPriceVnd) || item.costPriceVnd < 0)) {
+      throw createOrderInputError(`Giá vốn không hợp lệ cho sản phẩm ${item.productId}`);
+    }
+  }
+
+  const registeredDate = input.registeredAt ? new Date(input.registeredAt) : new Date();
+  if (Number.isNaN(registeredDate.getTime())) {
+    throw createOrderInputError("Ngày đăng ký không hợp lệ");
+  }
+
+  return registeredDate;
 }
 
 function buildLineItems(items: CreateOrderInput['items'], productMap: Map<string, ProductSnapshot>): LineItem[] {
   return items.map(item => {
     const p = productMap.get(item.productId);
     if (!p) throw Object.assign(new Error(`Sản phẩm không tồn tại: ${item.productId}`), { status: 404 });
-    const unitPrice = item.sellPriceVnd ?? p.sell_price_vnd;
+    const unitPrice = Number(item.sellPriceVnd ?? p.sell_price_vnd);
+    const costPrice = Number(item.costPriceVnd ?? p.buy_price_vnd);
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+      throw Object.assign(new Error(`Giá bán cấu hình không hợp lệ cho sản phẩm ${p.name}`), { status: 422 });
+    }
+    if (!Number.isFinite(costPrice) || costPrice < 0) {
+      throw Object.assign(new Error(`Giá vốn cấu hình không hợp lệ cho sản phẩm ${p.name}`), { status: 422 });
+    }
+
+    const resolvedDuration = resolveOrderDuration(item, {
+      durationType: p.duration_type,
+      durationValue: p.duration_value,
+    });
+    if (!Number.isFinite(resolvedDuration.effectiveDurationValue) || resolvedDuration.effectiveDurationValue <= 0) {
+      throw Object.assign(new Error(`Thời hạn cấu hình không hợp lệ cho sản phẩm ${p.name}`), { status: 422 });
+    }
+
     const subtotal = unitPrice * item.quantity;
     return {
       product_id: item.productId,
       product_name_snapshot: p.name,
       quantity: item.quantity,
       price_vnd: unitPrice,
-      cost_price_vnd: item.costPriceVnd ?? p.buy_price_vnd,
+      cost_price_vnd: costPrice,
       subtotal_vnd: subtotal,
       notes: item.notes ?? null,
       assigned_source_account_id: item.assignedSourceAccountId ?? null,
       customer_nick_used: item.customerNickUsed ?? null,
-      duration_type: p.duration_type as 'days' | 'months' | 'years',
-      duration_value: p.duration_value,
+      duration_type: resolvedDuration.durationType,
+      duration_value: resolvedDuration.durationValue,
+      bonus_duration_value: resolvedDuration.bonusDurationValue,
+      effective_duration_value: resolvedDuration.effectiveDurationValue,
     };
   });
 }
 
 // ─── Expiry Calculator ────────────────────────────────────────
 
-function calculateExpiryDate(primaryLine: LineItem, registeredAt?: string): string {
-  const dt = registeredAt ? new Date(registeredAt) : new Date();
-  if (primaryLine.duration_type === 'years') {
-    dt.setFullYear(dt.getFullYear() + (primaryLine.duration_value ?? 1));
-  } else if (primaryLine.duration_type === 'months') {
-    dt.setMonth(dt.getMonth() + (primaryLine.duration_value ?? 1));
-  } else {
-    dt.setDate(dt.getDate() + (primaryLine.duration_value ?? 30));
-  }
-  return dt.toISOString();
+function calculateExpiryDate(primaryLine: LineItem, registeredAt: Date): string {
+  const nextDate = addOrderDuration(
+    new Date(registeredAt),
+    resolveOrderDuration({
+      durationType: primaryLine.duration_type,
+      durationValue: primaryLine.duration_value,
+      bonusDurationValue: primaryLine.bonus_duration_value,
+    }),
+  );
+  return nextDate.toISOString();
 }
 
 // ─── Invoice Snapshot ─────────────────────────────────────────
 
-async function buildInvoiceSnapshot(accountId: string): Promise<Record<string, string | null> | null> {
+async function buildInvoiceSnapshot(accountId: string): Promise<Record<string, unknown> | null> {
   try {
     const sysSettings = await createTenantQuery(accountId)
       .from("system_settings")
@@ -233,10 +301,11 @@ export async function createOrderWithItems(
   accountId: string,
   input: CreateOrderInput
 ): Promise<CreateOrderResult> {
+  const registeredDate = validateCreateOrderInput(input);
   const {
     customerId, items, paymentMethod, paymentTerms, paymentSourceId,
     salesChannelId, proofImageUrls, salesNote,
-    contactSnapshot, billingDetails, registeredAt, orderNotes
+    contactSnapshot, billingDetails, registeredAt, orderNotes, createdBy
   } = input;
 
   const resolvedPaymentTerms = normalizePaymentTerms(paymentTerms ?? paymentMethod);
@@ -281,7 +350,7 @@ export async function createOrderWithItems(
 
   // 4. Calculate expiry + build invoice snapshot
   const primaryLine = lineItems[0];
-  const expiresAt = calculateExpiryDate(primaryLine, registeredAt);
+  const expiresAt = calculateExpiryDate(primaryLine, registeredDate);
   const isMultiProduct = productIds.length > 1;
   const initialStatus = resolvedPaymentTerms === "prepaid" ? "paid" : "pending_payment";
 
@@ -305,10 +374,36 @@ export async function createOrderWithItems(
     proof_image_urls: proofImageUrls?.length ? proofImageUrls : null,
     sales_note: [salesNote, orderNotes].filter(Boolean).join(' | ') || null,
     expires_at: expiresAt,
-    created_at: registeredAt ? new Date(registeredAt).toISOString() : undefined,
+    created_at: registeredAt ? registeredDate.toISOString() : undefined,
     cost_price_vnd: isMultiProduct ? null : primaryLine.cost_price_vnd,
     total_cost_vnd: totalCostVnd,
-    invoice_snapshot: invoiceSnapshot,
+    invoice_snapshot: {
+      ...(invoiceSnapshot ?? {}),
+      sales_context: {
+        registered_at: registeredDate.toISOString(),
+        created_by: createdBy ?? null,
+        primary_duration: {
+          duration_type: primaryLine.duration_type,
+          duration_value: primaryLine.duration_value,
+          bonus_duration_value: primaryLine.bonus_duration_value,
+          effective_duration_value: primaryLine.effective_duration_value,
+        },
+        item_breakdown: lineItems.map((lineItem) => ({
+          product_id: lineItem.product_id,
+          product_name: lineItem.product_name_snapshot,
+          quantity: lineItem.quantity,
+          unit_price_vnd: lineItem.price_vnd,
+          cost_price_vnd: lineItem.cost_price_vnd,
+          subtotal_vnd: lineItem.subtotal_vnd,
+          duration_type: lineItem.duration_type,
+          duration_value: lineItem.duration_value,
+          bonus_duration_value: lineItem.bonus_duration_value,
+          effective_duration_value: lineItem.effective_duration_value,
+          assigned_source_account_id: lineItem.assigned_source_account_id,
+          customer_nick_used: lineItem.customer_nick_used,
+        })),
+      },
+    },
     billing_details: billingDetails ? {
       company_name: billingDetails.companyName ?? null,
       tax_id: billingDetails.taxId ?? null,
@@ -376,7 +471,13 @@ export async function createOrderWithItems(
 
   // Run post-create effects explicitly so failures are visible to callers.
   const warning = await runPostCreateEffects(accountId, order, customerId, lineItems, currentNicksRegistry, {
-    totalAmountVnd, paymentMethod: paymentMethod ?? null, itemsCount: items.length, initialStatus,
+    totalAmountVnd,
+    paymentMethod: paymentMethod ?? null,
+    paymentTerms: resolvedPaymentTerms,
+    itemsCount: items.length,
+    initialStatus,
+    createdBy: createdBy ?? null,
+    totalCostVnd,
   });
 
   return warning ? { order, items: insertedItems, warning } : { order, items: insertedItems };
@@ -389,7 +490,15 @@ async function runPostCreateEffects(
   customerId: string,
   lineItems: LineItem[],
   currentNicksRegistry: Record<string, unknown>[],
-  meta: { totalAmountVnd: number; paymentMethod: string | null; itemsCount: number; initialStatus: string }
+  meta: {
+    totalAmountVnd: number;
+    paymentMethod: string | null;
+    paymentTerms: string | null;
+    itemsCount: number;
+    initialStatus: string;
+    createdBy: string | null;
+    totalCostVnd: number;
+  }
 ): Promise<string | undefined> {
   const jobs = [
     {
@@ -403,27 +512,49 @@ async function runPostCreateEffects(
     {
       label: "activity log",
       promise: createActivityLog({
-      account_id: accountId,
-      action_type: 'ORDER_CREATED',
-      customer_id: customerId,
-      order_id: order.id,
+        account_id: accountId,
+        action_type: "ORDER_CREATED",
+        customer_id: customerId,
+        order_id: order.id,
+        created_by: meta.createdBy,
         details: {
           total_amount_vnd: meta.totalAmountVnd,
+          total_cost_vnd: meta.totalCostVnd,
           payment_method: meta.paymentMethod,
-          payment_terms: normalizePaymentTerms(meta.paymentMethod),
+          payment_terms: meta.paymentTerms,
           items_count: meta.itemsCount,
-      }
+          expires_at: order.expires_at,
+          order_snapshot: {
+            status: order.status,
+            total_paid: order.total_paid,
+            quantity: order.quantity,
+            sales_note: order.sales_note,
+          },
+          item_breakdown: lineItems.map((lineItem) => ({
+            product_name: lineItem.product_name_snapshot,
+            quantity: lineItem.quantity,
+            unit_price_vnd: lineItem.price_vnd,
+            cost_price_vnd: lineItem.cost_price_vnd,
+            subtotal_vnd: lineItem.subtotal_vnd,
+            duration_type: lineItem.duration_type,
+            duration_value: lineItem.duration_value,
+            bonus_duration_value: lineItem.bonus_duration_value,
+            effective_duration_value: lineItem.effective_duration_value,
+            assigned_source_account_id: lineItem.assigned_source_account_id,
+            customer_nick_used: lineItem.customer_nick_used,
+          })),
+        },
       }),
     },
     {
       label: "event bus",
       promise: emitEvent(accountId, 'order.created', {
-      order_id: order.id,
-      order_code: order.order_code,
-      customer_id: customerId,
-      total_amount_vnd: meta.totalAmountVnd,
-      status: meta.initialStatus,
-      items_count: meta.itemsCount,
+        order_id: order.id,
+        order_code: order.order_code,
+        customer_id: customerId,
+        total_amount_vnd: meta.totalAmountVnd,
+        status: meta.initialStatus,
+        items_count: meta.itemsCount,
       }),
     },
   ];

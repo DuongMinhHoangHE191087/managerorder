@@ -17,7 +17,7 @@ const sampleStats = {
   fillRate: 70,
   expiringAccounts: [
     {
-      id: "acc-1",
+      id: "00000000-0000-4000-8000-000000000016",
       email: "alpha@example.com",
       expiresAt: "2026-04-25T10:00:00.000Z",
       daysLeft: 4,
@@ -28,7 +28,7 @@ const sampleStats = {
   ],
   overdueCustomers: [
     {
-      id: "cus-1",
+      id: "00000000-0000-4000-8000-0000000003fa",
       name: "Nguyễn A",
       debtAmountVnd: 150_000,
       debtOverdueDays: 12,
@@ -36,8 +36,8 @@ const sampleStats = {
   ],
   pendingOrders: [
     {
-      id: "ord-1",
-      customerId: "cus-1",
+      id: "00000000-0000-4000-8000-00000000000f",
+      customerId: "00000000-0000-4000-8000-0000000003fa",
       productId: "p1",
       totalAmountVnd: 250_000,
       createdAt: "2026-04-21T08:30:00.000Z",
@@ -66,8 +66,8 @@ const sampleStats = {
   ],
   recentOrders: [
     {
-      id: "ord-1",
-      customerId: "cus-1",
+      id: "00000000-0000-4000-8000-00000000000f",
+      customerId: "00000000-0000-4000-8000-0000000003fa",
       customerName: "Nguyễn A",
       productId: "p1",
       productName: "Netflix",
@@ -154,7 +154,7 @@ describe("buildDashboardExportData", () => {
         ],
         customerClv: [
           {
-            customerId: "cus-1",
+            customerId: "00000000-0000-4000-8000-0000000003fa",
             customerName: "Nguyễn A",
             totalRevenue: 2_400_000,
             totalProfit: 900_000,

@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
-interface DeferredSectionProps {
+interface DeferredSectionProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   fallback: ReactNode;
-  className?: string;
   once?: boolean;
   rootMargin?: string;
 }
@@ -17,6 +16,7 @@ export function DeferredSection({
   className,
   once = true,
   rootMargin = "240px",
+  ...props
 }: DeferredSectionProps) {
   const ref = useRef<HTMLDivElement>(null);
   const shouldShowImmediately = typeof IntersectionObserver === "undefined";
@@ -68,7 +68,7 @@ export function DeferredSection({
   const shouldRenderChildren = once ? hasBeenVisible || isVisible : isVisible;
 
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref} className={className} {...props}>
       {shouldRenderChildren ? children : fallback}
     </div>
   );

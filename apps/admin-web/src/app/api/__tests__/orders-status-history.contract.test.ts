@@ -31,12 +31,12 @@ describe("GET /api/orders/[id]/status-history", () => {
     mockGetOrderById.mockResolvedValue(null);
 
     const response = await GET(
-      createTestRequest("http://localhost/api/orders/order-404/status-history"),
-      { params: Promise.resolve({ id: "order-404" }) } as { params: Promise<{ id: string }> },
+      createTestRequest("http://localhost/api/orders/00000000-0000-4000-8000-000000000061/status-history"),
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-000000000061" }) } as { params: Promise<{ id: string }> },
     );
 
     expect(response.status).toBe(404);
-    expect(mockGetOrderById).toHaveBeenCalledWith("order-404", TEST_ACCOUNT_ID);
+    expect(mockGetOrderById).toHaveBeenCalledWith("00000000-0000-4000-8000-000000000061", TEST_ACCOUNT_ID);
     expect(mockGetOrderStatusHistory).not.toHaveBeenCalled();
     expect(await response.json()).toEqual({
       error: "Đơn hàng không tồn tại",
@@ -46,14 +46,14 @@ describe("GET /api/orders/[id]/status-history", () => {
   it("returns the full history payload for an owned order", async () => {
     const history = [
       {
-        id: "history-1",
+        id: "00000000-0000-4000-8000-000000000062",
         old_status: null,
         new_status: "pending_payment",
         changed_by: "Test User",
         change_reason: "Tạo đơn hàng mới",
       },
       {
-        id: "history-2",
+        id: "00000000-0000-4000-8000-000000000063",
         old_status: "pending_payment",
         new_status: "active",
         changed_by: "Ops User",
@@ -61,17 +61,17 @@ describe("GET /api/orders/[id]/status-history", () => {
       },
     ];
 
-    mockGetOrderById.mockResolvedValue({ id: "order-1" });
+    mockGetOrderById.mockResolvedValue({ id: "00000000-0000-4000-8000-00000000005b" });
     mockGetOrderStatusHistory.mockResolvedValue(history);
 
     const response = await GET(
-      createTestRequest("http://localhost/api/orders/order-1/status-history"),
-      { params: Promise.resolve({ id: "order-1" }) } as { params: Promise<{ id: string }> },
+      createTestRequest("http://localhost/api/orders/00000000-0000-4000-8000-00000000005b/status-history"),
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-00000000005b" }) } as { params: Promise<{ id: string }> },
     );
 
     expect(response.status).toBe(200);
-    expect(mockGetOrderById).toHaveBeenCalledWith("order-1", TEST_ACCOUNT_ID);
-    expect(mockGetOrderStatusHistory).toHaveBeenCalledWith("order-1");
+    expect(mockGetOrderById).toHaveBeenCalledWith("00000000-0000-4000-8000-00000000005b", TEST_ACCOUNT_ID);
+    expect(mockGetOrderStatusHistory).toHaveBeenCalledWith("00000000-0000-4000-8000-00000000005b");
     expect(await response.json()).toEqual({ data: history });
   });
 });

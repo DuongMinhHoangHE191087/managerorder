@@ -238,8 +238,12 @@ export default function PremiumServicesPage() {
       <ServiceCreateModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        onSuccess={() => {
-          void fetchServices();
+        onSuccess={(service) => {
+          setIsCreateOpen(false);
+          setServices((current) => [
+            { ...service, package_count: 0 },
+            ...current.filter((item) => item.id !== service.id),
+          ]);
         }}
       />
 
@@ -248,8 +252,19 @@ export default function PremiumServicesPage() {
           isOpen={!!editingService}
           onClose={() => setEditingService(null)}
           service={editingService}
-          onSuccess={() => {
-            void fetchServices();
+          onSuccess={(service) => {
+            setEditingService(null);
+            setServices((current) =>
+              current.map((item) =>
+                item.id === service.id
+                  ? {
+                      ...item,
+                      ...service,
+                      package_count: item.package_count,
+                    }
+                  : item,
+              ),
+            );
           }}
         />
       )}

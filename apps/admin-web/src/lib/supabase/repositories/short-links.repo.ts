@@ -11,6 +11,7 @@ import { isMissingColumnError } from '@/lib/supabase/schema-errors';
 import { SchemaNotInitializedError } from '@/lib/utils/errors';
 import type {
   ShortLinkDeliveryMode,
+  ShortLinkFailureTemplateKey,
   ShortLinkLandingTemplateKey,
 } from "@/lib/domain/types";
 
@@ -76,6 +77,8 @@ function buildModernShortLinkInsert(
     sales_channel_id?: string | null;
     delivery_mode?: ShortLinkDeliveryMode;
     landing_template_key?: ShortLinkLandingTemplateKey | null;
+    failure_template_key?: ShortLinkFailureTemplateKey | null;
+    seller_contact_url?: string | null;
   },
   accountId: string,
   slug: string,
@@ -98,6 +101,8 @@ function buildModernShortLinkInsert(
     sales_channel_id: input.sales_channel_id ?? null,
     delivery_mode: input.delivery_mode ?? "inherit_channel",
     landing_template_key: input.landing_template_key ?? null,
+    failure_template_key: input.failure_template_key ?? null,
+    seller_contact_url: input.seller_contact_url ?? null,
   } as ShortLinkInsert;
 }
 
@@ -106,6 +111,8 @@ function isShortLinkExtensionSchemaError(error: unknown): boolean {
     isMissingColumnError(error, "sales_channel_id", "short_links")
     || isMissingColumnError(error, "delivery_mode", "short_links")
     || isMissingColumnError(error, "landing_template_key", "short_links")
+    || isMissingColumnError(error, "failure_template_key", "short_links")
+    || isMissingColumnError(error, "seller_contact_url", "short_links")
   );
 }
 
@@ -113,22 +120,30 @@ function requiresCreateShortLinkExtensionSchema(input: {
   sales_channel_id?: string | null;
   delivery_mode?: ShortLinkDeliveryMode;
   landing_template_key?: ShortLinkLandingTemplateKey | null;
+  failure_template_key?: ShortLinkFailureTemplateKey | null;
+  seller_contact_url?: string | null;
 }): boolean {
   return Boolean(input.sales_channel_id)
     || input.delivery_mode === "landing_page"
-    || Boolean(input.landing_template_key);
+    || Boolean(input.landing_template_key)
+    || Boolean(input.failure_template_key)
+    || Boolean(input.seller_contact_url);
 }
 
 function requiresUpdateShortLinkExtensionSchema(input: {
   sales_channel_id?: string | null;
   delivery_mode?: ShortLinkDeliveryMode;
   landing_template_key?: ShortLinkLandingTemplateKey | null;
+  failure_template_key?: ShortLinkFailureTemplateKey | null;
+  seller_contact_url?: string | null;
 }): boolean {
   return (
-    (input.sales_channel_id !== undefined && input.sales_channel_id !== null)
+    input.sales_channel_id !== undefined
     || input.delivery_mode === "landing_page"
     || input.delivery_mode === "inherit_channel"
     || (input.landing_template_key !== undefined && input.landing_template_key !== null)
+    || input.failure_template_key !== undefined
+    || input.seller_contact_url !== undefined
   );
 }
 
@@ -137,7 +152,7 @@ function createShortLinkExtensionSchemaError(operation: "create" | "update"): Sc
     "Cấu hình landing hoặc kênh bán của short-link chưa dùng được vì cơ sở dữ liệu chưa được nâng cấp",
     {
       relation: "short_links",
-      missingColumns: ["sales_channel_id", "delivery_mode", "landing_template_key"],
+      missingColumns: ["sales_channel_id", "delivery_mode", "landing_template_key", "failure_template_key", "seller_contact_url"],
       operation,
     },
   );
@@ -174,17 +189,25 @@ export async function listShortLinks(accountId: string): Promise<ShortLinkRow[]>
   );
 }
 
-export async function getShortLinkById(id: string, accountId: string): Promise<ShortLinkRow | null> {
+export async function getShortLinkById(
+  id: string,
+  accountId: string,
+  options: { includeDeleted?: boolean } = {},
+): Promise<ShortLinkRow | null> {
   return cached(
     key.item(id),
     async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('short_links')
         .select('*')
         .eq('id', id)
-        .eq('account_id', accountId)
-        .is('deleted_at', null)
-        .single();
+        .eq('account_id', accountId);
+
+      if (!options.includeDeleted) {
+        query = query.is('deleted_at', null);
+      }
+
+      const { data, error } = await query.single();
       if (error) return null;
       return data;
     },
@@ -210,7 +233,7 @@ export async function getShortLinkBySlug(slug: string): Promise<ShortLinkRow | n
 }
 
 const PUBLIC_SUMMARY_SELECT =
-  "id, account_id, order_id, sales_channel_id, delivery_mode, landing_template_key, title, status, max_clicks, current_clicks, expires_at, notify_clicks, locked_ip, locked_ipv6, require_token, access_token";
+  "id, account_id, order_id, sales_channel_id, delivery_mode, landing_template_key, failure_template_key, seller_contact_url, title, status, max_clicks, current_clicks, expires_at, notify_clicks, locked_ip, locked_ipv6, require_token, access_token";
 const LEGACY_PUBLIC_SUMMARY_SELECT =
   "id, account_id, order_id, title, status, max_clicks, current_clicks, expires_at, notify_clicks, locked_ip, locked_ipv6, require_token, access_token";
 
@@ -260,6 +283,8 @@ export async function createShortLink(
     sales_channel_id?: string | null;
     delivery_mode?: ShortLinkDeliveryMode;
     landing_template_key?: ShortLinkLandingTemplateKey | null;
+    failure_template_key?: ShortLinkFailureTemplateKey | null;
+    seller_contact_url?: string | null;
   },
 ): Promise<ShortLinkRow> {
   const maxRetries = 3;
@@ -389,6 +414,7 @@ export async function updateShortLink(
     | 'title'
     | 'target_url'
     | 'max_clicks'
+    | 'current_clicks'
     | 'expires_at'
     | 'status'
     | 'require_token'
@@ -399,6 +425,8 @@ export async function updateShortLink(
     | 'sales_channel_id'
     | 'delivery_mode'
     | 'landing_template_key'
+    | 'failure_template_key'
+    | 'seller_contact_url'
   >>,
 ): Promise<ShortLinkRow> {
   const requiresExtensionSchema = requiresUpdateShortLinkExtensionSchema(input);
@@ -409,6 +437,7 @@ export async function updateShortLink(
   if (input.title !== undefined) legacyUpdatePayload.title = input.title;
   if (input.target_url !== undefined) legacyUpdatePayload.target_url = input.target_url;
   if (input.max_clicks !== undefined) legacyUpdatePayload.max_clicks = input.max_clicks;
+  if (input.current_clicks !== undefined) legacyUpdatePayload.current_clicks = input.current_clicks;
   if (input.expires_at !== undefined) legacyUpdatePayload.expires_at = input.expires_at;
   if (input.status !== undefined) legacyUpdatePayload.status = input.status;
   if (input.require_token !== undefined) legacyUpdatePayload.require_token = input.require_token;
@@ -444,7 +473,7 @@ export async function updateShortLink(
 
     throw new Error(error.message);
   }
-  if (!data) throw new Error('Short link not found');
+  if (!data) throw new Error("Không tìm thấy link rút gọn");
 
   invalidatePrefix(`short_links:list:${accountId}`);
   invalidate(key.item(id));

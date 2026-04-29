@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Banknote, CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Banknote, CheckCircle2, Wallet } from "lucide-react";
 import { useOrderPayment } from "@/widgets/pages/customers/hooks/use-customer-detail";
 import { appToast } from "@/shared/ui/app-toast";
-import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
-import { Modal } from "@/shared/ui/modal";
+import {
+  CreateActionFooter,
+  CreateFlowDialog,
+  CreateFormSection,
+} from "@/shared/ui/create-flow-shell";
 import { formatMoney } from "@/lib/utils";
 import type { CustomerOrder } from "@/shared/types/customers";
 import { vi } from "@/shared/messages/vi";
@@ -25,6 +28,10 @@ export function CustomerOrderPaymentModal({
   const paymentMutation = useOrderPayment(customerId);
   const remainingAmount = Math.max(order.total_amount - order.total_paid, 0);
   const [paymentAmount, setPaymentAmount] = useState(String(remainingAmount));
+
+  useEffect(() => {
+    setPaymentAmount(String(remainingAmount));
+  }, [remainingAmount, order.id]);
 
   async function handlePayment() {
     const amount = Number(paymentAmount);
@@ -59,58 +66,59 @@ export function CustomerOrderPaymentModal({
   }
 
   return (
-    <Modal
+    <CreateFlowDialog
       isOpen
       onClose={onClose}
+      size="lg"
       title={vi.customers.paymentModal.title}
-      size="sm"
+      description="Xử lý thanh toán trực tiếp ngay trong hồ sơ khách hàng với phần còn lại, số tiền thu thêm và kết quả công nợ rõ ràng trước khi xác nhận."
       footer={
-        <div className="flex justify-end gap-3 w-full">
-          <Button variant="secondary" onClick={onClose}>
-            {vi.customers.paymentModal.cancel}
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handlePayment}
-            disabled={paymentMutation.isPending}
-          >
-            <CheckCircle2 className="size-4" />
-            {paymentMutation.isPending ? vi.customers.paymentModal.processing : vi.customers.paymentModal.confirm}
-          </Button>
-        </div>
+        <CreateActionFooter
+          primaryLabel={vi.customers.paymentModal.confirm}
+          onPrimary={() => {
+            void handlePayment();
+          }}
+          onCancel={onClose}
+          pending={paymentMutation.isPending}
+        />
       }
+      contentClassName="gap-5 lg:grid-cols-[minmax(0,1fr)_280px]"
     >
-      <div className="space-y-5">
-        <div className="p-4 bg-[var(--surface-light)] rounded-xl">
-          <div className="flex justify-between text-[12px] mb-2">
-            <span className="text-[var(--fg-muted)] font-bold">{vi.customers.paymentModal.totalOrder}</span>
-            <span className="font-black text-[var(--fg-base)]">
-              {formatMoney(order.total_amount)}
-            </span>
-          </div>
-          <div className="flex justify-between text-[12px] mb-2">
-            <span className="text-[var(--fg-muted)] font-bold">{vi.customers.paymentModal.paid}</span>
-            <span className="font-black text-emerald-500">
-              {formatMoney(order.total_paid)}
-            </span>
-          </div>
-          <div className="border-t border-[var(--border-soft)] pt-2 mt-2">
-            <div className="flex justify-between text-[13px]">
-            <span className="text-red-500 font-bold">{vi.customers.paymentModal.remaining}</span>
-              <span className="font-black text-red-500">
-                {formatMoney(remainingAmount)}
-              </span>
+      <CreateFormSection
+        title="Khoản thanh toán"
+        description="Chỉ giữ các trường cần thiết để thao tác nhanh từ customer detail mà không làm rối màn."
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">
+            <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+              <Wallet className="size-3.5 text-[var(--accent)]" />
+              Tổng đơn
             </div>
+            <p className="text-lg font-black text-[var(--fg-base)]">{formatMoney(order.total_amount)}</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">
+            <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+              <CheckCircle2 className="size-3.5 text-emerald-500" />
+              Đã thu
+            </div>
+            <p className="text-lg font-black text-emerald-600">{formatMoney(order.total_paid)}</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">
+            <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+              <Banknote className="size-3.5 text-[var(--danger)]" />
+              Còn lại
+            </div>
+            <p className="text-lg font-black text-[var(--danger)]">{formatMoney(remainingAmount)}</p>
           </div>
         </div>
 
-        <div>
-          <label className="flex items-center gap-2 text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-widest mb-2">
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
             <Banknote className="size-3.5 text-emerald-500" />
             {vi.customers.paymentModal.amountLabel}
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[var(--fg-muted)]">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[var(--fg-muted)]">
               ₫
             </span>
             <Input
@@ -119,11 +127,11 @@ export function CustomerOrderPaymentModal({
               max={remainingAmount}
               value={paymentAmount}
               onChange={(event) => setPaymentAmount(event.target.value)}
-              className="pl-8 !py-3 font-mono font-bold text-lg"
+              className="h-12 pl-10 text-base font-black"
               placeholder="0"
             />
           </div>
-          <div className="flex gap-2 mt-2">
+          <div className="flex flex-wrap gap-2">
             {[
               { label: vi.customers.paymentModal.quickFull, value: remainingAmount },
               { label: vi.customers.paymentModal.quickHalf, value: remainingAmount / 2 },
@@ -132,14 +140,34 @@ export function CustomerOrderPaymentModal({
                 key={quickAmount.label}
                 type="button"
                 onClick={() => setPaymentAmount(String(Math.round(quickAmount.value)))}
-                className="px-3 py-1 text-[11px] font-bold bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg hover:bg-[var(--accent)]/20 transition-colors cursor-pointer"
+                className="rounded-full border border-[var(--accent)]/15 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-bold text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/20"
               >
                 {quickAmount.label}
               </button>
             ))}
           </div>
         </div>
-      </div>
-    </Modal>
+      </CreateFormSection>
+
+      <CreateFormSection
+        title="Tác động sau khi lưu"
+        description="Dùng panel phụ để kiểm tra nhanh tình trạng thanh toán trước khi ghi nhận."
+      >
+        <div className="grid gap-3">
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Sau lần thu này</div>
+            <p className="mt-1 text-lg font-black text-[var(--fg-base)]">
+              {formatMoney(Math.min(order.total_paid + Number(paymentAmount || 0), order.total_amount))}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Công nợ còn lại</div>
+            <p className="mt-1 text-lg font-black text-[var(--danger)]">
+              {formatMoney(Math.max(remainingAmount - Number(paymentAmount || 0), 0))}
+            </p>
+          </div>
+        </div>
+      </CreateFormSection>
+    </CreateFlowDialog>
   );
 }

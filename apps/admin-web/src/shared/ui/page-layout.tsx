@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface PageContainerProps {
@@ -15,7 +15,7 @@ interface PageHeaderProps {
   className?: string;
 }
 
-interface SurfaceCardProps {
+interface SurfaceCardProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode;
   className?: string;
   tone?: "default" | "muted";
@@ -81,7 +81,7 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "app-card flex flex-col gap-5 border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.86))] px-5 py-5 shadow-[0_18px_44px_rgba(15,23,42,0.05)] sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-7 lg:py-6",
+        "app-card flex min-w-0 max-w-full flex-col gap-5 border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.86))] px-5 py-5 shadow-[0_18px_44px_rgba(15,23,42,0.05)] sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-7 lg:py-6",
         className,
       )}
     >
@@ -91,7 +91,7 @@ export function PageHeader({
             {eyebrow}
           </div>
         ) : null}
-        <h1 className="text-2xl font-black tracking-tight text-[var(--fg-base)] lg:text-[2.15rem]">
+        <h1 className="break-words text-2xl font-black tracking-tight text-[var(--fg-base)] lg:text-[2.15rem]">
           {title}
         </h1>
         {description ? (
@@ -100,7 +100,7 @@ export function PageHeader({
           </p>
         ) : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
+      {actions ? <div className="flex min-w-0 flex-wrap items-center gap-3">{actions}</div> : null}
     </header>
   );
 }
@@ -109,11 +109,13 @@ export function SurfaceCard({
   children,
   className,
   tone = "default",
+  ...rest
 }: SurfaceCardProps) {
   return (
     <section
+      {...rest}
       className={cn(
-        "overflow-hidden rounded-[28px] border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)]",
+        "min-w-0 max-w-full overflow-hidden rounded-[28px] border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)]",
         tone === "default"
           ? "bg-[rgba(255,255,255,0.92)]"
           : "bg-[rgba(246,250,244,0.88)]",
@@ -133,7 +135,7 @@ export function StatsGrid({
   return (
     <div
       className={cn(
-        "grid gap-4 md:grid-cols-2 xl:grid-cols-4",
+        "grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4",
         density === "dense" && "xl:grid-cols-6",
         className,
       )}
@@ -183,15 +185,15 @@ export function SectionHeader({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 border-b border-[var(--border-soft)] px-5 py-4 md:flex-row md:items-center md:justify-between",
+        "flex min-w-0 flex-col gap-3 border-b border-[var(--border-soft)] px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between",
         className,
       )}
     >
-      <div>
-        <h2 className="text-[15px] font-bold tracking-tight text-[var(--fg-base)]">{title}</h2>
-        {description ? <p className="mt-1 text-[13px] text-[var(--fg-muted)]">{description}</p> : null}
+      <div className="min-w-0">
+        <h2 className="break-words text-[15px] font-bold tracking-tight text-[var(--fg-base)]">{title}</h2>
+        {description ? <p className="mt-1 break-words text-[13px] text-[var(--fg-muted)]">{description}</p> : null}
       </div>
-      {action}
+      {action ? <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
     </div>
   );
 }

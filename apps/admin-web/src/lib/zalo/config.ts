@@ -27,6 +27,7 @@ function buildCapabilities(input: {
     ai: Boolean(input.botToken),
     catalog: input.accountBound,
     orderLookup: input.accountBound,
+    orderCreation: input.accountBound,
     humanHandoff: input.adminUserIds.length > 0,
     adminNotify: input.adminUserIds.length > 0,
     gemini: Boolean(input.geminiApiKey),
@@ -36,10 +37,7 @@ function buildCapabilities(input: {
 export function resolveZaloRuntimeConfig(env: NodeJS.ProcessEnv = process.env): ZaloRuntimeConfig {
   const warnings: string[] = [];
   const botToken = normalize(env.ZALO_BOT_TOKEN);
-  const accountId =
-    normalize(env.ZALO_BOT_ACCOUNT_ID) ||
-    normalize(env.TELEGRAM_BOT_ACCOUNT_ID) ||
-    normalize(env.ACCOUNT_ID);
+  const accountId = normalize(env.ZALO_BOT_ACCOUNT_ID);
   const adminUserIds = parseList(env.ADMIN_ZALO_USER_IDS);
   const geminiApiKey = normalize(env.GEMINI_API_KEY);
   const geminiModel = normalize(env.GEMINI_MODEL) || DEFAULT_GEMINI_MODEL;
@@ -50,7 +48,13 @@ export function resolveZaloRuntimeConfig(env: NodeJS.ProcessEnv = process.env): 
     warnings.push("Missing ZALO_BOT_TOKEN; Zalo bot will be skipped.");
   }
   if (!accountBound) {
-    warnings.push("Missing ZALO_BOT_ACCOUNT_ID / TELEGRAM_BOT_ACCOUNT_ID / ACCOUNT_ID; product and order lookup will be disabled.");
+    const telegramAccountId = normalize(env.TELEGRAM_BOT_ACCOUNT_ID);
+    const legacyAccountId = normalize(env.ACCOUNT_ID);
+    if (telegramAccountId || legacyAccountId) {
+      warnings.push("Missing ZALO_BOT_ACCOUNT_ID; Zalo no longer falls back to TELEGRAM_BOT_ACCOUNT_ID or ACCOUNT_ID.");
+    } else {
+      warnings.push("Missing ZALO_BOT_ACCOUNT_ID; product, order lookup, and order creation will be disabled.");
+    }
   }
   if (adminUserIds.length === 0) {
     warnings.push("Missing ADMIN_ZALO_USER_IDS; startup notifications and human handoff will be disabled.");
@@ -81,6 +85,7 @@ export function formatZaloCapabilityList(config: ZaloRuntimeConfig): string[] {
   }
   if (config.capabilities.catalog) capabilities.push("catalog");
   if (config.capabilities.orderLookup) capabilities.push("tra cứu đơn");
+  if (config.capabilities.orderCreation) capabilities.push("tạo đơn hàng");
   if (config.capabilities.humanHandoff) capabilities.push("human-handoff");
   if (config.capabilities.adminNotify) capabilities.push("admin notify");
   if (config.capabilities.gemini && !capabilities.includes("AI (Gemini)")) {
@@ -98,6 +103,7 @@ export function describeZaloRuntime(config: ZaloRuntimeConfig): string {
     `ai=${config.capabilities.ai ? "on" : "off"}`,
     `catalog=${config.capabilities.catalog ? "on" : "off"}`,
     `lookup=${config.capabilities.orderLookup ? "on" : "off"}`,
+    `order=${config.capabilities.orderCreation ? "on" : "off"}`,
     `handoff=${config.capabilities.humanHandoff ? "on" : "off"}`,
     `gemini=${config.capabilities.gemini ? "on" : "off"}`,
   ];

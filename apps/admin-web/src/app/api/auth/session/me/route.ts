@@ -19,6 +19,21 @@ export async function GET() {
     }
 
     const payload = verifyToken(accessToken);
+
+    if (process.env.E2E_MOCK_SESSION === "1") {
+      const [firstName = "E2E", ...rest] = payload.email.split("@")[0]?.split(/[._-]+/) ?? [];
+      return NextResponse.json({
+        data: {
+          id: payload.sub,
+          email: payload.email,
+          firstName,
+          lastName: rest.join(" "),
+          role: payload.role,
+          accountId: payload.accountId,
+        },
+      });
+    }
+
     const user = await authRepo.findUserById(payload.sub);
 
     if (!user) {

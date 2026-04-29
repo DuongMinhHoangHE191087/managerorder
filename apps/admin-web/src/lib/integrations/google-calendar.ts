@@ -10,6 +10,10 @@ export type GCalSyncResult = {
 };
 
 export async function getGoogleCalendarClient(accountId: string) {
+  if (process.env.CODEX_USE_LOCAL_FALLBACK === "1") {
+    return null;
+  }
+
   const { data: integration } = await supabase
     .from("integrations")
     .select("*")

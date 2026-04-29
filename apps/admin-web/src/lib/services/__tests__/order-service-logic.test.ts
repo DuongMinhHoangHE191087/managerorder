@@ -65,13 +65,13 @@ function calculateExpiryDate(
 
 describe("buildLineItems (order service logic)", () => {
   const products = new Map<string, ProductSnapshot>([
-    ["prod-001", {
-      id: "prod-001", name: "Netflix Premium",
+    ["00000000-0000-4000-8000-000000000026", {
+      id: "00000000-0000-4000-8000-000000000026", name: "Netflix Premium",
       buy_price_vnd: 100_000, sell_price_vnd: 150_000,
       duration_type: "months", duration_value: 1, is_active: true,
     }],
-    ["prod-002", {
-      id: "prod-002", name: "Spotify Family",
+    ["00000000-0000-4000-8000-000000000027", {
+      id: "00000000-0000-4000-8000-000000000027", name: "Spotify Family",
       buy_price_vnd: 50_000, sell_price_vnd: 80_000,
       duration_type: "months", duration_value: 1, is_active: true,
     }],
@@ -79,7 +79,7 @@ describe("buildLineItems (order service logic)", () => {
 
   it("builds line items with correct prices", () => {
     const items = buildLineItems([
-      { productId: "prod-001", quantity: 2 },
+      { productId: "00000000-0000-4000-8000-000000000026", quantity: 2 },
     ], products);
     expect(items).toHaveLength(1);
     expect(items[0].price_vnd).toBe(150_000);
@@ -89,8 +89,8 @@ describe("buildLineItems (order service logic)", () => {
 
   it("handles multi-product orders", () => {
     const items = buildLineItems([
-      { productId: "prod-001", quantity: 1 },
-      { productId: "prod-002", quantity: 3 },
+      { productId: "00000000-0000-4000-8000-000000000026", quantity: 1 },
+      { productId: "00000000-0000-4000-8000-000000000027", quantity: 3 },
     ], products);
     expect(items).toHaveLength(2);
     expect(items[1].subtotal_vnd).toBe(240_000);
@@ -98,19 +98,19 @@ describe("buildLineItems (order service logic)", () => {
 
   it("throws for non-existent product", () => {
     expect(() => buildLineItems([
-      { productId: "prod-999", quantity: 1 },
+      { productId: "00000000-0000-4000-8000-00000000002c", quantity: 1 },
     ], products)).toThrow("Product not found");
   });
 
   it("calculates subtotal correctly for quantity > 1", () => {
     const items = buildLineItems([
-      { productId: "prod-002", quantity: 5 },
+      { productId: "00000000-0000-4000-8000-000000000027", quantity: 5 },
     ], products);
     expect(items[0].subtotal_vnd).toBe(400_000);
   });
 
   it("preserves product name snapshot", () => {
-    const items = buildLineItems([{ productId: "prod-001", quantity: 1 }], products);
+    const items = buildLineItems([{ productId: "00000000-0000-4000-8000-000000000026", quantity: 1 }], products);
     expect(items[0].product_name_snapshot).toBe("Netflix Premium");
   });
 });

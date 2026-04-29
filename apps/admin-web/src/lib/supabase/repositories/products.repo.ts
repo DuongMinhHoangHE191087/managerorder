@@ -24,8 +24,14 @@ export interface TelegramProductSummary {
 
 const key = {
   list: (accountId: string) => `products:list:${accountId}`,
-  item: (id: string, accountId: string) => `products:item:${id}:${accountId}`,
+  item: (id: string, accountId: string, includeDeleted = false) =>
+    `products:item:${id}:${accountId}:${includeDeleted ? "trash" : "active"}`,
 };
+
+function invalidateProductItem(id: string, accountId: string) {
+  invalidate(key.item(id, accountId, false));
+  invalidate(key.item(id, accountId, true));
+}
 
 export async function listProducts(accountId: string): Promise<ProductRow[]> {
   return cached(
@@ -46,18 +52,24 @@ export async function listProducts(accountId: string): Promise<ProductRow[]> {
 
 export async function getProductById(
   id: string,
-  accountId: string
+  accountId: string,
+  options: { includeDeleted?: boolean } = {},
 ): Promise<ProductRow | null> {
+  const includeDeleted = options.includeDeleted ?? false;
   return cached(
-    key.item(id, accountId),
+    key.item(id, accountId, includeDeleted),
     async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select('*')
         .eq('id', id)
-        .eq('account_id', accountId)
-        .is('deleted_at', null)
-        .single();
+        .eq('account_id', accountId);
+
+      if (!includeDeleted) {
+        query = query.is('deleted_at', null);
+      }
+
+      const { data, error } = await query.single();
       if (error) return null;
       return data;
     },
@@ -95,7 +107,7 @@ export async function updateProduct(
   if (error) throw new Error(error.message);
   if (!data) throw new Error('Product not found');
   invalidate(key.list(accountId));
-  invalidate(key.item(id, accountId));
+  invalidateProductItem(id, accountId);
   return data;
 }
 
@@ -107,7 +119,7 @@ export async function deleteProduct(id: string, accountId: string): Promise<void
     .eq('account_id', accountId);
   if (error) throw new Error(error.message);
   invalidate(key.list(accountId));
-  invalidate(key.item(id, accountId));
+  invalidateProductItem(id, accountId);
 }
 
 export async function searchProductsForTelegram(

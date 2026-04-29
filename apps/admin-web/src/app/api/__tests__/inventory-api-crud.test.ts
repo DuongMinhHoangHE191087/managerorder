@@ -27,9 +27,9 @@ import { DELETE } from "@/app/api/inventory/[id]/route";
 
 function makeLicenseKey(overrides: Record<string, unknown> = {}) {
   return {
-    id: "lk-uuid-001",
+    id: "00000000-0000-4000-8000-000000000044",
     key_code: "ABC-123-DEF",
-    product_id: "prod-uuid-001",
+    product_id: "00000000-0000-4000-8000-000000000045",
     account_id: TEST_ACCOUNT_ID,
     status: "available",
     order_id: null,
@@ -48,8 +48,8 @@ describe("GET /api/inventory", () => {
 
   it("returns license key list with status 200", async () => {
     const mockKeys = [
-      makeLicenseKey({ id: "lk-1", key_code: "KEY-001" }),
-      makeLicenseKey({ id: "lk-2", key_code: "KEY-002", status: "used" }),
+      makeLicenseKey({ id: "00000000-0000-4000-8000-000000000046", key_code: "KEY-001" }),
+      makeLicenseKey({ id: "00000000-0000-4000-8000-000000000047", key_code: "KEY-002", status: "used" }),
     ];
     vi.mocked(listInventoryKeysForAccount).mockResolvedValue(mockKeys as any);
 
@@ -93,7 +93,7 @@ describe("POST /api/inventory", () => {
     const res = await POST(
       createTestRequest("http://localhost/api/inventory", {
         method: "POST",
-        body: { keyCode: "NEW-KEY-001", productId: "prod-uuid-001", status: "available" },
+        body: { keyCode: "NEW-KEY-001", productId: "00000000-0000-4000-8000-000000000045", status: "available" },
       }),
       { params: {} } as any,
     );
@@ -105,7 +105,7 @@ describe("POST /api/inventory", () => {
       TEST_ACCOUNT_ID,
       expect.objectContaining({
         keyCode: "NEW-KEY-001",
-        productId: "prod-uuid-001",
+        productId: "00000000-0000-4000-8000-000000000045",
         status: "available",
       }),
     );
@@ -118,7 +118,7 @@ describe("POST /api/inventory", () => {
     await POST(
       createTestRequest("http://localhost/api/inventory", {
         method: "POST",
-        body: { keyCode: "KEY-100", productId: "prod-1" },
+        body: { keyCode: "KEY-100", productId: "00000000-0000-4000-8000-000000000039" },
       }),
       { params: {} } as any,
     );
@@ -133,7 +133,7 @@ describe("POST /api/inventory", () => {
     const res = await POST(
       createTestRequest("http://localhost/api/inventory", {
         method: "POST",
-        body: { productId: "prod-1", status: "available" },
+        body: { productId: "00000000-0000-4000-8000-000000000039", status: "available" },
       }),
       { params: {} } as any,
     );
@@ -146,7 +146,7 @@ describe("POST /api/inventory", () => {
     const res = await POST(
       createTestRequest("http://localhost/api/inventory", {
         method: "POST",
-        body: { keyCode: "KEY-100", productId: "prod-1", status: "INVALID_STATUS" },
+        body: { keyCode: "KEY-100", productId: "00000000-0000-4000-8000-000000000039", status: "INVALID_STATUS" },
       }),
       { params: {} } as any,
     );
@@ -160,7 +160,7 @@ describe("POST /api/inventory", () => {
     const res = await POST(
       createTestRequest("http://localhost/api/inventory", {
         method: "POST",
-        body: { keyCode: "DUP-KEY", productId: "prod-1" },
+        body: { keyCode: "DUP-KEY", productId: "00000000-0000-4000-8000-000000000039" },
       }),
       { params: {} } as any,
     );
@@ -178,16 +178,16 @@ describe("DELETE /api/inventory/[id]", () => {
     vi.mocked(deleteInventoryKeyForAccount).mockResolvedValue(undefined);
 
     const res = await DELETE(
-      createTestRequest("http://localhost/api/inventory/lk-uuid-001", {
+      createTestRequest("http://localhost/api/inventory/00000000-0000-4000-8000-000000000044", {
         method: "DELETE",
       }),
-      { params: Promise.resolve({ id: "lk-uuid-001" }) } as any,
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-000000000044" }) } as any,
     );
     const body = await res.json();
 
     expect(res.status).toBe(200);
     expect(body.data.success).toBe(true);
-    expect(deleteInventoryKeyForAccount).toHaveBeenCalledWith("lk-uuid-001", TEST_ACCOUNT_ID);
+    expect(deleteInventoryKeyForAccount).toHaveBeenCalledWith("00000000-0000-4000-8000-000000000044", TEST_ACCOUNT_ID);
   });
 
   it("returns 500 when service throws", async () => {

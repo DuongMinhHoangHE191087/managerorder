@@ -63,7 +63,7 @@ describe("settings.repo", () => {
       throw new Error(`Unexpected table: ${table}`);
     });
 
-    await expect(listSalesChannels("acc-1")).resolves.toEqual([]);
+    await expect(listSalesChannels("00000000-0000-4000-8000-000000000016")).resolves.toEqual([]);
   });
 
   it("returns null when a sales channel lookup hits a missing table", async () => {
@@ -80,7 +80,7 @@ describe("settings.repo", () => {
       throw new Error(`Unexpected table: ${table}`);
     });
 
-    await expect(getSalesChannelById("sc-1", "acc-1")).resolves.toBeNull();
+    await expect(getSalesChannelById("00000000-0000-4000-8000-000000000129", "00000000-0000-4000-8000-000000000016")).resolves.toBeNull();
   });
 
   it("throws a schema initialization error for sales channel writes when the table is missing", async () => {
@@ -98,7 +98,7 @@ describe("settings.repo", () => {
     });
 
     await expect(
-      createSalesChannel("acc-1", {
+      createSalesChannel("00000000-0000-4000-8000-000000000016", {
         name: "Kênh CTV",
         defaultDeliveryMode: "landing_page",
         defaultLandingTemplateKey: "ctv_neutral",
@@ -126,7 +126,7 @@ describe("settings.repo", () => {
       throw new Error(`Unexpected table: ${table}`);
     });
 
-    await expect(deletePaymentSource("ps-1", "acc-1")).rejects.toMatchObject({
+    await expect(deletePaymentSource("00000000-0000-4000-8000-00000000012a", "00000000-0000-4000-8000-000000000016")).rejects.toMatchObject({
       code: "CONFLICT",
       statusCode: 409,
     });

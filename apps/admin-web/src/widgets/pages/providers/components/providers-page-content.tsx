@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { ShieldCheck, Plus, Pencil, Trash2, Briefcase, Search, Eye, Phone, Mail, User, Package } from "lucide-react";
 // import Link from "next/link";
@@ -8,7 +8,7 @@ import { appToast } from "@/shared/lib/toast";
 import { useRouter } from "next/navigation";
 
 import { AppLayout } from "@/widgets/layout/app-layout";
-import { PageContainer } from "@/shared/ui/page-layout";
+import { EmptyState, FiltersBar, PageContainer, PageHeader, SectionHeader, StatsGrid, SurfaceCard } from "@/shared/ui/page-layout";
 import { useContextMenu } from "@/shared/ui/context-menu";
 import { Modal } from "@/shared/ui/modal";
 import { Button } from "@/shared/ui/button";
@@ -18,6 +18,7 @@ import { cn, formatMoney } from "@/lib/utils";
 import type { Provider } from "@/lib/domain/types";
 import { useProviders, useDeleteProvider } from "@/widgets/pages/providers/hooks/use-providers";
 import { vi } from "@/shared/messages/vi";
+import { hasSearchTokens, matchesSearchQuery } from "@/shared/lib/filtering/search";
 
 const CustomerCreateModal = dynamic(
   () =>
@@ -49,12 +50,16 @@ export default function ProvidersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [tierFilter, setTierFilter] = useState("");
 
-  const filteredProviders = providers.filter(p => {
-    if (tierFilter && p.tier !== tierFilter) return false;
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return p.name.toLowerCase().includes(q) || p.contacts.some(c => c.value.toLowerCase().includes(q));
-  });
+  const filteredProviders = useMemo(() => providers.filter((provider) => {
+    if (tierFilter && provider.tier !== tierFilter) return false;
+    if (!hasSearchTokens(searchQuery)) return true;
+
+    return matchesSearchQuery(
+      searchQuery,
+      provider.name,
+      provider.contacts,
+    );
+  }), [providers, searchQuery, tierFilter]);
 
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(20);
@@ -66,6 +71,10 @@ export default function ProvidersPage() {
   const totalProviders = filteredProviders.length;
   const pageCount = Math.ceil(totalProviders / pageSize);
   const paginatedProviders = filteredProviders.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
+
+  useEffect(() => {
+    setPageIndex((current) => Math.min(current, Math.max(0, pageCount - 1)));
+  }, [pageCount]);
   
   const allVipProviders = providers.filter(c => c.tier === 'vip').length;
 
@@ -86,79 +95,93 @@ export default function ProvidersPage() {
     <AppLayout>
       <ContextMenuRender />
       <PageContainer className="relative">
-        <div className="app-card flex flex-col gap-4 border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-5 py-5 shadow-[0_18px_44px_rgba(15,23,42,0.05)] md:flex-row md:items-end md:justify-between mb-2 mt-2">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight text-[var(--fg-base)]">{text.title}</h1>
-            <p className="text-[15px] text-[var(--fg-muted)] font-medium tracking-wide">{text.description}</p>
-          </div>
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-6 py-2.5 text-sm font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] flex items-center gap-2"
-            type="button"
-          >
-            <Plus className="size-5" />
-            {text.create}
-          </button>
-        </div>
+        <PageHeader
+          title={text.title}
+          description={text.description}
+          actions={
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-6 py-3 text-sm font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)]"
+              type="button"
+            >
+              <Plus className="size-5" />
+              {text.create}
+            </button>
+          }
+        />
 
-        {/* Search & Filter Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--fg-muted)] size-4" />
+        <FiltersBar className="mt-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={text.searchPlaceholder}
-                className="w-full rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] pl-9 pr-4 py-2.5 text-[13px] font-medium outline-none transition-colors placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)]"
+                data-testid="providers-search"
+                className="h-11 w-full rounded-[1rem] border border-[var(--border-soft)] bg-white pl-9 pr-4 text-[13px] font-medium outline-none transition-colors placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)]"
               />
-          </div>
-          <select
-            value={tierFilter}
-            onChange={(e) => setTierFilter(e.target.value)}
-            className="cursor-pointer rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] px-4 py-2.5 text-[13px] font-bold outline-none transition-colors focus:border-[var(--accent)]"
-          >
-            <option value="">{text.allTiers}</option>
-            <option value="vip">{text.tiers.vip}</option>
-            <option value="regular">{text.tiers.regular}</option>
-          </select>
-        </div>
-
-        {/* KPI Cards */}
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <div>
-            <div className="app-card flex h-full flex-col gap-2 p-6">
-              <div className="flex justify-between items-start">
-                <p className="text-[var(--fg-muted)] text-[11px] font-bold uppercase tracking-wider">{text.stats.totalProviders}</p>
-                <span className="bg-[var(--accent)]/10 text-[var(--accent)] p-1.5 rounded-lg"><Briefcase className="size-5" /></span>
-              </div>
-              <p className="text-[var(--fg-base)] text-3xl font-black tracking-tight">{providers.length}</p>
             </div>
+            <select
+              value={tierFilter}
+              onChange={(e) => setTierFilter(e.target.value)}
+              data-testid="providers-tier-filter"
+              className="h-11 cursor-pointer rounded-[1rem] border border-[var(--border-soft)] bg-white px-4 text-[13px] font-bold outline-none transition-colors focus:border-[var(--accent)]"
+            >
+              <option value="">{text.allTiers}</option>
+              <option value="vip">{text.tiers.vip}</option>
+              <option value="regular">{text.tiers.regular}</option>
+            </select>
           </div>
-          <div>
-            <div className="app-card flex h-full flex-col gap-2 p-6">
-              <div className="flex justify-between items-start">
-                <p className="text-[var(--fg-muted)] text-[11px] font-bold uppercase tracking-wider">{text.stats.vipProviders}</p>
-                <span className="bg-[#ff9500]/10 text-[#ff9500] p-1.5 rounded-lg"><ShieldCheck className="size-5" /></span>
-              </div>
-              <p className="text-[var(--fg-base)] text-3xl font-black tracking-tight">{allVipProviders}</p>
-            </div>
-          </div>
-        </div>
+        </FiltersBar>
 
-        {/* Provider List */}
-        {/* Provider List using Customer Card Layout Style */}
-        <div className="w-full flex flex-col relative py-4 min-h-0 items-stretch space-y-3">
+        <StatsGrid className="mt-4 md:grid-cols-2 xl:grid-cols-2">
+          <SurfaceCard className="p-6">
+            <div className="flex h-full flex-col gap-2">
+              <div className="flex items-start justify-between">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{text.stats.totalProviders}</p>
+                <span className="rounded-lg bg-[var(--accent)]/10 p-1.5 text-[var(--accent)]">
+                  <Briefcase className="size-5" />
+                </span>
+              </div>
+              <p className="text-3xl font-black tracking-tight text-[var(--fg-base)]">{providers.length}</p>
+            </div>
+          </SurfaceCard>
+          <SurfaceCard className="p-6">
+            <div className="flex h-full flex-col gap-2">
+              <div className="flex items-start justify-between">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{text.stats.vipProviders}</p>
+                <span className="rounded-lg bg-[#ff9500]/10 p-1.5 text-[#ff9500]">
+                  <ShieldCheck className="size-5" />
+                </span>
+              </div>
+              <p className="text-3xl font-black tracking-tight text-[var(--fg-base)]">{allVipProviders}</p>
+            </div>
+          </SurfaceCard>
+        </StatsGrid>
+
+        <SurfaceCard className="mt-6 overflow-hidden">
+          <SectionHeader
+            title="Danh sách nhà cung cấp"
+            description={totalProviders > 0 ? `Hiển thị ${totalProviders} bản ghi sau khi lọc.` : "Chưa có nhà cung cấp phù hợp."}
+            action={totalProviders > 0 ? <span className="text-[12px] font-bold text-[var(--fg-muted)]">{pageCount} trang</span> : null}
+          />
+
+          <div className="w-full flex flex-col relative min-h-0 items-stretch space-y-3 p-4 sm:p-5">
           {totalProviders === 0 ? (
-            <div className="p-12 flex flex-col items-center justify-center text-center">
-              <Briefcase className="size-12 text-[var(--fg-muted)] opacity-50 mb-3" />
-              <h3 className="text-[15px] font-bold text-[var(--fg-base)]">{searchQuery ? text.empty.noResults : text.empty.none}</h3>
-              {!searchQuery && (
-                <Button variant="primary" className="mt-4 rounded-full" onClick={() => setIsCreateOpen(true)}>
-                  {text.empty.createFirst}
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              icon={<Briefcase className="size-12" />}
+              title={hasSearchTokens(searchQuery) ? text.empty.noResults : text.empty.none}
+              description={hasSearchTokens(searchQuery) ? undefined : "Thêm nhà cung cấp đầu tiên để bắt đầu quản lý danh mục."}
+              action={
+                !hasSearchTokens(searchQuery) ? (
+                  <Button variant="primary" className="rounded-full" onClick={() => setIsCreateOpen(true)}>
+                    {text.empty.createFirst}
+                  </Button>
+                ) : null
+              }
+            />
           ) : (
             paginatedProviders.map((provider) => {
               const primaryContact = provider.contacts.find(c => c.isPrimary) || provider.contacts[0];
@@ -179,12 +202,14 @@ export default function ProvidersPage() {
                 },
               ];
 
-              return (
-                <div
-                  key={provider.id}
-                  onClick={() => router.push(`/providers/${provider.id}`)}
-                  className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.96)] shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)] hover:border-[var(--accent)]/40 hover:bg-[var(--surface-light)]/40"
-                  onContextMenu={(e) => {
+                return (
+                  <div
+                    key={provider.id}
+                    onClick={() => router.push(`/providers/${provider.id}`)}
+                    data-testid="provider-row"
+                    data-provider-id={provider.id}
+                    className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.96)] shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)] hover:border-[var(--accent)]/40 hover:bg-[var(--surface-light)]/40"
+                    onContextMenu={(e) => {
                     openContextMenu(e, actionMenuItems.map(item => ({
                       ...item,
                       danger: item.variant === "danger"
@@ -348,7 +373,8 @@ export default function ProvidersPage() {
               )}
             </div>
           )}
-        </div>
+          </div>
+        </SurfaceCard>
 
       </PageContainer>
 

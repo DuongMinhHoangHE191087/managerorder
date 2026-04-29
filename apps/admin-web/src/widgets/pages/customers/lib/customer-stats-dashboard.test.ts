@@ -8,7 +8,7 @@ import {
 
 function buildCustomer(overrides: Partial<Customer>): Customer {
   return {
-    id: "customer-1",
+    id: "00000000-0000-4000-8000-00000000005c",
     name: "Nguyen Van A",
     contacts: [],
     tier: "regular",
@@ -37,7 +37,7 @@ function buildDebtSummary(overrides: Partial<DebtSummary>): DebtSummary {
     },
     topDebtors: [
       {
-        id: "customer-2",
+        id: "00000000-0000-4000-8000-000000000171",
         name: "Tran Thi B",
         debtAmountVnd: 500000,
         overdueDays: 35,
@@ -56,9 +56,9 @@ describe("buildCustomerStatsDashboardModel", () => {
   it("prefers backend debt summary when available", () => {
     const model = buildCustomerStatsDashboardModel({
       customers: [
-        buildCustomer({ id: "customer-1", customerType: "retail" }),
-        buildCustomer({ id: "customer-2", customerType: "wholesale", debtAmountVnd: 200000 }),
-        buildCustomer({ id: "customer-3", customerType: "agency", debtAmountVnd: 100000 }),
+        buildCustomer({ id: "00000000-0000-4000-8000-00000000005c", customerType: "retail" }),
+        buildCustomer({ id: "00000000-0000-4000-8000-000000000171", customerType: "wholesale", debtAmountVnd: 200000 }),
+        buildCustomer({ id: "00000000-0000-4000-8000-000000000172", customerType: "agency", debtAmountVnd: 100000 }),
       ],
       debtSummary: buildDebtSummary({}),
     });
@@ -66,7 +66,7 @@ describe("buildCustomerStatsDashboardModel", () => {
     expect(model.totalDebt).toBe(900000);
     expect(model.customersWithDebt).toBe(2);
     expect(model.avgReliabilityScore).toBe(84);
-    expect(model.topDebtors[0]?.id).toBe("customer-2");
+    expect(model.topDebtors[0]?.id).toBe("00000000-0000-4000-8000-000000000171");
     expect(model.agingBuckets.find((bucket) => bucket.key === "days_1_30")?.amount).toBe(300000);
     expect(model.segmentBreakdown[0]).toEqual(
       expect.objectContaining({
@@ -81,7 +81,7 @@ describe("buildCustomerStatsDashboardModel", () => {
     const model = buildCustomerStatsDashboardModel({
       customers: [
         buildCustomer({
-          id: "customer-1",
+          id: "00000000-0000-4000-8000-00000000005c",
           name: "Nguyen Van A",
           customerType: "retail",
           debtAmountVnd: 100000,
@@ -89,7 +89,7 @@ describe("buildCustomerStatsDashboardModel", () => {
           segment: "regular",
         }),
         buildCustomer({
-          id: "customer-2",
+          id: "00000000-0000-4000-8000-000000000171",
           name: "Tran Thi B",
           customerType: "retail",
           debtAmountVnd: 250000,
@@ -105,7 +105,7 @@ describe("buildCustomerStatsDashboardModel", () => {
     expect(model.avgDebt).toBe(175000);
     expect(model.topDebtors[0]).toEqual(
       expect.objectContaining({
-        id: "customer-2",
+        id: "00000000-0000-4000-8000-000000000171",
         debtAmountVnd: 250000,
       }),
     );

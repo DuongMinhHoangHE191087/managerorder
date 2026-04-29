@@ -56,7 +56,7 @@ export async function fetcher<T>(url: string, options?: RequestInit): Promise<T>
       lastError = err instanceof Error ? err : new Error(String(err));
 
       // Only retry on network errors, not HTTP errors
-      const isNetworkError = lastError.name === "AbortError" || lastError.message.includes("fetch");
+      const isNetworkError = lastError.name === "AbortError" || lastError instanceof TypeError;
       if (attempt < MAX_RETRIES && isNetworkError) {
         await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
         continue;
@@ -77,7 +77,7 @@ function normalizeRequestUrl(url: string) {
   return `/${url}`;
 }
 
-function buildRequestHeaders(headersInit: HeadersInit | undefined, _body: BodyInit | null | undefined) {
+function buildRequestHeaders(headersInit: HeadersInit | undefined, body: BodyInit | null | undefined) {
   const headers: Record<string, string> = {};
 
   for (const [key, value] of new Headers(headersInit).entries()) {
@@ -92,11 +92,15 @@ function buildRequestHeaders(headersInit: HeadersInit | undefined, _body: BodyIn
     headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
   }
 
-  if (!hasHeader(headers, "Content-Type")) {
+  if (body !== undefined && body !== null && !hasHeader(headers, "Content-Type") && shouldUseJsonContentType(body)) {
     headers["Content-Type"] = "application/json";
   }
 
   return headers;
+}
+
+function shouldUseJsonContentType(body: BodyInit): boolean {
+  return typeof body === "string";
 }
 
 function canonicalizeHeaderName(name: string) {

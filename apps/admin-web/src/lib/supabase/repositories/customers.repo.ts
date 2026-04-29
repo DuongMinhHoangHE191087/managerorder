@@ -6,6 +6,7 @@
 import { supabaseAdmin as supabase } from '@/lib/supabase/admin';
 import { cached, invalidate, TTL } from '@/lib/cache/db-cache';
 import { loadRowsByIds } from '@/lib/supabase/relation-fallback';
+import { filterRowsBySearchQuery, hasSearchTokens } from '@/shared/lib/filtering/search';
 
 export interface CustomerRow {
   id: string;
@@ -32,9 +33,111 @@ export interface ContactRow {
   created_at: string;
 }
 
+type ContactInsertRow = {
+  customer_id: string;
+  channel: string;
+  value: string;
+  is_verified: boolean;
+  is_primary: boolean;
+  facebook_id?: string | null;
+  facebook_name?: string | null;
+};
+
 const key = {
   list: (accountId: string) => `customers:list:${accountId}`,
 };
+
+const OPTIONAL_CONTACT_COLUMNS = ['is_primary', 'facebook_id', 'facebook_name'] as const;
+
+function getMissingCustomerContactColumn(error: unknown): string | null {
+  if (!error || typeof error !== 'object') {
+    return null;
+  }
+
+  const message = String((error as { message?: unknown }).message ?? '');
+  if (!message) {
+    return null;
+  }
+
+  const normalized = message.toLowerCase();
+  if (!normalized.includes('customer_contacts') || !normalized.includes('schema cache')) {
+    return null;
+  }
+
+  const match = normalized.match(/'([a-z0-9_]+)'\s+column/);
+  return match?.[1] ?? null;
+}
+
+function toContactInsertRows(
+  customerId: string,
+  contacts: Array<{
+    channel: string;
+    value: string;
+    is_verified?: boolean;
+    is_primary?: boolean;
+    facebook_id?: string;
+    facebook_name?: string;
+  }>,
+): ContactInsertRow[] {
+  return contacts.map((contact) => ({
+    customer_id: customerId,
+    channel: contact.channel,
+    value: contact.value,
+    is_verified: contact.is_verified ?? false,
+    is_primary: contact.is_primary ?? false,
+    facebook_id: contact.facebook_id ?? null,
+    facebook_name: contact.facebook_name ?? null,
+  }));
+}
+
+async function insertCustomerContacts(
+  rows: ContactInsertRow[],
+  options?: { withSelect?: boolean },
+) {
+  const withSelect = options?.withSelect ?? false;
+  const runInsert = async (payload: Array<Record<string, unknown>>) => {
+    const query = supabase.from('customer_contacts').insert(payload);
+    return withSelect ? query.select() : query;
+  };
+
+  let payload: Array<Record<string, unknown>> = rows.map((row) => ({ ...row }));
+  const droppedColumns = new Set<string>();
+
+  for (let attempt = 0; attempt <= OPTIONAL_CONTACT_COLUMNS.length; attempt += 1) {
+    const result = await runInsert(payload);
+    if (!result.error) {
+      return result;
+    }
+
+    const missingColumn = getMissingCustomerContactColumn(result.error);
+    if (
+      !missingColumn ||
+      !OPTIONAL_CONTACT_COLUMNS.includes(missingColumn as (typeof OPTIONAL_CONTACT_COLUMNS)[number]) ||
+      droppedColumns.has(missingColumn)
+    ) {
+      return result;
+    }
+
+    const columnsToDrop =
+      missingColumn === 'facebook_id' || missingColumn === 'facebook_name'
+        ? ['facebook_id', 'facebook_name']
+        : [missingColumn];
+
+    for (const column of columnsToDrop) {
+      droppedColumns.add(column);
+    }
+
+    payload = payload.map((row) => {
+      const next = { ...row };
+      for (const column of columnsToDrop) {
+        delete next[column];
+      }
+      return next;
+    });
+  }
+
+  return runInsert(payload);
+}
 
 type CustomerBaseRow = Record<string, unknown> & { id: string };
 type CustomerContactBaseRow = {
@@ -63,12 +166,16 @@ type CustomerOrderBaseRow = {
 async function loadCustomerFallbackRows(
   accountId: string,
   customerId?: string,
+  includeDeleted = false,
 ): Promise<CustomerBaseRow[]> {
-  const customerQuery = supabase
+  let customerQuery = supabase
     .from('customers')
     .select('*')
-    .eq('account_id', accountId)
-    .is('deleted_at', null);
+    .eq('account_id', accountId);
+
+  if (!includeDeleted) {
+    customerQuery = customerQuery.is('deleted_at', null);
+  }
 
   const { data, error } = customerId
     ? await customerQuery.eq('id', customerId).maybeSingle()
@@ -155,7 +262,24 @@ async function loadCustomerFallbackRows(
 }
 
 /** List all customers for an account with their contacts (excludes soft-deleted) */
-export async function listCustomers(accountId: string): Promise<CustomerRow[]> {
+export async function listCustomers(accountId: string, options: { search?: string } = {}): Promise<CustomerRow[]> {
+  if (hasSearchTokens(options.search ?? '')) {
+    const rows = (await loadCustomerFallbackRows(accountId)) as unknown as CustomerRow[];
+    return filterRowsBySearchQuery(
+      rows,
+      options.search ?? '',
+      (row) => [
+        row.id,
+        row.full_name,
+        row.type,
+        row.notes,
+        row.nicks_registry,
+        row.contacts,
+        row.customer_tags,
+      ],
+    );
+  }
+
   return cached(
     key.list(accountId),
     async () => {
@@ -166,8 +290,12 @@ export async function listCustomers(accountId: string): Promise<CustomerRow[]> {
 }
 
 /** Get a single customer by id with contacts */
-export async function getCustomerById(id: string, accountId: string): Promise<CustomerRow | null> {
-  const fallbackRows = await loadCustomerFallbackRows(accountId, id);
+export async function getCustomerById(
+  id: string,
+  accountId: string,
+  options: { includeDeleted?: boolean } = {},
+): Promise<CustomerRow | null> {
+  const fallbackRows = await loadCustomerFallbackRows(accountId, id, options.includeDeleted ?? false);
   return (fallbackRows[0] ?? null) as unknown as CustomerRow | null;
 }
 
@@ -177,6 +305,8 @@ export async function createCustomer(
   input: {
     full_name: string;
     type: 'retail' | 'wholesale' | 'agency';
+    notes?: string;
+    reliability_score?: number;
     contacts?: {
       channel: string;
       value: string;
@@ -190,27 +320,32 @@ export async function createCustomer(
   // 1. Insert customer
   const { data: customer, error } = await supabase
     .from('customers')
-    .insert({ account_id: accountId, full_name: input.full_name, type: input.type })
+    .insert({
+      account_id: accountId,
+      full_name: input.full_name,
+      type: input.type,
+      notes: input.notes ?? null,
+      reliability_score: input.reliability_score ?? 100,
+    })
     .select()
     .single();
   if (error) throw new Error(error.message);
 
   // 2. Insert contacts if provided
   if (input.contacts?.length) {
-    const contactRows = input.contacts.map(c => ({
-      customer_id: customer.id,
-      channel: c.channel,
-      value: c.value,
-      is_verified: c.is_verified ?? false,
-      is_primary: c.is_primary ?? false,
-      facebook_id: c.facebook_id ?? null,
-      facebook_name: c.facebook_name ?? null,
-    }));
-    const { data: contacts, error: contactError } = await supabase
-      .from('customer_contacts')
-      .insert(contactRows)
-      .select();
-    if (contactError) throw new Error(`Không thể lưu thông tin liên hệ: ${contactError.message}`);
+    const contactRows = toContactInsertRows(customer.id, input.contacts);
+    const insertResult = await insertCustomerContacts(contactRows, { withSelect: true });
+    const contacts = insertResult.data ?? [];
+    const contactInsertError = insertResult.error;
+    if (contactInsertError) {
+      throw new Error(
+        `Không thể lưu thông tin liên hệ: ${
+          contactInsertError instanceof Error
+            ? contactInsertError.message
+            : String((contactInsertError as { message?: unknown }).message ?? contactInsertError)
+        }`,
+      );
+    }
     invalidate(key.list(accountId));
     return { ...customer, contacts: contacts ?? [] } as CustomerRow;
   }
@@ -267,16 +402,17 @@ export async function updateCustomer(
 
     await supabase.from('customer_contacts').delete().eq('customer_id', id);
     if (input.contacts.length > 0) {
-      const contactRows = input.contacts.map(c => ({
-        customer_id: id,
-        channel: c.channel,
-        value: c.value,
-        is_verified: c.is_verified ?? false,
-        is_primary: c.is_primary ?? false,
-        facebook_id: c.facebook_id ?? null,
-        facebook_name: c.facebook_name ?? null,
-      }));
-      await supabase.from('customer_contacts').insert(contactRows);
+      const contactRows = toContactInsertRows(id, input.contacts);
+      const insertResult = await insertCustomerContacts(contactRows);
+      if (insertResult.error) {
+        throw new Error(
+          `Không thể lưu thông tin liên hệ: ${
+            insertResult.error instanceof Error
+              ? insertResult.error.message
+              : String((insertResult.error as { message?: unknown }).message ?? insertResult.error)
+          }`,
+        );
+      }
     }
   }
 

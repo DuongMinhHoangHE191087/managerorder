@@ -178,7 +178,7 @@ describe('Telegram Bot Integration Scenarios', () => {
         'kho:slots',
         'detail:abc-123-def',
         'creds:back',
-        'creds:acc:uuid-here',
+        'creds:acc:00000000-0000-4000-8000-00000000010d',
         'creds:prod:uuid:all',
         'no:step1',
         'alloc:select',
@@ -186,7 +186,7 @@ describe('Telegram Bot Integration Scenarios', () => {
         'np:confirm',
         'nk:step2',
         'copy:some-value',
-        'tdone:uuid-123',
+        'tdone:00000000-0000-4000-8000-00000000010b',
         'runcmd:find test',
       ];
 

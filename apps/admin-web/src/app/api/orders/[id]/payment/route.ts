@@ -137,38 +137,52 @@ export const POST = withErrorHandler(
       );
     }
 
-    // 3. Record individual payment + Log activity (parallel)
-    const [paymentRecord] = await Promise.all([
-      createPayment(accountId, {
-        order_id: id,
-        amount: body.amount,
-        payment_method: paymentRecordMethod,
-        payment_source_id: resolvedPaymentSourceId,
-        proof_image_url: body.proof_image_url ?? null,
-        note: body.note ?? null,
-        paid_by: user.email,
-      }),
+    // 3. Create payment record first so audit logs can reference the exact payment id.
+    const paymentRecord = await createPayment(accountId, {
+      order_id: id,
+      amount: body.amount,
+      payment_method: paymentRecordMethod,
+      payment_source_id: resolvedPaymentSourceId,
+      proof_image_url: body.proof_image_url ?? null,
+      note: body.note ?? null,
+      paid_by: user.email,
+    });
+
+    await Promise.all([
       createActivityLog({
         account_id: accountId,
-        action_type: 'PAYMENT_ADDED',
+        action_type: "PAYMENT_ADDED",
         customer_id: order.customer_id,
         order_id: id,
+        created_by: user.displayName ?? user.email,
         details: {
           amount: body.amount,
           payment_method: paymentRecordMethod,
           payment_terms: normalizedPaymentTerms,
           payment_source_id: resolvedPaymentSourceId,
           note: body.note || null,
-          new_total_paid: newPaid,
+          before_snapshot: {
+            total_paid: currentPaid,
+            total_amount_vnd: frozenTotal,
+            remaining,
+            status: order.status,
+          },
+          after_snapshot: {
+            total_paid: newPaid,
+            total_amount_vnd: frozenTotal,
+            remaining: Math.max(frozenTotal - newPaid, 0),
+            status: isFullyPaid && order.status === "pending_payment" ? "paid" : order.status,
+          },
+          payment_record_id: paymentRecord?.id ?? null,
           fully_paid: isFullyPaid,
         },
       }),
       // Log status history if auto-transitioned
-      isFullyPaid && order.status === 'pending_payment'
+      isFullyPaid && order.status === "pending_payment"
         ? createOrderStatusHistory({
             order_id: id,
-            old_status: 'pending_payment',
-            new_status: 'paid',
+            old_status: "pending_payment",
+            new_status: "paid",
             change_reason: `Thanh toán đủ (${formatMoney(newPaid)})`,
           })
         : Promise.resolve(null),

@@ -5,7 +5,7 @@ describe("buildSalesChannelRuntimeRows", () => {
   it("aggregates order and short-link usage by effective sales channel", () => {
     const channels = [
       {
-        id: "channel-1",
+        id: "00000000-0000-4000-8000-00000000000b",
         name: "CTV",
         default_delivery_mode: "landing_page",
         default_landing_template_key: "ctv_neutral",
@@ -13,31 +13,31 @@ describe("buildSalesChannelRuntimeRows", () => {
     ] as SalesChannelRow[];
 
     const orders = [
-      { id: "order-1", sales_channel_id: "channel-1" },
-      { id: "order-2", sales_channel_id: null },
+      { id: "00000000-0000-4000-8000-00000000005b", sales_channel_id: "00000000-0000-4000-8000-00000000000b" },
+      { id: "00000000-0000-4000-8000-0000000000c5", sales_channel_id: null },
     ];
 
     const shortLinks = [
       {
-        id: "link-1",
+        id: "00000000-0000-4000-8000-0000000000ad",
         order_id: null,
-        sales_channel_id: "channel-1",
+        sales_channel_id: "00000000-0000-4000-8000-00000000000b",
         delivery_mode: "direct_redirect",
       },
       {
-        id: "link-2",
-        order_id: "order-1",
+        id: "00000000-0000-4000-8000-0000000000c6",
+        order_id: "00000000-0000-4000-8000-00000000005b",
         sales_channel_id: null,
         delivery_mode: "inherit_channel",
       },
       {
-        id: "link-3",
-        order_id: "order-1",
-        sales_channel_id: "channel-1",
+        id: "00000000-0000-4000-8000-0000000000c7",
+        order_id: "00000000-0000-4000-8000-00000000005b",
+        sales_channel_id: "00000000-0000-4000-8000-00000000000b",
         delivery_mode: "landing_page",
       },
       {
-        id: "link-4",
+        id: "00000000-0000-4000-8000-0000000000c8",
         order_id: null,
         sales_channel_id: null,
         delivery_mode: "inherit_channel",

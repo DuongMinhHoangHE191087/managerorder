@@ -27,10 +27,13 @@ export function useSourceAccounts() {
   });
 }
 
-export function useSourceAccount(id: string) {
+export function useSourceAccount(id: string, includeDeleted = false) {
   return useQuery({
-    queryKey: queryKeys.sourceAccount(id),
-    queryFn: () => fetcher<SourceAccount>(`/api/source-accounts/${id}`),
+    queryKey: [...queryKeys.sourceAccount(id), includeDeleted ? "trash" : "active"],
+    queryFn: () =>
+      fetcher<SourceAccount>(
+        `/api/source-accounts/${id}${includeDeleted ? "?include_deleted=1" : ""}`,
+      ),
     enabled: !!id,
     staleTime: 15_000,
     gcTime: 5 * 60_000,

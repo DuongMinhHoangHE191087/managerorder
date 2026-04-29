@@ -37,8 +37,9 @@ export async function listProductsForAccount(accountId: string): Promise<Product
 export async function getProductForAccount(
   id: string,
   accountId: string,
+  options: { includeDeleted?: boolean } = {},
 ): Promise<ProductService | null> {
-  const row = await getProductByIdRepo(id, accountId);
+  const row = await getProductByIdRepo(id, accountId, options);
   return row ? mapProductRow(row) : null;
 }
 
@@ -96,12 +97,43 @@ export async function updateProductForAccount(
     ...(input.isActive !== undefined && { is_active: input.isActive }),
   });
 
-  return mapProductRow(row);
+  const data = mapProductRow(row);
+
+  createActivityLog({
+    account_id: accountId,
+    action_type: "PRODUCT_UPDATED",
+    details: {
+      product_id: data.id,
+      name: data.name,
+      mode: data.mode,
+      sell_price_vnd: data.sellPriceVnd,
+      buy_price_vnd: data.buyPriceVnd,
+      duration_type: data.durationType,
+      duration_value: data.durationValue,
+      is_active: data.isActive,
+      changed_fields: Object.keys(input),
+    },
+  }).catch(() => {});
+
+  return data;
 }
 
 export async function deleteProductForAccount(
   id: string,
   accountId: string,
 ): Promise<void> {
+  const current = await getProductByIdRepo(id, accountId);
   await deleteProductRepo(id, accountId);
+
+  createActivityLog({
+    account_id: accountId,
+    action_type: "PRODUCT_DELETED",
+    details: {
+      product_id: id,
+      name: current?.name ?? null,
+      mode: current?.mode ?? null,
+      sell_price_vnd: current?.sell_price_vnd ?? null,
+      buy_price_vnd: current?.buy_price_vnd ?? null,
+    },
+  }).catch(() => {});
 }

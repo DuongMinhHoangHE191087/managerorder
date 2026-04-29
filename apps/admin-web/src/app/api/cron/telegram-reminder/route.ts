@@ -44,7 +44,10 @@ function formatEvent(evt: ReminderRowWithCustomers, index: number): string {
   if (evt._customers && evt._customers.length > 0) {
     const names = evt._customers.map(c => {
       const contacts = c.customer_contacts ?? [];
-      const primary = contacts.find(ct => ct.is_primary) ?? contacts[0];
+      const primary =
+        contacts.find(ct => ct.is_verified)
+        ?? contacts.find(ct => ct.channel === 'phone' || ct.channel === 'zalo' || ct.channel === 'telegram')
+        ?? contacts[0];
       const contactStr = primary ? ` — ${primary.value}` : '';
       return `<b>${escapeHtml(c.full_name)}</b>${escapeHtml(contactStr)}`;
     });

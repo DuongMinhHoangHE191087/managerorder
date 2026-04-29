@@ -24,7 +24,7 @@ describe("detectHeaderRowIndex", () => {
       ["Company Logo", "", ""],
       ["", "", ""],
       ["Username", "Tên Khách", "Ngày Mua", "Giá", "Family"],
-      ["john123", "John", "01/01/2025", 100, "fam-1"],
+      ["john123", "John", "01/01/2025", 100, "00000000-0000-4000-8000-00000000014d"],
     ];
     expect(detectHeaderRowIndex(data)).toBe(2);
   });

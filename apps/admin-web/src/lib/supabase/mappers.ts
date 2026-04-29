@@ -141,12 +141,15 @@ export function mapCalendarEventRow(row: Record<string, any>): CalendarEvent {
     id: string;
     full_name: string;
     type: string;
-    customer_contacts: { value: string; is_primary: boolean; channel: string }[];
+    customer_contacts: { value: string; is_verified: boolean; channel: string }[];
   }[];
 
   const customers: CalendarEvent["customers"] = rawCustomers.map(c => {
     const contacts = c.customer_contacts ?? [];
-    const primary = contacts.find(ct => ct.is_primary) ?? contacts[0];
+    const primary =
+      contacts.find(ct => ct.is_verified)
+      ?? contacts.find(ct => ct.channel === "phone" || ct.channel === "zalo" || ct.channel === "telegram")
+      ?? contacts[0];
     return {
       id: c.id,
       name: c.full_name,

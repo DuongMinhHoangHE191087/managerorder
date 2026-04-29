@@ -76,10 +76,75 @@ type LocalMigrationRow = {
 
 type LocalRenewalRow = {
   id: string;
+  account_id: string;
+  premium_account_id: string;
+  customer_id: string;
+  customer_name: string;
+  original_subscription_id: string;
   renewal_requested_date: string;
+  renewal_confirmed_date: string | null;
   renewal_price: number;
   original_price: number;
-  status: "pending";
+  status: "pending" | "completed" | "denied";
+};
+
+type LocalPremiumAccountUserRow = {
+  id: string;
+  account_id: string;
+  premium_account_id: string;
+  user_email: string;
+  status: "active" | "removed" | "suspended";
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+type LocalSubscriptionRow = {
+  id: string;
+  account_id: string;
+  customer_id: string;
+  customer_name: string;
+  premium_account_id: string;
+  premium_account_user_id: string | null;
+  premium_account_user_email: string | null;
+  service_type_id: string;
+  package_id: string;
+  billing_cycle: "1month" | "3months" | "6months" | "1year";
+  cycle_months: number;
+  start_date: string;
+  expiry_date: string;
+  original_price: number;
+  final_price: number;
+  renewal_status: "none" | "pending" | "confirmed" | "denied";
+  status: "active" | "expired" | "cancelled" | "renewed" | "migrated";
+  migration_id: string | null;
+  migrated_from_account_id: string | null;
+  migrated_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+type LocalPremiumHealthLogRow = {
+  id: string;
+  account_id: string;
+  premium_account_id: string;
+  check_timestamp: string;
+  check_type: "api" | "manual" | "scheduled";
+  current_status: "working" | "error" | "unknown";
+  previous_status: string | null;
+  error_message: string | null;
+};
+
+type LocalActivityLogRow = {
+  id: string;
+  account_id: string;
+  source_account_id: string | null;
+  action_type: string;
+  created_by: string | null;
+  created_at: string;
+  details: Record<string, unknown> | null;
 };
 
 type LocalSourceAccountRow = {
@@ -234,6 +299,212 @@ const LOCAL_ACCOUNT_TEMPLATES = [
     notes: "Expired on purpose to surface warnings in the UI.",
     last_connection_check_offset_days: -3,
   }),
+] as const;
+
+const LOCAL_PREMIUM_ACCOUNT_USERS = [
+  {
+    id: "premium-user-local-1",
+    premium_account_id: "premium-local-netflix",
+    user_email: "minh-anh@local",
+    status: "active" as const,
+    created_at: offsetIso(-20),
+    updated_at: offsetIso(-5),
+    deleted_at: null,
+  },
+  {
+    id: "premium-user-local-2",
+    premium_account_id: "premium-local-spotify",
+    user_email: "ha-linh@local",
+    status: "active" as const,
+    created_at: offsetIso(-18),
+    updated_at: offsetIso(-3),
+    deleted_at: null,
+  },
+  {
+    id: "premium-user-local-3",
+    premium_account_id: "premium-local-spotify",
+    user_email: "duc-long@local",
+    status: "active" as const,
+    created_at: offsetIso(-14),
+    updated_at: offsetIso(-2),
+    deleted_at: null,
+  },
+  {
+    id: "premium-user-local-4",
+    premium_account_id: "premium-local-youtube",
+    user_email: "backup-youtube@local",
+    status: "suspended" as const,
+    created_at: offsetIso(-40),
+    updated_at: offsetIso(-7),
+    deleted_at: null,
+  },
+] as const;
+
+const LOCAL_SUBSCRIPTION_TEMPLATES = [
+  {
+    id: "sub-local-1",
+    customer_id: "cust-local-1",
+    customer_name: "Nguyen Minh Anh",
+    premium_account_id: "premium-local-netflix",
+    premium_account_user_id: "premium-user-local-1",
+    service_type_id: "svc-netflix-local",
+    package_id: "pkg-netflix-local",
+    billing_cycle: "1month" as const,
+    cycle_months: 1,
+    start_date: offsetIso(-28),
+    expiry_date: offsetIso(5),
+    original_price: 150000,
+    final_price: 150000,
+    renewal_status: "pending" as const,
+    status: "active" as const,
+    migration_id: "mig-local-pending",
+    migrated_from_account_id: null,
+    migrated_at: null,
+    notes: "Sandbox subscription waiting for review.",
+    created_at: offsetIso(-28),
+    updated_at: offsetIso(-1),
+    deleted_at: null,
+  },
+  {
+    id: "sub-local-2",
+    customer_id: "cust-local-2",
+    customer_name: "Tran Ha Linh",
+    premium_account_id: "premium-local-spotify",
+    premium_account_user_id: "premium-user-local-2",
+    service_type_id: "svc-spotify-local",
+    package_id: "pkg-spotify-local",
+    billing_cycle: "3months" as const,
+    cycle_months: 3,
+    start_date: offsetIso(-42),
+    expiry_date: offsetIso(18),
+    original_price: 250000,
+    final_price: 230000,
+    renewal_status: "none" as const,
+    status: "active" as const,
+    migration_id: "mig-local-completed",
+    migrated_from_account_id: "premium-local-netflix",
+    migrated_at: offsetIso(-4),
+    notes: "Recently stabilized after migration.",
+    created_at: offsetIso(-42),
+    updated_at: offsetIso(-2),
+    deleted_at: null,
+  },
+  {
+    id: "sub-local-3",
+    customer_id: "cust-local-3",
+    customer_name: "Pham Duc Long",
+    premium_account_id: "premium-local-spotify",
+    premium_account_user_id: "premium-user-local-3",
+    service_type_id: "svc-spotify-local",
+    package_id: "pkg-spotify-local",
+    billing_cycle: "3months" as const,
+    cycle_months: 3,
+    start_date: offsetIso(-20),
+    expiry_date: offsetIso(2),
+    original_price: 250000,
+    final_price: 250000,
+    renewal_status: "pending" as const,
+    status: "active" as const,
+    migration_id: null,
+    migrated_from_account_id: null,
+    migrated_at: null,
+    notes: "Close to expiry for renewal queue testing.",
+    created_at: offsetIso(-20),
+    updated_at: offsetIso(-1),
+    deleted_at: null,
+  },
+  {
+    id: "sub-local-4",
+    customer_id: "cust-local-4",
+    customer_name: "Le Bao Chau",
+    premium_account_id: "premium-local-youtube",
+    premium_account_user_id: null,
+    service_type_id: "svc-youtube-local",
+    package_id: "pkg-youtube-local",
+    billing_cycle: "1year" as const,
+    cycle_months: 12,
+    start_date: offsetIso(-365),
+    expiry_date: offsetIso(-2),
+    original_price: 399000,
+    final_price: 399000,
+    renewal_status: "denied" as const,
+    status: "expired" as const,
+    migration_id: "mig-local-failed",
+    migrated_from_account_id: null,
+    migrated_at: null,
+    notes: "Expired sample for health-check and debt review.",
+    created_at: offsetIso(-365),
+    updated_at: offsetIso(-2),
+    deleted_at: null,
+  },
+] as const;
+
+const LOCAL_PREMIUM_HEALTH_LOGS = [
+  {
+    id: "health-local-1",
+    premium_account_id: "premium-local-netflix",
+    check_timestamp: offsetIso(-1, -2),
+    check_type: "manual" as const,
+    current_status: "unknown" as const,
+    previous_status: "working",
+    error_message: "Need manual login verification.",
+  },
+  {
+    id: "health-local-2",
+    premium_account_id: "premium-local-spotify",
+    check_timestamp: offsetIso(-2, -3),
+    check_type: "scheduled" as const,
+    current_status: "working" as const,
+    previous_status: "working",
+    error_message: null,
+  },
+  {
+    id: "health-local-3",
+    premium_account_id: "premium-local-youtube",
+    check_timestamp: offsetIso(-3, -2),
+    check_type: "api" as const,
+    current_status: "error" as const,
+    previous_status: "working",
+    error_message: "Session expired on provider side.",
+  },
+] as const;
+
+const LOCAL_ACTIVITY_LOG_TEMPLATES = [
+  {
+    id: "activity-premium-local-1",
+    source_account_id: "premium-local-netflix",
+    action_type: "PREMIUM_ACCOUNT_UPDATED",
+    created_by: "test-user-id-001",
+    created_at: offsetIso(-1, -1),
+    details: {
+      premium_account_id: "premium-local-netflix",
+      note: "Manual sync after capacity review",
+    },
+  },
+  {
+    id: "activity-premium-local-2",
+    source_account_id: "premium-local-spotify",
+    action_type: "PREMIUM_MIGRATION_REQUEST_CREATED",
+    created_by: "system",
+    created_at: offsetIso(-2, -2),
+    details: {
+      premium_account_id: "premium-local-spotify",
+      migration_id: "mig-local-pending",
+      reason: "Move to healthy warehouse",
+    },
+  },
+  {
+    id: "activity-premium-local-3",
+    source_account_id: "premium-local-spotify",
+    action_type: "auto_renewal_engine_run",
+    created_by: null,
+    created_at: offsetIso(-3, -5),
+    details: {
+      premium_account_id: "premium-local-spotify",
+      mode: "cron",
+      createdCount: 1,
+    },
+  },
 ] as const;
 
 const LOCAL_MIGRATION_TEMPLATES = [
@@ -442,14 +713,26 @@ function buildLocalRenewals(): LocalRenewalRow[] {
   return [
     {
       id: "ren-local-1",
+      account_id: "sandbox-account",
+      premium_account_id: "premium-local-netflix",
+      customer_id: "cust-local-1",
+      customer_name: "Nguyen Minh Anh",
+      original_subscription_id: "sub-local-1",
       renewal_requested_date: offsetIso(-1, -2),
+      renewal_confirmed_date: null,
       renewal_price: 120000,
       original_price: 150000,
       status: "pending",
     },
     {
       id: "ren-local-2",
+      account_id: "sandbox-account",
+      premium_account_id: "premium-local-spotify",
+      customer_id: "cust-local-3",
+      customer_name: "Pham Duc Long",
+      original_subscription_id: "sub-local-3",
       renewal_requested_date: offsetIso(-2, -5),
+      renewal_confirmed_date: null,
       renewal_price: 180000,
       original_price: 200000,
       status: "pending",
@@ -555,7 +838,15 @@ export function shouldUseLocalPremiumFallback(error: unknown): boolean {
 }
 
 export function shouldPreferLocalPremiumFixtures(): boolean {
-  return process.env.NODE_ENV === "development" && process.env.CODEX_DISABLE_LOCAL_FALLBACK !== "1";
+  if (process.env.CODEX_DISABLE_LOCAL_FALLBACK === "1") {
+    return false;
+  }
+
+  if (process.env.CODEX_USE_LOCAL_FALLBACK === "1") {
+    return true;
+  }
+
+  return process.env.NODE_ENV === "development";
 }
 
 function collectErrorSignals(error: unknown, seen = new Set<unknown>()): string[] {
@@ -614,6 +905,113 @@ export function buildLocalPremiumAccounts(accountId: string): LocalPremiumAccoun
     LOCAL_ACCOUNT_TEMPLATES.map((template) => ({
       account_id: accountId,
       ...template,
+    })),
+  );
+}
+
+export function findLocalPremiumAccount(accountId: string, premiumAccountId: string) {
+  return buildLocalPremiumAccounts(accountId).find((account) => account.id === premiumAccountId) ?? null;
+}
+
+export function buildLocalPremiumAccountUsers(
+  accountId: string,
+  premiumAccountId: string,
+): LocalPremiumAccountUserRow[] {
+  return sortByCreatedAtDesc(
+    LOCAL_PREMIUM_ACCOUNT_USERS.filter((user) => user.premium_account_id === premiumAccountId).map((user) => ({
+      account_id: accountId,
+      ...user,
+    })),
+  );
+}
+
+export function buildLocalPremiumSubscriptions(
+  accountId: string,
+  premiumAccountId?: string,
+): LocalSubscriptionRow[] {
+  const userRows = premiumAccountId
+    ? buildLocalPremiumAccountUsers(accountId, premiumAccountId)
+    : LOCAL_PREMIUM_ACCOUNT_USERS.map((user) => ({
+        account_id: accountId,
+        ...user,
+      }));
+  const users = new Map(
+    userRows.map((user) => [user.id, user.user_email] as const),
+  );
+  const targetRows = premiumAccountId
+    ? LOCAL_SUBSCRIPTION_TEMPLATES.filter((subscription) => subscription.premium_account_id === premiumAccountId)
+    : LOCAL_SUBSCRIPTION_TEMPLATES;
+
+  return sortByCreatedAtDesc(
+    targetRows.map((subscription) => ({
+      account_id: accountId,
+      ...subscription,
+      premium_account_user_email: subscription.premium_account_user_id
+        ? users.get(subscription.premium_account_user_id) ?? null
+        : null,
+    })),
+  );
+}
+
+export function buildLocalPremiumRenewals(
+  accountId: string,
+  premiumAccountId?: string,
+): LocalRenewalRow[] {
+  const targetRows = premiumAccountId
+    ? buildLocalRenewals().filter((renewal) => renewal.premium_account_id === premiumAccountId)
+    : buildLocalRenewals();
+
+  return targetRows.map((renewal) => ({
+    ...renewal,
+    account_id: accountId,
+  }));
+}
+
+export function buildLocalPremiumAccountMigrations(
+  accountId: string,
+  premiumAccountId?: string,
+): LocalMigrationRow[] {
+  const rows = ["pending", "in_progress", "completed", "failed"]
+    .flatMap((status) => buildLocalPremiumMigrations(accountId, status))
+    .filter((migration) =>
+      premiumAccountId
+        ? migration.source_account_id === premiumAccountId || migration.target_account_id === premiumAccountId
+        : true,
+    );
+
+  return sortByCreatedAtDesc(rows);
+}
+
+export function buildLocalPremiumHealthLogs(
+  accountId: string,
+  premiumAccountId?: string,
+): LocalPremiumHealthLogRow[] {
+  const targetRows = premiumAccountId
+    ? LOCAL_PREMIUM_HEALTH_LOGS.filter((log) => log.premium_account_id === premiumAccountId)
+    : LOCAL_PREMIUM_HEALTH_LOGS;
+
+  return sortByCreatedAtDesc(
+    targetRows.map((log) => ({
+      account_id: accountId,
+      created_at: log.check_timestamp,
+      ...log,
+    })),
+  );
+}
+
+export function buildLocalPremiumActivityLogs(
+  accountId: string,
+  premiumAccountId?: string,
+): LocalActivityLogRow[] {
+  const targetRows = premiumAccountId
+    ? LOCAL_ACTIVITY_LOG_TEMPLATES.filter((log) => log.source_account_id === premiumAccountId)
+    : LOCAL_ACTIVITY_LOG_TEMPLATES;
+
+  return sortByCreatedAtDesc(
+    targetRows.map((log) => ({
+      account_id: accountId,
+      ...log,
+      created_by: log.created_by === "system" ? null : log.created_by,
     })),
   );
 }

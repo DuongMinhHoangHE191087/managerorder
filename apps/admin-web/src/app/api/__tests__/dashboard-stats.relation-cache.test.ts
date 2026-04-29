@@ -63,16 +63,16 @@ async function loadRoute(supabaseAdmin: { from: ReturnType<typeof vi.fn> }) {
     TTL: { AGGREGATE: 1, LIST: 1, ITEM: 1 },
   }));
   vi.doMock("@/lib/supabase/repositories/products.repo", () => ({
-    listProducts: vi.fn().mockResolvedValue([{ id: "prod-1", name: "Netflix" }]),
+    listProducts: vi.fn().mockResolvedValue([{ id: "00000000-0000-4000-8000-000000000039", name: "Netflix" }]),
   }));
   vi.doMock("@/lib/supabase/repositories/source-accounts.repo", () => ({
     listSourceAccounts: vi.fn().mockResolvedValue([
       {
-        id: "src-1",
+        id: "00000000-0000-4000-8000-00000000003a",
         email: "source@example.com",
         max_slots: 1,
         used_slots: 1,
-        product_ids: ["prod-1"],
+        product_ids: ["00000000-0000-4000-8000-000000000039"],
         expires_at: new Date(Date.now() + 5 * 86_400_000).toISOString(),
       },
     ]),
@@ -96,9 +96,9 @@ describe("GET /api/dashboard/stats relation-cache fallback", () => {
         {
           data: [
             {
-              id: "ord-1",
-              customer_id: "cust-1",
-              product_id: "prod-1",
+              id: "00000000-0000-4000-8000-00000000000f",
+              customer_id: "00000000-0000-4000-8000-000000000005",
+              product_id: "00000000-0000-4000-8000-000000000039",
               total_amount_vnd: 100000,
               total_cost_vnd: 50000,
               total_paid: 25000,
@@ -117,9 +117,9 @@ describe("GET /api/dashboard/stats relation-cache fallback", () => {
         {
           data: [
             {
-              id: "ord-1",
-              customer_id: "cust-1",
-              product_id: "prod-1",
+              id: "00000000-0000-4000-8000-00000000000f",
+              customer_id: "00000000-0000-4000-8000-000000000005",
+              product_id: "00000000-0000-4000-8000-000000000039",
               total_amount_vnd: 100000,
               total_cost_vnd: 50000,
               total_paid: 25000,
@@ -151,7 +151,7 @@ describe("GET /api/dashboard/stats relation-cache fallback", () => {
         {
           data: [
             {
-              id: "cust-1",
+              id: "00000000-0000-4000-8000-000000000005",
               full_name: "Fallback Customer",
             },
           ],

@@ -1,5 +1,9 @@
 import { withAccount } from "@/lib/api/with-account";
-import { withErrorHandler, createSuccessResponse, createErrorResponse } from "@/lib/api/with-error-handler";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  withErrorHandler,
+} from "@/lib/api/with-error-handler";
 import { updateShortLinkInputSchema } from "@/lib/domain/schemas";
 import {
   deleteShortLink,
@@ -11,47 +15,62 @@ import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// PATCH /api/short-links/[id] — Update a short link (with anti-fraud fields)
+// PATCH /api/short-links/[id] - Update a short link
 export const PATCH = withErrorHandler(
-  withAccount(async (request: NextRequest, context: { accountId: string; params: { id: string } | Promise<{ id: string }> }) => {
-    const { id } = await Promise.resolve(context.params);
-    const body = await request.json() as unknown;
+  withAccount(async (
+    request: NextRequest,
+    context: { accountId: string; params: Promise<{ id: string }> },
+  ) => {
+    const { id } = await context.params;
+    const body = await request.json();
     const parsed = updateShortLinkInputSchema.safeParse(body);
+
     if (!parsed.success) {
-      return createErrorResponse("Dữ liệu đầu vào không hợp lệ", "VALIDATION_ERROR", 400, parsed.error.flatten().fieldErrors);
+      return createErrorResponse(
+        "Dữ liệu đầu vào không hợp lệ",
+        "VALIDATION_ERROR",
+        400,
+        parsed.error.flatten().fieldErrors,
+      );
     }
 
     if (Object.keys(parsed.data).length === 0) {
-      return createErrorResponse("No valid fields to update", "VALIDATION_ERROR", 400);
+      return createErrorResponse("Không có trường hợp lệ để cập nhật", "VALIDATION_ERROR", 400);
     }
 
     const link = await updateShortLinkForAccount(id, context.accountId, parsed.data);
     return createSuccessResponse(link);
-  })
+  }),
 );
 
-// DELETE /api/short-links/[id] — Delete a short link
+// DELETE /api/short-links/[id] - Delete a short link
 export const DELETE = withErrorHandler(
-  withAccount(async (_request: NextRequest, context: { accountId: string; params: { id: string } | Promise<{ id: string }> }) => {
-    const { id } = await Promise.resolve(context.params);
+  withAccount(async (
+    _request: NextRequest,
+    context: { accountId: string; params: Promise<{ id: string }> },
+  ) => {
+    const { id } = await context.params;
     await deleteShortLink(id, context.accountId);
     return createSuccessResponse({ deleted: true });
-  })
+  }),
 );
 
-// GET /api/short-links/[id] — Get link details + analytics
+// GET /api/short-links/[id] - Get link details and analytics
 export const GET = withErrorHandler(
-  withAccount(async (_request: NextRequest, context: { accountId: string; params: { id: string } | Promise<{ id: string }> }) => {
-    const { id } = await Promise.resolve(context.params);
+  withAccount(async (
+    _request: NextRequest,
+    context: { accountId: string; params: Promise<{ id: string }> },
+  ) => {
+    const { id } = await context.params;
+    const includeDeleted = new URL(_request.url).searchParams.get("include_deleted") === "1";
 
-    // Fetch link data and analytics in parallel
     const [detail, analytics] = await Promise.all([
-      getShortLinkDetailForAccount(id, context.accountId),
+      getShortLinkDetailForAccount(id, context.accountId, { includeDeleted }),
       getClickAnalytics(id),
     ]);
 
     if (!detail) {
-      return createErrorResponse("Short link not found", "NOT_FOUND", 404);
+      return createErrorResponse("Không tìm thấy link rút gọn", "NOT_FOUND", 404);
     }
 
     return createSuccessResponse({
@@ -60,5 +79,5 @@ export const GET = withErrorHandler(
       resolvedPolicy: detail.resolvedPolicy,
       ...analytics,
     });
-  })
+  }),
 );

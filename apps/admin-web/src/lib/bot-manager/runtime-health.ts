@@ -23,6 +23,9 @@ export interface BotRuntimeSnapshot {
 
 const CACHE_TTL_SECONDS = 60 * 60 * 24;
 const POLLING_HEALTH_WINDOW_MS = 95_000;
+const REDACTED_VALUE = "[redacted]";
+const SENSITIVE_KEY_PATTERN = /(?:token|secret|password|authorization|api[_-]?key|webhook|baseurl)/i;
+const BOT_API_URL_PATTERN = /(https?:\/\/[^/\s?#]+\/bot)([^/\s?#]+)/gi;
 
 function runtimeCacheKey(channel: BotRuntimeChannel): string {
   return `bot-runtime:${channel}`;
@@ -49,16 +52,63 @@ function defaultTransport(
   return "polling";
 }
 
-function safeMetadata(
+function sanitizeSensitiveText(value: string): string {
+  return value.replace(BOT_API_URL_PATTERN, "$1[redacted]");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function sanitizeRuntimeValue(key: string | undefined, value: unknown): unknown {
+  if (key && SENSITIVE_KEY_PATTERN.test(key)) {
+    return REDACTED_VALUE;
+  }
+
+  if (typeof value === "string") {
+    return sanitizeSensitiveText(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => sanitizeRuntimeValue(undefined, entry))
+      .filter((entry) => entry !== undefined);
+  }
+
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .map(([childKey, childValue]) => [childKey, sanitizeRuntimeValue(childKey, childValue)] as const)
+        .filter(([, childValue]) => childValue !== undefined),
+    );
+  }
+
+  return value;
+}
+
+export function sanitizeBotRuntimeMetadata(
   metadata: Record<string, unknown> | null | undefined,
 ): Record<string, unknown> | null {
   if (!metadata) {
     return null;
   }
 
-  return Object.fromEntries(
-    Object.entries(metadata).filter(([, value]) => value !== undefined),
-  );
+  const sanitized = sanitizeRuntimeValue(undefined, metadata);
+  return isRecord(sanitized) ? sanitized : null;
+}
+
+function mergeBotRuntimeMetadata(
+  current: Record<string, unknown> | null | undefined,
+  patch: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
+  if (!current && !patch) {
+    return null;
+  }
+
+  return {
+    ...(current ?? {}),
+    ...(patch ?? {}),
+  };
 }
 
 async function writeRuntimeFile(
@@ -107,6 +157,8 @@ export async function updateBotRuntimeSnapshot(
   const current = await getBotRuntimeSnapshot(channel);
   const configuredMode =
     patch.configuredMode ?? current?.configuredMode ?? defaultConfiguredMode(channel);
+  const currentMetadata = sanitizeBotRuntimeMetadata(current?.metadata);
+  const patchMetadata = sanitizeBotRuntimeMetadata(patch.metadata);
   const snapshot: BotRuntimeSnapshot = {
     channel,
     transport:
@@ -125,12 +177,11 @@ export async function updateBotRuntimeSnapshot(
         : current?.lastErrorAt ?? null,
     lastErrorMessage:
       patch.lastErrorMessage !== undefined
-        ? patch.lastErrorMessage
-        : current?.lastErrorMessage ?? null,
-    metadata: {
-      ...(current?.metadata ?? {}),
-      ...(safeMetadata(patch.metadata) ?? {}),
-    },
+        ? sanitizeSensitiveText(patch.lastErrorMessage)
+        : current?.lastErrorMessage !== undefined && current?.lastErrorMessage !== null
+          ? sanitizeSensitiveText(current.lastErrorMessage)
+          : null,
+    metadata: mergeBotRuntimeMetadata(currentMetadata, patchMetadata),
   };
 
   await Promise.all([
@@ -229,7 +280,7 @@ export async function markBotRuntimeError(
     pid: process.pid,
     lastHeartbeatAt: new Date().toISOString(),
     lastErrorAt: new Date().toISOString(),
-    lastErrorMessage: message,
+    lastErrorMessage: sanitizeSensitiveText(message),
     metadata,
   });
 }

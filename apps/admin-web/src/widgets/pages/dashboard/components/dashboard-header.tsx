@@ -42,10 +42,18 @@ export function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="flex flex-wrap items-center gap-1 rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.82)] p-1 shadow-sm">
+        <div
+          role="tablist"
+          aria-label="Dashboard time range"
+          data-testid="dashboard-time-tabs"
+          className="flex flex-wrap items-center gap-1 rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.82)] p-1 shadow-sm"
+        >
           {TIME_TABS.map((tab) => (
             <button
               key={tab.value}
+              role="tab"
+              aria-selected={timeRange === tab.value}
+              data-testid={`dashboard-time-tab-${tab.value}`}
               type="button"
               onClick={() => onTimeRangeChange(tab.value)}
               className={`rounded-lg px-4 py-1.5 text-[12px] font-bold transition-all ${
@@ -61,6 +69,8 @@ export function DashboardHeader({
 
         <button
           type="button"
+          aria-label="Refresh dashboard"
+          data-testid="dashboard-refresh"
           onClick={onRefresh}
           className="inline-flex items-center justify-center rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] px-3 py-2 text-[13px] font-bold text-[var(--fg-muted)] transition-all hover:border-[var(--accent)]/30 hover:text-[var(--accent)]"
         >

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
@@ -21,6 +21,7 @@ import {
   useUpdateShortLink,
   useDeleteShortLink,
 } from "@/widgets/pages/short-links/hooks/use-short-links";
+import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
 import { formatDate } from "@/app/short-links/[id]/detail-types";
 import { vi } from "@/shared/messages/vi";
 
@@ -128,9 +129,11 @@ const TABS: { id: DetailTab; label: string; icon: React.ReactNode }[] = [
 export default function ShortLinkDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const linkId = params.id as string;
+  const trashMode = searchParams.get("trash") === "1";
 
-  const { data, isLoading, isError } = useShortLinkDetail(linkId);
+  const { data, isLoading, isError } = useShortLinkDetail(linkId, trashMode);
   const link = data?.link ?? null;
   const salesChannel = data?.salesChannel ?? null;
   const resolvedPolicy = data?.resolvedPolicy ?? null;
@@ -139,6 +142,8 @@ export default function ShortLinkDetailPage() {
 
   const updateMut = useUpdateShortLink();
   const deleteMut = useDeleteShortLink();
+  const restoreItems = useRestoreItems();
+  const purgeItems = usePurgeItems();
 
   const [activeTab, setActiveTab] = useState<DetailTab>("analytics");
 
@@ -180,6 +185,18 @@ export default function ShortLinkDetailPage() {
   const handleUnlockIP = async () => {
     if (!link) return;
     await updateMut.mutateAsync({ id: link.id, locked_ip: null, locked_ipv6: null });
+  };
+
+  const handleRestoreFromTrash = async () => {
+    if (!link) return;
+    await restoreItems.mutateAsync({ type: "short_links", ids: [link.id] });
+    router.replace(`/short-links/${link.id}`);
+  };
+
+  const handlePurgeFromTrash = async () => {
+    if (!link) return;
+    await purgeItems.mutateAsync({ type: "short_links", ids: [link.id] });
+    router.push("/trash?type=short_links");
   };
 
   // â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -250,30 +267,55 @@ export default function ShortLinkDetailPage() {
             </h1>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <button onClick={handleCopy} className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-soft)] rounded-xl text-[13px] font-bold hover:bg-[var(--accent)]/5 hover:border-[var(--accent)]/30 transition-all shadow-sm text-[var(--fg-base)] cursor-pointer">
-              <Copy className="size-4" /> {vi.shortLinks.detail.copyLink}
-            </button>
-            {publicUrl ? (
-              <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[var(--border-soft)] rounded-xl text-[13px] font-bold text-[var(--fg-base)] hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5 transition-all shadow-sm cursor-pointer">
-                <Globe className="size-4" /> Xem trang chia sẻ
-              </a>
-            ) : null}
-            <a href={link.target_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-[13px] font-bold text-blue-600 hover:bg-blue-100 transition-all shadow-sm cursor-pointer">
-              <ExternalLink className="size-4" /> {vi.shortLinks.detail.openTarget}
-            </a>
-            <button onClick={handleToggleStatus} className={cn(
-              "flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all shadow-sm cursor-pointer border",
-              link.status === "active"
-                ? "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100"
-                : "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
-            )}>
-              <Power className="size-4" /> {link.status === "active" ? vi.shortLinks.detail.toggleOff : vi.shortLinks.detail.toggleOn}
-            </button>
-            <button onClick={handleDelete} className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-100 transition-all shadow-sm cursor-pointer">
-              <Trash2 className="size-4" /> {vi.shortLinks.detail.delete}
-            </button>
+            {trashMode ? (
+              <>
+                <button
+                  onClick={() => void handleRestoreFromTrash()}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] border border-transparent rounded-xl text-[13px] font-bold text-white hover:opacity-95 transition-all shadow-sm cursor-pointer"
+                >
+                  <RefreshCw className="size-4" /> Khôi phục
+                </button>
+                <button
+                  onClick={() => void handlePurgeFromTrash()}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-100 transition-all shadow-sm cursor-pointer"
+                >
+                  <Trash2 className="size-4" /> Xóa vĩnh viễn
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={handleCopy} className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-soft)] rounded-xl text-[13px] font-bold hover:bg-[var(--accent)]/5 hover:border-[var(--accent)]/30 transition-all shadow-sm text-[var(--fg-base)] cursor-pointer">
+                  <Copy className="size-4" /> {vi.shortLinks.detail.copyLink}
+                </button>
+                {publicUrl ? (
+                  <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[var(--border-soft)] rounded-xl text-[13px] font-bold text-[var(--fg-base)] hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5 transition-all shadow-sm cursor-pointer">
+                    <Globe className="size-4" /> Xem trang chia sẻ
+                  </a>
+                ) : null}
+                <a href={link.target_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-[13px] font-bold text-blue-600 hover:bg-blue-100 transition-all shadow-sm cursor-pointer">
+                  <ExternalLink className="size-4" /> {vi.shortLinks.detail.openTarget}
+                </a>
+                <button onClick={handleToggleStatus} className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all shadow-sm cursor-pointer border",
+                  link.status === "active"
+                    ? "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100"
+                    : "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
+                )}>
+                  <Power className="size-4" /> {link.status === "active" ? vi.shortLinks.detail.toggleOff : vi.shortLinks.detail.toggleOn}
+                </button>
+                <button onClick={handleDelete} className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-100 transition-all shadow-sm cursor-pointer">
+                  <Trash2 className="size-4" /> {vi.shortLinks.detail.delete}
+                </button>
+              </>
+            )}
           </div>
         </div>
+
+        {trashMode ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[13px] font-medium text-amber-700">
+            Link này đang ở thùng rác. Bạn có thể khôi phục hoặc xóa vĩnh viễn ngay trên màn chi tiết này.
+          </div>
+        ) : null}
 
         {/* Security Trust Banner */}
         {securitySummary && stats && stats.totalClicks > 0 && (

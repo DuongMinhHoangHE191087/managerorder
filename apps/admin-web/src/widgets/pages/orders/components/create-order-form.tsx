@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { memo, useCallback, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
   useForm,
   useFieldArray,
@@ -40,6 +40,12 @@ import { useProviderPrices } from "@/widgets/pages/orders/new/hooks/use-provider
 import { buildInvoiceNumber, buildPaymentInstructionText, hasConfiguredPaymentInstructions } from "@/lib/settings/system-settings";
 import { toLegacyPaymentMethod } from "@/lib/domain/financial";
 import type { OrderSuccessSnapshot } from "@/lib/orders/order-share";
+import {
+  addOrderDuration,
+  formatOrderDurationLabel,
+  resolveOrderDuration,
+  type OrderDurationType,
+} from "@/lib/domain/order-duration";
 
 import { CustomerCombobox, ProductCombobox, SourceAccountCombobox, PaymentSourceCombobox, SalesChannelCombobox } from "./create-form/comboboxes";
 import { DuolingoNickField } from "./create-form/duolingo-nick-field";
@@ -52,6 +58,9 @@ type FormItem = {
   quantity: number;
   costPriceVnd?: number;
   sellPriceVnd?: number;
+  durationType?: OrderDurationType;
+  durationValue?: number;
+  bonusDurationValue?: number;
   notes?: string;
   assignedSourceAccountId?: string;
   customerNickUsed?: string;
@@ -266,6 +275,20 @@ type SourceAccountLike = _SourceAccount;
 type PaymentSourceLike = _PaymentSource;
 type SalesChannelLike = _SalesChannel;
 
+function getPrimaryContactValue(contacts: Array<{ isPrimary?: boolean; value?: string | null }> | undefined) {
+  if (!contacts?.length) {
+    return "";
+  }
+
+  for (const contact of contacts) {
+    if (contact.isPrimary && contact.value) {
+      return contact.value;
+    }
+  }
+
+  return contacts[0]?.value ?? "";
+}
+
 const OrderCustomerSection = memo(function OrderCustomerSection({
   customers,
   value,
@@ -339,6 +362,8 @@ const OrderProductItem = memo(function OrderProductItem({
   product,
   products,
   sourceAccounts,
+  productById,
+  sourceAccountById,
   isWH,
   hasProductError,
   setValue,
@@ -352,6 +377,8 @@ const OrderProductItem = memo(function OrderProductItem({
   product?: ProductLike;
   products: ProductLike[];
   sourceAccounts: SourceAccountLike[];
+  productById: Map<string, ProductLike>;
+  sourceAccountById: Map<string, SourceAccountLike>;
   isWH: boolean;
   hasProductError?: string;
   setValue: UseFormSetValue<CreateOrderFieldValues>;
@@ -363,6 +390,21 @@ const OrderProductItem = memo(function OrderProductItem({
   const itemNotes = typeof item?.notes === "string" ? item.notes : "";
   const sourceAccountId = typeof item?.assignedSourceAccountId === "string" ? item.assignedSourceAccountId : "";
   const quantity = item?.quantity || 1;
+  const appliedSellPrice = item?.sellPriceVnd ?? product?.sellPriceVnd ?? 0;
+  const appliedCostPrice = item?.costPriceVnd ?? product?.buyPriceVnd ?? 0;
+  const resolvedDuration = resolveOrderDuration(item, product ? {
+    durationType: product.durationType,
+    durationValue: product.durationValue,
+  } : null);
+  const defaultDurationLabel = product
+    ? formatOrderDurationLabel(resolveOrderDuration(undefined, {
+        durationType: product.durationType,
+        durationValue: product.durationValue,
+      }))
+    : null;
+  const appliedDurationLabel = formatOrderDurationLabel(resolvedDuration, { includeBonus: true });
+  const lineRevenue = appliedSellPrice * quantity;
+  const lineCost = appliedCostPrice * quantity;
   const allocationQuery = useQuery<AccountSuggestion[]>({
     queryKey: [...queryKeys.orders, "suggest-account", pid, quantity, customerNickUsed],
     queryFn: async () =>
@@ -382,11 +424,31 @@ const OrderProductItem = memo(function OrderProductItem({
 
   function applySuggestedAccount(suggestion: AccountSuggestion) {
     setValue(`items.${index}.assignedSourceAccountId`, suggestion.sourceAccountId, { shouldValidate: true });
-    const account = sourceAccounts.find((candidate) => candidate.id === suggestion.sourceAccountId);
+    const account = sourceAccountById.get(suggestion.sourceAccountId);
     if (account?.reservedNicks?.length && !customerNickUsed) {
       setValue(`items.${index}.customerNickUsed`, account.reservedNicks[0], { shouldValidate: true });
       appToast.success(orderText.labels.autoNick + ` ${account.reservedNicks[0]}`);
     }
+  }
+
+  function handleProductChange(id: string) {
+    setValue(`items.${index}.productId`, id, { shouldValidate: true });
+
+    const nextProduct = productById.get(id);
+    if (!nextProduct) {
+      setValue(`items.${index}.sellPriceVnd`, undefined, { shouldDirty: true });
+      setValue(`items.${index}.costPriceVnd`, undefined, { shouldDirty: true });
+      setValue(`items.${index}.durationType`, undefined, { shouldDirty: true });
+      setValue(`items.${index}.durationValue`, undefined, { shouldDirty: true });
+      setValue(`items.${index}.bonusDurationValue`, undefined, { shouldDirty: true });
+      return;
+    }
+
+    setValue(`items.${index}.sellPriceVnd`, nextProduct.sellPriceVnd, { shouldDirty: true });
+    setValue(`items.${index}.costPriceVnd`, nextProduct.buyPriceVnd, { shouldDirty: true });
+    setValue(`items.${index}.durationType`, nextProduct.durationType, { shouldDirty: true });
+    setValue(`items.${index}.durationValue`, nextProduct.durationValue, { shouldDirty: true });
+    setValue(`items.${index}.bonusDurationValue`, 0, { shouldDirty: true });
   }
 
   return (
@@ -412,7 +474,7 @@ const OrderProductItem = memo(function OrderProductItem({
         products={products}
         value={pid}
         onCreateNew={() => onCreateProductOpenChange(true)}
-        onChange={(id) => setValue(`items.${index}.productId`, id, { shouldValidate: true })}
+        onChange={handleProductChange}
       />
 
       {hasProductError ? (
@@ -420,6 +482,48 @@ const OrderProductItem = memo(function OrderProductItem({
           <AlertTriangle className="size-3.5" />
           {hasProductError}
         </p>
+      ) : null}
+
+      {product ? (
+        <div className="grid grid-cols-1 gap-3 rounded-xl border border-[var(--border-soft)]/60 bg-white/85 p-4 md:grid-cols-5">
+          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)]/50 px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--fg-muted)]">Sản phẩm đang chọn</p>
+            <p className="mt-1 text-[14px] font-black text-[var(--fg-base)]">{product.name}</p>
+            <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
+              Số lượng: {quantity}
+            </p>
+          </div>
+          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)]/50 px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--fg-muted)]">Giá bán áp dụng</p>
+            <p className="mt-1 text-[14px] font-black text-emerald-600">{formatMoney(appliedSellPrice)}</p>
+            <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
+              Mặc định: {formatMoney(product.sellPriceVnd)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)]/50 px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--fg-muted)]">Giá nhập áp dụng</p>
+            <p className="mt-1 text-[14px] font-black text-orange-500">{formatMoney(appliedCostPrice)}</p>
+            <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
+              Mặc định: {formatMoney(product.buyPriceVnd)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)]/50 px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--fg-muted)]">Chu kỳ đang bán</p>
+            <p className="mt-1 text-[14px] font-black text-[var(--accent)]">
+              {appliedDurationLabel}
+            </p>
+            <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
+              Chu kỳ chuẩn: {defaultDurationLabel}
+            </p>
+          </div>
+          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)]/50 px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--fg-muted)]">Tổng dòng</p>
+            <p className="mt-1 text-[14px] font-black text-[var(--fg-base)]">{formatMoney(lineRevenue)}</p>
+            <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
+              Vốn: {formatMoney(lineCost)}
+            </p>
+          </div>
+        </div>
       ) : null}
 
       <div className="space-y-4 rounded-xl border border-[var(--border-soft)]/50 bg-[var(--bg-app)]/50 p-4">
@@ -452,6 +556,20 @@ const OrderProductItem = memo(function OrderProductItem({
           </div>
         </div>
 
+        <DurationField
+          product={product}
+          value={item}
+          onDurationTypeChange={(nextValue) =>
+            setValue(`items.${index}.durationType`, nextValue, { shouldDirty: true, shouldValidate: true })
+          }
+          onDurationValueChange={(nextValue) =>
+            setValue(`items.${index}.durationValue`, nextValue, { shouldDirty: true, shouldValidate: true })
+          }
+          onBonusDurationValueChange={(nextValue) =>
+            setValue(`items.${index}.bonusDurationValue`, nextValue ?? 0, { shouldDirty: true, shouldValidate: true })
+          }
+        />
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
@@ -481,7 +599,11 @@ const OrderProductItem = memo(function OrderProductItem({
             <Input
               value={itemNotes}
               onChange={(e) => setValue(`items.${index}.notes`, e.target.value)}
-              placeholder={orderText.labels.notePlaceholder}
+              placeholder={
+                resolvedDuration.bonusDurationValue > 0
+                  ? `${orderText.labels.notePlaceholder} • KM ${formatOrderDurationLabel(resolvedDuration, { includeBonus: true })}`
+                  : orderText.labels.notePlaceholder
+              }
               className="bg-white text-[13px] shadow-sm"
             />
           </div>
@@ -516,7 +638,7 @@ const OrderProductItem = memo(function OrderProductItem({
                 value={sourceAccountId}
                 onChange={(id) => {
                   setValue(`items.${index}.assignedSourceAccountId`, id);
-                  const acct = sourceAccounts.find((account) => account.id === id);
+                  const acct = sourceAccountById.get(id);
                   if (acct?.reservedNicks?.length && !customerNickUsed) {
                     setValue(`items.${index}.customerNickUsed`, acct.reservedNicks[0], { shouldValidate: true });
                         appToast.success(orderText.labels.autoNick + ` ${acct.reservedNicks[0]}`);
@@ -603,7 +725,9 @@ const OrderProductsSection = memo(function OrderProductsSection({
   fields,
   formItems,
   products,
+  productById,
   sourceAccounts,
+  sourceAccountById,
   warehouseOpen,
   setWarehouseOpen,
   remove,
@@ -615,7 +739,9 @@ const OrderProductsSection = memo(function OrderProductsSection({
   fields: { id: string }[];
   formItems: FormItem[];
   products: ProductLike[];
+  productById: Map<string, ProductLike>;
   sourceAccounts: SourceAccountLike[];
+  sourceAccountById: Map<string, SourceAccountLike>;
   warehouseOpen: boolean[];
   setWarehouseOpen: Dispatch<SetStateAction<boolean[]>>;
   remove: (index: number) => void;
@@ -640,9 +766,11 @@ const OrderProductsSection = memo(function OrderProductsSection({
             index={idx}
             pid={formItems[idx]?.productId ?? ""}
             item={formItems[idx]}
-            product={products.find((product) => product.id === formItems[idx]?.productId)}
+            product={productById.get(formItems[idx]?.productId ?? "")}
             products={products}
             sourceAccounts={sourceAccounts}
+            productById={productById}
+            sourceAccountById={sourceAccountById}
             isWH={warehouseOpen[idx] ?? false}
             hasProductError={errorMessages[idx]}
             setValue={setValue}
@@ -656,7 +784,18 @@ const OrderProductsSection = memo(function OrderProductsSection({
             type="button"
             variant="secondary"
             onClick={() => {
-              append({ productId: "", quantity: 1, costPriceVnd: undefined, sellPriceVnd: undefined, notes: "", assignedSourceAccountId: "", customerNickUsed: "" });
+              append({
+                productId: "",
+                quantity: 1,
+                costPriceVnd: undefined,
+                sellPriceVnd: undefined,
+                durationType: undefined,
+                durationValue: undefined,
+                bonusDurationValue: 0,
+                notes: "",
+                assignedSourceAccountId: "",
+                customerNickUsed: "",
+              });
               setWarehouseOpen((current) => [...current, false]);
             }}
             className="group h-[60px] w-full border-2 border-dashed border-[var(--border-soft)] bg-transparent font-bold transition-all hover:border-[var(--accent)] hover:bg-[var(--accent)]/5"
@@ -796,16 +935,16 @@ const OrderPaymentSection = memo(function OrderPaymentSection({
 const OrderScheduleSection = memo(function OrderScheduleSection({
   registeredAt,
   autoExpiresAt,
-  products,
-  primaryProductId,
+  primaryDurationLabel,
+  primaryDurationHint,
   orderNotes,
   setRegisteredAt,
   setOrderNotes,
 }: {
   registeredAt: string;
   autoExpiresAt: string;
-  products: ProductLike[];
-  primaryProductId: string | undefined;
+  primaryDurationLabel: string | null;
+  primaryDurationHint: string | null;
   orderNotes: string;
   setRegisteredAt: (value: string) => void;
   setOrderNotes: (value: string) => void;
@@ -835,17 +974,15 @@ const OrderScheduleSection = memo(function OrderScheduleSection({
           </label>
           <div className="flex w-full items-center justify-between rounded-xl border-2 border-dashed border-[var(--border-soft)] bg-[var(--surface-light)] px-4 py-3 text-[14px] font-bold text-[var(--fg-base)]">
             <span>{autoExpiresAt || orderText.labels.chooseProductFirst}</span>
-            {autoExpiresAt && primaryProductId ? (
+            {autoExpiresAt && primaryDurationLabel ? (
               <span className="rounded-full bg-[var(--warning)]/10 px-2 py-0.5 text-[9px] font-black uppercase text-[var(--warning)]">
-                {(() => {
-                  const product = products.find((entry) => entry.id === primaryProductId);
-                  if (!product) return "";
-                  return `${product.durationValue} ${product.durationType === "months" ? orderText.labels.durationUnits.months : product.durationType === "years" ? orderText.labels.durationUnits.years : orderText.labels.durationUnits.days}`;
-                })()}
+                {primaryDurationLabel}
               </span>
             ) : null}
           </div>
-          <p className="mt-1.5 text-[10px] font-medium text-[var(--fg-muted)]">{orderText.labels.expiresAtHint}</p>
+          <p className="mt-1.5 text-[10px] font-medium text-[var(--fg-muted)]">
+            {primaryDurationHint ? `${orderText.labels.expiresAtHint} ${primaryDurationHint}` : orderText.labels.expiresAtHint}
+          </p>
         </div>
       </div>
       <div>
@@ -954,7 +1091,18 @@ export function CreateOrderForm() {
     resolver: zodResolver(createOrderInputSchema),
     defaultValues: {
       customerId: "",
-      items: [{ productId: "", quantity: 1, costPriceVnd: undefined, sellPriceVnd: undefined, notes: "", assignedSourceAccountId: "", customerNickUsed: "" }],
+      items: [{
+        productId: "",
+        quantity: 1,
+        costPriceVnd: undefined,
+        sellPriceVnd: undefined,
+        durationType: undefined,
+        durationValue: undefined,
+        bonusDurationValue: 0,
+        notes: "",
+        assignedSourceAccountId: "",
+        customerNickUsed: "",
+      }],
       paymentMethod: "paid",
       paymentTerms: "prepaid",
     },
@@ -963,14 +1111,45 @@ export function CreateOrderForm() {
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
   const watchedFormItems = useWatch({ control, name: "items" }) as FormItem[] | undefined;
   const formItems = useMemo(() => watchedFormItems ?? [], [watchedFormItems]);
-  const total = formItems.reduce((a, i) => {
-    const p = products.find(p => p.id === i.productId);
-    const unitPrice = i.sellPriceVnd ?? p?.sellPriceVnd ?? 0;
-    return a + unitPrice * (i.quantity || 1);
-  }, 0);
-  const selCustomer = customers.find(c => c.id === customerId);
+  const productById = useMemo(
+    () => new Map(products.map((product) => [product.id, product] as const)),
+    [products],
+  );
+  const customerById = useMemo(
+    () => new Map(customers.map((customer) => [customer.id, customer] as const)),
+    [customers],
+  );
+  const sourceAccountById = useMemo(
+    () => new Map(sourceAccounts.map((account) => [account.id, account] as const)),
+    [sourceAccounts],
+  );
+  const paymentSourceById = useMemo(
+    () => new Map(paymentSources.map((source) => [source.id, source] as const)),
+    [paymentSources],
+  );
+  const salesChannelById = useMemo(
+    () => new Map(salesChannels.map((channel) => [channel.id, channel] as const)),
+    [salesChannels],
+  );
+  const paymentMethodByKey = useMemo(
+    () => new Map(PAYMENT_METHODS.map((method) => [method.key, method] as const)),
+    [],
+  );
+  const total = useMemo(
+    () =>
+      formItems.reduce((sum, item) => {
+        const product = productById.get(item.productId);
+        const unitPrice = item.sellPriceVnd ?? product?.sellPriceVnd ?? 0;
+        return sum + unitPrice * (item.quantity || 1);
+      }, 0),
+    [formItems, productById],
+  );
+  const selCustomer = customerById.get(customerId);
   const selectedProductIds = useMemo(
-    () => Array.from(new Set(formItems.map((item) => item.productId).filter(Boolean))),
+    () =>
+      Array.from(
+        new Set(formItems.map((item) => item.productId).filter((productId): productId is string => Boolean(productId))),
+      ).sort(),
     [formItems],
   );
   const duplicateOrderCheck = useQuery<DuplicateOrderCheck>({
@@ -990,25 +1169,29 @@ export function CreateOrderForm() {
   });
 
   const primaryProductId = formItems[0]?.productId;
-
-  // Auto-calculate expiry date based on primary product duration
-  const autoExpiresAt = (() => {
-    if (!primaryProductId || !registeredAt) return "";
-    const product = products.find(p => p.id === primaryProductId);
-    if (!product) return "";
-    const dt = new Date(registeredAt);
-    if (product.durationType === 'years') {
-      dt.setFullYear(dt.getFullYear() + (product.durationValue ?? 1));
-    } else if (product.durationType === 'months') {
-      dt.setMonth(dt.getMonth() + (product.durationValue ?? 1));
-    } else {
-      dt.setDate(dt.getDate() + (product.durationValue ?? 30));
+  const primaryDuration = useMemo(() => {
+    if (!primaryProductId) {
+      return null;
     }
-    return dt.toISOString().split('T')[0];
-  })();
-  const selPaySrc = paymentSources.find(s => s.id === paymentSourceId);
-  const selChannel = salesChannels.find(c => c.id === salesChannelId);
-  const hasDraftContent =
+
+    const product = productById.get(primaryProductId);
+    if (!product) {
+      return null;
+    }
+
+    return resolveOrderDuration(formItems[0], {
+      durationType: product.durationType,
+      durationValue: product.durationValue,
+    });
+  }, [formItems, primaryProductId, productById]);
+
+  const autoExpiresAt = useMemo(() => {
+    if (!primaryDuration || !registeredAt) return "";
+    return addOrderDuration(new Date(registeredAt), primaryDuration).toISOString().split("T")[0];
+  }, [primaryDuration, registeredAt]);
+  const selPaySrc = paymentSourceById.get(paymentSourceId);
+  const selChannel = salesChannelById.get(salesChannelId);
+  const hasDraftContent = useMemo(() =>
     Boolean(
       customerId ||
         paymentSourceId ||
@@ -1020,23 +1203,34 @@ export function CreateOrderForm() {
         requireInvoice ||
         formItems.some(item =>
           Boolean(
-            item.productId ||
+              item.productId ||
               item.quantity !== 1 ||
               item.costPriceVnd ||
               item.sellPriceVnd ||
+              item.durationType ||
+              item.durationValue ||
+              item.bonusDurationValue ||
               item.notes?.trim() ||
               item.assignedSourceAccountId ||
               item.customerNickUsed,
           ),
         ),
-    );
+    ),
+    [
+      customerId,
+      paymentSourceId,
+      salesChannelId,
+      proofUrls.length,
+      paymentNote,
+      orderNotes,
+      selectedContact,
+      requireInvoice,
+      formItems,
+    ],
+  );
 
   const visibleSuccessSnapshot = successSnapshot && !hasDraftContent ? successSnapshot : null;
   const visibleApiNotice = hasDraftContent ? null : apiNotice;
-  const customersRef = useRef(customers);
-  useEffect(() => {
-    customersRef.current = customers;
-  }, [customers]);
   const itemProductErrorMessages = useMemo(
     () => ((errors.items ?? []) as Array<{ productId?: { message?: string } } | undefined>).map(
       (itemError) => itemError?.productId?.message,
@@ -1044,24 +1238,17 @@ export function CreateOrderForm() {
     [errors.items]
   );
 
-  const handleCustomerChange = (id: string) => {
+  const handleCustomerChange = useCallback((id: string) => {
     setCustomerId(id);
     setValue("customerId", id, { shouldValidate: true });
-    const customer = customersRef.current.find((entry) => entry.id === id);
-    if (customer && customer.contacts.length > 0) {
-      const mainContact = customer.contacts.find((entry) => entry.isPrimary) || customer.contacts[0];
-      setSelectedContact(mainContact?.value ?? "");
-      return;
-    }
-    setSelectedContact("");
-  };
+    const customer = customerById.get(id);
+    setSelectedContact(customer ? getPrimaryContactValue(customer.contacts) : "");
+  }, [customerById, setValue]);
 
   const handleCreateCustomerSuccess = useCallback((newCustomer: CustomerLike) => {
     setCustomerId(newCustomer.id);
     setValue("customerId", newCustomer.id, { shouldValidate: true });
-    if (newCustomer.contacts.length > 0) {
-      setSelectedContact(newCustomer.contacts[0].value);
-    }
+    setSelectedContact(getPrimaryContactValue(newCustomer.contacts));
   }, [setCustomerId, setSelectedContact, setValue]);
 
   const handleSelectedContactChange = useCallback((value: string) => {
@@ -1136,16 +1323,18 @@ export function CreateOrderForm() {
       appToast.dismiss(loadingId);
       const customerContact =
         selectedContact ||
-        selCustomer?.contacts.find(c => c.isPrimary)?.value ||
-        selCustomer?.contacts[0]?.value ||
+        getPrimaryContactValue(selCustomer?.contacts) ||
         null;
       const orderCode = createdOrder.order_code || createdOrder.id.slice(0, 8).toUpperCase();
       const createdAtIso = createdOrder.created_at || new Date().toISOString();
       const successItems = values.items.map((item) => {
-        const product = products.find(p => p.id === item.productId);
+        const product = productById.get(item.productId);
         const unitPrice = item.sellPriceVnd ?? product?.sellPriceVnd ?? 0;
         const durationLabel = product
-          ? `${product.durationValue} ${product.durationType === "months" ? "tháng" : product.durationType === "years" ? "năm" : "ngày"}`
+          ? formatOrderDurationLabel(resolveOrderDuration(item, {
+              durationType: product.durationType,
+              durationValue: product.durationValue,
+            }), { includeBonus: true })
           : null;
 
         return {
@@ -1163,7 +1352,7 @@ export function CreateOrderForm() {
         invoiceNumber: buildInvoiceNumber(systemSettings, createdAtIso, createdOrder.id),
         customerName: selCustomer?.name ?? null,
         customerContact,
-        paymentMethodLabel: PAYMENT_METHODS.find(m => m.key === paymentTerms)?.label ?? "",
+        paymentMethodLabel: paymentMethodByKey.get(paymentTerms)?.label ?? "",
         paymentSourceName: selPaySrc?.name ?? null,
         salesChannelName: selChannel?.name ?? null,
         totalVnd: total,
@@ -1191,7 +1380,18 @@ export function CreateOrderForm() {
       // Reset ALL form states — triệt để 100%
       reset({ 
         customerId: "", 
-        items: [{ productId: "", quantity: 1, costPriceVnd: undefined, sellPriceVnd: undefined, notes: "", assignedSourceAccountId: "", customerNickUsed: "" }], 
+        items: [{
+          productId: "",
+          quantity: 1,
+          costPriceVnd: undefined,
+          sellPriceVnd: undefined,
+          durationType: undefined,
+          durationValue: undefined,
+          bonusDurationValue: 0,
+          notes: "",
+          assignedSourceAccountId: "",
+          customerNickUsed: "",
+        }],
         paymentMethod: "paid",
         paymentTerms: "prepaid",
       });
@@ -1243,7 +1443,9 @@ export function CreateOrderForm() {
           fields={fields}
           formItems={formItems}
           products={products}
+          productById={productById}
           sourceAccounts={sourceAccounts}
+          sourceAccountById={sourceAccountById}
           warehouseOpen={warehouseOpen}
           setWarehouseOpen={setWarehouseOpen}
           remove={remove}
@@ -1276,8 +1478,12 @@ export function CreateOrderForm() {
         <OrderScheduleSection
           registeredAt={registeredAt}
           autoExpiresAt={autoExpiresAt}
-          products={products}
-          primaryProductId={primaryProductId}
+          primaryDurationLabel={primaryDuration ? formatOrderDurationLabel(primaryDuration) : null}
+          primaryDurationHint={
+            primaryDuration?.bonusDurationValue
+              ? `(${formatOrderDurationLabel(primaryDuration, { includeBonus: true })})`
+              : null
+          }
           orderNotes={orderNotes}
           setRegisteredAt={handleSetRegisteredAt}
           setOrderNotes={handleSetOrderNotes}
@@ -1298,7 +1504,7 @@ export function CreateOrderForm() {
           customerId={customerId}
           selCustomer={selCustomer}
           paymentMethod={paymentTerms}
-          paymentMethodLabel={PAYMENT_METHODS.find((m) => m.key === paymentTerms)?.label ?? ""}
+          paymentMethodLabel={paymentMethodByKey.get(paymentTerms)?.label ?? ""}
           selPaySrc={selPaySrc}
           selChannel={selChannel}
           proofUrlsCount={proofUrls.length}
@@ -1321,5 +1527,110 @@ export function CreateOrderForm() {
         onSuccess={(_newProd) => {}}
       />
     </form>
+  );
+}
+
+function DurationField({
+  product,
+  value,
+  onDurationTypeChange,
+  onDurationValueChange,
+  onBonusDurationValueChange,
+}: {
+  product?: ProductLike;
+  value: FormItem | undefined;
+  onDurationTypeChange: (value: OrderDurationType) => void;
+  onDurationValueChange: (value: number | undefined) => void;
+  onBonusDurationValueChange: (value: number | undefined) => void;
+}) {
+  const resolvedDuration = resolveOrderDuration(value, product ? {
+    durationType: product.durationType,
+    durationValue: product.durationValue,
+  } : null);
+
+  if (!product) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border border-[var(--border-soft)]/60 bg-white/80 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-widest text-[var(--fg-muted)]">
+            Cấu hình thời hạn khi bán
+          </p>
+          <p className="mt-1 text-[12px] text-[var(--fg-muted)]">
+            Hỗ trợ luôn case khuyến mãi như mua 12 tặng 1 mà không phải sửa tay ngày hết hạn sau khi tạo đơn.
+          </p>
+        </div>
+        <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[var(--accent)]">
+          Mặc định sản phẩm: {formatOrderDurationLabel(resolveOrderDuration(undefined, {
+            durationType: product.durationType,
+            durationValue: product.durationValue,
+          }))}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div>
+          <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+            Chu kỳ gốc
+          </label>
+          <Input
+            type="number"
+            min={1}
+            value={resolvedDuration.durationValue}
+            onChange={(event) => {
+              const nextValue = Number.parseInt(event.target.value, 10);
+              onDurationValueChange(Number.isNaN(nextValue) ? undefined : nextValue);
+            }}
+            className="bg-white font-bold"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+            Đơn vị
+          </label>
+          <select
+            value={resolvedDuration.durationType}
+            onChange={(event) => onDurationTypeChange(event.target.value as OrderDurationType)}
+            className="h-11 w-full rounded-xl border border-[var(--border-soft)] bg-white px-3 text-[13px] font-bold text-[var(--fg-base)] outline-none transition-colors hover:border-[var(--accent)] focus:border-[var(--accent)]"
+          >
+            <option value="days">Ngày</option>
+            <option value="months">Tháng</option>
+            <option value="years">Năm</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+            Tặng thêm
+          </label>
+          <Input
+            type="number"
+            min={0}
+            value={resolvedDuration.bonusDurationValue}
+            onChange={(event) => {
+              const nextValue = Number.parseInt(event.target.value, 10);
+              onBonusDurationValueChange(Number.isNaN(nextValue) ? undefined : nextValue);
+            }}
+            className="bg-white font-bold"
+          />
+        </div>
+
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Thời hạn tính hạn</p>
+          <p className="mt-1 text-[16px] font-black text-emerald-700">
+            {formatOrderDurationLabel(resolvedDuration)}
+          </p>
+          <p className="mt-1 text-[11px] text-emerald-700/80">
+            {resolvedDuration.bonusDurationValue > 0
+              ? `Gốc ${resolvedDuration.durationValue} + tặng ${resolvedDuration.bonusDurationValue}`
+              : "Không có thời gian tặng thêm"}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

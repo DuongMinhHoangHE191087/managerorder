@@ -244,6 +244,47 @@ function attachTelegramCustomerContacts<T extends { id: string }>(
   }));
 }
 
+function getPrimaryTelegramContact(
+  contacts: Array<{ channel: string; value: string }>,
+): { channel: string; value: string } | null {
+  return contacts.find((contact) => contact.channel === 'zalo')
+    ?? contacts.find((contact) => contact.channel === 'phone')
+    ?? null;
+}
+
+function formatLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function buildSevenDayRevenueTrend(
+  rows: Array<{ created_at: string | null; total_amount_vnd: number | null }>,
+  now: Date,
+): { trendChart: string; trendLabels: string } {
+  const totalsByDay = new Map<string, number>();
+  for (const row of rows) {
+    if (!row.created_at) continue;
+    const key = formatLocalDateKey(new Date(row.created_at));
+    totalsByDay.set(key, (totalsByDay.get(key) ?? 0) + (row.total_amount_vnd ?? 0));
+  }
+
+  const dayRevs: number[] = [];
+  const dayLabels: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 86_400_000);
+    dayRevs.push(totalsByDay.get(formatLocalDateKey(d)) ?? 0);
+    dayLabels.push(formatTelegramWeekday(d, 'narrow'));
+  }
+
+  const maxRev = Math.max(...dayRevs, 1);
+  const blocks = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+  const trendChart = dayRevs.map((revenue) => blocks[Math.min(Math.floor((revenue / maxRev) * 7), 7)]).join('');
+
+  return { trendChart, trendLabels: dayLabels.join(' ') };
+}
+
 // ─── Helpers ────────────────────────────────────────────────
 function sendMsg(chatId: number, text: string) {
   return sendTelegramMessage(text, { chatId: String(chatId) });
@@ -820,23 +861,10 @@ async function handleStats(chatId: number, msgId?: number) {
   const slotPct = totalSlots > 0 ? Math.round((usedSlots / totalSlots) * 100) : 0;
   const payRate = (totalOrders.count ?? 0) > 0 ? Math.round(((paidOrders.count ?? 0) / (totalOrders.count ?? 0)) * 100) : 0;
 
-  // 7-day mini trend chart
-  const dayRevs: number[] = [];
-  const dayLabels: string[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 86_400_000);
-    const dStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const dEnd = new Date(dStart.getTime() + 86_400_000);
-    const dayRev = (revByDay.data ?? [])
-      .filter(o => new Date(o.created_at) >= dStart && new Date(o.created_at) < dEnd)
-      .reduce((s, o) => s + (o.total_amount_vnd ?? 0), 0);
-    dayRevs.push(dayRev);
-    dayLabels.push(formatTelegramWeekday(d, 'narrow'));
-  }
-  const maxRev = Math.max(...dayRevs, 1);
-  const blocks = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
-  const trendChart = dayRevs.map(r => blocks[Math.min(Math.floor((r / maxRev) * 7), 7)]).join('');
-  const trendLabels = dayLabels.join(' ');
+  const { trendChart, trendLabels } = buildSevenDayRevenueTrend(
+    (revByDay.data ?? []) as Array<{ created_at: string | null; total_amount_vnd: number | null }>,
+    now,
+  );
 
   await sendOrEdit(chatId, [
     `📊 <b>THỐNG KÊ TỔNG HỢP</b>`,
@@ -3765,9 +3793,7 @@ async function handleCustomerProfile(chatId: number, query: string, msgId?: numb
       ? `📅 Hoạt động: ${formatDate(lastOrder.created_at ?? '')} (${escapeHtml(lastOrder.order_code)})`
       : '📅 Chưa có đơn nào';
 
-    const primaryContact =
-      contacts.find((cc: any) => cc.channel === 'zalo')
-      ?? contacts.find((cc: any) => cc.channel === 'phone');
+    const primaryContact = getPrimaryTelegramContact(contacts as Array<{ channel: string; value: string }>);
     const sections: string[] = [
       `👤 <b>HỒ SƠ KHÁCH HÀNG</b>`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━`,

@@ -2,11 +2,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetcher } from "@/lib/api/fetcher";
 import { queryKeys } from "@/shared/lib/react-query/query-keys";
 import type { Customer } from "@/lib/domain/types";
+import type { CreateCustomerInput } from "@/lib/domain/schemas";
 
-export function useCustomers() {
+export function useCustomers(search = "") {
+  const normalizedSearch = search.trim();
+  const url = normalizedSearch
+    ? `/api/customers?${new URLSearchParams({ search: normalizedSearch }).toString()}`
+    : "/api/customers";
+
   return useQuery({
-    queryKey: queryKeys.customers,
-    queryFn: () => fetcher<Customer[]>("/api/customers"),
+    queryKey: [...queryKeys.customers, { search: normalizedSearch }] as const,
+    queryFn: () => fetcher<Customer[]>(url),
     staleTime: 30_000,        // 30s — avoid refetch on page revisit
     gcTime: 5 * 60_000,       // 5min — keep in cache after unmount
   });
@@ -15,7 +21,7 @@ export function useCustomers() {
 export function useCreateCustomer() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: unknown) =>
+    mutationFn: (data: CreateCustomerInput) =>
       fetcher<Customer>("/api/customers", {
         method: "POST",
         body: JSON.stringify(data),

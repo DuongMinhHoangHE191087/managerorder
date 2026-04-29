@@ -80,7 +80,7 @@ describe("GET /api/migrate", () => {
       .mockResolvedValueOnce({
         data: [
           {
-            id: "admin-user-1",
+            id: "00000000-0000-4000-8000-000000000054",
             password_hash: "hash",
             first_name: "Test",
             last_name: "User",

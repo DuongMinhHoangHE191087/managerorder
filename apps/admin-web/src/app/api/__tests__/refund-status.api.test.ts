@@ -59,8 +59,8 @@ import { getRefundById, updateRefundStatus } from "@/lib/supabase/repositories/r
 import { getOrderStatusHistory, createOrderStatusHistory } from "@/lib/supabase/repositories/order-status-history.repo";
 import { PATCH } from "@/app/api/orders/[id]/refunds/[refundId]/route";
 
-const ORDER_ID = "ord-refund-status-001";
-const REFUND_ID = "refund-001";
+const ORDER_ID = "00000000-0000-4000-8000-00000000009a";
+const REFUND_ID = "00000000-0000-4000-8000-00000000009b";
 
 function patchRefund(id: string, refundId: string, body: unknown) {
   return PATCH(
@@ -104,7 +104,7 @@ describe("PATCH /api/orders/[id]/refunds/[refundId]", () => {
     vi.mocked(getRefundById).mockResolvedValue({
       id: REFUND_ID,
       order_id: ORDER_ID,
-      customer_id: "cust-001",
+      customer_id: "00000000-0000-4000-8000-000000000033",
       refund_mode: "pro_rata",
       refundable_amount_vnd: 50000,
       status: "processing",
@@ -164,14 +164,14 @@ describe("PATCH /api/orders/[id]/refunds/[refundId]", () => {
     vi.mocked(getRefundById).mockResolvedValue({
       id: REFUND_ID,
       order_id: ORDER_ID,
-      customer_id: "cust-001",
+      customer_id: "00000000-0000-4000-8000-000000000033",
       refund_mode: "pro_rata",
       refundable_amount_vnd: 50000,
       status: "completed",
     } as any);
     vi.mocked(getOrderStatusHistory).mockResolvedValue([
       {
-        id: "hist-1",
+        id: "00000000-0000-4000-8000-000000000071",
         order_id: ORDER_ID,
         old_status: "expired",
         new_status: "refunded",

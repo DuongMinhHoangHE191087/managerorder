@@ -1,13 +1,31 @@
 "use client";
 
-import { ArrowRightLeft, ClipboardList, Copy, Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  ClipboardList,
+  Copy,
+  Loader2,
+  Play,
+  Save,
+  ShieldAlert,
+  XCircle,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { calculateAvailableSlots } from "@/lib/domain/premium-account-math";
+import type { PremiumAccountDetailViewModel } from "@/lib/types/premium-admin";
 import { appToast } from "@/shared/lib/toast";
 import { readApiEnvelope } from "@/shared/lib/api-client";
 import { Button } from "@/shared/ui/button";
+import {
+  AdvancedOptionsDisclosure,
+  CreateActionFooter,
+  CreateFlowDialog,
+  CreateFormSection,
+} from "@/shared/ui/create-flow-shell";
+import { Input } from "@/shared/ui/input";
 import { Modal } from "@/shared/ui/modal";
+import { Select } from "@/shared/ui/select";
 import { SmartSelector } from "@/shared/ui/smart-selector";
 import type {
   MigrationAccountRow,
@@ -17,8 +35,8 @@ import type {
 } from "../types";
 import {
   formatDateTime,
+  getMigrationStatusLabel,
   getStatusClass,
-  getStatusLabel,
   getStepStatusClass,
   jsonPreview,
   migrationAccountLabel,
@@ -126,36 +144,33 @@ function MigrationRequestModal({
   }
 
   return (
-    <Modal
+    <CreateFlowDialog
       isOpen={isOpen}
       onClose={onClose}
       title="Tạo yêu cầu di chuyển"
-      size="2xl"
+      description="Tạo request migration đúng service type, có kiểm tra slot và chuẩn bị sẵn cho audit/history."
+      size="xl"
       footer={
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3">
           <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)] px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Điều kiện</p>
-              <p className="text-[12px] font-semibold text-[var(--fg-base)]">Chỉ tạo khi kho nguồn và kho đích cùng dịch vụ</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Điều kiện bắt buộc</p>
+            <p className="text-[12px] font-semibold text-[var(--fg-base)]">Kho nguồn và kho đích phải cùng dịch vụ, còn slot và không trùng nhau.</p>
           </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row">
-            <Button variant="secondary" onClick={onClose} className="w-full sm:w-auto">
-              Huỷ
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleSubmit}
-              disabled={saving || !selectedSubscriptionId || !selectedTargetAccountId || !reason.trim()}
-              className="w-full sm:w-auto"
-            >
-              <ArrowRightLeft className="size-4" />
-              {saving ? "Đang tạo..." : "Tạo yêu cầu"}
-            </Button>
-          </div>
+          <CreateActionFooter
+            primaryLabel="Tạo yêu cầu"
+            onPrimary={() => void handleSubmit()}
+            onCancel={onClose}
+            pending={saving}
+            disabled={!selectedSubscriptionId || !selectedTargetAccountId || !reason.trim()}
+          />
         </div>
       }
     >
-      <div className="custom-scrollbar max-h-[68vh] space-y-5 overflow-y-auto pr-1">
-        <div className="grid gap-4 lg:grid-cols-2">
+      <CreateFormSection
+        title="Thông tin chính"
+        description="Chọn đúng thuê bao nguồn và kho đích. Danh sách kho đích đã được lọc theo service type và slot khả dụng."
+      >
+        <div className="grid gap-4 xl:grid-cols-2">
           <div className="space-y-2">
             <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
               Thuê bao cần di chuyển
@@ -169,7 +184,7 @@ function MigrationRequestModal({
               className="w-full"
             />
             {selectedSubscription ? (
-              <p className="text-[11px] text-[var(--fg-muted)]">
+              <p className="text-[11px] leading-6 text-[var(--fg-muted)]">
                 Kho nguồn: {selectedSubscription.account_email} | Dịch vụ: {selectedSubscription.service_name} | Còn{" "}
                 {Math.max(0, selectedSubscription.days_remaining)} ngày
               </p>
@@ -188,7 +203,7 @@ function MigrationRequestModal({
               disabled={!selectedSubscription}
             />
             {selectedTargetAccount ? (
-              <p className="text-[11px] text-[var(--fg-muted)]">
+              <p className="text-[11px] leading-6 text-[var(--fg-muted)]">
                 Còn {selectedTargetAccount.available_slots} slot khả dụng | {selectedTargetAccount.service?.name ?? "Dịch vụ"}
               </p>
             ) : null}
@@ -201,25 +216,34 @@ function MigrationRequestModal({
         </div>
 
         <div className="space-y-2">
-          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Lý do di chuyển</label>
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+            Lý do di chuyển <span className="text-[var(--danger)]">*</span>
+          </label>
           <textarea
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             placeholder="Ví dụ: Kho nguồn sắp hết slot, cần gom về kho mới..."
-            className="min-h-[104px] w-full rounded-ios-sm border border-[var(--border-soft)] bg-[var(--bg-surface)] px-3 py-2.5 text-[13px] font-medium text-[var(--fg-base)] outline-none transition-colors placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+            className="min-h-[112px] w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[13px] font-medium text-[var(--fg-base)] outline-none transition-colors placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
           />
         </div>
+      </CreateFormSection>
 
+      <AdvancedOptionsDisclosure>
         <div className="space-y-2">
-          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Ghi chú</label>
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Ghi chú nội bộ</label>
           <textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Ghi chú nội bộ, ví dụ: giữ nguyên chu kỳ thanh toán..."
-            className="min-h-[88px] w-full rounded-ios-sm border border-[var(--border-soft)] bg-[var(--surface-light)] px-3 py-2.5 text-[13px] font-medium text-[var(--fg-base)] outline-none transition-colors placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+            className="min-h-[96px] w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[13px] font-medium text-[var(--fg-base)] outline-none transition-colors placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
           />
         </div>
+      </AdvancedOptionsDisclosure>
 
+      <CreateFormSection
+        title="Kiểm tra nhanh"
+        description="Tóm tắt nhanh trước khi bắn request để vận hành thấy rõ nguồn, đích và sức chứa."
+      >
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Nguồn</p>
@@ -236,13 +260,90 @@ function MigrationRequestModal({
             </p>
           </div>
         </div>
-      </div>
-    </Modal>
+      </CreateFormSection>
+    </CreateFlowDialog>
   );
 }
 
-function MigrationDetailModal({ migration }: { migration: MigrationDetailRow }) {
+function MigrationDetailModal({
+  migration,
+  accounts,
+  onChanged,
+}: {
+  migration: MigrationDetailRow;
+  accounts: MigrationAccountRow[];
+  onChanged: (migration: MigrationDetailRow) => void;
+}) {
   const router = useRouter();
+  const [metadataForm, setMetadataForm] = useState({
+    targetAccountId: migration.target_account_id,
+    reason: migration.reason ?? "",
+    notes: migration.notes ?? "",
+  });
+  const [executionForm, setExecutionForm] = useState({
+    targetUserId: migration.target_user_id ?? "",
+    createTargetUserEmail: "",
+    failureReason: "",
+  });
+  const [targetUsers, setTargetUsers] = useState<PremiumAccountDetailViewModel["users"]>([]);
+  const [isLoadingTargetUsers, setIsLoadingTargetUsers] = useState(false);
+  const [mutationAction, setMutationAction] = useState<null | "metadata" | "start" | "complete" | "fail" | "cancel">(null);
+
+  useEffect(() => {
+    setMetadataForm({
+      targetAccountId: migration.target_account_id,
+      reason: migration.reason ?? "",
+      notes: migration.notes ?? "",
+    });
+    setExecutionForm({
+      targetUserId: migration.target_user_id ?? "",
+      createTargetUserEmail: "",
+      failureReason: "",
+    });
+  }, [migration]);
+
+  useEffect(() => {
+    const targetAccountId = metadataForm.targetAccountId || migration.target_account_id;
+    if (!targetAccountId) {
+      setTargetUsers([]);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingTargetUsers(true);
+
+    void (async () => {
+      try {
+        const response = await fetch(`/api/premium/accounts/${targetAccountId}?audit_limit=1`);
+        const payload = await readApiEnvelope<PremiumAccountDetailViewModel>(response);
+
+        if (!response.ok || !payload.data) {
+          if (!cancelled) {
+            setTargetUsers([]);
+          }
+          return;
+        }
+
+        if (!cancelled) {
+          setTargetUsers(payload.data.users);
+        }
+      } catch (error) {
+        console.error("[loadMigrationTargetUsers]", error);
+        if (!cancelled) {
+          setTargetUsers([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingTargetUsers(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [metadataForm.targetAccountId, migration.target_account_id]);
+
   const stepSummary = useMemo(
     () =>
       migration.steps.reduce(
@@ -264,6 +365,27 @@ function MigrationDetailModal({ migration }: { migration: MigrationDetailRow }) 
     migration.target_account?.total_slots ?? 0,
     migration.target_account?.used_slots ?? 0,
   );
+  const eligibleTargetAccounts = useMemo(
+    () =>
+      accounts.filter((account) => {
+        const sameServiceType =
+          !migration.source_account?.service_type_id ||
+          account.service_type_id === migration.source_account.service_type_id;
+        return account.id !== migration.source_account_id && account.status === "active" && sameServiceType;
+      }),
+    [accounts, migration.source_account?.service_type_id, migration.source_account_id],
+  );
+  const selectedTargetAccount =
+    accounts.find((account) => account.id === metadataForm.targetAccountId) ?? migration.target_account ?? null;
+  const activeTargetUsers = targetUsers.filter((user) => user.status === "active");
+  const requiresTargetUser =
+    Boolean(migration.source_user_id) ||
+    (selectedTargetAccount?.used_slots ?? migration.target_account?.used_slots ?? 0) > 0 ||
+    activeTargetUsers.length > 0;
+  const canMutateLifecycle = migration.status === "pending" || migration.status === "in_progress";
+  const terminalReason =
+    migration.terminal_reason ??
+    (typeof migration.details?.terminal_reason === "string" ? migration.details.terminal_reason : null);
 
   async function copyMigrationId() {
     try {
@@ -283,6 +405,92 @@ function MigrationDetailModal({ migration }: { migration: MigrationDetailRow }) 
       console.error("[copyMigrationValue]", error);
       appToast.error("Không thể sao chép vào clipboard");
     }
+  }
+
+  async function patchMigration(
+    action: "metadata" | "start" | "complete" | "fail" | "cancel",
+    payload: Record<string, unknown>,
+    successMessage: string,
+  ) {
+    setMutationAction(action);
+    try {
+      const response = await fetch(`/api/premium/migrations/${migration.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const apiPayload = await readApiEnvelope<MigrationDetailRow>(response);
+
+      if (!response.ok || !apiPayload.data) {
+        appToast.error(apiPayload.error ?? "Không thể cập nhật migration");
+        return;
+      }
+
+      onChanged(apiPayload.data);
+      appToast.success(successMessage);
+    } catch (error) {
+      console.error("[patchPremiumMigration]", error);
+      appToast.error("Lỗi kết nối khi cập nhật migration");
+    } finally {
+      setMutationAction(null);
+    }
+  }
+
+  async function handleSaveMetadata() {
+    if (migration.status !== "pending") {
+      appToast.error("Chỉ migration pending mới được chỉnh request");
+      return;
+    }
+
+    if (!metadataForm.targetAccountId || !metadataForm.reason.trim()) {
+      appToast.error("Cần chọn kho đích và nhập lý do trước khi lưu");
+      return;
+    }
+
+    await patchMigration(
+      "metadata",
+      {
+        target_account_id: metadataForm.targetAccountId,
+        reason: metadataForm.reason.trim(),
+        notes: metadataForm.notes.trim() || null,
+      },
+      "Đã cập nhật request migration",
+    );
+  }
+
+  async function handleComplete() {
+    const payload: Record<string, unknown> = { action: "complete" };
+
+    if (executionForm.targetUserId) {
+      payload.target_user_id = executionForm.targetUserId;
+    } else if (executionForm.createTargetUserEmail.trim()) {
+      payload.create_target_user = {
+        user_email: executionForm.createTargetUserEmail.trim(),
+      };
+    }
+
+    if (requiresTargetUser && !payload.target_user_id && !payload.create_target_user) {
+      appToast.error("Cần chọn target user hoặc tạo sub-user mới trước khi complete");
+      return;
+    }
+
+    await patchMigration("complete", payload, "Đã hoàn tất migration");
+  }
+
+  async function handleFail() {
+    if (!executionForm.failureReason.trim()) {
+      appToast.error("Nhập lý do thất bại trước khi fail migration");
+      return;
+    }
+
+    await patchMigration(
+      "fail",
+      {
+        action: "fail",
+        failure_reason: executionForm.failureReason.trim(),
+      },
+      "Đã kết thúc migration với trạng thái thất bại",
+    );
   }
 
   return (
@@ -318,9 +526,12 @@ function MigrationDetailModal({ migration }: { migration: MigrationDetailRow }) 
           <span
             className={`mt-2 inline-flex rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-widest ${getStatusClass(migration.status)}`}
           >
-            {getStatusLabel(migration.status)}
+            {getMigrationStatusLabel(migration)}
           </span>
           <p className="mt-2 text-[12px] text-[var(--fg-muted)]">Tạo lúc: {formatDateTime(migration.created_at)}</p>
+          {terminalReason ? (
+            <p className="mt-2 text-[12px] font-medium text-[var(--fg-muted)]">terminal_reason: {terminalReason}</p>
+          ) : null}
         </div>
 
         <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">
@@ -384,7 +595,7 @@ function MigrationDetailModal({ migration }: { migration: MigrationDetailRow }) 
             <Button
               type="button"
               variant="secondary"
-              onClick={() => router.push(`/inventory/source-accounts/${migration.source_account?.id}`)}
+              onClick={() => router.push(`/premium/accounts/${migration.source_account?.id}`)}
               className="mt-3 inline-flex rounded-full px-3 py-2 text-[11px] font-bold"
             >
               Xem kho nguồn
@@ -405,7 +616,7 @@ function MigrationDetailModal({ migration }: { migration: MigrationDetailRow }) 
             <Button
               type="button"
               variant="secondary"
-              onClick={() => router.push(`/inventory/source-accounts/${migration.target_account?.id}`)}
+              onClick={() => router.push(`/premium/accounts/${migration.target_account?.id}`)}
               className="mt-3 inline-flex rounded-full px-3 py-2 text-[11px] font-bold"
             >
               Xem kho đích
@@ -417,6 +628,198 @@ function MigrationDetailModal({ migration }: { migration: MigrationDetailRow }) 
           <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Lý do</p>
           <p className="mt-1 text-[13px] font-semibold text-[var(--fg-base)]">{migration.reason ?? "N/A"}</p>
           {migration.notes ? <p className="mt-3 text-[12px] text-[var(--fg-muted)]">{migration.notes}</p> : null}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Request metadata</p>
+              <p className="mt-1 text-[13px] font-semibold text-[var(--fg-base)]">
+                Chỉnh kho đích, lý do và notes khi request còn pending.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={migration.status !== "pending"}
+              isLoading={mutationAction === "metadata"}
+              onClick={() => void handleSaveMetadata()}
+              className="rounded-full px-3 py-2 text-[11px] font-bold"
+            >
+              <Save className="size-4" />
+              Lưu request
+            </Button>
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Kho đích</label>
+              <Select
+                value={metadataForm.targetAccountId}
+                disabled={migration.status !== "pending"}
+                onChange={(event) => {
+                  setMetadataForm((current) => ({ ...current, targetAccountId: event.target.value }));
+                  setExecutionForm((current) => ({ ...current, targetUserId: "", createTargetUserEmail: "" }));
+                }}
+              >
+                {eligibleTargetAccounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.primary_email} · {account.service?.name ?? "Dịch vụ"}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Lý do</label>
+              <textarea
+                value={metadataForm.reason}
+                disabled={migration.status !== "pending"}
+                onChange={(event) => setMetadataForm((current) => ({ ...current, reason: event.target.value }))}
+                className="min-h-[96px] w-full rounded-ios-sm border border-[var(--border-soft)] bg-white px-3 py-2.5 text-[13px] font-medium text-[var(--fg-base)] outline-none transition-colors placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Notes</label>
+              <textarea
+                value={metadataForm.notes}
+                disabled={migration.status !== "pending"}
+                onChange={(event) => setMetadataForm((current) => ({ ...current, notes: event.target.value }))}
+                className="min-h-[88px] w-full rounded-ios-sm border border-[var(--border-soft)] bg-white px-3 py-2.5 text-[13px] font-medium text-[var(--fg-base)] outline-none transition-colors placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Execution controls</p>
+              <p className="mt-1 text-[13px] font-semibold text-[var(--fg-base)]">
+                Start, complete, fail hoặc cancel migration với target user assignment và audit đồng nhất.
+              </p>
+            </div>
+            <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-light)] px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]">
+              {canMutateLifecycle ? "Open workflow" : "Read only"}
+            </span>
+          </div>
+
+          <div className="mt-4 space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Kho đích đang chọn</p>
+                <p className="mt-1 text-[13px] font-bold text-[var(--fg-base)]">
+                  {selectedTargetAccount?.primary_email ?? "Chưa có"}
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--fg-muted)]">
+                  Còn {selectedTargetAccount ? calculateAvailableSlots(selectedTargetAccount.total_slots, selectedTargetAccount.used_slots) : 0} slot
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Target user requirement</p>
+                <p className="mt-1 text-[13px] font-bold text-[var(--fg-base)]">{requiresTargetUser ? "Bắt buộc" : "Không bắt buộc"}</p>
+                <p className="mt-1 text-[12px] text-[var(--fg-muted)]">
+                  {isLoadingTargetUsers ? "Đang tải target users..." : `${activeTargetUsers.length} user active khả dụng`}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Target user hiện có</label>
+              <Select
+                value={executionForm.targetUserId}
+                disabled={!canMutateLifecycle || isLoadingTargetUsers}
+                onChange={(event) =>
+                  setExecutionForm((current) => ({
+                    ...current,
+                    targetUserId: event.target.value,
+                    createTargetUserEmail: event.target.value ? "" : current.createTargetUserEmail,
+                  }))
+                }
+              >
+                <option value="">Không chọn user có sẵn</option>
+                {activeTargetUsers.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.user_email}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Hoặc tạo target sub-user mới</label>
+              <Input
+                value={executionForm.createTargetUserEmail}
+                disabled={!canMutateLifecycle || Boolean(executionForm.targetUserId)}
+                placeholder="target-user@example.com"
+                onChange={(event) =>
+                  setExecutionForm((current) => ({ ...current, createTargetUserEmail: event.target.value }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Lý do fail</label>
+              <textarea
+                value={executionForm.failureReason}
+                disabled={!canMutateLifecycle}
+                onChange={(event) =>
+                  setExecutionForm((current) => ({ ...current, failureReason: event.target.value }))
+                }
+                placeholder="Bắt buộc khi kết thúc thất bại."
+                className="min-h-[88px] w-full rounded-ios-sm border border-[var(--border-soft)] bg-[var(--surface-light)] px-3 py-2.5 text-[13px] font-medium text-[var(--fg-base)] outline-none transition-colors placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={migration.status !== "pending"}
+                isLoading={mutationAction === "start"}
+                onClick={() => void patchMigration("start", { action: "start" }, "Đã bắt đầu migration")}
+              >
+                <Play className="size-4" />
+                Start
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                disabled={!canMutateLifecycle}
+                isLoading={mutationAction === "complete"}
+                onClick={() => void handleComplete()}
+              >
+                <CheckCircle2 className="size-4" />
+                Complete
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                disabled={!canMutateLifecycle}
+                isLoading={mutationAction === "fail"}
+                onClick={() => void handleFail()}
+              >
+                <ShieldAlert className="size-4" />
+                Fail
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!canMutateLifecycle}
+                isLoading={mutationAction === "cancel"}
+                onClick={() =>
+                  void patchMigration("cancel", { action: "cancel" }, "Đã hủy migration theo yêu cầu admin")
+                }
+              >
+                <XCircle className="size-4" />
+                Cancel
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -509,6 +912,7 @@ export function MigrationModals({
   onCreated,
   detailLoading,
   detailMigration,
+  onDetailChanged,
   onCloseDetail,
 }: {
   isCreateOpen: boolean;
@@ -518,6 +922,7 @@ export function MigrationModals({
   onCreated: (migration: MigrationListRow) => void;
   detailLoading: boolean;
   detailMigration: MigrationDetailRow | null;
+  onDetailChanged: (migration: MigrationDetailRow) => void;
   onCloseDetail: () => void;
 }) {
   return (
@@ -528,7 +933,7 @@ export function MigrationModals({
             <Loader2 className="size-8 animate-spin text-[var(--accent)]" />
           </div>
         ) : detailMigration ? (
-          <MigrationDetailModal migration={detailMigration} />
+          <MigrationDetailModal migration={detailMigration} accounts={accounts} onChanged={onDetailChanged} />
         ) : null}
       </Modal>
 

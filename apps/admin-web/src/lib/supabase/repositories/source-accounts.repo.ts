@@ -186,18 +186,23 @@ export async function listSourceAccounts(accountId: string): Promise<SourceAccou
 
 export async function getSourceAccountById(
   id: string,
-  accountId: string
+  accountId: string,
+  options: { includeDeleted?: boolean } = {},
 ): Promise<SourceAccountRow | null> {
   return cached(
     key.item(id, accountId),
     async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('source_accounts')
         .select('*')
         .eq('id', id)
-        .eq('account_id', accountId)
-        .is('deleted_at', null)
-        .single();
+        .eq('account_id', accountId);
+
+      if (!options.includeDeleted) {
+        query = query.is('deleted_at', null);
+      }
+
+      const { data, error } = await query.single();
       if (error) return null;
       return data;
     },

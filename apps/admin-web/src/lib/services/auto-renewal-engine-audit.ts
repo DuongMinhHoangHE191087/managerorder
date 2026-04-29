@@ -1,8 +1,9 @@
 import {
   createActivityLog,
-  getActivityLogsPaginated,
   type ActivityLog,
 } from "@/lib/supabase/repositories/activity-logs.repo";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import type { AdminHistoryQuery } from "@/lib/types/admin-history";
 
 export const AUTO_RENEWAL_ENGINE_ACTION_TYPE = "auto_renewal_engine_run";
 
@@ -57,9 +58,13 @@ export interface AutoRenewalEngineRunHistoryResult {
     limit: number;
     totalPages: number;
   };
+  summary: {
+    manualCount: number;
+    cronCount: number;
+    systemCount: number;
+    userCount: number;
+  };
 }
-
-type ActivityLogPage = Awaited<ReturnType<typeof getActivityLogsPaginated>>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -246,21 +251,100 @@ export async function recordAutoRenewalEngineRun(input: AutoRenewalEngineRunAudi
 
 export async function getAutoRenewalEngineRunHistory(
   accountId: string,
-  options: {
-    page?: number;
-    limit?: number;
-  } = {},
+  options: AdminHistoryQuery = {},
 ): Promise<AutoRenewalEngineRunHistoryResult> {
   const page = Math.max(1, Number(options.page) || 1);
   const limit = Math.min(Math.max(1, Number(options.limit) || 10), 50);
-  const result: ActivityLogPage = await getActivityLogsPaginated(accountId, {
-    page,
-    limit,
-    actionType: AUTO_RENEWAL_ENGINE_ACTION_TYPE,
-  });
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+  const toDateExclusive = options.toDate
+    ? new Date(new Date(options.toDate).setDate(new Date(options.toDate).getDate() + 1)).toISOString()
+    : null;
+
+  let dataQuery = supabaseAdmin
+    .from("activity_logs")
+    .select("*", { count: "exact" })
+    .eq("account_id", accountId)
+    .eq("action_type", AUTO_RENEWAL_ENGINE_ACTION_TYPE);
+
+  let summaryQuery = supabaseAdmin
+    .from("activity_logs")
+    .select("id, account_id, created_by, created_at, details")
+    .eq("account_id", accountId)
+    .eq("action_type", AUTO_RENEWAL_ENGINE_ACTION_TYPE);
+
+  if (options.mode && options.mode !== "all") {
+    dataQuery = dataQuery.eq("details->>mode", options.mode);
+    summaryQuery = summaryQuery.eq("details->>mode", options.mode);
+  }
+
+  if (options.createdBy && options.createdBy !== "all") {
+    if (options.createdBy === "system") {
+      dataQuery = dataQuery.is("created_by", null);
+      summaryQuery = summaryQuery.is("created_by", null);
+    } else {
+      dataQuery = dataQuery.eq("created_by", options.createdBy);
+      summaryQuery = summaryQuery.eq("created_by", options.createdBy);
+    }
+  }
+
+  if (options.fromDate) {
+    dataQuery = dataQuery.gte("created_at", options.fromDate);
+    summaryQuery = summaryQuery.gte("created_at", options.fromDate);
+  }
+
+  if (toDateExclusive) {
+    dataQuery = dataQuery.lt("created_at", toDateExclusive);
+    summaryQuery = summaryQuery.lt("created_at", toDateExclusive);
+  }
+
+  const [dataResult, summaryResult] = await Promise.all([
+    dataQuery.order("created_at", { ascending: false }).range(from, to),
+    summaryQuery.order("created_at", { ascending: false }),
+  ]);
+
+  if (dataResult.error) {
+    throw dataResult.error;
+  }
+
+  if (summaryResult.error) {
+    throw summaryResult.error;
+  }
+
+  const summary = ((summaryResult.data ?? []) as ActivityLog[]).reduce(
+    (accumulator, row) => {
+      const item = createRunHistoryItem(row);
+
+      if (item.mode === "cron") {
+        accumulator.cronCount += 1;
+      } else {
+        accumulator.manualCount += 1;
+      }
+
+      if (item.createdBy) {
+        accumulator.userCount += 1;
+      } else {
+        accumulator.systemCount += 1;
+      }
+
+      return accumulator;
+    },
+    {
+      manualCount: 0,
+      cronCount: 0,
+      systemCount: 0,
+      userCount: 0,
+    },
+  );
 
   return {
-    items: result.data.map(createRunHistoryItem),
-    meta: result.meta,
+    items: ((dataResult.data ?? []) as ActivityLog[]).map(createRunHistoryItem),
+    meta: {
+      count: dataResult.count || 0,
+      page,
+      limit,
+      totalPages: dataResult.count ? Math.ceil(dataResult.count / limit) : 0,
+    },
+    summary,
   };
 }

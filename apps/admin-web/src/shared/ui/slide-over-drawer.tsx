@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useId } from "react";
 import { X } from "lucide-react";
 import { vi } from "@/shared/messages/vi";
 
@@ -19,6 +19,8 @@ export function SlideOverDrawer({
   children,
   width = "max-w-md",
 }: SlideOverDrawerProps) {
+  const titleId = useId();
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -42,30 +44,36 @@ export function SlideOverDrawer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex" style={{ zIndex: "var(--z-drawer)" }}>
+    <div className="fixed inset-0 flex overscroll-contain" style={{ zIndex: "var(--z-drawer)" }}>
       <button
         type="button"
-        className="fixed inset-0 bg-[rgba(15,23,42,0.34)] backdrop-blur-[2px]"
+        className="fixed inset-0 bg-[rgba(15,23,42,0.34)] backdrop-blur-[2px] touch-manipulation"
         onClick={onClose}
         aria-label={vi.common.close}
       />
 
       <div
         className={`fixed inset-y-0 right-0 flex w-full ${width} flex-col border-l border-[var(--border-soft)] bg-[rgba(255,255,255,0.96)] shadow-[0_28px_70px_rgba(15,23,42,0.16)] backdrop-blur-2xl`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        data-testid="slide-over-drawer"
       >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,250,244,0.9))] px-6 py-4">
-          <h2 className="text-[16px] font-bold tracking-tight text-[var(--fg-base)]">{title}</h2>
+          <h2 id={titleId} className="text-[16px] font-bold tracking-tight text-[var(--fg-base)] text-pretty">
+            {title}
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-[0.9rem] p-2 text-[var(--fg-muted)] transition-colors hover:bg-[var(--surface-light)] hover:text-[var(--fg-base)]"
+            className="rounded-[0.9rem] p-2 text-[var(--fg-muted)] transition-colors hover:bg-[var(--surface-light)] hover:text-[var(--fg-base)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             aria-label={vi.common.close}
           >
             <X className="size-5" />
           </button>
         </div>
 
-        <div className="custom-scrollbar flex-1 overflow-y-auto p-6">
+        <div className="custom-scrollbar flex-1 overflow-y-auto overscroll-contain p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           {children}
         </div>
       </div>

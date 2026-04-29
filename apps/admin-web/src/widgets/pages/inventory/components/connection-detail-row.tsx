@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { memo } from "react";
 import {
   User, Package, Calendar, Phone, AtSign,
   ExternalLink, Hash,
@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { cn, formatDateLabel } from "@/lib/utils";
 import type { EnrichedConnection } from "@/lib/domain/types";
 
-// Status badge config
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   pending: { label: "Chờ", color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" },
   confirmed: { label: "Xác nhận", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
@@ -25,7 +24,7 @@ interface ConnectionDetailRowProps {
   className?: string;
 }
 
-export function ConnectionDetailRow({
+export const ConnectionDetailRow = memo(function ConnectionDetailRow({
   connection,
   productMap,
   className,
@@ -43,7 +42,6 @@ export function ConnectionDetailRow({
       "shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)] hover:border-[var(--accent)]/30 transition-all duration-200",
       className
     )}>
-      {/* Top row: Customer + Status */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="w-7 h-7 rounded-full bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
@@ -75,9 +73,7 @@ export function ConnectionDetailRow({
         </span>
       </div>
 
-      {/* Bottom row: Meta info */}
       <div className="flex items-center gap-3 text-[11px] text-[var(--fg-muted)] flex-wrap">
-        {/* Order ID */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -87,24 +83,21 @@ export function ConnectionDetailRow({
           title="Xem đơn hàng"
         >
           <Hash className="w-3 h-3" />
-          <span className="font-mono">{connection.orderId.split('-')[0]}</span>
+          <span className="font-mono">{connection.orderId.split("-")[0]}</span>
           <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
 
-        {/* Product */}
         <span className="inline-flex items-center gap-1">
           <Package className="w-3 h-3" />
           <span className="truncate max-w-[120px]">{productName}</span>
           <span className="font-bold">×{connection.quantity}</span>
         </span>
 
-        {/* Date */}
         <span className="inline-flex items-center gap-1">
           <Calendar className="w-3 h-3" />
           {formatDateLabel(connection.orderCreatedAt)}
         </span>
 
-        {/* Contact */}
         {connection.customerContact && (
           <span className="inline-flex items-center gap-1 text-indigo-400/70">
             <Phone className="w-3 h-3" />
@@ -114,4 +107,4 @@ export function ConnectionDetailRow({
       </div>
     </div>
   );
-}
+});

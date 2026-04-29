@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { CalendarClock, MonitorPlay, Trash2, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ActionMenu } from "@/shared/ui/action-menu";
@@ -57,11 +58,13 @@ function getAccountStateClass(account: Pick<PremiumAccountRow, "status" | "conne
 export function AccountsTable({
   accounts,
   isLoading,
+  onOpenDetail,
   onOpenSubscriptions,
   onDelete,
 }: {
   accounts: PremiumAccountRow[];
   isLoading: boolean;
+  onOpenDetail: (account: PremiumAccountRow) => void;
   onOpenSubscriptions: () => void;
   onDelete: (account: PremiumAccountRow) => void;
 }) {
@@ -111,9 +114,12 @@ export function AccountsTable({
                       <MonitorPlay className="size-5" />
                     </div>
                     <div className="min-w-0">
-                      <span className="block truncate text-base font-extrabold tracking-tight text-[var(--fg-base)]">
+                      <Link
+                        href={`/premium/accounts/${acc.id}`}
+                        className="block truncate text-base font-extrabold tracking-tight text-[var(--fg-base)] transition-colors hover:text-[var(--accent)]"
+                      >
                         {acc.service?.name || "N/A"}
-                      </span>
+                      </Link>
                       <span className="mt-0.5 block text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
                         {acc.package?.name || "Gói Tự Do"}
                       </span>
@@ -175,6 +181,15 @@ export function AccountsTable({
                     <div className="lg:hidden mb-1 w-full text-[10px] font-black uppercase tracking-widest text-[var(--fg-muted)]">Thao tác</div>
                     <Button
                       variant="ghost"
+                      onClick={() => onOpenDetail(acc)}
+                      className="size-9 shrink-0 rounded-xl p-0 text-[var(--fg-base)] transition-colors hover:bg-[var(--surface-light)]"
+                      title="Mở chi tiết account"
+                      aria-label="Mở chi tiết account"
+                    >
+                      <MonitorPlay className="size-4.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
                       onClick={onOpenSubscriptions}
                       className="size-9 shrink-0 rounded-xl p-0 text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/10"
                       title="Xem thuê bao"
@@ -184,6 +199,11 @@ export function AccountsTable({
                     </Button>
                     <ActionMenu
                       items={[
+                        {
+                          label: "Mở chi tiết account",
+                          icon: <MonitorPlay className="size-4" />,
+                          onClick: () => onOpenDetail(acc),
+                        },
                         {
                           label: "Xóa tài khoản",
                           icon: <Trash2 className="size-4" />,

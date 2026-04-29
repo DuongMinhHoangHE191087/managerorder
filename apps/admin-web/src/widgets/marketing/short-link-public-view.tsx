@@ -1,8 +1,6 @@
-import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
-  Globe,
   Lock,
   ShieldCheck,
   Sparkles,
@@ -13,16 +11,14 @@ import type {
   ShortLinkResolvedDeliveryMode,
 } from "@/lib/domain/types";
 import { BRAND, CONTACTS, TRUST_STACK } from "./sales-landing-config";
+import { PublicPageSecurityGuard } from "./public-page-security-guard";
 
 type ShortLinkPublicViewProps = {
-  slug: string;
   title: string | null;
-  targetUrl: string;
   ctaHref: string;
   templateKey: ShortLinkLandingTemplateKey;
   requiresToken: boolean;
   resolvedDeliveryMode: ShortLinkResolvedDeliveryMode;
-  salesChannelName?: string | null;
 };
 
 type TemplateCopy = {
@@ -52,31 +48,20 @@ const TEMPLATE_COPY: Record<ShortLinkLandingTemplateKey, TemplateCopy> = {
   },
 };
 
-function maskTargetHost(url: string) {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return url;
-  }
-}
-
 export function ShortLinkPublicView({
-  slug,
   title,
-  targetUrl,
   ctaHref,
   templateKey,
   requiresToken,
   resolvedDeliveryMode,
-  salesChannelName,
 }: ShortLinkPublicViewProps) {
   const copy = TEMPLATE_COPY[templateKey];
-  const targetHost = maskTargetHost(targetUrl);
   const showOwnerBranding = templateKey === "owner_intro";
   const showSupportAction = templateKey === "owner_intro";
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_transparent_38%),linear-gradient(180deg,_#f8fafc_0%,_#eff6ff_45%,_#f8fafc_100%)] px-4 py-8 text-slate-900 sm:px-6 lg:px-8">
+      <PublicPageSecurityGuard />
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-300/20 blur-3xl" />
         <div className="absolute right-0 top-32 h-64 w-64 rounded-full bg-indigo-300/20 blur-3xl" />
@@ -123,25 +108,30 @@ export function ShortLinkPublicView({
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 <PublicMetric
                   icon={ShieldCheck}
-                  label="Chế độ phát"
-                  value={resolvedDeliveryMode === "landing_page" ? "Qua landing" : "Chuyển trực tiếp"}
+                  label="Lớp xử lý"
+                  value={resolvedDeliveryMode === "landing_page" ? "Landing relay bảo mật" : "Chuyển tiếp máy chủ"}
                 />
-                <PublicMetric icon={Globe} label="Tên miền đích" value={targetHost} />
                 <PublicMetric
                   icon={Lock}
-                  label="Bảo vệ"
-                  value={requiresToken ? "Token + khóa IP" : "Chuẩn an toàn"}
+                  label="Kiểm tra"
+                  value={requiresToken ? "Token, IP và thiết bị" : "Bot, IPv4 và IPv6"}
+                />
+                <PublicMetric
+                  icon={BadgeCheck}
+                  label="Ẩn đích"
+                  value="URL đích được giữ trong lớp máy chủ"
                 />
               </div>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
+                <a
                   href={ctaHref}
+                  rel="nofollow"
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-transform hover:-translate-y-0.5 hover:bg-slate-800"
                 >
                   {copy.cta}
                   <ArrowRight className="size-4" />
-                </Link>
+                </a>
                 {showSupportAction ? (
                   <a
                     href={CONTACTS.zaloPersonal}
@@ -151,15 +141,6 @@ export function ShortLinkPublicView({
                   >
                     Liên hệ hỗ trợ Zalo
                   </a>
-                ) : null}
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-2 text-xs font-medium text-slate-500">
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">Slug: /s/{slug}</span>
-                {salesChannelName ? (
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                    Kênh bán: {salesChannelName}
-                  </span>
                 ) : null}
               </div>
             </div>

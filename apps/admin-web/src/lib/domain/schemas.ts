@@ -14,6 +14,9 @@ export const orderItemSchema = z.object({
   quantity: z.number().int().min(1),
   costPriceVnd: z.number().min(0).optional(),
   sellPriceVnd: z.number().min(0).optional(),
+  durationType: z.enum(["days", "months", "years"]).optional(),
+  durationValue: z.number().int().min(1).optional(),
+  bonusDurationValue: z.number().int().min(0).optional(),
   notes: optionalText(z.string().max(300)),
   assignedSourceAccountId: optionalText(z.string()),
   customerNickUsed: optionalText(z.string().max(200)),
@@ -66,8 +69,10 @@ export const contactInfoSchema = z.object({
 export const createCustomerInputSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên khách hàng"),
   contacts: z.array(contactInfoSchema).min(1, "Ít nhất 1 thông tin liên hệ"),
-  tier: z.enum(["regular", "vip"]).default("regular"),
+  tier: z.enum(["regular", "vip", "agency"]).default("regular"),
+  customerType: z.enum(["retail", "wholesale", "agency"]).optional(),
   tagIds: z.array(z.string().uuid()).optional(),
+  notes: optionalText(z.string().max(1000)),
 });
 
 export const updateCustomerInputSchema = z.object({
@@ -94,17 +99,22 @@ export const createPaymentSourceInputSchema = z.object({
 const shortLinkResolvedDeliveryModeSchema = z.enum(["direct_redirect", "landing_page"]);
 const shortLinkDeliveryModeSchema = z.enum(["inherit_channel", "direct_redirect", "landing_page"]);
 const shortLinkLandingTemplateKeySchema = z.enum(["owner_intro", "ctv_neutral"]);
+const shortLinkFailureTemplateKeySchema = z.enum(["seller_unlock_request", "customer_offer_wall"]);
 
 export const createSalesChannelInputSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên kênh bán"),
   defaultDeliveryMode: shortLinkResolvedDeliveryModeSchema.optional().default("direct_redirect"),
   defaultLandingTemplateKey: shortLinkLandingTemplateKeySchema.optional().default("owner_intro"),
+  defaultFailureTemplateKey: shortLinkFailureTemplateKeySchema.optional().default("customer_offer_wall"),
+  sellerContactUrl: optionalText(z.string().url("URL liên hệ người bán không hợp lệ").max(500)),
 });
 
 export const updateSalesChannelInputSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên kênh bán").optional(),
   defaultDeliveryMode: shortLinkResolvedDeliveryModeSchema.optional(),
   defaultLandingTemplateKey: shortLinkLandingTemplateKeySchema.optional(),
+  defaultFailureTemplateKey: shortLinkFailureTemplateKeySchema.optional(),
+  sellerContactUrl: z.string().url("URL liên hệ người bán không hợp lệ").max(500).nullable().optional(),
 });
 
 export const createShortLinkInputSchema = z.object({
@@ -120,12 +130,15 @@ export const createShortLinkInputSchema = z.object({
   sales_channel_id: optionalText(z.string().uuid()),
   delivery_mode: shortLinkDeliveryModeSchema.optional().default("inherit_channel"),
   landing_template_key: shortLinkLandingTemplateKeySchema.nullish(),
+  failure_template_key: shortLinkFailureTemplateKeySchema.nullish(),
+  seller_contact_url: optionalText(z.string().url("URL liên hệ người bán không hợp lệ").max(500)),
 });
 
 export const updateShortLinkInputSchema = z.object({
   title: z.string().max(200).nullable().optional(),
   target_url: z.string().url("URL đích không hợp lệ").optional(),
   max_clicks: z.number().int().min(1).max(999).optional(),
+  current_clicks: z.number().int().min(0).max(999).optional(),
   expires_at: z.string().nullable().optional(),
   status: z.enum(["active", "expired", "disabled"]).optional(),
   require_token: z.boolean().optional(),
@@ -135,6 +148,8 @@ export const updateShortLinkInputSchema = z.object({
   sales_channel_id: z.string().uuid().nullable().optional(),
   delivery_mode: shortLinkDeliveryModeSchema.optional(),
   landing_template_key: shortLinkLandingTemplateKeySchema.nullish(),
+  failure_template_key: shortLinkFailureTemplateKeySchema.nullish(),
+  seller_contact_url: z.string().url("URL liên hệ người bán không hợp lệ").max(500).nullable().optional(),
 });
 
 export const createLicenseKeyInputSchema = z.object({

@@ -58,12 +58,12 @@ describe("subscriptions.repo", () => {
       {
         data: [
           {
-            id: "sub-1",
+            id: "00000000-0000-4000-8000-000000000017",
             account_id: TEST_ACCOUNT_ID,
-            customer_id: "cust-1",
-            premium_account_id: "pa-1",
-            package_id: "pkg-1",
-            service_type_id: "svc-1",
+            customer_id: "00000000-0000-4000-8000-000000000005",
+            premium_account_id: "00000000-0000-4000-8000-0000000003f0",
+            package_id: "00000000-0000-4000-8000-000000000086",
+            service_type_id: "00000000-0000-4000-8000-000000000085",
             start_date: "2026-04-01",
             expiry_date: "2026-05-01",
             original_price: 100000,
@@ -92,7 +92,7 @@ describe("subscriptions.repo", () => {
       {
         data: [
           {
-            id: "pa-1",
+            id: "00000000-0000-4000-8000-0000000003f0",
             primary_email: "account@example.com",
             total_slots: 5,
             used_slots: 2,
@@ -108,7 +108,7 @@ describe("subscriptions.repo", () => {
       {
         data: [
           {
-            id: "pkg-1",
+            id: "00000000-0000-4000-8000-000000000086",
             name: "Gold",
             slug: "gold",
             total_slots: 5,
@@ -124,7 +124,7 @@ describe("subscriptions.repo", () => {
       {
         data: [
           {
-            id: "svc-1",
+            id: "00000000-0000-4000-8000-000000000085",
             name: "YouTube",
             slug: "youtube",
             category: "streaming",
@@ -148,7 +148,7 @@ describe("subscriptions.repo", () => {
 
     expect(result.total).toBe(1);
     expect(result.data?.[0]).toEqual(expect.objectContaining({
-      premium_account_id: "pa-1",
+      premium_account_id: "00000000-0000-4000-8000-0000000003f0",
       premium_accounts: expect.objectContaining({ primary_email: "account@example.com" }),
       premium_packages: expect.objectContaining({ name: "Gold" }),
       premium_service_types: expect.objectContaining({ slug: "youtube" }),
@@ -159,10 +159,10 @@ describe("subscriptions.repo", () => {
     const renewalBuilder = createQueryBuilder(
       {
         data: {
-          id: "renew-1",
+          id: "00000000-0000-4000-8000-000000000018",
           account_id: TEST_ACCOUNT_ID,
-          original_subscription_id: "sub-1",
-          customer_id: "cust-1",
+          original_subscription_id: "00000000-0000-4000-8000-000000000017",
+          customer_id: "00000000-0000-4000-8000-000000000005",
           status: "pending",
           original_price: 100000,
           refund_calculated: false,
@@ -177,9 +177,9 @@ describe("subscriptions.repo", () => {
       {
         data: [
           {
-            id: "sub-1",
-            customer_id: "cust-1",
-            premium_account_id: "pa-1",
+            id: "00000000-0000-4000-8000-000000000017",
+            customer_id: "00000000-0000-4000-8000-000000000005",
+            premium_account_id: "00000000-0000-4000-8000-0000000003f0",
             start_date: "2026-04-01",
             expiry_date: "2026-05-01",
             original_price: 100000,
@@ -198,12 +198,12 @@ describe("subscriptions.repo", () => {
     });
 
     const { getRenewalRequest } = await loadRepo(supabaseAdmin);
-    const result = await getRenewalRequest("renew-1", TEST_ACCOUNT_ID);
+    const result = await getRenewalRequest("00000000-0000-4000-8000-000000000018", TEST_ACCOUNT_ID);
 
     expect(result).toEqual(expect.objectContaining({
-      original_subscription_id: "sub-1",
+      original_subscription_id: "00000000-0000-4000-8000-000000000017",
       customer_premium_subscriptions: expect.objectContaining({
-        premium_account_id: "pa-1",
+        premium_account_id: "00000000-0000-4000-8000-0000000003f0",
         billing_cycle: "monthly",
       }),
     }));

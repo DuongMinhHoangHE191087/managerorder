@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Check, FolderOpen, Pencil, Plus, Tag, Trash2, X, Users } from "lucide-react";
 import { TAG_PALETTE } from "@/lib/constants/colors";
 import { vi } from "@/shared/messages/vi";
@@ -126,7 +126,8 @@ function GroupsTab() {
     }
   }
 
-  const deletingGroup = groups.find((group) => group.id === deleteId) ?? null;
+  const groupById = useMemo(() => new Map(groups.map((group) => [group.id, group] as const)), [groups]);
+  const deletingGroup = deleteId ? groupById.get(deleteId) ?? null : null;
 
   if (isLoading) {
     return (
@@ -380,7 +381,8 @@ function TagsTab() {
     }
   }
 
-  const deletingTag = tags.find((tag) => tag.id === deleteId) ?? null;
+  const tagById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag] as const)), [tags]);
+  const deletingTag = deleteId ? tagById.get(deleteId) ?? null : null;
 
   if (isLoading) {
     return (

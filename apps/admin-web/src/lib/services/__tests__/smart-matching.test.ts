@@ -86,15 +86,15 @@ describe("CONFIDENCE_MAP values (via documentation)", () => {
 
 describe("extractCustomerId logic (via parseOrderRelation)", () => {
   it("extracts customer_id from object order", () => {
-    const order = { id: "o1", customer_id: "cust-123", customers: null };
+    const order = { id: "o1", customer_id: "00000000-0000-4000-8000-000000000011", customers: null };
     const parsed = parseOrderRelation(order);
-    expect(parsed?.customer_id).toBe("cust-123");
+    expect(parsed?.customer_id).toBe("00000000-0000-4000-8000-000000000011");
   });
 
   it("extracts customer_id from array order", () => {
-    const orders = [{ id: "o1", customer_id: "cust-456", customers: null }];
+    const orders = [{ id: "o1", customer_id: "00000000-0000-4000-8000-000000000108", customers: null }];
     const parsed = parseOrderRelation(orders);
-    expect(parsed?.customer_id).toBe("cust-456");
+    expect(parsed?.customer_id).toBe("00000000-0000-4000-8000-000000000108");
   });
 
   it("returns undefined customer_id for null orders", () => {

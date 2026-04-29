@@ -20,6 +20,8 @@ function mapSalesChannel(row: SalesChannelRow | SalesChannelRuntimeRow): SalesCh
     name: row.name,
     defaultDeliveryMode: row.default_delivery_mode,
     defaultLandingTemplateKey: row.default_landing_template_key,
+    defaultFailureTemplateKey: row.default_failure_template_key ?? "customer_offer_wall",
+    sellerContactUrl: row.seller_contact_url ?? null,
     ...(runtime ? { runtime } : {}),
   };
 }

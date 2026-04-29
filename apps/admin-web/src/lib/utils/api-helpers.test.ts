@@ -84,7 +84,7 @@ describe('validateSlug', () => {
   it('accepts valid slugs', () => {
     expect(validateSlug('hello-world')).toBe(true);
     expect(validateSlug('abc123')).toBe(true);
-    expect(validateSlug('my-service-01')).toBe(true);
+    expect(validateSlug('00000000-0000-4000-8000-0000000003f7')).toBe(true);
   });
 
   it('rejects slugs with uppercase', () => {

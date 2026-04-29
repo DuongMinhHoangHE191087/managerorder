@@ -57,6 +57,7 @@ type InventoryPageOverlaysProps = {
   productMap: Map<string, string>;
   products: ProductService[];
   providers: Provider[];
+  providerById: Map<string, Provider>;
   selectedAccount: SourceAccount | null;
   selectedIdsCount: number;
   showBulkDeleteConfirm: boolean;
@@ -87,6 +88,7 @@ export function InventoryPageOverlays({
   productMap,
   products,
   providers,
+  providerById,
   selectedAccount,
   selectedIdsCount,
   showBulkDeleteConfirm,
@@ -107,7 +109,7 @@ export function InventoryPageOverlays({
           <InventoryDetailDrawer
             account={selectedAccount}
             productMap={productMap}
-            providers={providers}
+            providerById={providerById}
             onEdit={() => {
               onCloseDrawer();
               onEditSelectedAccount();

@@ -5,6 +5,7 @@ import {
 } from "@/lib/api/flat-response";
 import {
   buildLocalNotificationsFeed,
+  shouldPreferLocalPremiumFixtures,
   shouldUseLocalPremiumFallback,
 } from "@/app/api/premium/local-fixtures";
 import type {
@@ -140,11 +141,7 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
     ? Math.min(Math.max(rawLimit, 1), 20)
     : 10;
 
-  const preferLocalPremiumFixtures =
-    process.env.NODE_ENV === "development" &&
-    process.env.CODEX_DISABLE_LOCAL_FALLBACK !== "1";
-
-  if (preferLocalPremiumFixtures) {
+  if (shouldPreferLocalPremiumFixtures()) {
     return createFlatSuccessResponse(buildLocalNotificationsFeed(limit));
   }
 

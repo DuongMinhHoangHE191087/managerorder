@@ -52,8 +52,8 @@ describe("extractTokenFromHeader", () => {
 describe("verifyTokenFromRequest", () => {
   it("returns decoded payload for valid token", () => {
     const mockPayload = {
-      sub: "user-1",
-      accountId: "acc-1",
+      sub: "00000000-0000-4000-8000-000000000088",
+      accountId: "00000000-0000-4000-8000-000000000016",
       role: "admin",
       email: "x@x.com",
     };

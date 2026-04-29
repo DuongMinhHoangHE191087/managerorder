@@ -7,8 +7,10 @@ import { createCustomerForAccount, listCustomersForAccount } from "@/domains/cus
 export const dynamic = "force-dynamic";
 
 export const GET = withErrorHandler(
-  withAccount(async (_request: NextRequest, { accountId }) => {
-    const data = await listCustomersForAccount(accountId);
+  withAccount(async (request: NextRequest, { accountId }) => {
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get("search")?.trim() || undefined;
+    const data = await listCustomersForAccount(accountId, { search });
     return NextResponse.json({ data });
   })
 );

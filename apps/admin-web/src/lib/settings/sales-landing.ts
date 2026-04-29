@@ -1,4 +1,9 @@
-import type { ProductService, SalesLandingConfig, SalesLandingOfferConfig } from "@/lib/domain/types";
+import type {
+  ProductService,
+  SalesLandingConfig,
+  SalesLandingOfferConfig,
+  ShortLinkFailureTemplateKey,
+} from "@/lib/domain/types";
 import { PREMIUM_OFFERS, type OfferCard } from "@/widgets/marketing/sales-landing-config";
 
 const DEFAULT_OFFER_CONFIGS: SalesLandingOfferConfig[] = PREMIUM_OFFERS.map((offer) => ({
@@ -11,6 +16,11 @@ const DEFAULT_OFFER_CONFIGS: SalesLandingOfferConfig[] = PREMIUM_OFFERS.map((off
 
 export const DEFAULT_SALES_LANDING_CONFIG: SalesLandingConfig = {
   offers: DEFAULT_OFFER_CONFIGS,
+  shortLinkFailureDefaults: {
+    defaultTemplateKey: "customer_offer_wall",
+    customerOfferCtaHref: "https://duongminhhoang.store",
+    sellerUnlockMessage: "Link này đã hết hạn. Hãy gửi yêu cầu đến người bán để mở lại.",
+  },
 };
 
 export function normalizeSalesLandingConfig(
@@ -20,6 +30,7 @@ export function normalizeSalesLandingConfig(
 
   return {
     offers: DEFAULT_OFFER_CONFIGS.map((fallback, index) => normalizeOffer(offers[index], fallback, index)),
+    shortLinkFailureDefaults: normalizeShortLinkFailureDefaults(value),
   };
 }
 
@@ -59,6 +70,7 @@ export function buildSalesLandingConfigFromProducts(
         desc: offer.desc || DEFAULT_OFFER_CONFIGS[index].desc,
       };
     }),
+    shortLinkFailureDefaults: normalized.shortLinkFailureDefaults,
   };
 }
 
@@ -110,6 +122,33 @@ function extractOffers(
   return rawOffers as Array<Partial<SalesLandingOfferConfig> | Record<string, unknown>>;
 }
 
+function normalizeShortLinkFailureDefaults(
+  value?: Partial<SalesLandingConfig> | Record<string, unknown> | null
+): SalesLandingConfig["shortLinkFailureDefaults"] {
+  const raw =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>).shortLinkFailureDefaults
+      : null;
+  const config = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+
+  return {
+    defaultTemplateKey: normalizeFailureTemplateKey(config.defaultTemplateKey),
+    customerOfferCtaHref: normalizeUrl(
+      config.customerOfferCtaHref,
+      DEFAULT_SALES_LANDING_CONFIG.shortLinkFailureDefaults.customerOfferCtaHref,
+    ),
+    sellerUnlockMessage:
+      normalizeString(config.sellerUnlockMessage)
+      || DEFAULT_SALES_LANDING_CONFIG.shortLinkFailureDefaults.sellerUnlockMessage,
+  };
+}
+
+function normalizeFailureTemplateKey(value: unknown): ShortLinkFailureTemplateKey {
+  return value === "seller_unlock_request" || value === "customer_offer_wall"
+    ? value
+    : DEFAULT_SALES_LANDING_CONFIG.shortLinkFailureDefaults.defaultTemplateKey;
+}
+
 function normalizeOffer(
   value: Partial<SalesLandingOfferConfig> | Record<string, unknown> | undefined,
   fallback: SalesLandingOfferConfig,
@@ -131,6 +170,19 @@ function normalizeOffer(
 
 function normalizeString(value: unknown): string {
   return String(value ?? "").trim();
+}
+
+function normalizeUrl(value: unknown, fallback: string): string {
+  const normalized = normalizeString(value);
+  if (!normalized) {
+    return fallback;
+  }
+
+  try {
+    return new URL(normalized).toString();
+  } catch {
+    return fallback;
+  }
 }
 
 function normalizeOptionalString(value: unknown): string | null {

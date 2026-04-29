@@ -11,6 +11,18 @@ export function useProducts() {
   });
 }
 
+export function useProductDetail(productId: string | null, includeDeleted = false) {
+  return useQuery({
+    queryKey: productId ? [...queryKeys.product(productId), includeDeleted ? "trash" : "active"] : ["products", "detail", "missing"],
+    queryFn: () =>
+      fetcher<ProductService>(
+        `/api/products/${productId}${includeDeleted ? "?include_deleted=1" : ""}`,
+      ),
+    enabled: Boolean(productId),
+    staleTime: 30_000,
+  });
+}
+
 export function useCreateProduct() {
   const queryClient = useQueryClient();
   return useMutation({

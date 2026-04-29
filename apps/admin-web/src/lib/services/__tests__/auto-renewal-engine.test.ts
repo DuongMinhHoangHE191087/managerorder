@@ -42,9 +42,9 @@ describe("runAutoRenewalEngine", () => {
     const expiryDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
     const subscriptions = [
       {
-        id: "sub-1",
-        account_id: "acc-1",
-        customer_id: "cust-1",
+        id: "00000000-0000-4000-8000-000000000017",
+        account_id: "00000000-0000-4000-8000-000000000016",
+        customer_id: "00000000-0000-4000-8000-000000000005",
         expiry_date: expiryDate,
         status: "active",
         renewal_status: "none",
@@ -60,9 +60,9 @@ describe("runAutoRenewalEngine", () => {
     mocks.loadRowsByIds.mockResolvedValue(
       new Map([
         [
-          "cust-1",
+          "00000000-0000-4000-8000-000000000005",
           {
-            id: "cust-1",
+            id: "00000000-0000-4000-8000-000000000005",
             full_name: "Nguyen Van A",
             debt_amount_vnd: 0,
             debt_overdue_days: 0,
@@ -72,7 +72,7 @@ describe("runAutoRenewalEngine", () => {
         ],
       ]),
     );
-    mocks.createRenewalRequest.mockResolvedValue({ id: "renew-1" });
+    mocks.createRenewalRequest.mockResolvedValue({ id: "00000000-0000-4000-8000-000000000018" });
 
     const report = await runAutoRenewalEngine({
       daysThreshold: 7,
@@ -83,22 +83,22 @@ describe("runAutoRenewalEngine", () => {
     expect(report.createdCount).toBe(1);
     expect(report.skippedCount).toBe(0);
     expect(report.created[0]).toMatchObject({
-      accountId: "acc-1",
-      subscriptionId: "sub-1",
-      renewalId: "renew-1",
-      customerId: "cust-1",
+      accountId: "00000000-0000-4000-8000-000000000016",
+      subscriptionId: "00000000-0000-4000-8000-000000000017",
+      renewalId: "00000000-0000-4000-8000-000000000018",
+      customerId: "00000000-0000-4000-8000-000000000005",
       customerName: "Nguyen Van A",
     });
-    expect(mocks.createRenewalRequest).toHaveBeenCalledWith("acc-1", "sub-1", "cust-1");
+    expect(mocks.createRenewalRequest).toHaveBeenCalledWith("00000000-0000-4000-8000-000000000016", "00000000-0000-4000-8000-000000000017", "00000000-0000-4000-8000-000000000005");
   });
 
   it("skips subscriptions when the customer still has debt", async () => {
     const expiryDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
     const subscriptions = [
       {
-        id: "sub-2",
-        account_id: "acc-1",
-        customer_id: "cust-2",
+        id: "00000000-0000-4000-8000-00000000008d",
+        account_id: "00000000-0000-4000-8000-000000000016",
+        customer_id: "00000000-0000-4000-8000-000000000006",
         expiry_date: expiryDate,
         status: "active",
         renewal_status: "none",
@@ -114,9 +114,9 @@ describe("runAutoRenewalEngine", () => {
     mocks.loadRowsByIds.mockResolvedValue(
       new Map([
         [
-          "cust-2",
+          "00000000-0000-4000-8000-000000000006",
           {
-            id: "cust-2",
+            id: "00000000-0000-4000-8000-000000000006",
             full_name: "Tran Thi B",
             debt_amount_vnd: 50000,
             debt_overdue_days: 5,

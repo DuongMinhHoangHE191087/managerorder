@@ -9,22 +9,22 @@ describe("mapCalendarEventRow", () => {
   /* ─── Basic field mapping ─────────────────────── */
   it("should map basic fields from DB row", () => {
     const row = {
-      id: "evt-1",
+      id: "00000000-0000-4000-8000-000000000020",
       title: "Test Event",
       due_at: "2025-06-15T14:30:00",
       type: "renewal",
       is_done: false,
       has_reminder: true,
       notes: "Some notes",
-      customer_ids: ["cust-1"],
-      customer_id: "cust-1",
+      customer_ids: ["00000000-0000-4000-8000-000000000005"],
+      customer_id: "00000000-0000-4000-8000-000000000005",
       gcal_event_id: "gcal-abc",
       _customers: [],
     };
 
     const result = mapCalendarEventRow(row);
 
-    expect(result.id).toBe("evt-1");
+    expect(result.id).toBe("00000000-0000-4000-8000-000000000020");
     expect(result.title).toBe("Test Event");
     expect(result.date).toBe("2025-06-15");
     expect(result.time).toBe("14:30");
@@ -32,14 +32,14 @@ describe("mapCalendarEventRow", () => {
     expect(result.isDone).toBe(false);
     expect(result.hasReminder).toBe(true);
     expect(result.notes).toBe("Some notes");
-    expect(result.customerIds).toEqual(["cust-1"]);
+    expect(result.customerIds).toEqual(["00000000-0000-4000-8000-000000000005"]);
     expect(result.gcalEventId).toBe("gcal-abc");
   });
 
   /* ─── Date + Time parsing ─────────────────────── */
   it("should omit time when due_at is at midnight (00:00)", () => {
     const row = {
-      id: "evt-2",
+      id: "00000000-0000-4000-8000-000000000021",
       title: "All-day event",
       due_at: "2025-01-20T00:00:00",
       type: "follow_up",
@@ -54,7 +54,7 @@ describe("mapCalendarEventRow", () => {
 
   it("should extract time from non-midnight due_at", () => {
     const row = {
-      id: "evt-3",
+      id: "00000000-0000-4000-8000-000000000139",
       title: "Timed event",
       due_at: "2025-03-10T09:15:00",
       type: "meeting",
@@ -68,7 +68,7 @@ describe("mapCalendarEventRow", () => {
 
   it("should handle date-only due_at (10 characters)", () => {
     const row = {
-      id: "evt-4",
+      id: "00000000-0000-4000-8000-00000000013a",
       title: "Date only",
       due_at: "2025-04-01",
       type: "other",
@@ -84,7 +84,7 @@ describe("mapCalendarEventRow", () => {
   /* ─── Customer enrichment ─────────────────────── */
   it("should map enriched _customers array", () => {
     const row = {
-      id: "evt-5",
+      id: "00000000-0000-4000-8000-00000000013b",
       title: "With customers",
       due_at: "2025-05-01T10:00:00",
       type: "renewal",
@@ -127,7 +127,7 @@ describe("mapCalendarEventRow", () => {
 
   it("should use first contact when no primary exists", () => {
     const row = {
-      id: "evt-6",
+      id: "00000000-0000-4000-8000-00000000013c",
       title: "No primary contact",
       due_at: "2025-01-01T10:00:00",
       type: "follow_up",
@@ -152,7 +152,7 @@ describe("mapCalendarEventRow", () => {
 
   it("should handle customer with no contacts", () => {
     const row = {
-      id: "evt-7",
+      id: "00000000-0000-4000-8000-00000000013d",
       title: "No contacts",
       due_at: "2025-01-01T10:00:00",
       type: "reminder",
@@ -178,7 +178,7 @@ describe("mapCalendarEventRow", () => {
 
   it("should handle empty _customers array", () => {
     const row = {
-      id: "evt-8",
+      id: "00000000-0000-4000-8000-00000000013e",
       title: "No customers",
       due_at: "2025-01-01T00:00:00",
       type: "other",
@@ -195,7 +195,7 @@ describe("mapCalendarEventRow", () => {
   /* ─── Legacy customer_id fallback ──────────────── */
   it("should fallback to customer_id when customer_ids is null", () => {
     const row = {
-      id: "evt-9",
+      id: "00000000-0000-4000-8000-00000000013f",
       title: "Legacy",
       due_at: "2025-01-01T10:00:00",
       type: "follow_up",
@@ -211,7 +211,7 @@ describe("mapCalendarEventRow", () => {
 
   it("should use empty array when no customer_ids or customer_id", () => {
     const row = {
-      id: "evt-10",
+      id: "00000000-0000-4000-8000-000000000140",
       title: "No customer",
       due_at: "2025-01-01T10:00:00",
       type: "other",

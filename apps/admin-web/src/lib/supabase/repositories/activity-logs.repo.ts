@@ -1,4 +1,5 @@
 import { supabaseAdmin as supabase } from '@/lib/supabase/admin';
+import { filterRowsBySearchQuery, hasSearchTokens, paginateRows } from '@/shared/lib/filtering/search';
 
 export interface ActivityLogInsert {
   account_id: string;
@@ -14,6 +15,15 @@ export interface ActivityLog extends ActivityLogInsert {
   id: string;
   created_at: string;
 }
+
+type ActivityLogSearchRow = ActivityLog & {
+  customers?: { full_name?: string | null } | { full_name?: string | null }[] | null;
+  orders?: { id?: string | null; status?: string | null } | { id?: string | null; status?: string | null }[] | null;
+  source_accounts?:
+    | { email?: string | null; provider?: string | null }
+    | { email?: string | null; provider?: string | null }[]
+    | null;
+};
 
 /**
  * Flatten nested objects in details to avoid [object Object] in log display.
@@ -36,13 +46,28 @@ function flattenDetails(
   return result;
 }
 
+function normalizeNullableUuid(value?: string | null): string | null {
+  if (!value) return null;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ? value
+    : null;
+}
+
 /**
  * Creates a new activity log entry.
  * Designed to fail gracefully (log error but return null) so it doesn't break main business flows.
  */
 export async function createActivityLog(input: ActivityLogInsert): Promise<ActivityLog | null> {
   try {
-    const safeInput = { ...input, details: flattenDetails(input.details) };
+    const safeInput = {
+      account_id: input.account_id,
+      action_type: input.action_type,
+      customer_id: normalizeNullableUuid(input.customer_id),
+      order_id: normalizeNullableUuid(input.order_id),
+      source_account_id: normalizeNullableUuid(input.source_account_id),
+      created_by: normalizeNullableUuid(input.created_by),
+      details: flattenDetails(input.details),
+    };
     const { data, error } = await supabase
       .from('activity_logs')
       .insert([safeInput])
@@ -135,18 +160,31 @@ export async function getActivityLogsPaginated(
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
-  let query = supabase
-    .from("activity_logs")
-    .select(
-      `
-        *,
-        customers ( full_name ),
-        orders ( id, status ),
-        source_accounts ( email, provider )
-      `,
-      { count: "exact" }
-    )
-    .eq('account_id', accountId);
+  const hasSearch = hasSearchTokens(search);
+  let query = hasSearch
+    ? supabase
+        .from("activity_logs")
+        .select(
+          `
+            *,
+            customers ( full_name ),
+            orders ( id, status ),
+            source_accounts ( email, provider )
+          `
+        )
+        .eq('account_id', accountId)
+    : supabase
+        .from("activity_logs")
+        .select(
+          `
+            *,
+            customers ( full_name ),
+            orders ( id, status ),
+            source_accounts ( email, provider )
+          `,
+          { count: "exact" }
+        )
+        .eq('account_id', accountId);
 
   // Filters
   if (options.customerId) query = query.eq('customer_id', options.customerId);
@@ -166,10 +204,37 @@ export async function getActivityLogsPaginated(
   }
 
   // Search on text columns only — PostgREST .or() does NOT support ::text casts
-  if (search) {
-     const sanitized = search.replace(/%/g, '\\%').replace(/_/g, '\\_');
-     const searchPattern = `%${sanitized}%`;
-     query = query.or(`action_type.ilike.${searchPattern},created_by.ilike.${searchPattern}`);
+  if (hasSearch) {
+    const { data, error } = await query.order("created_at", { ascending: false });
+
+    if (error) {
+      if (process.env.NODE_ENV === 'development') console.error('[ActivityLog] Paginated error:', error);
+      throw error;
+    }
+
+    const filteredRows = filterRowsBySearchQuery(
+      (data ?? []) as ActivityLogSearchRow[],
+      search,
+      (row) => [
+        row.action_type,
+        row.created_by,
+        row.details,
+        row.customers,
+        row.orders,
+        row.source_accounts,
+      ],
+    );
+    const paginated = paginateRows(filteredRows, page, limit);
+
+    return {
+      data: paginated.data,
+      meta: {
+        count: paginated.count,
+        page: paginated.page,
+        limit: paginated.limit,
+        totalPages: paginated.totalPages,
+      },
+    };
   }
 
   query = query.order("created_at", { ascending: false }).range(from, to);

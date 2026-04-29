@@ -68,14 +68,24 @@ describe("fetcher", () => {
     await expect(fetcher("/api/fail")).rejects.toThrow("bad request");
   });
 
-  it("sends correct default headers", async () => {
+  it("sends cache headers without forcing content type on bodyless requests", async () => {
     mockFetch.mockResolvedValue(jsonResponse({ data: null }));
     await fetcher("/api/test");
     const [, options] = mockFetch.mock.calls[0];
-    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(options.headers["Content-Type"]).toBeUndefined();
     expect(options.headers["Cache-Control"]).toBe(
       "no-cache, no-store, must-revalidate"
     );
+  });
+
+  it("sets json content type when a request body is present", async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ data: null }));
+    await fetcher("/api/test", {
+      method: "POST",
+      body: JSON.stringify({ hello: "world" }),
+    });
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options.headers["Content-Type"]).toBe("application/json");
   });
 
   it("merges custom headers", async () => {
@@ -85,7 +95,7 @@ describe("fetcher", () => {
     });
     const [, options] = mockFetch.mock.calls[0];
     expect(options.headers.Authorization).toBe("Bearer abc");
-    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(options.headers["Content-Type"]).toBeUndefined();
   });
 
   it("uses no-store cache by default", async () => {

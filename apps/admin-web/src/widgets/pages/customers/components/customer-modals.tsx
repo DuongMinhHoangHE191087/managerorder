@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Trash2, AlertTriangle, Check, RefreshCw, Plus, Tag as TagIcon } from "lucide-react";
-import { Modal } from "@/shared/ui/modal";
 import { Button } from "@/shared/ui/button";
+import { CreateFlowDialog } from "@/shared/ui/create-flow-shell";
 import type { Customer } from "@/lib/domain/types";
 import { TAG_PALETTE, randomPaletteColor } from "@/lib/constants/colors";
 import { formatMoney } from "@/lib/utils";
@@ -21,7 +21,7 @@ interface DeleteModalProps {
 
 export function DeleteCustomerModal({ customer, onClose, onConfirm }: DeleteModalProps) {
   return (
-    <Modal isOpen={!!customer} onClose={onClose} title={modalText.delete.title} size="sm"
+    <CreateFlowDialog isOpen={!!customer} onClose={onClose} title={modalText.delete.title} size="md"
       footer={
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={onClose}>{modalText.delete.cancel}</Button>
@@ -38,7 +38,7 @@ export function DeleteCustomerModal({ customer, onClose, onConfirm }: DeleteModa
           {modalText.delete.body(customer?.name ?? "")}
         </p>
       </div>
-    </Modal>
+    </CreateFlowDialog>
   );
 }
 
@@ -54,7 +54,7 @@ interface BatchDeleteModalProps {
 
 export function BatchDeleteModal({ isOpen, selectedCount, depInfo, isPending, onClose, onConfirm }: BatchDeleteModalProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={modalText.batchDelete.title} size="sm"
+    <CreateFlowDialog isOpen={isOpen} onClose={onClose} title={modalText.batchDelete.title} size="md"
       footer={
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={onClose}>{modalText.batchDelete.cancel}</Button>
@@ -84,7 +84,7 @@ export function BatchDeleteModal({ isOpen, selectedCount, depInfo, isPending, on
           {modalText.batchDelete.note}
         </p>
       </div>
-    </Modal>
+    </CreateFlowDialog>
   );
 }
 
@@ -100,7 +100,7 @@ interface BatchTierModalProps {
 export function BatchTierModal({ isOpen, selectedCount, isPending, onClose, onConfirm }: BatchTierModalProps) {
   const [value, setValue] = useState<"retail" | "wholesale" | "agency">("retail");
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={modalText.batchTier.title} size="sm"
+    <CreateFlowDialog isOpen={isOpen} onClose={onClose} title={modalText.batchTier.title} size="md"
       footer={
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={onClose}>{modalText.batchTier.cancel}</Button>
@@ -128,7 +128,7 @@ export function BatchTierModal({ isOpen, selectedCount, isPending, onClose, onCo
           ))}
         </div>
       </div>
-    </Modal>
+    </CreateFlowDialog>
   );
 }
 
@@ -171,7 +171,7 @@ export function GroupAssignModal({ isOpen, selectedCount, groups, isAssigning, i
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={modalText.groupAssign.title} size="sm"
+    <CreateFlowDialog isOpen={isOpen} onClose={handleClose} title={modalText.groupAssign.title} size="lg"
       footer={
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={handleClose}>{modalText.groupAssign.cancel}</Button>
@@ -241,7 +241,7 @@ export function GroupAssignModal({ isOpen, selectedCount, groups, isAssigning, i
           />
         </div>
       </div>
-    </Modal>
+    </CreateFlowDialog>
   );
 }
 
@@ -265,7 +265,7 @@ export function BatchTagModal({ isOpen, selectedCount, tags, isPending, onClose,
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={modalText.batchTag.title} size="sm"
+    <CreateFlowDialog isOpen={isOpen} onClose={handleClose} title={modalText.batchTag.title} size="md"
       footer={
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={handleClose}>{modalText.batchTag.cancel}</Button>
@@ -312,7 +312,7 @@ export function BatchTagModal({ isOpen, selectedCount, tags, isPending, onClose,
           </div>
         )}
       </div>
-    </Modal>
+    </CreateFlowDialog>
   );
 }
 
@@ -328,11 +328,16 @@ export function RenewalModal({ customer, onClose, onSave }: RenewalModalProps) {
   const [debtAmount, setDebtAmount] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Reset state when customer changes
-  if (customer && debtDays === "" && debtAmount === "") {
+  useEffect(() => {
+    if (!customer) {
+      setDebtDays("");
+      setDebtAmount("");
+      return;
+    }
+
     setDebtDays(customer.debtOverdueDays.toString());
     setDebtAmount(customer.debtAmountVnd.toString());
-  }
+  }, [customer]);
 
   async function handleSave() {
     setSaving(true);
@@ -352,7 +357,7 @@ export function RenewalModal({ customer, onClose, onSave }: RenewalModalProps) {
   }
 
   return (
-    <Modal isOpen={!!customer} onClose={handleClose} title={modalText.renewal.title} size="sm"
+    <CreateFlowDialog isOpen={!!customer} onClose={handleClose} title={modalText.renewal.title} size="md"
       footer={
         <div className="flex gap-3">
           <Button variant="secondary" onClick={handleClose} className="flex-1">{modalText.renewal.cancel}</Button>
@@ -384,6 +389,6 @@ export function RenewalModal({ customer, onClose, onSave }: RenewalModalProps) {
           className="w-full px-3 py-2.5 bg-white border border-[var(--border-soft)] rounded-xl text-[13px] font-medium outline-none focus:border-[var(--accent)] transition-colors"
         />
       </div>
-    </Modal>
+    </CreateFlowDialog>
   );
 }

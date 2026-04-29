@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { Search, Calendar } from "lucide-react";
+import { Calendar, Search, X } from "lucide-react";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
+import { Button } from "@/shared/ui/button";
 import { FiltersBar } from "@/shared/ui/page-layout";
 
 const STATUS_OPTIONS = [
@@ -49,59 +50,81 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
   dateTo,
   onDateToChange,
 }: OrdersFilterBarProps) {
+  const hasFilters = Boolean(searchQuery || statusFilter || dateFrom || dateTo);
+
   return (
     <div className="page-stack">
       <FiltersBar sticky className="px-4 py-4">
-        <div className="flex w-full flex-wrap gap-3">
-          <div className="relative min-w-[220px] flex-1">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)_auto]">
+          <div className="relative min-w-0">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
             <Input
-              className="pl-9"
-              placeholder="Tìm theo mã đơn, khách hàng, sản phẩm..."
+              className="h-11 pl-9"
+              placeholder="Tìm theo mã đơn, khách hàng, sản phẩm hoặc ghi chú..."
               autoComplete="off"
               name="search-orders"
               type="text"
               value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onChange={(event) => onSearchChange(event.target.value)}
             />
           </div>
 
-          <Select
-            value={statusFilter}
-            onChange={(e) => onStatusChange(e.target.value)}
-            className="min-w-[180px]"
-          >
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </Select>
+          <div className="grid gap-3 sm:grid-cols-[minmax(180px,0.7fr)_minmax(0,1fr)]">
+            <Select
+              value={statusFilter}
+              onChange={(event) => onStatusChange(event.target.value)}
+              className="h-11 min-w-[180px]"
+            >
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
 
-          <div className="flex items-center gap-2">
-            <Calendar className="size-4 shrink-0 text-[var(--fg-muted)]" />
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => onDateFromChange(e.target.value)}
-              className="w-auto min-w-[150px]"
-              title="Từ ngày"
-            />
-            <span className="text-[12px] font-medium text-[var(--fg-muted)]">-</span>
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => onDateToChange(e.target.value)}
-              className="w-auto min-w-[150px]"
-              title="Đến ngày"
-            />
-            {(dateFrom || dateTo) ? (
-              <button
-                type="button"
-                onClick={() => { onDateFromChange(""); onDateToChange(""); }}
-                className="rounded-[0.9rem] px-2.5 py-1.5 text-[12px] font-bold text-[var(--fg-muted)] transition-colors hover:bg-[var(--danger)]/10 hover:text-[var(--danger)]"
-              >
-                x
-              </button>
-            ) : null}
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr]">
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(event) => onDateFromChange(event.target.value)}
+                  className="h-11 pl-9"
+                  title="Từ ngày"
+                />
+              </div>
+              <div className="hidden items-center justify-center text-[12px] font-medium text-[var(--fg-muted)] sm:flex">
+                đến
+              </div>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(event) => onDateToChange(event.target.value)}
+                  className="h-11 pl-9"
+                  title="Đến ngày"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-11"
+              disabled={!hasFilters}
+              onClick={() => {
+                onSearchChange("");
+                onStatusChange("");
+                onDateFromChange("");
+                onDateToChange("");
+              }}
+            >
+              <X className="size-4" />
+              Xóa lọc
+            </Button>
           </div>
         </div>
       </FiltersBar>

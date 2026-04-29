@@ -41,10 +41,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 function makeSourceAccount(overrides: Record<string, unknown> = {}) {
   return {
-    id: "sa-uuid-001",
+    id: "00000000-0000-4000-8000-00000000004a",
     email: "test@example.com",
     provider: "netflix",
-    product_ids: ["prod-1"],
+    product_ids: ["00000000-0000-4000-8000-000000000039"],
     max_slots: 10,
     used_slots: 5,
     expires_at: new Date(Date.now() + 60 * DAY_MS).toISOString(),
@@ -73,7 +73,7 @@ describe("GET /api/inventory/dashboard", () => {
       makeSourceAccount(),
     ] as any);
     mockSupabaseLicenseKeysQuery([
-      { id: "k1", status: "available", product_id: "prod-1" },
+      { id: "k1", status: "available", product_id: "00000000-0000-4000-8000-000000000039" },
     ]);
 
     const res = await GET(createTestRequest("http://localhost/api/inventory/dashboard"), { params: {} } as any);
@@ -100,10 +100,10 @@ describe("GET /api/inventory/dashboard", () => {
   // ── Account Counting ────────────────────────────────────
   it("correctly counts active vs expired accounts", async () => {
     vi.mocked(listSourceAccounts).mockResolvedValue([
-      makeSourceAccount({ id: "active-1" }), // future expiry
-      makeSourceAccount({ id: "active-2" }),
+      makeSourceAccount({ id: "00000000-0000-4000-8000-0000000003ea" }), // future expiry
+      makeSourceAccount({ id: "00000000-0000-4000-8000-0000000003eb" }),
       makeSourceAccount({
-        id: "expired-1",
+        id: "00000000-0000-4000-8000-00000000004b",
         expires_at: new Date(Date.now() - DAY_MS).toISOString(),
       }),
     ] as any);
@@ -150,7 +150,7 @@ describe("GET /api/inventory/dashboard", () => {
   it("calculates slot metrics correctly", async () => {
     vi.mocked(listSourceAccounts).mockResolvedValue([
       makeSourceAccount({ max_slots: 10, used_slots: 8 }),
-      makeSourceAccount({ id: "sa-2", max_slots: 20, used_slots: 5 }),
+      makeSourceAccount({ id: "00000000-0000-4000-8000-00000000004c", max_slots: 20, used_slots: 5 }),
     ] as any);
     mockSupabaseLicenseKeysQuery([]);
 
@@ -232,8 +232,8 @@ describe("GET /api/inventory/dashboard", () => {
   it("sums purchase costs from all accounts", async () => {
     vi.mocked(listSourceAccounts).mockResolvedValue([
       makeSourceAccount({ purchase_cost_vnd: 200000 }),
-      makeSourceAccount({ id: "sa-2", purchase_cost_vnd: 300000 }),
-      makeSourceAccount({ id: "sa-3", purchase_cost_vnd: null }), // no cost
+      makeSourceAccount({ id: "00000000-0000-4000-8000-00000000004c", purchase_cost_vnd: 300000 }),
+      makeSourceAccount({ id: "00000000-0000-4000-8000-00000000004d", purchase_cost_vnd: null }), // no cost
     ] as any);
     mockSupabaseLicenseKeysQuery([]);
 

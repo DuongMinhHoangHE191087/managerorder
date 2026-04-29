@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { appToast } from "@/shared/ui/app-toast";
+import { Input } from "@/shared/ui/input";
+import { CreateActionFooter, CreateFormSection } from "@/shared/ui/create-flow-shell";
 import type { SystemSettings } from "@/lib/domain/types";
 import { DEFAULT_SYSTEM_SETTINGS } from "@/lib/settings/system-settings";
 import { useSystemSettings, useUpdateSystemSettings } from "@/widgets/pages/settings/hooks/use-settings";
@@ -14,7 +16,9 @@ export function SystemSettingsManager() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (data) setSettings(data);
+    if (data) {
+      setSettings(data);
+    }
   }, [data]);
 
   async function handleSave() {
@@ -30,17 +34,16 @@ export function SystemSettingsManager() {
   }
 
   if (isLoading) {
-    return <div className="py-4 text-center text-[13px] text-[var(--fg-muted)] animate-pulse">Đang tải...</div>;
+    return <div className="animate-pulse py-4 text-center text-[13px] text-[var(--fg-muted)]">Đang tải...</div>;
   }
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="space-y-3 rounded-xl border border-[var(--border-soft)] bg-white p-4">
-          <h4 className="flex items-center gap-2 text-[14px] font-bold text-[var(--fg-base)]">
-            <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-            Thông tin hoá đơn & thuế
-          </h4>
+      <CreateFormSection
+        title="Thông tin hoá đơn và thuế"
+        description="Các trường ở đây là nguồn sự thật cho invoice print, mã thuế và prefix chứng từ."
+      >
+        <div className="grid gap-4 xl:grid-cols-2">
           <Field
             label="Tên công ty xuất hoá đơn"
             value={settings.company_name}
@@ -54,65 +57,64 @@ export function SystemSettingsManager() {
             placeholder="03120..."
           />
           <Field
-            label="Địa chỉ"
+            label="Địa chỉ công ty"
             value={settings.company_address}
             onChange={(company_address) => setSettings({ ...settings, company_address })}
             placeholder="Quận 1, TP.HCM..."
           />
           <Field
-            label="Invoice Prefix"
+            label="Invoice prefix"
             value={settings.invoice_prefix}
             onChange={(invoice_prefix) => setSettings({ ...settings, invoice_prefix })}
             placeholder="INV"
           />
-          <div className="grid grid-cols-2 gap-2">
-            <Field
-              label="Nhãn thuế"
-              value={settings.tax_label}
-              onChange={(tax_label) => setSettings({ ...settings, tax_label })}
-              placeholder="VAT"
-            />
-            <Field
-              label="Thuế mặc định (%)"
-              type="number"
-              value={String(settings.tax_rate_default)}
-              onChange={(value) => setSettings({ ...settings, tax_rate_default: Number(value || 0) })}
-              placeholder="0"
-            />
-          </div>
+          <Field
+            label="Nhãn thuế"
+            value={settings.tax_label}
+            onChange={(tax_label) => setSettings({ ...settings, tax_label })}
+            placeholder="VAT"
+          />
+          <Field
+            label="Thuế mặc định (%)"
+            type="number"
+            value={String(settings.tax_rate_default)}
+            onChange={(value) => setSettings({ ...settings, tax_rate_default: Number(value || 0) })}
+            placeholder="0"
+          />
         </div>
+      </CreateFormSection>
 
-        <div className="space-y-3 rounded-xl border border-[var(--border-soft)] bg-white p-4">
-          <h4 className="flex items-center gap-2 text-[14px] font-bold text-[var(--fg-base)]">
-            <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-            Thanh toán & hướng dẫn
-          </h4>
+      <CreateFormSection
+        title="Thanh toán và hướng dẫn chuyển khoản"
+        description="Các mẫu này được dùng lại cho QR, invoice và các flow thu tiền nội bộ."
+      >
+        <div className="grid gap-4 xl:grid-cols-2">
           <Field
             label="Chủ tài khoản / người đại diện"
             value={settings.personal_name}
             onChange={(personal_name) => setSettings({ ...settings, personal_name })}
             placeholder="NGUYEN VAN A"
           />
-          <div className="grid grid-cols-2 gap-2">
-            <Field
-              label="Ngân hàng"
-              value={settings.bank_name}
-              onChange={(bank_name) => setSettings({ ...settings, bank_name })}
-              placeholder="MB Bank"
-            />
-            <Field
-              label="Số tài khoản"
-              value={settings.bank_account}
-              onChange={(bank_account) => setSettings({ ...settings, bank_account })}
-              placeholder="0123456789"
-            />
-          </div>
+          <Field
+            label="Ngân hàng"
+            value={settings.bank_name}
+            onChange={(bank_name) => setSettings({ ...settings, bank_name })}
+            placeholder="MB Bank"
+          />
+          <Field
+            label="Số tài khoản"
+            value={settings.bank_account}
+            onChange={(bank_account) => setSettings({ ...settings, bank_account })}
+            placeholder="0123456789"
+          />
           <Field
             label="Ghi chú chân trang mặc định"
             value={settings.default_notes}
             onChange={(default_notes) => setSettings({ ...settings, default_notes })}
             placeholder="Cảm ơn quý khách..."
           />
+        </div>
+        <div className="grid gap-4 xl:grid-cols-2">
           <TextAreaField
             label="Mẫu hướng dẫn thanh toán"
             value={settings.payment_instruction_template}
@@ -128,47 +130,47 @@ export function SystemSettingsManager() {
             placeholder="Nội dung fallback cho chu kỳ tương thích"
           />
         </div>
+      </CreateFormSection>
 
-        <div className="space-y-3 rounded-xl border border-[var(--border-soft)] bg-white p-4">
-          <h4 className="flex items-center gap-2 text-[14px] font-bold text-[var(--fg-base)]">
-            <div className="h-1.5 w-1.5 rounded-full bg-violet-500" />
-            Locale & định dạng
-          </h4>
-          <div className="grid grid-cols-2 gap-2">
-            <Field
-              label="Tiền tệ mặc định"
-              value={settings.default_currency}
-              onChange={(default_currency) => setSettings({ ...settings, default_currency: default_currency.toUpperCase() })}
-              placeholder="VND"
-            />
-            <Field
-              label="Locale"
-              value={settings.locale}
-              onChange={(locale) => setSettings({ ...settings, locale })}
-              placeholder="vi-VN"
-            />
-          </div>
+      <CreateFormSection
+        title="Locale và định dạng"
+        description="Formatter cho UI, API và invoice sẽ ưu tiên các giá trị này thay vì khoá cứng theo một locale duy nhất."
+      >
+        <div className="grid gap-4 xl:grid-cols-3">
+          <Field
+            label="Tiền tệ mặc định"
+            value={settings.default_currency}
+            onChange={(default_currency) =>
+              setSettings({ ...settings, default_currency: default_currency.toUpperCase() })
+            }
+            placeholder="VND"
+          />
+          <Field
+            label="Locale"
+            value={settings.locale}
+            onChange={(locale) => setSettings({ ...settings, locale })}
+            placeholder="vi-VN"
+          />
           <Field
             label="Timezone"
             value={settings.timezone}
             onChange={(timezone) => setSettings({ ...settings, timezone })}
             placeholder="Asia/Ho_Chi_Minh"
           />
-          <div className="rounded-lg border border-dashed border-[var(--border-soft)] bg-[var(--bg-app)] px-3 py-3 text-[12px] text-[var(--fg-muted)]">
-            Các formatter API/UI sẽ ưu tiên theo ba giá trị này. Chu kỳ hiện tại vẫn lưu giá bằng VND,
-            nhưng giao diện và hoá đơn đã không còn khoá cứng vào `vi-VN`.
-          </div>
         </div>
-      </div>
+        <div className="rounded-2xl border border-dashed border-[var(--border-soft)] bg-[var(--bg-app)] px-4 py-4 text-[13px] leading-6 text-[var(--fg-muted)]">
+          Dữ liệu tài chính hiện vẫn lưu ở VND trong database, nhưng cách hiển thị ở dashboard, invoice và public surfaces giờ ưu tiên theo bộ cấu hình này.
+        </div>
+      </CreateFormSection>
 
-      <div className="flex justify-end pt-2">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-6 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-[var(--accent)]/90 disabled:opacity-50"
-        >
-          {saving ? "Đang lưu..." : "Lưu thay đổi"}
-        </button>
+      <div className="rounded-[28px] border border-[var(--border-soft)] bg-white px-5 py-4">
+        <CreateActionFooter
+          primaryLabel="Lưu thay đổi"
+          onPrimary={() => {
+            void handleSave();
+          }}
+          pending={saving}
+        />
       </div>
     </div>
   );
@@ -188,11 +190,13 @@ function Field({
   type?: string;
 }) {
   return (
-    <div>
-      <label className="mb-1 block text-[12px] font-medium text-[var(--fg-muted)]">{label}</label>
-      <input
+    <div className="space-y-2">
+      <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+        {label}
+      </label>
+      <Input
         type={type}
-        className="w-full rounded-lg border border-[var(--border-soft)] bg-[var(--bg-app)] px-3 py-2 text-[13px] outline-none focus:border-[var(--accent)]"
+        className="h-11"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -213,10 +217,12 @@ function TextAreaField({
   placeholder?: string;
 }) {
   return (
-    <div>
-      <label className="mb-1 block text-[12px] font-medium text-[var(--fg-muted)]">{label}</label>
+    <div className="space-y-2">
+      <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+        {label}
+      </label>
       <textarea
-        className="min-h-[120px] w-full rounded-lg border border-[var(--border-soft)] bg-[var(--bg-app)] px-3 py-2 text-[13px] outline-none focus:border-[var(--accent)]"
+        className="min-h-[140px] w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[13px] font-medium text-[var(--fg-base)] outline-none transition-colors placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)]"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}

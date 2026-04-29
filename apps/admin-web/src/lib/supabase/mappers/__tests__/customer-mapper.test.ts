@@ -75,7 +75,7 @@ describe("mapTierToDbType", () => {
 
 describe("mapToCustomer", () => {
   const fullRow = {
-    id: "cust-1",
+    id: "00000000-0000-4000-8000-000000000005",
     full_name: "Nguyễn Văn A",
     type: "wholesale",
     contacts: [
@@ -101,7 +101,7 @@ describe("mapToCustomer", () => {
 
   it("maps full row to Customer domain object", () => {
     const customer = mapToCustomer(fullRow);
-    expect(customer.id).toBe("cust-1");
+    expect(customer.id).toBe("00000000-0000-4000-8000-000000000005");
     expect(customer.name).toBe("Nguyễn Văn A");
     expect(customer.tier).toBe("vip"); // wholesale → vip
     expect(customer.customerType).toBe("wholesale");
@@ -118,9 +118,9 @@ describe("mapToCustomer", () => {
   });
 
   it("handles missing optional fields with defaults", () => {
-    const minimalRow = { id: "cust-2" };
+    const minimalRow = { id: "00000000-0000-4000-8000-000000000006" };
     const customer = mapToCustomer(minimalRow);
-    expect(customer.id).toBe("cust-2");
+    expect(customer.id).toBe("00000000-0000-4000-8000-000000000006");
     expect(customer.name).toBe("");
     expect(customer.contacts).toEqual([]);
     expect(customer.tags).toEqual([]);

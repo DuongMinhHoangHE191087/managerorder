@@ -34,7 +34,7 @@ describe("logShortLinkClick", () => {
     await logShortLinkClick(
       db as Parameters<typeof logShortLinkClick>[0],
       {
-        short_link_id: "link-1",
+        short_link_id: "00000000-0000-4000-8000-0000000000ad",
         ip_address: "127.0.0.1",
         user_agent: "Mozilla/5.0",
         referer: null,
@@ -71,7 +71,7 @@ describe("logShortLinkClick", () => {
     await logShortLinkClick(
       db as Parameters<typeof logShortLinkClick>[0],
       {
-        short_link_id: "link-1",
+        short_link_id: "00000000-0000-4000-8000-0000000000ad",
         ip_address: "127.0.0.1",
         user_agent: "Mozilla/5.0",
         referer: null,

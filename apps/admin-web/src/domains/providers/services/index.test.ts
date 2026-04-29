@@ -31,15 +31,15 @@ describe("provider service", () => {
 
   it("normalizes contacts and logs on create", async () => {
     mockCreateProvider.mockResolvedValue({
-      id: "pv-1",
+      id: "00000000-0000-4000-8000-0000000000b8",
       name: "Provider A",
       contacts: [
         {
-          id: "contact-1",
+          id: "00000000-0000-4000-8000-000000000001",
           type: "facebook",
           value: "provider-a",
           isPrimary: true,
-          facebookId: "fb-1",
+          facebookId: "00000000-0000-4000-8000-0000000000b9",
           facebookName: "Provider A",
         },
       ],
@@ -51,7 +51,7 @@ describe("provider service", () => {
     });
 
     const result = await createProviderForAccount(
-      "acc-1",
+      "00000000-0000-4000-8000-000000000016",
       {
         name: "Provider A",
         tier: "regular",
@@ -62,7 +62,7 @@ describe("provider service", () => {
             type: "facebook",
             value: "provider-a",
             isPrimary: true,
-            facebookId: "fb-1",
+            facebookId: "00000000-0000-4000-8000-0000000000b9",
             facebookName: "Provider A",
           },
         ],
@@ -71,7 +71,7 @@ describe("provider service", () => {
     );
 
     expect(mockCreateProvider).toHaveBeenCalledWith(
-      "acc-1",
+      "00000000-0000-4000-8000-000000000016",
       expect.objectContaining({
         name: "Provider A",
         reliability_score: 88,
@@ -80,7 +80,7 @@ describe("provider service", () => {
             type: "facebook",
             value: "provider-a",
             isPrimary: true,
-            facebookId: "fb-1",
+            facebookId: "00000000-0000-4000-8000-0000000000b9",
           }),
         ],
       }),
@@ -90,7 +90,7 @@ describe("provider service", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockCreateActivityLog).toHaveBeenCalledWith(
       expect.objectContaining({
-        account_id: "acc-1",
+        account_id: "00000000-0000-4000-8000-000000000016",
         created_by: "owner@example.com",
       }),
     );
@@ -98,7 +98,7 @@ describe("provider service", () => {
 
   it("validates reliability score on update", async () => {
     await expect(
-      updateProviderForAccount("pv-1", "acc-1", {
+      updateProviderForAccount("00000000-0000-4000-8000-0000000000b8", "00000000-0000-4000-8000-000000000016", {
         reliabilityScore: 120,
       }),
     ).rejects.toThrow("Điểm uy tín phải nằm trong khoảng 0-100");
@@ -108,14 +108,14 @@ describe("provider service", () => {
 
   it("loads the provider before delete so the activity log keeps the name", async () => {
     mockGetProviderById.mockResolvedValue({
-      id: "pv-1",
+      id: "00000000-0000-4000-8000-0000000000b8",
       name: "Provider A",
     });
     mockDeleteProvider.mockResolvedValue(undefined);
 
-    await deleteProviderForAccount("pv-1", "acc-1", "owner@example.com");
+    await deleteProviderForAccount("00000000-0000-4000-8000-0000000000b8", "00000000-0000-4000-8000-000000000016", "owner@example.com");
 
-    expect(mockGetProviderById).toHaveBeenCalledWith("pv-1", "acc-1");
-    expect(mockDeleteProvider).toHaveBeenCalledWith("pv-1", "acc-1");
+    expect(mockGetProviderById).toHaveBeenCalledWith("00000000-0000-4000-8000-0000000000b8", "00000000-0000-4000-8000-000000000016");
+    expect(mockDeleteProvider).toHaveBeenCalledWith("00000000-0000-4000-8000-0000000000b8", "00000000-0000-4000-8000-000000000016");
   });
 });

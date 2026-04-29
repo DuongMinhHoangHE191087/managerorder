@@ -51,11 +51,11 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 
 // ── Test Fixtures ────────────────────────────────────────────
 
-const _ACCOUNT_ID = "acc-test-001";
+const _ACCOUNT_ID = "00000000-0000-4000-8000-0000000000b3";
 
 const mockProducts = [
   {
-    id: "prod-001",
+    id: "00000000-0000-4000-8000-000000000026",
     name: "Netflix 1 tháng",
     sell_price_vnd: 100000,
     duration_days: 30,
@@ -63,7 +63,7 @@ const mockProducts = [
     is_active: true,
   },
   {
-    id: "prod-002",
+    id: "00000000-0000-4000-8000-000000000027",
     name: "Spotify 3 tháng",
     sell_price_vnd: 150000,
     duration_days: 90,
@@ -73,10 +73,10 @@ const mockProducts = [
 ];
 
 const validOrderInput = {
-  customerId: "cust-001",
+  customerId: "00000000-0000-4000-8000-000000000033",
   items: [
-    { productId: "prod-001", quantity: 2 },
-    { productId: "prod-002", quantity: 1 },
+    { productId: "00000000-0000-4000-8000-000000000026", quantity: 2 },
+    { productId: "00000000-0000-4000-8000-000000000027", quantity: 1 },
   ],
 };
 
@@ -174,7 +174,7 @@ describe("Transaction Integrity — Order Creation", () => {
     it("partial failure in post-RPC → error propagates to caller", async () => {
       // RPC succeeds but a post-RPC step (like slot update) fails
       vi.mocked(supabaseAdmin.rpc).mockResolvedValue({
-        data: { order_id: "ord-001", items: [] },
+        data: { order_id: "00000000-0000-4000-8000-00000000001b", items: [] },
         error: null,
       } as any);
 

@@ -72,7 +72,7 @@ vi.mock("@/lib/supabase/repositories/activity-logs.repo", () => ({
   createActivityLog: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("@/lib/supabase/repositories/payments.repo", () => ({
-  createPayment: vi.fn().mockResolvedValue({ id: "pay-001" }),
+  createPayment: vi.fn().mockResolvedValue({ id: "00000000-0000-4000-8000-00000000006c" }),
 }));
 vi.mock("@/lib/supabase/repositories/order-status-history.repo", () => ({
   createOrderStatusHistory: vi.fn().mockResolvedValue(undefined),
@@ -85,7 +85,7 @@ import { resolveUser } from "@/lib/api/rbac";
 import { POST } from "@/app/api/orders/[id]/payment/route";
 
 // ── Fixtures ─────────────────────────────────────────────────
-const ORDER_ID = "ord-pay-001";
+const ORDER_ID = "00000000-0000-4000-8000-00000000006d";
 
 function makeFetchResult(overrides: Record<string, unknown> = {}) {
   return {
@@ -97,7 +97,7 @@ function makeFetchResult(overrides: Record<string, unknown> = {}) {
       unit_price_vnd: 100000,
       product_name_snapshot: "Netflix 1 tháng",
       quantity: 2,
-      customer_id: "cust-001",
+      customer_id: "00000000-0000-4000-8000-000000000033",
       ...overrides,
     },
     error: null,
@@ -294,14 +294,14 @@ describe("POST /api/orders/[id]/payment — Payment Recording", () => {
           status: "pending_payment",
           payment_terms: "credit",
           payment_method: "debt",
-          payment_source_id: "ps-001",
+          payment_source_id: "00000000-0000-4000-8000-00000000006e",
         })
       );
 
       await postPayment(ORDER_ID, {
         amount: 50000,
         payment_terms: "credit",
-        payment_source_id: "ps-001",
+        payment_source_id: "00000000-0000-4000-8000-00000000006e",
         note: "Dot 2",
       });
 
@@ -310,14 +310,14 @@ describe("POST /api/orders/[id]/payment — Payment Recording", () => {
           total_paid: 50000,
           payment_terms: "credit",
           payment_method: "debt",
-          payment_source_id: "ps-001",
+          payment_source_id: "00000000-0000-4000-8000-00000000006e",
         })
       );
       expect(createPayment).toHaveBeenCalledWith(
         TEST_ACCOUNT_ID,
         expect.objectContaining({
           payment_method: "debt",
-          payment_source_id: "ps-001",
+          payment_source_id: "00000000-0000-4000-8000-00000000006e",
           note: "Dot 2",
         })
       );

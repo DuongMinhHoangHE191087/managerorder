@@ -8,8 +8,12 @@ import type { ResolvedShortLinkPolicy } from "./policy";
 const landingPolicy: ResolvedShortLinkPolicy = {
   effectiveDeliveryMode: "landing_page",
   effectiveLandingTemplateKey: "ctv_neutral",
+  effectiveFailureTemplateKey: "customer_offer_wall",
+  sellerContactUrl: null,
   deliveryModeSource: "channel_default",
   landingTemplateSource: "channel_default",
+  failureTemplateSource: "system_default",
+  sellerContactSource: "not_configured",
 };
 
 describe("getShortLinkRuntimePolicy", () => {
@@ -56,6 +60,7 @@ describe("applyShortLinkRuntimePolicy", () => {
         forceDirectRedirect: true,
       }),
     ).toEqual({
+      ...landingPolicy,
       effectiveDeliveryMode: "direct_redirect",
       effectiveLandingTemplateKey: null,
       deliveryModeSource: "system_default",

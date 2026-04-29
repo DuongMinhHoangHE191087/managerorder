@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2, Globe } from "lucide-react";
+import { Globe } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
-import { motion, AnimatePresence } from "framer-motion";
 import type { PremiumServiceType } from "@/lib/domain/premium-types";
+import {
+  AdvancedOptionsDisclosure,
+  CreateActionFooter,
+  CreateFlowDialog,
+  CreateFormSection,
+} from "@/shared/ui/create-flow-shell";
 import { Select } from "@/shared/ui/select";
 
 interface ServiceCreateModalProps {
@@ -12,6 +17,13 @@ interface ServiceCreateModalProps {
   onClose: () => void;
   onSuccess: (service: PremiumServiceType) => void;
 }
+
+const CATEGORY_OPTIONS = [
+  { value: "entertainment", label: "Giải trí (Netflix, Spotify...)" },
+  { value: "learning", label: "Học tập (Duolingo, Elsa...)" },
+  { value: "productivity", label: "Làm việc (ChatGPT, Canva...)" },
+  { value: "other", label: "Khác" },
+] as const;
 
 export function ServiceCreateModal({
   isOpen,
@@ -55,85 +67,86 @@ export function ServiceCreateModal({
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-          style={{ background: "rgba(15,23,42,0.45)", backdropFilter: "blur(4px)" }}
-          onClick={handleClose}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-[450px] overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] px-6 py-4 flex items-center justify-between shrink-0">
-              <div>
-                <h2 className="text-white font-bold text-[16px]">Thêm Dịch Vụ Mới</h2>
-                <p className="text-white/70 text-[12px] mt-0.5">Nền tảng Premium (Netflix, Duolingo...)</p>
-              </div>
-              <button onClick={handleClose} className="size-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors">
-                <X className="size-4" />
-              </button>
+    <CreateFlowDialog
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Thêm dịch vụ Premium"
+      description="Nguồn sự thật cho danh mục nền tảng, package mapping và các flow gia hạn hoặc migration."
+      size="md"
+      footer={
+        <CreateActionFooter
+          primaryLabel="Tạo dịch vụ"
+          onPrimary={() => void handleSave()}
+          onCancel={handleClose}
+          pending={saving}
+          disabled={!name.trim() || !slug.trim()}
+        />
+      }
+    >
+      <CreateFormSection
+        title="Thông tin chính"
+        description="Chỉ giữ các trường thực sự cần để mở bán và map với account/subscription."
+      >
+        <div className="grid gap-4">
+          <div className="space-y-2">
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+              Tên dịch vụ <span className="text-[var(--danger)]">*</span>
+            </label>
+            <div className="relative">
+              <Globe className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
+              <input
+                autoFocus
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && void handleSave()}
+                placeholder="VD: Duolingo Super"
+                className="w-full rounded-2xl border border-[var(--border-soft)] bg-white py-3 pl-10 pr-4 text-[14px] font-medium outline-none transition-all placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_220px]">
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                Mã nội bộ (slug) <span className="text-[var(--danger)]">*</span>
+              </label>
+              <input
+                value={slug}
+                onChange={(event) => setSlug(event.target.value)}
+                pattern="^[a-z0-9-]+$"
+                title="Chỉ chữ cái thường, số và gạch ngang"
+                placeholder="vd: duolingo"
+                className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[14px] font-medium outline-none transition-all focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+              />
+              <p className="text-xs leading-6 text-[var(--fg-muted)]">Slug dùng để map service trong kho, thuê bao và báo cáo.</p>
             </div>
 
-            {/* Body */}
-            <div className="p-6 space-y-4 overflow-y-auto">
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-widest">Tên dịch vụ <span className="text-[var(--danger)]">*</span></label>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[var(--fg-muted)]" />
-                  <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                    placeholder="VD: Duolingo Super"
-                    className="w-full pl-9 pr-4 py-3 bg-[#f8f9fa] border border-[var(--border-soft)] rounded-xl text-[14px] font-medium outline-none focus:border-[var(--accent)] focus:bg-white transition-all placeholder:text-[var(--fg-muted)]"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-widest">Mã (Slug) <span className="text-[var(--danger)]">*</span></label>
-                <input value={slug} onChange={(e) => setSlug(e.target.value)} pattern="^[a-z0-9-]+$" title="Chỉ chữ cái thường, số và gạch ngang"
-                  placeholder="vd: duolingo"
-                  className="w-full px-4 py-3 bg-[#f8f9fa] border border-[var(--border-soft)] rounded-xl text-[14px] font-medium outline-none focus:border-[var(--accent)] focus:bg-white transition-all"
-                />
-                <p className="text-[10px] text-[var(--fg-muted)] mt-1 ml-1 pl-2 border-l-2 border-[var(--border-soft)]">Định danh nội bộ trên hệ thống, không dùng dấu cách / có dấu.</p>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-widest">Danh mục</label>
-                <Select value={category} onChange={(e) => setCategory(e.target.value)} className="h-12 rounded-xl text-[14px] font-medium">
-                  <option value="entertainment">Giải trí (Netflix, Spotify...)</option>
-                  <option value="learning">Học tập (Duolingo, Elsa...)</option>
-                  <option value="productivity">Làm việc (ChatGPT, Canva...)</option>
-                  <option value="other">Khác</option>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-widest">Mô tả ngắn</label>
-                <input value={description} onChange={(e) => setDescription(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                  placeholder="Mô tả về dịch vụ này"
-                  className="w-full px-4 py-3 bg-[#f8f9fa] border border-[var(--border-soft)] rounded-xl text-[14px] font-medium outline-none focus:border-[var(--accent)] focus:bg-white transition-all"
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Danh mục</label>
+              <Select value={category} onChange={(event) => setCategory(event.target.value)} className="h-12 rounded-2xl text-[14px] font-medium">
+                {CATEGORY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
             </div>
+          </div>
+        </div>
+      </CreateFormSection>
 
-            {/* Footer */}
-            <div className="px-6 pb-6 pt-3 flex gap-3 border-t border-[var(--border-soft)] shrink-0 bg-white">
-              <button type="button" onClick={handleClose} className="flex-1 h-11 rounded-xl border border-[var(--border-soft)] text-[13px] font-bold text-[var(--fg-muted)] hover:bg-gray-50 transition-colors">
-                Hủy
-              </button>
-              <button type="button" onClick={handleSave} disabled={saving || !name.trim() || !slug.trim()} className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white text-[13px] font-bold flex items-center justify-center gap-2 hover:shadow-md disabled:opacity-50 transition-all">
-                {saving && <Loader2 className="size-4 animate-spin" />}
-                {saving ? "Đang tạo..." : "Tạo Dịch Vụ"}
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+      <AdvancedOptionsDisclosure>
+        <div className="space-y-2">
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Mô tả ngắn</label>
+          <textarea
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            rows={3}
+            placeholder="Mô tả ngắn để vận hành biết đây là dịch vụ nào, dùng cho ai."
+            className="w-full resize-none rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[14px] font-medium outline-none transition-all placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+          />
+        </div>
+      </AdvancedOptionsDisclosure>
+    </CreateFlowDialog>
   );
 }

@@ -11,13 +11,13 @@ import type { SourceAccountRow } from "@/lib/supabase/repositories/source-accoun
 
 describe("mapRowToSourceAccount — purchase fields", () => {
   const baseRow: SourceAccountRow = {
-    id: "sa-001",
-    account_id: "account-1",
+    id: "00000000-0000-4000-8000-000000000036",
+    account_id: "00000000-0000-4000-8000-000000000009",
     email: "test@example.com",
     provider: "netflix",
     max_slots: 6,
     used_slots: 2,
-    product_ids: ["prod-1"],
+    product_ids: ["00000000-0000-4000-8000-000000000039"],
     notes: null,
     reserved_nicks: null,
     status: "active",
@@ -65,7 +65,7 @@ describe("mapRowToSourceAccount — purchase fields", () => {
       purchase_source: "Direct",
     };
     const result = mapRowToSourceAccount(row);
-    expect(result.id).toBe("sa-001");
+    expect(result.id).toBe("00000000-0000-4000-8000-000000000036");
     expect(result.email).toBe("test@example.com");
     expect(result.provider).toBe("netflix");
     expect(result.maxSlots).toBe(6);

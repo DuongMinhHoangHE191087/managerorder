@@ -1758,6 +1758,8 @@ export type Database = {
           name: string;
           default_delivery_mode: "direct_redirect" | "landing_page";
           default_landing_template_key: "owner_intro" | "ctv_neutral";
+          default_failure_template_key: "seller_unlock_request" | "customer_offer_wall";
+          seller_contact_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1767,6 +1769,8 @@ export type Database = {
           name: string;
           default_delivery_mode?: "direct_redirect" | "landing_page";
           default_landing_template_key?: "owner_intro" | "ctv_neutral";
+          default_failure_template_key?: "seller_unlock_request" | "customer_offer_wall";
+          seller_contact_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1776,6 +1780,8 @@ export type Database = {
           name?: string;
           default_delivery_mode?: "direct_redirect" | "landing_page";
           default_landing_template_key?: "owner_intro" | "ctv_neutral";
+          default_failure_template_key?: "seller_unlock_request" | "customer_offer_wall";
+          seller_contact_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -2575,6 +2581,8 @@ export type Database = {
           sales_channel_id: string | null;
           delivery_mode: "inherit_channel" | "direct_redirect" | "landing_page";
           landing_template_key: "owner_intro" | "ctv_neutral" | null;
+          failure_template_key: "seller_unlock_request" | "customer_offer_wall" | null;
+          seller_contact_url: string | null;
           created_at: string;
           updated_at: string;
           deleted_at: string | null;
@@ -2600,6 +2608,8 @@ export type Database = {
           sales_channel_id?: string | null;
           delivery_mode?: "inherit_channel" | "direct_redirect" | "landing_page";
           landing_template_key?: "owner_intro" | "ctv_neutral" | null;
+          failure_template_key?: "seller_unlock_request" | "customer_offer_wall" | null;
+          seller_contact_url?: string | null;
           created_at?: string;
           updated_at?: string;
           deleted_at?: string | null;
@@ -2625,6 +2635,8 @@ export type Database = {
           sales_channel_id?: string | null;
           delivery_mode?: "inherit_channel" | "direct_redirect" | "landing_page";
           landing_template_key?: "owner_intro" | "ctv_neutral" | null;
+          failure_template_key?: "seller_unlock_request" | "customer_offer_wall" | null;
+          seller_contact_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -2642,6 +2654,11 @@ export type Database = {
           renewal_price: number | null;
           total_price: number | null;
           new_billing_cycle: string | null;
+          new_cycle_months: number | null;
+          cost_price: number | null;
+          collected_amount: number | null;
+          profit_amount: number | null;
+          notes: string | null;
           customer_response: string | null;
           customer_response_date: string | null;
           decline_reason: string | null;
@@ -2664,6 +2681,11 @@ export type Database = {
           renewal_price?: number | null;
           total_price?: number | null;
           new_billing_cycle?: string | null;
+          new_cycle_months?: number | null;
+          cost_price?: number | null;
+          collected_amount?: number | null;
+          profit_amount?: number | null;
+          notes?: string | null;
           customer_response?: string | null;
           customer_response_date?: string | null;
           decline_reason?: string | null;
@@ -2686,6 +2708,11 @@ export type Database = {
           renewal_price?: number | null;
           total_price?: number | null;
           new_billing_cycle?: string | null;
+          new_cycle_months?: number | null;
+          cost_price?: number | null;
+          collected_amount?: number | null;
+          profit_amount?: number | null;
+          notes?: string | null;
           customer_response?: string | null;
           customer_response_date?: string | null;
           decline_reason?: string | null;

@@ -59,13 +59,13 @@ import { resolveUser } from "@/lib/api/rbac";
 import { GET, PUT, DELETE } from "@/app/api/orders/[id]/route";
 
 // ── Fixtures ─────────────────────────────────────────────────
-const ORDER_ID = "ord-lifecycle-001";
+const ORDER_ID = "00000000-0000-4000-8000-000000000057";
 
 function makeMockOrder(overrides: Record<string, unknown> = {}) {
   return {
     id: ORDER_ID,
     account_id: TEST_ACCOUNT_ID,
-    customer_id: "cust-001",
+    customer_id: "00000000-0000-4000-8000-000000000033",
     status: "pending_payment",
     total_amount_vnd: 200000,
     total_paid: 0,
@@ -108,7 +108,7 @@ describe("GET /api/orders/[id]", () => {
   });
 
   it("returns order with items → 200", async () => {
-    const order = makeMockOrder({ items: [{ id: "item-1" }] });
+    const order = makeMockOrder({ items: [{ id: "00000000-0000-4000-8000-000000000058" }] });
     vi.mocked(getOrderWithItems).mockResolvedValue(order as any);
 
     const res = await getOrder(ORDER_ID);
@@ -172,7 +172,7 @@ describe("PUT /api/orders/[id] — Status Transitions", () => {
       vi.mocked(updateOrderPaymentAndStatus).mockResolvedValue({
         ...order,
         status: "paid",
-        customer_id: "cust-001",
+        customer_id: "00000000-0000-4000-8000-000000000033",
       } as any);
 
       await putOrder(ORDER_ID, { status: "paid" });

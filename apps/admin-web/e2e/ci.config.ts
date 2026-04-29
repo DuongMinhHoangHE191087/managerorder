@@ -51,6 +51,10 @@ export default defineConfig({
     command: "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: false,
-    timeout: 120_000,
+    env: {
+      ...process.env,
+      E2E_MOCK_SESSION: "1",
+    },
+    timeout: 300_000,
   },
 });

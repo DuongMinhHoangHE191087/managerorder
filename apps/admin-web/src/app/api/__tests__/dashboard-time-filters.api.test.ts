@@ -72,8 +72,8 @@ function makeOrder(daysAgo: number, amount = 100_000) {
   d.setDate(d.getDate() - daysAgo);
   return {
     id: `ord-${daysAgo}d`,
-    customer_id: "cust-1",
-    product_id: "prod-1",
+    customer_id: "00000000-0000-4000-8000-000000000005",
+    product_id: "00000000-0000-4000-8000-000000000039",
     total_amount_vnd: amount,
     total_cost_vnd: amount * 0.4,
     status: "paid",

@@ -1,0 +1,39 @@
+⚠ Slow filesystem detected. The benchmark took 301ms. If D:\GITHUB\managerorder\apps/admin-web/.next/dev is a network drive, consider moving it to a local folder.
+See more: https://nextjs.org/docs/app/guides/local-development
+⚠ Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr from "127.0.0.1".
+Cross-origin access to Next.js dev resources is blocked by default for safety.
+
+To allow this host in development, add it to "allowedDevOrigins" in next.config.js and restart the dev server:
+
+// next.config.js
+module.exports = {
+  allowedDevOrigins: ['127.0.0.1'],
+}
+
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+[Supervisor] zalo exited with code 1.
+[Supervisor] Restarting zalo in 2000ms...
+⨯ ./apps/admin-web/src/app/products/page.tsx:3:20
+`ssr: false` is not allowed with `next/dynamic` in Server Components. Please move it into a Client Component.
+  [90m1 |[0m [36mimport[0m dynamic [36mfrom[0m [32m"next/dynamic"[0m;
+  [90m2 |[0m
+[31m[1m>[0m [90m3 |[0m [36mconst[0m [33mPageClient[0m = dynamic(
+  [90m  |[0m                    [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m4 |[0m   () => [36mimport[0m([32m"@/widgets/pages/products/page-client"[0m),
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m5 |[0m   { ssr: [36mfalse[0m, loading: () => [36mnull[0m },
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m6 |[0m );
+  [90m  |[0m [31m[1m^[0m
+  [90m7 |[0m
+  [90m8 |[0m [36mexport[0m [36mdefault[0m [36mfunction[0m [33mPage[0m() {
+  [90m9 |[0m   [36mreturn[0m <[33mPageClient[0m />;
+
+Ecmascript file had an error
+
+
+⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
+⚠ Slow filesystem detected. The benchmark took 451ms. If D:\GITHUB\managerorder\apps/admin-web/.next/dev is a network drive, consider moving it to a local folder.
+See more: https://nextjs.org/docs/app/guides/local-development
+[Supervisor] web exited with code 4294967295.
+[Supervisor] Web process exited (4294967295). Shutting down bots.

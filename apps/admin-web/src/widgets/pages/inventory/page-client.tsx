@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useDeferredValue, useEffect, useMemo } from "react";
+import { useState, useCallback, useDeferredValue, useMemo } from "react";
 import { Eye, Edit2, PackageSearch, Clock, RefreshCw, Trash2, X } from "lucide-react";
 import { appToast } from "@/shared/lib/toast";
 import dynamic from "next/dynamic";
@@ -17,6 +17,7 @@ import { useSourceAccounts, useCreateSourceAccount, useUpdateSourceAccount, useR
 import { useProviders } from "@/widgets/pages/providers/hooks/use-providers";
 import { useCreateInventory, useDeleteInventory, useInventoryRealtime } from "@/widgets/pages/inventory/hooks/use-inventory";
 import { vi } from "@/shared/messages/vi";
+import { hasSearchTokens, matchesSearchQuery } from "@/shared/lib/filtering/search";
 import { InventoryPageHeader } from "./components/inventory-page-header";
 import { InventoryPageOverlays } from "./components/inventory-page-overlays";
 
@@ -24,7 +25,7 @@ const InventoryFilters = dynamic(() => import("@/widgets/pages/inventory/compone
 const InventoryTable = dynamic(() => import("@/widgets/pages/inventory/components/inventory-table").then((m) => ({ default: m.InventoryTable })), {
   ssr: false,
   loading: () => (
-    <div className="app-card mb-6 overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
+    <div data-testid="inventory-list-loading" className="app-card mb-6 overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
       <div className="flex items-center justify-between border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] p-5">
         <div className="h-4 w-44 animate-pulse rounded bg-gray-200" />
         <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
@@ -100,14 +101,21 @@ export default function InventoryPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const deferredSearchQuery = useDeferredValue(searchQuery);
-  const [currentTime, setCurrentTime] = useState(() => Date.now());
-
-  useEffect(() => {
-    setCurrentTime(Date.now());
-  }, [deferredSearchQuery, sourceAccounts, statusFilter]);
+  const [currentTime] = useState(() => Date.now());
 
   const productMap = useMemo(() => new Map(products.map((product: { id: string; name: string }) => [product.id, product.name])), [products]);
+  const providerById = useMemo(
+    () => new Map(providers.map((provider) => [provider.id, provider] as const)),
+    [providers],
+  );
+  const sourceAccountById = useMemo(
+    () => new Map(sourceAccounts.map((account) => [account.id, account] as const)),
+    [sourceAccounts],
+  );
+  const searchHasTokens = useMemo(() => hasSearchTokens(deferredSearchQuery), [deferredSearchQuery]);
   const pendingAllocationOrders = pendingOrders;
+  const selectedAccountIds = useMemo(() => Array.from(selectedIds), [selectedIds]);
+  const selectedCount = selectedAccountIds.length;
 
   const filteredAccounts = useMemo(
     () =>
@@ -122,17 +130,19 @@ export default function InventoryPage() {
           const timeLeft = new Date(account.expiresAt).getTime() - currentTime;
           if (timeLeft <= 0 || timeLeft > sevenDays) return false;
         }
-        if (deferredSearchQuery) {
-          const query = deferredSearchQuery.toLowerCase();
-          const matchEmail = account.email.toLowerCase().includes(query);
-          const matchProvider = (account.provider ?? "").toLowerCase().includes(query);
-          const matchNicks = (account.reservedNicks ?? []).some((nick: string) => nick.toLowerCase().includes(query));
-          const matchProducts = account.productIds.some((productId: string) => (productMap.get(productId) ?? "").toLowerCase().includes(query));
-          if (!matchEmail && !matchProvider && !matchNicks && !matchProducts) return false;
+        if (searchHasTokens) {
+          const matchQuery = matchesSearchQuery(
+            deferredSearchQuery,
+            account.email,
+            account.provider,
+            account.reservedNicks,
+            account.productIds.map((productId: string) => productMap.get(productId) ?? ""),
+          );
+          if (!matchQuery) return false;
         }
         return true;
       }),
-    [sourceAccounts, productIdFilter, providerFilter, statusFilter, deferredSearchQuery, productMap, currentTime]
+    [sourceAccounts, productIdFilter, providerFilter, statusFilter, deferredSearchQuery, productMap, currentTime, searchHasTokens]
   );
 
   const { openContextMenu, ContextMenuRender } = useContextMenu();
@@ -213,7 +223,7 @@ export default function InventoryPage() {
   }, []);
 
   const handleBulkDelete = useCallback(async () => {
-    const ids = Array.from(selectedIds);
+    const ids = selectedAccountIds;
     const results = await Promise.allSettled(ids.map((id) => deleteSourceAccount(id)));
     const success = results.filter((result) => result.status === "fulfilled").length;
     const failed = results.length - success;
@@ -221,13 +231,13 @@ export default function InventoryPage() {
     setShowBulkDeleteConfirm(false);
     if (failed > 0) appToast.warning(inventoryText.toast.bulkDelete(success, failed));
     else appToast.success(inventoryText.toast.bulkDeleteSuccess(success));
-  }, [deleteSourceAccount, inventoryText, selectedIds]);
+  }, [deleteSourceAccount, inventoryText, selectedAccountIds]);
 
   const handleBulkExtend = useCallback(async (days: number) => {
-    const ids = Array.from(selectedIds);
+    const ids = selectedAccountIds;
     const results = await Promise.allSettled(
       ids.map((id) => {
-        const account = sourceAccounts.find((item) => item.id === id);
+        const account = sourceAccountById.get(id);
         if (!account) return Promise.resolve();
         const baseDate = account.expiresAt && new Date(account.expiresAt) > new Date() ? new Date(account.expiresAt) : new Date();
         const newExpiresAt = new Date(baseDate.getTime() + days * 24 * 3600_000).toISOString();
@@ -237,12 +247,12 @@ export default function InventoryPage() {
     const success = results.filter((result) => result.status === "fulfilled").length;
     setSelectedIds(new Set());
     if (success > 0) appToast.success(inventoryText.toast.bulkExtend(days, success));
-  }, [inventoryText, selectedIds, sourceAccounts, updateSourceAccount]);
+  }, [inventoryText, selectedAccountIds, sourceAccountById, updateSourceAccount]);
 
   const handleBulkSync = useCallback(async () => {
     setIsBulkSyncing(true);
     try {
-      const ids = Array.from(selectedIds);
+      const ids = selectedAccountIds;
       const results = await Promise.allSettled(ids.map((id) => recalculateSlots(id)));
       const changed = results.filter((result) => result.status === "fulfilled" && result.value.changed).length;
       appToast.success(inventoryText.toast.bulkSyncSuccess(changed, ids.length));
@@ -251,7 +261,7 @@ export default function InventoryPage() {
     } finally {
       setIsBulkSyncing(false);
     }
-  }, [inventoryText, recalculateSlots, selectedIds]);
+  }, [inventoryText, recalculateSlots, selectedAccountIds]);
 
   const handleOpenCreateAccount = useCallback(() => {
     setIsCreateAccountOpen(true);
@@ -322,7 +332,7 @@ export default function InventoryPage() {
     ];
     const rows = filteredAccounts.map((account) => [
       account.email,
-      providers.find((provider) => provider.id === account.provider)?.name || account.provider,
+      providerById.get(account.provider)?.name || account.provider,
       account.productIds.map((productId) => productMap.get(productId) || productId).join(" | "),
       account.usedSlots,
       account.maxSlots,
@@ -338,7 +348,7 @@ export default function InventoryPage() {
     link.click();
     URL.revokeObjectURL(url);
     appToast.success(inventoryText.toast.exportCsv);
-  }, [filteredAccounts, inventoryText, providers, productMap]);
+  }, [filteredAccounts, inventoryText, providerById, productMap]);
 
   const handleSelectedAccountRecalculate = useCallback(async () => {
     if (!selectedAccount) return;
@@ -383,9 +393,10 @@ export default function InventoryPage() {
         onConfirmBulkDelete={handleBulkDelete}
         productMap={productMap}
         products={products}
+        providerById={providerById}
         providers={providers}
         selectedAccount={selectedAccount}
-        selectedIdsCount={selectedIds.size}
+        selectedIdsCount={selectedCount}
         showBulkDeleteConfirm={showBulkDeleteConfirm}
         showSmartMatch={showSmartMatch}
         onCloseSmartMatch={handleCloseSmartMatch}
@@ -415,19 +426,21 @@ export default function InventoryPage() {
           onStatusFilterChange={setStatusFilter}
         />
 
-        <InventoryTable
-          filteredAccounts={filteredAccounts}
-          providers={providers}
-          productMap={productMap}
-          onRowContextMenu={handleRowContextMenu}
-          selectedIds={selectedIds}
-          onToggleSelect={handleToggleSelect}
-          onToggleSelectAll={handleToggleSelectAll}
-        />
+        <div data-testid="inventory-list-shell">
+          <InventoryTable
+            filteredAccounts={filteredAccounts}
+            providerById={providerById}
+            productMap={productMap}
+            onRowContextMenu={handleRowContextMenu}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+            onToggleSelectAll={handleToggleSelectAll}
+          />
+        </div>
 
-        {selectedIds.size > 0 ? (
+        {selectedCount > 0 ? (
           <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-[1.2rem] bg-[var(--fg-base)] px-5 py-3 text-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
-            <span className="text-[13px] font-bold">{inventoryText.bulkBar.selected(selectedIds.size)}</span>
+            <span className="text-[13px] font-bold">{inventoryText.bulkBar.selected(selectedCount)}</span>
             <div className="h-6 w-px bg-white/20" />
             <button
               onClick={handleBulkExtend30}

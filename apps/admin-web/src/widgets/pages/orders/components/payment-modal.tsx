@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { appToast } from "@/shared/ui/app-toast";
+import { useEffect, useMemo, useState } from "react";
 import { Banknote, CreditCard, TrendingUp, Wallet } from "lucide-react";
-
-import { Modal } from "@/shared/ui/modal";
-import { Button } from "@/shared/ui/button";
+import { appToast } from "@/shared/ui/app-toast";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 import { SmartSelector } from "@/shared/ui/smart-selector";
+import {
+  AdvancedOptionsDisclosure,
+  CreateActionFooter,
+  CreateFlowDialog,
+  CreateFormSection,
+} from "@/shared/ui/create-flow-shell";
 import { formatMoney } from "@/lib/utils";
 import { usePaymentSources } from "@/widgets/pages/settings/hooks/use-settings";
 import { useRecordOrderPayment } from "@/widgets/pages/orders/hooks/use-orders";
@@ -45,15 +48,28 @@ export function PaymentModal({
   currentSourceId,
   onSuccess,
 }: PaymentModalProps) {
-  const [paymentTerms, setPaymentTerms] = useState<string>(normalizePaymentTerms(currentPaymentTerms) || "prepaid");
+  const initialTerms = normalizePaymentTerms(currentPaymentTerms) || "prepaid";
+  const initialPaidValue = Math.max(totalAmountVnd - totalPaid, 0).toString();
+
+  const [paymentTerms, setPaymentTerms] = useState<string>(initialTerms);
   const [sourceId, setSourceId] = useState<string>(currentSourceId || "");
-  const [paidInput, setPaidInput] = useState<string>(
-    (totalAmountVnd - totalPaid > 0 ? totalAmountVnd - totalPaid : 0).toString()
-  );
+  const [paidInput, setPaidInput] = useState<string>(initialPaidValue);
   const [note, setNote] = useState<string>("");
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setPaymentTerms(normalizePaymentTerms(currentPaymentTerms) || "prepaid");
+    setSourceId(currentSourceId || "");
+    setPaidInput(Math.max(totalAmountVnd - totalPaid, 0).toString());
+    setNote("");
+  }, [currentPaymentTerms, currentSourceId, isOpen, totalAmountVnd, totalPaid]);
 
   const { data: paymentSources = [] } = usePaymentSources();
   const { mutateAsync: recordPayment, isPending } = useRecordOrderPayment();
+
   const remaining = Math.max(totalAmountVnd - totalPaid, 0);
   const parsedAmount = Number(paidInput);
   const amountToRecord = Number.isFinite(parsedAmount) ? parsedAmount : 0;
@@ -67,6 +83,7 @@ export function PaymentModal({
       }),
     [paymentTerms, projectedPaid, totalAmountVnd],
   );
+
   const amountError = useMemo(() => {
     if (paidInput.trim().length === 0) {
       return "Nhập số tiền cần ghi nhận";
@@ -83,8 +100,7 @@ export function PaymentModal({
     return null;
   }, [paidInput, parsedAmount, remaining]);
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (amountError) {
       appToast.error(amountError);
       return;
@@ -118,28 +134,56 @@ export function PaymentModal({
   }));
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Ghi nhận thanh toán: ${orderId}`} size="md">
-      <form onSubmit={handleUpdate} className="space-y-5 py-2">
-        <div className="bg-[var(--bg-surface)] p-4 rounded-xl border border-[var(--border-soft)] flex flex-col gap-2">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-[var(--fg-muted)]">Tổng đơn:</span>
-            <span className="font-bold">{formatMoney(totalAmountVnd)}</span>
-          </div>
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-[var(--fg-muted)]">Đã trả:</span>
-            <span className="font-bold text-[var(--accent)]">{formatMoney(totalPaid)}</span>
-          </div>
-          {remaining > 0 && (
-            <div className="flex justify-between items-center text-sm pt-2 border-t border-[var(--border-soft)]">
-              <span className="text-[var(--fg-muted)]">Còn lại:</span>
-              <span className="font-bold text-[var(--danger)]">{formatMoney(remaining)}</span>
+    <CreateFlowDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      size="xl"
+      title={`Ghi nhận thanh toán #${orderId.slice(0, 8)}`}
+      description="Luồng thanh toán được gom về một surface rõ ràng: xem số còn lại, chọn nguồn tiền, preview công nợ sau khi ghi nhận và lưu ngay."
+      footer={
+        <CreateActionFooter
+          primaryLabel="Xác nhận thanh toán"
+          onPrimary={() => {
+            void handleSubmit();
+          }}
+          onCancel={onClose}
+          pending={isPending}
+          disabled={Boolean(amountError) || remaining <= 0}
+        />
+      }
+      contentClassName="gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(300px,0.9fr)]"
+    >
+      <CreateFormSection
+        title="Thông tin thanh toán"
+        description="Điền đúng số tiền thu thêm và nguồn tiền để order, công nợ và báo cáo quỹ đồng bộ ngay sau khi lưu."
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">
+            <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+              <Wallet className="size-3.5 text-[var(--accent)]" />
+              Tổng đơn
             </div>
-          )}
+            <p className="text-lg font-black text-[var(--fg-base)]">{formatMoney(totalAmountVnd)}</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">
+            <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+              <CreditCard className="size-3.5 text-emerald-500" />
+              Đã thanh toán
+            </div>
+            <p className="text-lg font-black text-emerald-600">{formatMoney(totalPaid)}</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">
+            <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+              <Banknote className="size-3.5 text-[var(--danger)]" />
+              Còn lại
+            </div>
+            <p className="text-lg font-black text-[var(--danger)]">{formatMoney(remaining)}</p>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-[11px] font-bold text-[var(--fg-muted)] mb-2 uppercase tracking-widest">
-            Thu thêm
+        <div className="space-y-2">
+          <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+            Số tiền thu thêm
           </label>
           <div className="relative">
             <Input
@@ -147,13 +191,15 @@ export function PaymentModal({
               min="0"
               required
               value={paidInput}
-              onChange={(e) => setPaidInput(e.target.value)}
+              onChange={(event) => setPaidInput(event.target.value)}
               error={Boolean(amountError)}
-              className="text-lg font-bold"
+              className="h-12 pr-16 text-base font-black"
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--fg-muted)] font-medium">VND</div>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+              VND
+            </div>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {[
               { label: "25%", value: remaining * 0.25 },
               { label: "50%", value: remaining * 0.5 },
@@ -170,93 +216,83 @@ export function PaymentModal({
               </button>
             ))}
           </div>
-          {amountError ? (
-            <p className="mt-2 text-[12px] font-medium text-[var(--danger)]">{amountError}</p>
-          ) : null}
+          {amountError ? <p className="text-[12px] font-medium text-[var(--danger)]">{amountError}</p> : null}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[11px] font-bold text-[var(--fg-muted)] mb-2 uppercase tracking-widest">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
               Điều khoản thanh toán
             </label>
-            <Select
-              value={paymentTerms}
-              onChange={(e) => setPaymentTerms(e.target.value)}
-            >
+            <Select value={paymentTerms} onChange={(event) => setPaymentTerms(event.target.value)} className="h-12">
               {PAYMENT_TERM_OPTIONS.map((item) => (
-                <option key={item.key} value={item.key}>{item.label}</option>
+                <option key={item.key} value={item.key}>
+                  {item.label}
+                </option>
               ))}
             </Select>
           </div>
-          <div>
-            <label className="block text-[11px] font-bold text-[var(--fg-muted)] mb-2 uppercase tracking-widest">
+          <div className="space-y-2">
+            <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
               Nguồn tiền
             </label>
             <SmartSelector
               items={sourcesItems}
               value={sourceId}
               onSelect={(item) => setSourceId(item.id)}
-              placeholder="Chọn tài khoản..."
+              placeholder="Chọn tài khoản thanh toán..."
             />
           </div>
         </div>
 
-        <div>
-          <label className="block text-[11px] font-bold text-[var(--fg-muted)] mb-2 uppercase tracking-widest">
-            Ghi chú giao dịch
-          </label>
-          <Input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Ví dụ: dot 2, doi chieu cong no, thu tien mat..."
-          />
-        </div>
-
-        <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)]/80 p-4">
-          <div className="mb-3 flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
-            <TrendingUp className="size-3.5 text-[var(--accent)]" />
-            Preview sau khi ghi nhận
+        <AdvancedOptionsDisclosure title="Ghi chú giao dịch">
+          <div className="space-y-2">
+            <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+              Nội dung đối soát
+            </label>
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Ví dụ: đợt 2, đối chiếu công nợ, thu tiền mặt..."
+              rows={3}
+              className="min-h-[104px] w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[13px] font-medium text-[var(--fg-base)] outline-none transition-colors placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)]"
+            />
           </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-[var(--border-soft)] bg-white px-3 py-3">
-              <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
-                <Wallet className="size-3.5 text-emerald-500" />
-                Đã thu
-              </div>
-              <p className="text-[16px] font-black text-[var(--fg-base)]">{formatMoney(projectedPaid)}</p>
+        </AdvancedOptionsDisclosure>
+      </CreateFormSection>
+
+      <CreateFormSection
+        title="Preview sau khi ghi nhận"
+        description="Các con số dưới đây phản ánh ngay tác động lên công nợ để đội vận hành kiểm tra trước khi lưu."
+      >
+        <div className="grid gap-4">
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)]/80 p-4">
+            <div className="mb-3 flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+              <TrendingUp className="size-3.5 text-[var(--accent)]" />
+              Tóm tắt tài chính
             </div>
-            <div className="rounded-xl border border-[var(--border-soft)] bg-white px-3 py-3">
-              <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
-                <Banknote className="size-3.5 text-[var(--danger)]" />
-                Còn lại
+            <div className="grid gap-3">
+              <div className="rounded-xl border border-[var(--border-soft)] bg-white px-4 py-3">
+                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Đã thu</div>
+                <p className="mt-1 text-[18px] font-black text-[var(--fg-base)]">{formatMoney(projectedPaid)}</p>
               </div>
-              <p className="text-[16px] font-black text-[var(--danger)]">{formatMoney(projectedSummary.balance_due_vnd)}</p>
-            </div>
-            <div className="rounded-xl border border-[var(--border-soft)] bg-white px-3 py-3">
-              <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
-                <CreditCard className="size-3.5 text-[var(--accent)]" />
-                Trạng thái
+              <div className="rounded-xl border border-[var(--border-soft)] bg-white px-4 py-3">
+                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Còn lại</div>
+                <p className="mt-1 text-[18px] font-black text-[var(--danger)]">{formatMoney(projectedSummary.balance_due_vnd)}</p>
               </div>
-              <p className="text-[16px] font-black text-[var(--fg-base)]">
-                {projectedSummary.is_fully_paid ? "Đủ thanh toán" : "Còn công nợ"}
-              </p>
-              <p className="mt-1 text-[12px] text-[var(--fg-muted)]">
-                {PAYMENT_TERM_DISPLAY_LABELS[normalizePaymentTerms(paymentTerms) || "prepaid"]}
-              </p>
+              <div className="rounded-xl border border-[var(--border-soft)] bg-white px-4 py-3">
+                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Trạng thái</div>
+                <p className="mt-1 text-[18px] font-black text-[var(--fg-base)]">
+                  {projectedSummary.is_fully_paid ? "Đủ thanh toán" : "Còn công nợ"}
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--fg-muted)]">
+                  {PAYMENT_TERM_DISPLAY_LABELS[normalizePaymentTerms(paymentTerms) || "prepaid"]}
+                </p>
+              </div>
             </div>
           </div>
         </div>
-
-        <div className="flex justify-end gap-3 pt-5">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Hủy
-          </Button>
-          <Button type="submit" variant="primary" isLoading={isPending} disabled={isPending || Boolean(amountError) || remaining <= 0}>
-            Xác nhận
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      </CreateFormSection>
+    </CreateFlowDialog>
   );
 }

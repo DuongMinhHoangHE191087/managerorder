@@ -7,17 +7,23 @@ describe("resolveShortLinkPolicy", () => {
       {
         delivery_mode: "direct_redirect",
         landing_template_key: "ctv_neutral",
+        failure_template_key: "seller_unlock_request",
+        seller_contact_url: "https://zalo.me/seller",
       },
       {
         default_delivery_mode: "landing_page",
         default_landing_template_key: "owner_intro",
+        default_failure_template_key: "customer_offer_wall",
       },
     );
 
     expect(policy.effectiveDeliveryMode).toBe("direct_redirect");
     expect(policy.effectiveLandingTemplateKey).toBeNull();
+    expect(policy.effectiveFailureTemplateKey).toBe("seller_unlock_request");
+    expect(policy.sellerContactUrl).toBe("https://zalo.me/seller");
     expect(policy.deliveryModeSource).toBe("link_override");
     expect(policy.landingTemplateSource).toBe("not_applicable");
+    expect(policy.failureTemplateSource).toBe("link_override");
   });
 
   it("inherits delivery mode and template from channel when link is set to inherit", () => {
@@ -29,6 +35,8 @@ describe("resolveShortLinkPolicy", () => {
       {
         default_delivery_mode: "landing_page",
         default_landing_template_key: "ctv_neutral",
+        default_failure_template_key: "seller_unlock_request",
+        seller_contact_url: "https://zalo.me/channel",
       },
     );
 
@@ -36,6 +44,9 @@ describe("resolveShortLinkPolicy", () => {
     expect(policy.effectiveLandingTemplateKey).toBe("ctv_neutral");
     expect(policy.deliveryModeSource).toBe("channel_default");
     expect(policy.landingTemplateSource).toBe("channel_default");
+    expect(policy.effectiveFailureTemplateKey).toBe("seller_unlock_request");
+    expect(policy.failureTemplateSource).toBe("channel_default");
+    expect(policy.sellerContactUrl).toBe("https://zalo.me/channel");
   });
 
   it("allows template override even when delivery mode comes from channel", () => {
@@ -64,6 +75,7 @@ describe("resolveShortLinkPolicy", () => {
 
     expect(policy.effectiveDeliveryMode).toBe(SHORT_LINK_POLICY_DEFAULTS.deliveryMode);
     expect(policy.effectiveLandingTemplateKey).toBeNull();
+    expect(policy.effectiveFailureTemplateKey).toBe(SHORT_LINK_POLICY_DEFAULTS.failureTemplateKey);
   });
 
   it("falls back to system default landing template for landing pages", () => {
@@ -76,5 +88,20 @@ describe("resolveShortLinkPolicy", () => {
     expect(policy.effectiveLandingTemplateKey).toBe(SHORT_LINK_POLICY_DEFAULTS.landingTemplateKey);
     expect(policy.deliveryModeSource).toBe("link_override");
     expect(policy.landingTemplateSource).toBe("system_default");
+  });
+
+  it("uses configurable system default for failure template", () => {
+    const policy = resolveShortLinkPolicy(
+      {
+        delivery_mode: "landing_page",
+        landing_template_key: null,
+        failure_template_key: null,
+      },
+      null,
+      { defaultFailureTemplateKey: "seller_unlock_request" },
+    );
+
+    expect(policy.effectiveFailureTemplateKey).toBe("seller_unlock_request");
+    expect(policy.failureTemplateSource).toBe("system_default");
   });
 });

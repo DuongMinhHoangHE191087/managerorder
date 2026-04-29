@@ -19,7 +19,7 @@ export async function register() {
   // Delay slightly to let the server finish initializing
   setTimeout(async () => {
     try {
-      const { autoRegisterWebhook } = await import("@/integrations/telegram");
+      const { autoRegisterWebhook } = await import("@/lib/services/telegram-auto-setup");
       await autoRegisterWebhook();
     } catch (err) {
       console.error('[Instrumentation] Failed to auto-register Telegram webhook:', err);

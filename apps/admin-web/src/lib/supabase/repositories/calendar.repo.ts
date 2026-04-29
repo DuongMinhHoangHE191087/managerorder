@@ -14,7 +14,7 @@ export type CustomerInfo = {
   id: string;
   full_name: string;
   type: string;
-  customer_contacts: { value: string; is_primary: boolean; channel: string }[];
+  customer_contacts: { value: string; is_verified: boolean; channel: string }[];
 };
 
 /** Enriched row with multiple customers attached */
@@ -46,7 +46,7 @@ async function batchFetchCustomers(ids: string[]): Promise<Map<string, CustomerI
 
   const { data: contacts, error: contactError } = await supabase
     .from('customer_contacts')
-    .select('customer_id, value, is_primary, channel')
+    .select('customer_id, value, is_verified, channel')
     .in('customer_id', ids)
     .order('created_at', { ascending: true });
   if (contactError) throw new Error(contactError.message);
@@ -56,7 +56,7 @@ async function batchFetchCustomers(ids: string[]): Promise<Map<string, CustomerI
     const list = contactsByCustomer.get(contact.customer_id) ?? [];
     list.push({
       value: contact.value,
-      is_primary: contact.is_primary,
+      is_verified: contact.is_verified,
       channel: contact.channel,
     });
     contactsByCustomer.set(contact.customer_id, list);

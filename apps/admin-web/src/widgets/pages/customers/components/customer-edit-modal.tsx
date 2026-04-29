@@ -4,9 +4,8 @@ import { memo, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Star, StickyNote, User, Store, Briefcase } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
-import { Modal } from "@/shared/ui/modal";
-import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
+import { CreateActionFooter, CreateFlowDialog } from "@/shared/ui/create-flow-shell";
 import { ChoiceCard, ChoiceGrid, FieldLabel, FormSection } from "@/shared/ui/form-primitives";
 import type { ContactInfo, Customer } from "@/lib/domain/types";
 import { useUpdateCustomer } from "@/widgets/pages/customers/hooks/use-customers";
@@ -272,27 +271,24 @@ export function CustomerEditModal({
   }
 
   return (
-    <Modal
+    <CreateFlowDialog
       isOpen={isOpen}
       onClose={onClose}
       title={vi.customers.editModal.title}
-      size="lg"
+      size="xl"
+      description="Chỉnh sửa hồ sơ khách hàng theo cùng cấu trúc với create flow để sales, CSKH và premium team thao tác nhất quán hơn."
       footer={
-        <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
-          <Button type="button" variant="secondary" onClick={onClose} className="w-full sm:w-auto">
-            {vi.common.cancel}
-          </Button>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleSave}
-            disabled={saving || !name.trim()}
-            className="w-full sm:w-auto"
-          >
-            {saving ? vi.customers.editModal.saving : vi.customers.editModal.save}
-          </Button>
-        </div>
+        <CreateActionFooter
+          primaryLabel={vi.customers.editModal.save}
+          onPrimary={() => {
+            void handleSave();
+          }}
+          onCancel={onClose}
+          pending={saving}
+          disabled={!name.trim()}
+        />
       }
+      contentClassName="gap-5"
     >
       <div className="space-y-4">
         <CustomerProfileSection
@@ -312,6 +308,6 @@ export function CustomerEditModal({
 
         <CustomerNotesSection notes={notes} onNotesChange={setNotes} />
       </div>
-    </Modal>
+    </CreateFlowDialog>
   );
 }

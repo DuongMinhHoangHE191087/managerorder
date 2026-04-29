@@ -10,6 +10,8 @@
 import { test, expect } from "@playwright/test";
 import { CalendarPage } from "./pages/calendar-page";
 
+test.setTimeout(90_000);
+
 test.describe("Calendar Page — Load & Display", () => {
   test("should load calendar page", async ({ page }) => {
     const calendar = new CalendarPage(page);

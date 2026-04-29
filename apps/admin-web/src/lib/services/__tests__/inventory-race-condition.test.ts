@@ -38,7 +38,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getOrderById, updateOrderStatus } from "@/lib/supabase/repositories/orders.repo";
 import { deallocateOrder } from "@/lib/services/allocation.service";
 
-const ACCOUNT_ID = "test-account-uuid";
+const ACCOUNT_ID = "00000000-0000-4000-8000-0000000000fc";
 const ORDER_ID_A = "order-a";
 const ORDER_ID_B = "order-b";
 
@@ -56,7 +56,7 @@ describe("Race: Concurrent allocation to same source account", () => {
 
     // Request A: success (2 slots allocated)
     rpcMock.mockResolvedValueOnce({
-      data: { success: true, source_id: "sa-1", new_used_slots: 8 },
+      data: { success: true, source_id: "00000000-0000-4000-8000-000000000040", new_used_slots: 8 },
       error: null,
     } as any);
 
@@ -70,12 +70,12 @@ describe("Race: Concurrent allocation to same source account", () => {
     const [resultA, resultB] = await Promise.allSettled([
       supabaseAdmin.rpc("increment_source_account_slots" as never, {
         p_account_id: ACCOUNT_ID,
-        p_source_id: "sa-1",
+        p_source_id: "00000000-0000-4000-8000-000000000040",
         p_quantity: 2,
       } as never),
       supabaseAdmin.rpc("increment_source_account_slots" as never, {
         p_account_id: ACCOUNT_ID,
-        p_source_id: "sa-1",
+        p_source_id: "00000000-0000-4000-8000-000000000040",
         p_quantity: 5,
       } as never),
     ]);
@@ -99,7 +99,7 @@ describe("Race: Concurrent allocation to same source account", () => {
 
     const result = await supabaseAdmin.rpc("increment_source_account_slots" as never, {
       p_account_id: ACCOUNT_ID,
-      p_source_id: "sa-1",
+      p_source_id: "00000000-0000-4000-8000-000000000040",
       p_quantity: -100, // trying to reduce more than current
     } as never);
 
@@ -131,13 +131,13 @@ describe("Race: Concurrent license key allocation", () => {
     const [resultA, resultB] = await Promise.all([
       supabaseAdmin.rpc("allocate_license_keys" as never, {
         p_account_id: ACCOUNT_ID,
-        p_product_id: "prod-1",
+        p_product_id: "00000000-0000-4000-8000-000000000039",
         p_order_id: ORDER_ID_A,
         p_quantity: 2,
       } as never),
       supabaseAdmin.rpc("allocate_license_keys" as never, {
         p_account_id: ACCOUNT_ID,
-        p_product_id: "prod-1",
+        p_product_id: "00000000-0000-4000-8000-000000000039",
         p_order_id: ORDER_ID_B,
         p_quantity: 2,
       } as never),
@@ -163,7 +163,7 @@ describe("Race: Concurrent license key allocation", () => {
 
     const result = await supabaseAdmin.rpc("allocate_license_keys" as never, {
       p_account_id: ACCOUNT_ID,
-      p_product_id: "prod-1",
+      p_product_id: "00000000-0000-4000-8000-000000000039",
       p_order_id: ORDER_ID_A,
       p_quantity: 5,
     } as never);

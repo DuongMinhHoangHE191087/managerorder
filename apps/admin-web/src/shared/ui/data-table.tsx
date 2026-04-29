@@ -24,6 +24,7 @@ interface DataTableProps<TData, TValue> {
   isLoading?: boolean;
   emptyMessage?: string;
   onRowClick?: (row: TData) => void;
+  onRowDoubleClick?: (row: TData) => void;
   onRowContextMenu?: (e: React.MouseEvent, row: TData) => void;
   defaultPageSize?: number;
   serverSide?: boolean;
@@ -39,6 +40,7 @@ export function DataTable<TData, TValue>({
   isLoading,
   emptyMessage = vi.common.noData,
   onRowClick,
+  onRowDoubleClick,
   onRowContextMenu,
   defaultPageSize = 20,
   serverSide = false,
@@ -196,6 +198,7 @@ export function DataTable<TData, TValue>({
                   key={row.id}
                   row={row as Row<unknown>}
                   onRowClick={onRowClick as ((row: unknown) => void) | undefined}
+                  onRowDoubleClick={onRowDoubleClick as ((row: unknown) => void) | undefined}
                   onRowContextMenu={onRowContextMenu as ((e: React.MouseEvent, row: unknown) => void) | undefined}
                 />
               ))
@@ -270,18 +273,21 @@ export function DataTable<TData, TValue>({
   const MemoizedRow = memo(function MemoizedRow({
   row,
   onRowClick,
+  onRowDoubleClick,
   onRowContextMenu,
 }: {
   row: Row<unknown>;
   onRowClick?: (row: unknown) => void;
+  onRowDoubleClick?: (row: unknown) => void;
   onRowContextMenu?: (e: React.MouseEvent, row: unknown) => void;
 }) {
-  const isInteractiveTarget = (target: EventTarget | null) => {
+  const isInteractiveTarget = (target: EventTarget | null, currentTarget: HTMLElement) => {
     if (!(target instanceof HTMLElement)) {
       return false;
     }
 
-    return target.closest("button,a,input,select,textarea,[role='button'],[data-no-row-click]") !== null;
+    const interactiveTarget = target.closest("button,a,input,select,textarea,[role='button'],[data-no-row-click]");
+    return interactiveTarget !== null && interactiveTarget !== currentTarget;
   };
 
   return (
@@ -289,11 +295,18 @@ export function DataTable<TData, TValue>({
       role={onRowClick ? "button" : undefined}
       tabIndex={onRowClick ? 0 : undefined}
       onClick={(event) => {
-        if (isInteractiveTarget(event.target)) {
+        if (isInteractiveTarget(event.target, event.currentTarget as HTMLElement)) {
           return;
         }
 
         onRowClick?.(row.original);
+      }}
+      onDoubleClick={(event) => {
+        if (isInteractiveTarget(event.target, event.currentTarget as HTMLElement)) {
+          return;
+        }
+
+        onRowDoubleClick?.(row.original);
       }}
       onKeyDown={(event) => {
         if (!onRowClick) {

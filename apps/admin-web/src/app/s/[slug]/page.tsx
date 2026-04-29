@@ -1,11 +1,25 @@
 import type { Metadata, Viewport } from "next";
+import { cookies, headers } from "next/headers";
 import {
+  logShortLinkClick,
   resolvePublicShortLinkBySlug,
   resolvePublicShortLinkSummaryBySlug,
 } from "@/domains/short-links";
-import { buildSalesLandingOffers } from "@/lib/settings/sales-landing";
+import {
+  createShortLinkClickRecord,
+  getShortLinkVisitorFingerprint,
+  type ShortLinkVisitorFingerprint,
+} from "@/domains/short-links/services/visitor";
+import { DEFAULT_SALES_LANDING_CONFIG, buildSalesLandingOffers } from "@/lib/settings/sales-landing";
+import { supabaseAdmin as supabase } from "@/lib/supabase/admin";
 import { getSystemSettings } from "@/lib/supabase/repositories/system-settings.repo";
 import { vi } from "@/shared/messages/vi";
+import {
+  isShortLinkRelayEnabled,
+  SHORT_LINK_RELAY_COOKIE_NAME,
+  verifyShortLinkRelayCookieValue,
+} from "@/domains/short-links/services/public-relay";
+import { PublicPageSecurityGuard } from "@/widgets/marketing/public-page-security-guard";
 import { ExpiredView } from "./expired-view";
 import { ShortLinkPublicView } from "@/widgets/marketing/short-link-public-view";
 
@@ -31,6 +45,23 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
   ],
 };
+
+async function logKnownShortLinkVisit(
+  linkId: string,
+  eventType: "bot_preview" | "landing_view" | "blocked",
+  visitor: ShortLinkVisitorFingerprint,
+  suspiciousReason?: string | null,
+  forceSuspicious = false,
+) {
+  await logShortLinkClick(
+    supabase,
+    createShortLinkClickRecord(linkId, eventType, visitor, {
+      is_suspicious: forceSuspicious || visitor.isAutomated,
+      suspicious_reason: suspiciousReason ?? visitor.suspiciousReason,
+    }),
+    "[ShortLinkPublic]",
+  );
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -93,42 +124,115 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ShortLinkPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const summary = await resolvePublicShortLinkSummaryBySlug(slug);
+  const requestHeaders = await headers();
+  const requestCookies = await cookies();
+  const visitor = getShortLinkVisitorFingerprint(requestHeaders);
+  const landingViewLoggedByProxy = requestHeaders.get("x-short-link-landing-view-logged") === "1";
+  const blockedLoggedByProxy = requestHeaders.get("x-short-link-blocked-logged") === "1";
+  const proxyBlockedReason = requestHeaders.get("x-short-link-blocked-reason");
   const systemSettings = await getSystemSettings().catch(() => null);
-  const offers = buildSalesLandingOffers(systemSettings?.sales_landing_config ?? null);
+  const landingConfig = systemSettings?.sales_landing_config ?? DEFAULT_SALES_LANDING_CONFIG;
+  const failureDefaults = landingConfig.shortLinkFailureDefaults ?? DEFAULT_SALES_LANDING_CONFIG.shortLinkFailureDefaults;
+  const summary = await resolvePublicShortLinkSummaryBySlug(slug, {
+    defaultFailureTemplateKey: failureDefaults.defaultTemplateKey,
+  });
+  const offers = buildSalesLandingOffers(landingConfig);
   const tokenParam = await searchParams;
-  const token = typeof tokenParam?.t === "string" ? tokenParam.t : Array.isArray(tokenParam?.t) ? tokenParam.t[0] : null;
+  const token =
+    typeof tokenParam?.t === "string" ? tokenParam.t : Array.isArray(tokenParam?.t) ? tokenParam.t[0] : null;
+  const relayState = await verifyShortLinkRelayCookieValue(
+    requestCookies.get(SHORT_LINK_RELAY_COOKIE_NAME)?.value,
+    { userAgent: requestHeaders.get("user-agent") },
+  );
+  const effectiveToken = token ?? (relayState?.slug === slug ? relayState.token : null);
 
-  if (!summary) return <ExpiredView reason="not_found" offers={offers} />;
+  const failureViewProps = {
+    offers,
+    customerOfferCtaHref: failureDefaults.customerOfferCtaHref,
+    sellerUnlockMessage: failureDefaults.sellerUnlockMessage,
+  };
+
+  if (!summary) {
+    return (
+      <ExpiredView
+        reason="not_found"
+        templateKey={failureDefaults.defaultTemplateKey}
+        {...failureViewProps}
+      />
+    );
+  }
 
   const { link: summaryLink, resolvedPolicy } = summary;
+  const knownLinkFailureProps = {
+    ...failureViewProps,
+    templateKey: resolvedPolicy.effectiveFailureTemplateKey,
+    sellerContactUrl: resolvedPolicy.sellerContactUrl,
+  };
 
-  if (summaryLink.status !== "active") return <ExpiredView reason="expired" offers={offers} />;
-  if (summaryLink.expires_at && new Date(summaryLink.expires_at) <= new Date()) return <ExpiredView reason="expired" offers={offers} />;
-  if (summaryLink.max_clicks > 0 && summaryLink.current_clicks >= summaryLink.max_clicks) return <ExpiredView reason="expired" offers={offers} />;
-  if (summaryLink.require_token && summaryLink.access_token && token !== summaryLink.access_token) {
-    return <ExpiredView reason="token_required" offers={offers} />;
+  if (summaryLink.status !== "active") {
+    await logKnownShortLinkVisit(summaryLink.id, "blocked", visitor, "inactive_link");
+    return <ExpiredView reason="expired" {...knownLinkFailureProps} />;
+  }
+  if (summaryLink.expires_at && new Date(summaryLink.expires_at) <= new Date()) {
+    await logKnownShortLinkVisit(summaryLink.id, "blocked", visitor, "expired_link");
+    return <ExpiredView reason="expired" {...knownLinkFailureProps} />;
+  }
+  if (summaryLink.max_clicks > 0 && summaryLink.current_clicks >= summaryLink.max_clicks) {
+    await logKnownShortLinkVisit(summaryLink.id, "blocked", visitor, "click_limit_reached");
+    return <ExpiredView reason="expired" {...knownLinkFailureProps} />;
+  }
+  if (summaryLink.require_token && summaryLink.access_token && effectiveToken !== summaryLink.access_token) {
+    await logKnownShortLinkVisit(
+      summaryLink.id,
+      "blocked",
+      visitor,
+      effectiveToken ? "invalid_token" : "missing_token",
+      true,
+    );
+    return <ExpiredView reason="token_required" {...knownLinkFailureProps} />;
+  }
+  const lockedIp = visitor.ipVersion === "IPv6" ? summaryLink.locked_ipv6 : summaryLink.locked_ip;
+  if (lockedIp && lockedIp !== visitor.ipAddress) {
+    if (!blockedLoggedByProxy) {
+      await logKnownShortLinkVisit(
+        summaryLink.id,
+        "blocked",
+        visitor,
+        proxyBlockedReason ?? `ip_mismatch_${visitor.ipVersion}`,
+        true,
+      );
+    }
+    return <ExpiredView reason="blocked" {...knownLinkFailureProps} />;
   }
 
   if (resolvedPolicy.effectiveDeliveryMode === "landing_page") {
-    const detail = await resolvePublicShortLinkBySlug(slug);
-    if (!detail) return <ExpiredView reason="not_found" offers={offers} />;
-    const { link, salesChannel } = detail;
+    const detail = await resolvePublicShortLinkBySlug(slug, {
+      defaultFailureTemplateKey: failureDefaults.defaultTemplateKey,
+    });
+    if (!detail) return <ExpiredView reason="not_found" templateKey={failureDefaults.defaultTemplateKey} {...failureViewProps} />;
+    const { link } = detail;
     const url = new URL(`/s/${slug}/go`, "https://placeholder.local");
-    if (token) {
-      url.searchParams.set("t", token);
+    if (effectiveToken) {
+      url.searchParams.set("t", effectiveToken);
+    }
+    const ctaHref = isShortLinkRelayEnabled() ? "/s/go" : `${url.pathname}${url.search}`;
+
+    if (!landingViewLoggedByProxy) {
+      await logKnownShortLinkVisit(
+        link.id,
+        visitor.isAutomated ? "bot_preview" : "landing_view",
+        visitor,
+        visitor.suspiciousReason,
+      );
     }
 
     return (
       <ShortLinkPublicView
-        slug={slug}
         title={link.title}
-        targetUrl={link.target_url}
-        ctaHref={`${url.pathname}${url.search}`}
+        ctaHref={ctaHref}
         templateKey={resolvedPolicy.effectiveLandingTemplateKey ?? "owner_intro"}
         requiresToken={Boolean(link.require_token)}
         resolvedDeliveryMode={resolvedPolicy.effectiveDeliveryMode}
-        salesChannelName={salesChannel?.name ?? null}
       />
     );
   }
@@ -139,24 +243,29 @@ export default async function ShortLinkPage({ params, searchParams }: PageProps)
   }
 
   const apiRedirectPath = `${apiRedirectUrl.pathname}${apiRedirectUrl.search}`;
+  if (visitor.isAutomated) {
+    await logKnownShortLinkVisit(summaryLink.id, "bot_preview", visitor, visitor.suspiciousReason);
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-center text-white">
+      <PublicPageSecurityGuard />
       <div className="max-w-md space-y-3">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-200">
           Đang chuyển hướng an toàn
         </p>
         <p className="text-sm text-slate-300">
-          Hệ thống đang dẫn bạn qua lớp bảo vệ nội bộ trước khi mở liên kết đích.
+          Yêu cầu đang được chuyển qua lớp xử lý máy chủ trước khi mở liên kết đích.
         </p>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `window.location.replace(${JSON.stringify(apiRedirectPath)});`,
-          }}
-        />
-        <p className="text-xs text-slate-500">
-          Nếu trình duyệt không tự chuyển, hãy mở liên kết nội bộ sau: {apiRedirectPath}
-        </p>
+        <div className="pt-2">
+          <a
+            href={apiRedirectPath}
+            rel="nofollow"
+            className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-950 transition-transform hover:-translate-y-0.5"
+          >
+            Tiếp tục qua lớp bảo vệ
+          </a>
+        </div>
       </div>
     </main>
   );

@@ -7,7 +7,9 @@
 import { supabaseAdmin as supabase } from '@/lib/supabase/admin';
 import type { Database } from '@/lib/supabase/database.types';
 import { cached, invalidate, invalidatePrefix, TTL } from '@/lib/cache/db-cache';
+import { derivePaymentState } from '@/lib/domain/financial';
 import { loadRowsByIds } from '@/lib/supabase/relation-fallback';
+import { filterRowsBySearchQuery, hasSearchTokens, paginateRows } from '@/shared/lib/filtering/search';
 
 export type OrderRow = Database['public']['Tables']['orders']['Row'];
 type OrderInsert = Database['public']['Tables']['orders']['Insert'];
@@ -105,6 +107,18 @@ type CustomerContactRow = {
   value: string;
   is_verified: boolean;
   created_at: string;
+};
+
+type EnrichedOrderSearchRow = OrderRelationRow & {
+  customer: {
+    id: string;
+    full_name: string;
+    type: string | null;
+    customer_contacts: CustomerContactRow[];
+  } | null;
+  product: OrderProductRow | null;
+  payment_source: OrderPaymentSourceRow | null;
+  sales_channel: OrderSalesChannelRow | null;
 };
 
 async function loadOrderRelationMaps(
@@ -242,22 +256,28 @@ export async function listOrders(accountId: string): Promise<OrderRow[]> {
  */
 export async function getOrderWithItems(
   id: string,
-  accountId: string
+  accountId: string,
+  options: { includeDeleted?: boolean } = {},
 ): Promise<OrderWithItems | null> {
-  return loadOrderWithItemsFallback(id, accountId);
+  return loadOrderWithItemsFallback(id, accountId, options.includeDeleted ?? false);
 }
 
 async function loadOrderWithItemsFallback(
   id: string,
   accountId: string,
+  includeDeleted = false,
 ): Promise<OrderWithItems | null> {
-  const { data: orderData, error: orderError } = await supabase
+  let orderQuery = supabase
     .from('orders')
     .select('*')
     .eq('id', id)
-    .eq('account_id', accountId)
-    .is('deleted_at', null)
-    .single();
+    .eq('account_id', accountId);
+
+  if (!includeDeleted) {
+    orderQuery = orderQuery.is('deleted_at', null);
+  }
+
+  const { data: orderData, error: orderError } = await orderQuery.single();
 
   if (orderError || !orderData) {
     return null;
@@ -819,17 +839,16 @@ export interface GetOrdersParams {
   date_to?: string;
 }
 
-export async function getOrdersPaginated(
+function buildOrdersBaseQuery(
   accountId: string,
-  params: GetOrdersParams
+  params: Omit<GetOrdersParams, 'page' | 'limit' | 'search' | 'paymentState'>,
+  withCount = false,
 ) {
-  const page = params.page || 1;
-  const limit = params.limit || 10;
-  const offset = (page - 1) * limit;
+  let query = withCount
+    ? supabase.from('orders').select('*', { count: 'exact' })
+    : supabase.from('orders').select('*');
 
-  let query = supabase
-    .from('orders')
-    .select('*', { count: 'exact' })
+  query = query
     .eq('account_id', accountId)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
@@ -850,83 +869,91 @@ export async function getOrdersPaginated(
     query = query.lt('created_at', adjustEndDate(params.date_to));
   }
 
-  if (params.search) {
-    // Sanitize search input for PostgREST safety:
-    // 1. Strip PostgREST filter operators: ( ) ,
-    // 2. Escape ILIKE wildcards: % → \%  and  _ → \_
-    // 3. Keep dots, @, dashes, etc. for email/domain search
-    const stripped = params.search.replace(/[(),]/g, '').trim();
-    const sanitized = stripped.replace(/%/g, '\\%').replace(/_/g, '\\_');
-    if (stripped.length === 0) {
-      // If search becomes empty after sanitization, skip search filter
-    } else {
-      const orParts: string[] = [
-        `order_code.ilike.%${sanitized}%`,
-        `product_name_snapshot.ilike.%${sanitized}%`,
-      ];
+  return query;
+}
 
-      const looksLikeCustomerName = !/^[a-f0-9-]{8,}$/i.test(stripped);
-      const digitOnly = stripped.replace(/\D/g, '');
-      const contactSearchPatterns = new Set<string>([sanitized]);
-      if (digitOnly.length >= 9) {
-        contactSearchPatterns.add(digitOnly);
-        if (digitOnly.startsWith('84')) contactSearchPatterns.add(`0${digitOnly.slice(2)}`);
-        if (digitOnly.startsWith('0')) contactSearchPatterns.add(`84${digitOnly.slice(1)}`);
-      }
-
-      const contactPatternList = Array.from(contactSearchPatterns)
-        .filter(Boolean)
-        .slice(0, 3);
-
-      const [matchedCustomersResult, contactMatchesResults] = await Promise.all([
-        looksLikeCustomerName
-          ? supabase
-              .from('customers')
-              .select('id')
-              .eq('account_id', accountId)
-              .ilike('full_name', `%${sanitized}%`)
-              .limit(50)
-          : Promise.resolve({ data: [] as Array<{ id: string }>, error: null as null }),
-        Promise.all(
-          contactPatternList.map((pattern) =>
-            supabase
-              .from('customer_contacts')
-              .select('customer_id')
-              .ilike('value', `%${pattern}%`)
-              .limit(50),
-          ),
-        ),
-      ]);
-
-      if (matchedCustomersResult.error) {
-        throw new Error(matchedCustomersResult.error.message);
-      }
-
-      const customerIds = new Set<string>(
-        (matchedCustomersResult.data ?? [])
-          .map((customer) => customer.id)
-          .filter((id): id is string => Boolean(id)),
-      );
-
-      for (const result of contactMatchesResults) {
-        if (result.error) {
-          throw new Error(result.error.message);
-        }
-
-        for (const row of result.data ?? []) {
-          if (row.customer_id) {
-            customerIds.add(row.customer_id);
-          }
-        }
-      }
-
-      if (customerIds.size > 0) {
-        orParts.push(`customer_id.in.(${Array.from(customerIds).join(',')})`);
-      }
-
-      query = query.or(orParts.join(','));
-    }
+function matchesOrderPaymentState(
+  row: Pick<OrderRelationRow, 'total_amount_vnd' | 'total_paid'>,
+  paymentState?: string,
+) {
+  if (!paymentState) {
+    return true;
   }
+
+  return derivePaymentState(row.total_amount_vnd, row.total_paid) === paymentState;
+}
+
+async function getOrdersWithServerFilters(
+  accountId: string,
+  params: GetOrdersParams,
+) {
+  const page = params.page || 1;
+  const limit = params.limit || 10;
+  const { data, error } = await buildOrdersBaseQuery(
+    accountId,
+    {
+      customerId: params.customerId,
+      status: params.status,
+      date_from: params.date_from,
+      date_to: params.date_to,
+    },
+    false,
+  );
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const baseRows = (data ?? []) as OrderRelationRow[];
+  const maps = await loadOrderRelationMaps(accountId, baseRows, true);
+  const enrichedRows = attachOrderRelations(baseRows, maps, true) as EnrichedOrderSearchRow[];
+  const filteredBySearch = filterRowsBySearchQuery(
+    enrichedRows,
+    params.search ?? '',
+    (row) => [
+      row.id,
+      row.order_code,
+      row.product_name_snapshot,
+      row.status,
+      row.payment_method,
+      row.payment_terms,
+      row.customer?.full_name,
+      row.customer?.customer_contacts,
+      row.product?.name,
+      row.sales_channel?.name,
+      row.payment_source?.name,
+    ],
+  );
+
+  return paginateRows(
+    filteredBySearch.filter((row) => matchesOrderPaymentState(row, params.paymentState)),
+    page,
+    limit,
+  );
+}
+
+export async function getOrdersPaginated(
+  accountId: string,
+  params: GetOrdersParams
+) {
+  const page = params.page || 1;
+  const limit = params.limit || 10;
+  const offset = (page - 1) * limit;
+
+  if (hasSearchTokens(params.search ?? '') || params.paymentState) {
+    return getOrdersWithServerFilters(accountId, params);
+  }
+
+  let query = buildOrdersBaseQuery(
+    accountId,
+    {
+      customerId: params.customerId,
+      status: params.status,
+      date_from: params.date_from,
+      date_to: params.date_to,
+    },
+    true,
+  );
 
   query = query.range(offset, offset + limit - 1);
 

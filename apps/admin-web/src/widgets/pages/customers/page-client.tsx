@@ -10,6 +10,7 @@ import { AppLayout } from "@/widgets/layout/app-layout";
 import { PageContainer } from "@/shared/ui/page-layout";
 import type { Customer } from "@/lib/domain/types";
 import { vi } from "@/shared/messages/vi";
+import { hasSearchTokens, matchesSearchQuery } from "@/shared/lib/filtering/search";
 import {
   useCustomers,
   useUpdateCustomer,
@@ -36,7 +37,6 @@ const BatchActionBar = dynamic(() => import("@/widgets/pages/customers/component
 const CustomerDetailDrawer = dynamic(() => import("@/widgets/pages/customers/components/customer-detail-drawer").then((m) => ({ default: m.CustomerDetailDrawer })), { ssr: false });
 
 export default function CustomersPage() {
-  const { data: customers = [], isLoading } = useCustomers();
   const { mutateAsync: updateCustomer } = useUpdateCustomer();
   const { mutateAsync: deleteCustomer } = useDeleteCustomer();
   const { mutateAsync: batchDelete, isPending: isBatchDeleting } = useBatchDeleteCustomers();
@@ -77,6 +77,7 @@ export default function CustomersPage() {
   const [pageSize, setPageSize] = useState(20);
   const debouncedQuery = useDebounce(searchQuery, 300);
   const deferredQuery = useDeferredValue(debouncedQuery);
+  const { data: customers = [], isLoading } = useCustomers(deferredQuery);
 
   const filteredCustomers = useMemo(
     () =>
@@ -86,16 +87,27 @@ export default function CustomersPage() {
         if (segmentFilter && customer.segment !== segmentFilter) return false;
         if (groupFilter && customer.group_id !== groupFilter) return false;
         if (tagFilter && !(customer.tags ?? []).some((tag) => tag.id === tagFilter)) return false;
-        if (!deferredQuery) return true;
+        if (!hasSearchTokens(deferredQuery)) return true;
 
-        const query = deferredQuery.toLowerCase();
-        return customer.name.toLowerCase().includes(query) || customer.contacts.some((contact) => contact.value.toLowerCase().includes(query));
+        return matchesSearchQuery(
+          deferredQuery,
+          customer.name,
+          customer.contacts,
+        );
       }),
     [customers, debtOnly, typeFilter, segmentFilter, groupFilter, tagFilter, deferredQuery]
   );
 
-  const selectedCount = selectedIds.size;
-  const allFilteredSelected = filteredCustomers.length > 0 && filteredCustomers.every((customer) => selectedIds.has(customer.id));
+  const filteredCustomerIds = useMemo(
+    () => filteredCustomers.map((customer) => customer.id),
+    [filteredCustomers],
+  );
+  const selectedCustomerIds = useMemo(
+    () => Array.from(selectedIds),
+    [selectedIds],
+  );
+  const selectedCount = selectedCustomerIds.length;
+  const allFilteredSelected = filteredCustomerIds.length > 0 && filteredCustomerIds.every((id) => selectedIds.has(id));
   const totalElements = filteredCustomers.length;
   const pageCount = Math.ceil(totalElements / pageSize);
 
@@ -201,17 +213,17 @@ export default function CustomersPage() {
 
   const handleBatchDeleteStart = useCallback(async () => {
     try {
-      const deps = await checkDeps(Array.from(selectedIds));
+      const deps = await checkDeps(selectedCustomerIds);
       setBatchDepInfo(deps);
     } catch {
       setBatchDepInfo(null);
     }
     setShowBatchDeleteConfirm(true);
-  }, [checkDeps, selectedIds]);
+  }, [checkDeps, selectedCustomerIds]);
 
   const handleBatchDeleteConfirm = useCallback(async () => {
     try {
-      const result = await batchDelete(Array.from(selectedIds));
+      const result = await batchDelete(selectedCustomerIds);
       appToast.success(vi.customers.toast.bulkDeleted(result.deletedCount));
       setSelectedIds(new Set());
       setShowBatchDeleteConfirm(false);
@@ -219,38 +231,38 @@ export default function CustomersPage() {
     } catch {
       appToast.error(vi.customers.toast.bulkDeleteError);
     }
-  }, [batchDelete, selectedIds]);
+  }, [batchDelete, selectedCustomerIds]);
 
   const handleBatchTypeConfirm = useCallback(async (tier: "retail" | "wholesale" | "agency") => {
     try {
-      const result = await batchUpdateTier({ customerIds: Array.from(selectedIds), customerType: tier });
+      const result = await batchUpdateTier({ customerIds: selectedCustomerIds, customerType: tier });
       appToast.success(vi.customers.toast.bulkUpdated(result.updatedCount));
       setSelectedIds(new Set());
       setShowBatchTierModal(false);
     } catch {
       appToast.error(vi.customers.toast.bulkUpdateError);
     }
-  }, [batchUpdateTier, selectedIds]);
+  }, [batchUpdateTier, selectedCustomerIds]);
 
   const handleAssignToGroup = useCallback(async (groupId: string) => {
     try {
-      await assignToGroupMutateAsync({ groupId, customerIds: Array.from(selectedIds) });
+      await assignToGroupMutateAsync({ groupId, customerIds: selectedCustomerIds });
       setSelectedIds(new Set());
       setShowGroupModal(false);
     } catch {
       // handled by hook
     }
-  }, [assignToGroupMutateAsync, selectedIds]);
+  }, [assignToGroupMutateAsync, selectedCustomerIds]);
 
   const handleBatchTagAssign = useCallback(async (tagId: string) => {
     try {
-      await batchAssignTagMutateAsync({ customerIds: Array.from(selectedIds), tagId });
+      await batchAssignTagMutateAsync({ customerIds: selectedCustomerIds, tagId });
       setSelectedIds(new Set());
       setShowBatchTagModal(false);
     } catch {
       // handled by hook
     }
-  }, [batchAssignTagMutateAsync, selectedIds]);
+  }, [batchAssignTagMutateAsync, selectedCustomerIds]);
 
   const handleClearDebt = useCallback(async (id: string) => {
     try {
@@ -290,8 +302,8 @@ export default function CustomersPage() {
   }, []);
 
   const toggleSelectAll = useCallback(() => {
-    setSelectedIds(allFilteredSelected ? new Set() : new Set(filteredCustomers.map((customer) => customer.id)));
-  }, [allFilteredSelected, filteredCustomers]);
+    setSelectedIds(allFilteredSelected ? new Set() : new Set(filteredCustomerIds));
+  }, [allFilteredSelected, filteredCustomerIds]);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
@@ -335,7 +347,7 @@ export default function CustomersPage() {
 
         <CustomerKpiCards customers={customers} />
 
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
           <button
             onClick={handleToggleStats}
             className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-[12px] font-bold transition-all ${
@@ -353,21 +365,23 @@ export default function CustomersPage() {
             <FolderPlus className="size-3.5" />
             {showGroupTag ? vi.customers.page.hideGroupsAndTags : vi.customers.page.manageGroupsAndTags}
           </button>
-          <div className="ml-auto flex items-center gap-1">
-            {(["vip", "loyal", "regular", "at_risk", "churned"] as const).map((seg) => (
-              <button
-                key={seg}
-                data-segment={seg}
-                onClick={handleSegmentFilterClick}
-                className={`cursor-pointer rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
-                  segmentFilter === seg
-                    ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-                    : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:bg-gray-50"
-                }`}
-              >
-                <RfmBadge segment={seg} size="sm" />
-              </button>
-            ))}
+          <div className="min-w-0 w-full md:ml-auto md:w-auto">
+            <div className="flex max-w-full items-center gap-1 overflow-x-auto pb-1 md:justify-end md:overflow-visible md:pb-0">
+              {(["vip", "loyal", "regular", "at_risk", "churned"] as const).map((seg) => (
+                <button
+                  key={seg}
+                  data-segment={seg}
+                  onClick={handleSegmentFilterClick}
+                  className={`cursor-pointer whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
+                    segmentFilter === seg
+                      ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                      : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:bg-gray-50"
+                  }`}
+                >
+                  <RfmBadge segment={seg} size="sm" />
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

@@ -1,13 +1,31 @@
 import type { NextConfig } from "next";
 
+const publicShortLinkCsp = [
+  "default-src 'self'",
+  "base-uri 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "object-src 'none'",
+  "img-src 'self' https: data: blob:",
+  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+  "style-src 'self' 'unsafe-inline' https:",
+  "font-src 'self' https: data:",
+  "connect-src 'self'",
+  "frame-src 'none'",
+  "manifest-src 'self'",
+].join("; ");
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   // Standalone output for Docker/DigitalOcean deployment only.
   // Set BUILD_STANDALONE=true in Docker/DO build env.
   // Netlify/Vercel must NOT use standalone (conflicts with their adapters).
   ...(process.env.BUILD_STANDALONE === "true" ? { output: "standalone" as const } : {}),
   experimental: {
     // Optimize barrels for heavy libraries
+    workerThreads: true,
     optimizePackageImports: [
       "framer-motion",
       "recharts",
@@ -31,6 +49,12 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-XSS-Protection", value: "1; mode=block" },
+          { key: "Permissions-Policy", value: "accelerometer=(), autoplay=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), microphone=(), midi=(), payment=(), usb=(), clipboard-read=(), clipboard-write=()" },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+          { key: "Origin-Agent-Cluster", value: "?1" },
+          { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+          { key: "X-DNS-Prefetch-Control", value: "off" },
         ],
       },
       // Short link redirect pages — maximum privacy (no-referrer)
@@ -41,6 +65,7 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, private" },
           { key: "Pragma", value: "no-cache" },
           { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Content-Security-Policy", value: publicShortLinkCsp },
         ],
       },
       // API short link redirect legacy — same privacy

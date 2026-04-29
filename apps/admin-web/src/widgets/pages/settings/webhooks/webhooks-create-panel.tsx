@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, Zap } from "lucide-react";
+import { Globe } from "lucide-react";
 import { appToast } from "@/shared/lib/toast";
 import { vi } from "@/shared/messages/vi";
-import { SectionCard } from "@/shared/ui/section-card";
+import { Input } from "@/shared/ui/input";
+import {
+  CreateActionFooter,
+  CreateFlowShell,
+  CreateFormSection,
+} from "@/shared/ui/create-flow-shell";
 import type { WebhookEvent } from "@/lib/domain/types";
 
 const ALL_EVENTS: { value: WebhookEvent; label: string; icon: string }[] = [
@@ -15,7 +20,7 @@ const ALL_EVENTS: { value: WebhookEvent; label: string; icon: string }[] = [
   { value: "customer.created", label: vi.settings.webhooks.events.customerCreated, icon: "👤" },
   { value: "inventory.allocated", label: vi.settings.webhooks.events.inventoryAllocated, icon: "📋" },
   { value: "payment.received", label: vi.settings.webhooks.events.paymentReceived, icon: "💰" },
-];
+] as const;
 
 type WebhooksCreatePanelProps = {
   open: boolean;
@@ -25,7 +30,7 @@ type WebhooksCreatePanelProps = {
 };
 
 function toggleEvent(list: WebhookEvent[], event: WebhookEvent): WebhookEvent[] {
-  return list.includes(event) ? list.filter((e) => e !== event) : [...list, event];
+  return list.includes(event) ? list.filter((current) => current !== event) : [...list, event];
 }
 
 export function WebhooksCreatePanel({
@@ -72,73 +77,82 @@ function WebhooksCreatePanelContent({
       setNewEvents([]);
       onClose();
     } catch {
-      // Error feedback is handled by the parent page.
+      // Parent page already handles toast/error state.
     }
   }
 
   return (
-    <SectionCard title={`➕ ${vi.settings.webhooks.createPanel.title}`} description={vi.settings.webhooks.createPanel.description}>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-[11px] font-bold text-[var(--fg-muted)] mb-1.5 uppercase tracking-wider">
+    <CreateFlowShell
+      title={vi.settings.webhooks.createPanel.title}
+      description={vi.settings.webhooks.createPanel.description}
+      footer={
+        <CreateActionFooter
+          primaryLabel={vi.settings.webhooks.createPanel.create}
+          onPrimary={() => {
+            void handleSubmit();
+          }}
+          onCancel={onClose}
+          cancelLabel={vi.settings.webhooks.createPanel.cancel}
+          pending={creating}
+          disabled={!newUrl.trim() || newEvents.length === 0}
+        />
+      }
+    >
+      <CreateFormSection
+        title="Endpoint nhận dữ liệu"
+        description="Dán URL đích thật rõ để test delivery, retry và audit trail từ đúng nơi nhận."
+      >
+        <div className="space-y-2">
+          <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
             {vi.settings.webhooks.createPanel.endpointLabel}
           </label>
           <div className="flex items-center gap-2">
             <Globe className="size-4 text-[var(--fg-muted)]" />
-            <input
+            <Input
               value={newUrl}
-              onChange={(e) => setNewUrl(e.target.value)}
+              onChange={(event) => setNewUrl(event.target.value)}
               placeholder={vi.settings.webhooks.createPanel.endpointPlaceholder}
-              className="flex-1 border border-[var(--border-soft)] rounded-xl bg-white px-4 py-2.5 text-[13px] font-mono outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15"
+              name="webhook-endpoint"
+              type="url"
+              autoComplete="off"
+              spellCheck={false}
+              className="h-11 flex-1 font-mono"
             />
           </div>
         </div>
+      </CreateFormSection>
 
+      <CreateFormSection
+        title="Sự kiện cần subscribe"
+        description="Chỉ chọn các event thực sự cần gửi để queue webhook không bị nhiễu và dễ debug."
+      >
         <div>
-          <label className="block text-[11px] font-bold text-[var(--fg-muted)] mb-2 uppercase tracking-wider">
+          <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
             {vi.settings.webhooks.createPanel.eventsLabel}
           </label>
           <div className="flex flex-wrap gap-2">
-            {ALL_EVENTS.map((evt) => {
-              const selected = newEvents.includes(evt.value);
+            {ALL_EVENTS.map((eventItem) => {
+              const selected = newEvents.includes(eventItem.value);
               return (
                 <button
-                  key={evt.value}
-                  onClick={() => setNewEvents(toggleEvent(newEvents, evt.value))}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-all duration-200 ${
+                  key={eventItem.value}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setNewEvents(toggleEvent(newEvents, eventItem.value))}
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-bold transition-all duration-200 ${
                     selected
                       ? "bg-[var(--accent)] text-white shadow-sm"
-                      : "bg-white border border-[var(--border-soft)] text-[var(--fg-muted)] hover:border-[var(--accent)]/40"
+                      : "border border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:border-[var(--accent)]/40"
                   }`}
-                  type="button"
                 >
-                  <span>{evt.icon}</span>
-                  {evt.label}
+                  <span>{eventItem.icon}</span>
+                  {eventItem.label}
                 </button>
               );
             })}
           </div>
         </div>
-
-        <div className="flex justify-end gap-2 pt-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-[12px] font-bold text-[var(--fg-muted)] hover:text-[var(--fg-base)] transition-colors"
-            type="button"
-          >
-            {vi.settings.webhooks.createPanel.cancel}
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={creating}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[var(--accent)] text-white rounded-xl text-[12px] font-bold disabled:opacity-50 hover:opacity-90 transition-all shadow-md shadow-[var(--accent)]/20"
-            type="button"
-          >
-            <Zap className="size-3.5" />
-            {creating ? vi.settings.webhooks.createPanel.creating : vi.settings.webhooks.createPanel.create}
-          </button>
-        </div>
-      </div>
-    </SectionCard>
+      </CreateFormSection>
+    </CreateFlowShell>
   );
 }

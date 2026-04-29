@@ -33,7 +33,7 @@ describe("withAccount", () => {
     const handler = vi.fn();
     const wrapped = withAccount(handler);
     const req = makeRequest();
-    const res = await wrapped(req, { params: {} });
+    const res = await wrapped(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(401);
     expect(handler).not.toHaveBeenCalled();
   });
@@ -56,7 +56,7 @@ describe("withAccount", () => {
       authorization: "Bearer valid-token",
     });
 
-    await wrapped(req, { params: {} });
+    await wrapped(req, { params: Promise.resolve({}) });
     expect(handler).toHaveBeenCalled();
     const callCtx = handler.mock.calls[0][1];
     expect(callCtx.accountId).toBe("acc-jwt");
@@ -79,7 +79,7 @@ describe("withAccount", () => {
 
     // Since JWT accountId != header accountId, it falls through to session
     // Session mock not set, so it should return 401
-    const res = await wrapped(req, { params: {} });
+    const res = await wrapped(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(401);
   });
 
@@ -91,33 +91,33 @@ describe("withAccount", () => {
     const handler = vi.fn();
     const wrapped = withAccount(handler);
     const req = makeRequest("http://localhost/api/test", {
-      "x-account-id": "acc-1",
+      "x-account-id": "00000000-0000-4000-8000-000000000016",
       authorization: "Bearer bad-token",
     });
 
-    const res = await wrapped(req, { params: {} });
+    const res = await wrapped(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(401);
   });
 
   it("passes params through to handler", async () => {
     vi.mocked(verifyToken).mockReturnValue({
       sub: "u1",
-      accountId: "acc-1",
+      accountId: "00000000-0000-4000-8000-000000000016",
       role: "admin",
       email: "a@b.com",
     });
 
-    const handler = vi.fn().mockImplementation((_req, ctx) => {
-      return new Response(JSON.stringify(ctx.params));
+    const handler = vi.fn().mockImplementation(async (_req, ctx) => {
+      return new Response(JSON.stringify(await ctx.params));
     });
 
-    const wrapped = withAccount(handler);
+    const wrapped = withAccount<{ id: string }>(handler);
     const req = makeRequest("http://localhost/api/test", {
-      "x-account-id": "acc-1",
+      "x-account-id": "00000000-0000-4000-8000-000000000016",
       authorization: "Bearer token",
     });
 
-    await wrapped(req, { params: { id: "123" } });
-    expect(handler.mock.calls[0][1].params).toEqual({ id: "123" });
+    await wrapped(req, { params: Promise.resolve({ id: "123" }) });
+    await expect(handler.mock.calls[0][1].params).resolves.toEqual({ id: "123" });
   });
 });

@@ -5,7 +5,7 @@ import { buildCustomerProfileInsights } from "./profile-insights";
 
 function buildOrder(overrides: Partial<CustomerOrder>): CustomerOrder {
   return {
-    id: "order-1",
+    id: "00000000-0000-4000-8000-00000000005b",
     status: "paid",
     payment_method: "bank_transfer",
     payment_terms: "paid",
@@ -22,7 +22,7 @@ function buildOrder(overrides: Partial<CustomerOrder>): CustomerOrder {
 
 function buildStats(overrides: Partial<Customer360Stats>): Customer360Stats {
   return {
-    customerId: "customer-1",
+    customerId: "00000000-0000-4000-8000-00000000005c",
     totalOrders: 3,
     totalSpentVnd: 900000,
     avgOrderValueVnd: 300000,
@@ -51,26 +51,26 @@ function buildStats(overrides: Partial<Customer360Stats>): Customer360Stats {
 describe("buildCustomerProfileInsights", () => {
   it("prioritizes debt follow-up and open pipeline review when the customer still owes money", () => {
     const insights = buildCustomerProfileInsights({
-      customerId: "customer-1",
+      customerId: "00000000-0000-4000-8000-00000000005c",
       customerName: "Nguyen Van A",
       stats: buildStats({}),
       orders: [
         buildOrder({
-          id: "order-1",
+          id: "00000000-0000-4000-8000-00000000005b",
           status: "pending_payment",
           total_amount: 400000,
           total_paid: 100000,
           created_at: "2026-04-20T00:00:00.000Z",
         }),
         buildOrder({
-          id: "order-2",
+          id: "00000000-0000-4000-8000-0000000000c5",
           status: "provisioning",
           total_amount: 300000,
           total_paid: 250000,
           created_at: "2026-04-15T00:00:00.000Z",
         }),
         buildOrder({
-          id: "order-3",
+          id: "00000000-0000-4000-8000-000000000175",
           status: "paid",
           total_amount: 200000,
           total_paid: 200000,
@@ -99,7 +99,7 @@ describe("buildCustomerProfileInsights", () => {
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
 
     const insights = buildCustomerProfileInsights({
-      customerId: "customer-1",
+      customerId: "00000000-0000-4000-8000-00000000005c",
       customerName: "Nguyen Van A",
       stats: buildStats({
         totalSpentVnd: 400000,
@@ -111,11 +111,11 @@ describe("buildCustomerProfileInsights", () => {
       }),
       orders: [
         buildOrder({
-          id: "order-1",
+          id: "00000000-0000-4000-8000-00000000005b",
           created_at: sixtyDaysAgo,
         }),
         buildOrder({
-          id: "order-2",
+          id: "00000000-0000-4000-8000-0000000000c5",
           created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
         }),
       ],
@@ -128,7 +128,7 @@ describe("buildCustomerProfileInsights", () => {
 
   it("falls back to a stable profile action when there is no debt or pipeline risk", () => {
     const insights = buildCustomerProfileInsights({
-      customerId: "customer-1",
+      customerId: "00000000-0000-4000-8000-00000000005c",
       customerName: "Nguyen Van A",
       stats: buildStats({
         totalSpentVnd: 500000,
@@ -139,7 +139,7 @@ describe("buildCustomerProfileInsights", () => {
       }),
       orders: [
         buildOrder({
-          id: "order-1",
+          id: "00000000-0000-4000-8000-00000000005b",
           created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
         }),
       ],

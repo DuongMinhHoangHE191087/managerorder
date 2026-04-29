@@ -39,6 +39,67 @@ function extractDuoUsername(raw: string): string | null {
   return u;
 }
 
+function pickDuolingoUser(users: any[], username: string) {
+  const lowerUsername = username.toLowerCase();
+  return (
+    users.find((u: any) => String(u.username ?? "").toLowerCase() === lowerUsername) ??
+    users[0] ??
+    null
+  );
+}
+
+function splitProductsByStatus<T extends { is_active: boolean }>(products: T[]) {
+  const active: T[] = [];
+  const inactive: T[] = [];
+
+  for (const product of products) {
+    (product.is_active ? active : inactive).push(product);
+  }
+
+  return { active, inactive };
+}
+
+function summarizeSourceAccounts<
+  T extends {
+    expires_at?: string | null;
+    used_slots?: number | null;
+    max_slots?: number | null;
+  },
+>(sourceAccounts: T[] = [], now = new Date()) {
+  const active: T[] = [];
+  const withSlots: T[] = [];
+  let totalFree = 0;
+
+  for (const item of sourceAccounts) {
+    const expiresAt = item.expires_at ? new Date(item.expires_at) : null;
+    if (expiresAt && !(expiresAt > now)) {
+      continue;
+    }
+
+    active.push(item);
+
+    const freeSlots = Number(item.max_slots ?? 0) - Number(item.used_slots ?? 0);
+    if (freeSlots > 0) {
+      withSlots.push(item);
+      totalFree += freeSlots;
+    }
+  }
+
+  return { active, withSlots, totalFree };
+}
+
+function collectActiveNicknames<T extends { customer_nick_used?: string | null }>(items: T[] = []) {
+  const activeNicks: string[] = [];
+
+  for (const item of items) {
+    if (item.customer_nick_used) {
+      activeNicks.push(item.customer_nick_used);
+    }
+  }
+
+  return activeNicks;
+}
+
 /** Safe Fetch with Timeout Helper */
 async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 10000) {
   const controller = new AbortController();
@@ -74,7 +135,7 @@ async function duoStrategy1(username: string): Promise<any | null> {
     }
     const data = await res.json();
     const users = Array.isArray(data?.users) ? data.users : [];
-    let user = users.find((u: any) => String(u.username ?? "").toLowerCase() === username.toLowerCase());
+    let user = pickDuolingoUser(users, username);
     
     // Fallback: take first match if exists
     if (!user && users.length > 0) user = users[0];
@@ -154,8 +215,7 @@ async function duoStrategy4(username: string): Promise<any | null> {
     }
     const data = await res.json();
     const users = Array.isArray(data?.users) ? data.users : [];
-    let user = users.find((u: any) => String(u.username ?? "").toLowerCase() === username.toLowerCase());
-    if (!user && users.length > 0) user = users[0];
+    const user = pickDuolingoUser(users, username);
     if (user?.id) return user;
   } catch (err: any) {
     console.log(`[DuoBot] Strategy 4 error:`, err.message);
@@ -454,8 +514,7 @@ export const handleProductsCommand: BotHandler = async (ctx) => {
     else await sendKb(chatId, msg, kb);
     return;
   }
-  const active = products.filter(p => p.is_active);
-  const inactive = products.filter(p => !p.is_active);
+  const { active, inactive } = splitProductsByStatus(products);
   const lines: string[] = [];
   if (active.length) {
     lines.push(`<blockquote><b>🟢 Đang bán (${active.length})</b>`);
@@ -529,7 +588,10 @@ export const handleCredsCommand: BotHandler = async (ctx) => {
     if (!pids.length) pMap.set('__none__', (pMap.get('__none__') ?? 0) + 1);
     for (const pid of pids) pMap.set(pid, (pMap.get(pid) ?? 0) + 1);
   }
-  const pIds = [...pMap.keys()].filter(k => k !== '__none__');
+  const pIds: string[] = [];
+  for (const pid of pMap.keys()) {
+    if (pid !== '__none__') pIds.push(pid);
+  }
   const nMap = new Map<string, string>();
   if (pIds.length) {
     const { data: ps } = await supabaseAdmin.from('products').select('id, name').eq('account_id', accountId).in('id', pIds);
@@ -655,16 +717,17 @@ export const handleProductViewCallback: BotHandler = async (ctx) => {
     return;
   }
 
-  const { data: khoAccs } = await supabaseAdmin.from('source_accounts')
-    .select('id, email, max_slots, used_slots, expires_at, reserved_nicks')
-    .eq('account_id', accountId).is('deleted_at', null).contains('product_ids', [productId]).order('expires_at', { ascending: false }).limit(30);
-  const { count: orderCount } = await supabaseAdmin.from('order_items')
-    .select('id', { count: 'exact', head: true }).eq('product_id', productId);
+  const [{ data: khoAccs }, { count: orderCount }] = await Promise.all([
+    supabaseAdmin.from('source_accounts')
+      .select('id, email, max_slots, used_slots, expires_at, reserved_nicks')
+      .eq('account_id', accountId).is('deleted_at', null).contains('product_ids', [productId]).order('expires_at', { ascending: false }).limit(30),
+    supabaseAdmin.from('order_items')
+      .select('id', { count: 'exact', head: true }).eq('product_id', productId),
+  ]);
 
+  const sourceAccounts = khoAccs ?? [];
   const now = new Date();
-  const active = (khoAccs ?? []).filter(k => !k.expires_at || new Date(k.expires_at) > now);
-  const withSlots = active.filter(k => k.used_slots < k.max_slots);
-  const totalFree = withSlots.reduce((s, k) => s + (k.max_slots - k.used_slots), 0);
+  const { withSlots, totalFree } = summarizeSourceAccounts(sourceAccounts, now);
 
   const sections: string[] = [
     modernHeader(`SẢN PHẨM`, '📦'),
@@ -677,7 +740,7 @@ export const handleProductViewCallback: BotHandler = async (ctx) => {
     ``,
     modernHeader(`KHO HÀNG`, '📊'),
     ``,
-    `<blockquote>${modernDetail('Tổng TK', `${(khoAccs ?? []).length}`, '📧')}`,
+    `<blockquote>${modernDetail('Tổng TK', `${sourceAccounts.length}`, '📧')}`,
     modernDetail(`Có slot`, `${withSlots.length}`, '✅'),
     modernDetail(`Slot trống`, `${totalFree}`, '🆓'),
     `</blockquote>`
@@ -728,21 +791,22 @@ async function formatAndSendCreds(chatId: number, acc: Record<string, any>, mess
   const twoFA = notesObj.twoFA ?? notesObj['2fa'] ?? null;
   const extraNotes = notesObj.text ?? notesObj.note ?? null;
 
-  const { data: linkedItems } = await supabaseAdmin.from('order_items')
-    .select('customer_nick_used, status, product_name_snapshot')
-    .eq('assigned_source_account_id', acc.id).limit(20);
+  const [linkedItemsResult, productsResult, providerResult] = await Promise.all([
+    supabaseAdmin.from('order_items')
+      .select('customer_nick_used, status, product_name_snapshot')
+      .eq('assigned_source_account_id', acc.id)
+      .limit(20),
+    productIds.length > 0
+      ? supabaseAdmin.from('products').select('id, name').eq('account_id', acc.account_id).in('id', productIds)
+      : Promise.resolve({ data: [] as { name: string }[] }),
+    acc.provider
+      ? supabaseAdmin.from('providers').select('id, name').eq('account_id', acc.account_id).eq('id', acc.provider).is('deleted_at', null).maybeSingle()
+      : Promise.resolve({ data: null as { name: string } | null }),
+  ]);
 
-  let productNames: string[] = [];
-  if (productIds.length > 0) {
-    const { data: products } = await supabaseAdmin.from('products').select('id, name').eq('account_id', acc.account_id).in('id', productIds);
-    productNames = (products ?? []).map((p: any) => p.name);
-  }
-
-  let providerDisplay = escapeHtml(acc.provider ?? 'N/A');
-  if (acc.provider) {
-    const { data: matched } = await supabaseAdmin.from('providers').select('id, name').eq('account_id', acc.account_id).eq('id', acc.provider).is('deleted_at', null).maybeSingle();
-    if (matched) providerDisplay = escapeHtml(matched.name);
-  }
+  const linkedItems = linkedItemsResult.data ?? [];
+  const productNames = (productsResult.data ?? []).map((p: { name: string }) => p.name);
+  const providerDisplay = providerResult.data?.name ? escapeHtml(providerResult.data.name) : escapeHtml(acc.provider ?? 'N/A');
 
   const maskValue = (val: string) => val.length <= 3 ? '***' : val.slice(0, 2) + '•'.repeat(Math.min(val.length - 2, 8));
 
@@ -754,7 +818,7 @@ async function formatAndSendCreds(chatId: number, acc: Record<string, any>, mess
     `📅 <b>Hạn:</b> ${formatDate(acc.expires_at)} (còn ${daysUntil(acc.expires_at)} ngày)`,
   ];
   if (nicks.length) sections.push(`🏷 <b>Nick:</b> <code>${escapeHtml(nicks.join(', '))}</code>`);
-  const activeNicks = (linkedItems ?? []).filter((i: any) => i.customer_nick_used).map((i: any) => i.customer_nick_used);
+  const activeNicks = collectActiveNicknames(linkedItems);
   if (activeNicks.length) sections.push(`👥 <b>Nick đang dùng:</b> <code>${escapeHtml(activeNicks.join(', '))}</code>`);
   if (productNames.length) sections.push(`📦 <b>SP:</b> ${productNames.map(n => escapeHtml(n)).join(', ')}`);
   sections.push(`</blockquote>`);
@@ -865,10 +929,9 @@ export const handleScopedProductViewCallback: BotHandler = async (ctx) => {
     supabaseAdmin.from('order_items').select('id', { count: 'exact', head: true }).eq('product_id', productId),
   ]);
 
+  const sourceAccounts = khoAccs ?? [];
   const now = new Date();
-  const active = (khoAccs ?? []).filter((item) => !item.expires_at || new Date(item.expires_at) > now);
-  const withSlots = active.filter((item) => item.used_slots < item.max_slots);
-  const totalFree = withSlots.reduce((sum, item) => sum + (item.max_slots - item.used_slots), 0);
+  const { withSlots, totalFree } = summarizeSourceAccounts(sourceAccounts, now);
 
   const sections: string[] = [
     modernHeader('SẢN PHẨM', '📦'),
@@ -881,7 +944,7 @@ export const handleScopedProductViewCallback: BotHandler = async (ctx) => {
     '',
     modernHeader('KHO HÀNG', '📊'),
     '',
-    `<blockquote>${modernDetail('Tổng TK', `${(khoAccs ?? []).length}`, '📧')}`,
+    `<blockquote>${modernDetail('Tổng TK', `${sourceAccounts.length}`, '📧')}`,
     modernDetail('Có slot', `${withSlots.length}`, '✅'),
     modernDetail('Slot trống', `${totalFree}`, '🆓'),
     `</blockquote>`,

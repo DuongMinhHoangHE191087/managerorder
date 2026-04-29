@@ -10,7 +10,7 @@ import { supabaseAdmin as supabase } from '@/lib/supabase/admin';
 import type { Database } from '@/lib/supabase/database.types';
 import { cached, invalidate, TTL } from '@/lib/cache/db-cache';
 import { ConflictError, SchemaNotInitializedError } from '@/lib/utils/errors';
-import { isMissingRelationError } from '@/lib/supabase/schema-errors';
+import { isMissingColumnError, isMissingRelationError } from '@/lib/supabase/schema-errors';
 
 type PaymentSourceRow = Database['public']['Tables']['payment_sources']['Row'];
 export type SalesChannelRow = Database['public']['Tables']['sales_channels']['Row'];
@@ -144,6 +144,8 @@ export async function createSalesChannel(
     name: string;
     defaultDeliveryMode: "direct_redirect" | "landing_page";
     defaultLandingTemplateKey: "owner_intro" | "ctv_neutral";
+    defaultFailureTemplateKey?: "seller_unlock_request" | "customer_offer_wall";
+    sellerContactUrl?: string | null;
   }
 ): Promise<SalesChannelRow> {
   const { data, error } = await supabase
@@ -153,6 +155,8 @@ export async function createSalesChannel(
       account_id: accountId,
       default_delivery_mode: input.defaultDeliveryMode,
       default_landing_template_key: input.defaultLandingTemplateKey,
+      default_failure_template_key: input.defaultFailureTemplateKey ?? "customer_offer_wall",
+      seller_contact_url: input.sellerContactUrl ?? null,
     })
     .select()
     .single();
@@ -161,6 +165,19 @@ export async function createSalesChannel(
       throw new SchemaNotInitializedError(
         'Tính năng kênh bán chưa được khởi tạo trong cơ sở dữ liệu',
         { relation: 'sales_channels' },
+      );
+    }
+    if (
+      isMissingColumnError(error, 'default_failure_template_key', 'sales_channels')
+      || isMissingColumnError(error, 'seller_contact_url', 'sales_channels')
+    ) {
+      throw new SchemaNotInitializedError(
+        'Cấu hình template lỗi công khai của kênh bán chưa dùng được vì cơ sở dữ liệu chưa được nâng cấp',
+        {
+          relation: 'sales_channels',
+          missingColumns: ['default_failure_template_key', 'seller_contact_url'],
+          operation: 'create',
+        },
       );
     }
     throw new Error(error.message);
@@ -176,6 +193,8 @@ export async function updateSalesChannel(
     name?: string;
     defaultDeliveryMode?: "direct_redirect" | "landing_page";
     defaultLandingTemplateKey?: "owner_intro" | "ctv_neutral";
+    defaultFailureTemplateKey?: "seller_unlock_request" | "customer_offer_wall";
+    sellerContactUrl?: string | null;
   }
 ): Promise<SalesChannelRow> {
   const updatePayload: Database['public']['Tables']['sales_channels']['Update'] = {
@@ -191,6 +210,12 @@ export async function updateSalesChannel(
   if (input.defaultLandingTemplateKey !== undefined) {
     updatePayload.default_landing_template_key = input.defaultLandingTemplateKey;
   }
+  if (input.defaultFailureTemplateKey !== undefined) {
+    updatePayload.default_failure_template_key = input.defaultFailureTemplateKey;
+  }
+  if (input.sellerContactUrl !== undefined) {
+    updatePayload.seller_contact_url = input.sellerContactUrl;
+  }
 
   const { data, error } = await supabase
     .from('sales_channels')
@@ -204,6 +229,19 @@ export async function updateSalesChannel(
       throw new SchemaNotInitializedError(
         'Tính năng kênh bán chưa được khởi tạo trong cơ sở dữ liệu',
         { relation: 'sales_channels' },
+      );
+    }
+    if (
+      isMissingColumnError(error, 'default_failure_template_key', 'sales_channels')
+      || isMissingColumnError(error, 'seller_contact_url', 'sales_channels')
+    ) {
+      throw new SchemaNotInitializedError(
+        'Cấu hình template lỗi công khai của kênh bán chưa dùng được vì cơ sở dữ liệu chưa được nâng cấp',
+        {
+          relation: 'sales_channels',
+          missingColumns: ['default_failure_template_key', 'seller_contact_url'],
+          operation: 'update',
+        },
       );
     }
     throw new Error(error.message);

@@ -11,7 +11,7 @@ const model: CustomerStatsDashboardModel = {
   avgReliabilityScore: 84,
   topDebtors: [
     {
-      id: "customer-1",
+      id: "00000000-0000-4000-8000-00000000005c",
       name: "Tran Thi B",
       debtAmountVnd: 500000,
       overdueDays: 12,

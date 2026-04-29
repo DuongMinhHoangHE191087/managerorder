@@ -59,7 +59,7 @@ export function withFlatErrorHandler<TContext = unknown>(
   };
 }
 
-export function withFlatAccountHandler<TParams = object>(
+export function withFlatAccountHandler<TParams extends object = Record<string, never>>(
   handler: ApiHandler<TParams>,
 ) {
   return withFlatErrorHandler(withAccount(handler));

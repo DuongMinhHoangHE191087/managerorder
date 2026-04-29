@@ -3,15 +3,15 @@ import { generateAccessToken, generateRefreshToken, verifyToken, decodeToken } f
 import type { TokenPayload } from '../jwt';
 
 const TEST_PAYLOAD: Omit<TokenPayload, 'iat' | 'exp'> = {
-  sub: 'user-123',
-  accountId: 'acc-456',
+  sub: '00000000-0000-4000-8000-000000000154',
+  accountId: '00000000-0000-4000-8000-000000000155',
   role: 'admin',
   email: 'test@example.com',
 };
 
 describe('JWT utilities', () => {
   beforeEach(() => {
-    vi.stubEnv('JWT_SECRET', 'test-secret-key-for-unit-tests-min-32-chars');
+    vi.stubEnv('JWT_SECRET', '00000000-0000-4000-8000-000000000156-chars');
   });
 
   afterEach(() => {
@@ -28,8 +28,8 @@ describe('JWT utilities', () => {
     it('token is decodable and contains payload fields', () => {
       const token = generateAccessToken(TEST_PAYLOAD);
       const decoded = decodeToken(token);
-      expect(decoded?.sub).toBe('user-123');
-      expect(decoded?.accountId).toBe('acc-456');
+      expect(decoded?.sub).toBe('00000000-0000-4000-8000-000000000154');
+      expect(decoded?.accountId).toBe('00000000-0000-4000-8000-000000000155');
       expect(decoded?.role).toBe('admin');
       expect(decoded?.email).toBe('test@example.com');
     });
@@ -54,8 +54,8 @@ describe('JWT utilities', () => {
     it('verifies a valid access token', () => {
       const token = generateAccessToken(TEST_PAYLOAD);
       const payload = verifyToken(token);
-      expect(payload.sub).toBe('user-123');
-      expect(payload.accountId).toBe('acc-456');
+      expect(payload.sub).toBe('00000000-0000-4000-8000-000000000154');
+      expect(payload.accountId).toBe('00000000-0000-4000-8000-000000000155');
     });
 
     it('throws for tampered token', () => {
@@ -70,7 +70,7 @@ describe('JWT utilities', () => {
 
     it('throws for token signed with different secret', () => {
       const token = generateAccessToken(TEST_PAYLOAD);
-      vi.stubEnv('JWT_SECRET', 'different-secret-key-for-another-test-min-32-ch');
+      vi.stubEnv('JWT_SECRET', 'different-00000000-0000-4000-8000-0000000003f6-ch');
       expect(() => verifyToken(token)).toThrow();
     });
   });
@@ -80,7 +80,7 @@ describe('JWT utilities', () => {
     it('decodes without verification', () => {
       const token = generateAccessToken(TEST_PAYLOAD);
       const decoded = decodeToken(token);
-      expect(decoded?.sub).toBe('user-123');
+      expect(decoded?.sub).toBe('00000000-0000-4000-8000-000000000154');
     });
 
     it('returns null for invalid string', () => {

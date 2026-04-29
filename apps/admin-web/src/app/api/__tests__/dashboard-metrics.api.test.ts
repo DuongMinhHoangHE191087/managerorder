@@ -47,9 +47,9 @@ const DAY_MS = 86_400_000;
 
 function makeOrder(overrides: Record<string, unknown> = {}) {
   return {
-    id: "ord-001",
-    customer_id: "cust-001",
-    product_id: "prod-001",
+    id: "00000000-0000-4000-8000-00000000001b",
+    customer_id: "00000000-0000-4000-8000-000000000033",
+    product_id: "00000000-0000-4000-8000-000000000026",
     total_amount_vnd: 500_000,
     total_cost_vnd: 200_000,
     status: "paid",
@@ -61,11 +61,11 @@ function makeOrder(overrides: Record<string, unknown> = {}) {
 
 function makeSourceAccount(overrides: Record<string, unknown> = {}) {
   return {
-    id: "sa-001",
+    id: "00000000-0000-4000-8000-000000000036",
     email: "sa@test.com",
     max_slots: 10,
     used_slots: 5,
-    product_ids: ["prod-001"],
+    product_ids: ["00000000-0000-4000-8000-000000000026"],
     expires_at: new Date(Date.now() + 60 * DAY_MS).toISOString(),
     purchase_cost_vnd: 300_000,
     ...overrides,
@@ -73,7 +73,7 @@ function makeSourceAccount(overrides: Record<string, unknown> = {}) {
 }
 
 function makeProduct(overrides: Record<string, unknown> = {}) {
-  return { id: "prod-001", name: "Netflix Premium", ...overrides };
+  return { id: "00000000-0000-4000-8000-000000000026", name: "Netflix Premium", ...overrides };
 }
 
 /**
@@ -303,7 +303,7 @@ describe("GET /api/dashboard/stats — KPI Accuracy", () => {
     });
 
     it("includes product name from products repo", async () => {
-      const products = [makeProduct({ id: "prod-001", name: "Disney+" })];
+      const products = [makeProduct({ id: "00000000-0000-4000-8000-000000000026", name: "Disney+" })];
       setupDefaults([makeOrder()], [], products);
 
       const res = await fetchStats();
@@ -344,7 +344,7 @@ describe("GET /api/dashboard/stats — KPI Accuracy", () => {
     it("excludes already-expired accounts", async () => {
       const accounts = [
         makeSourceAccount({
-          id: "sa-expired",
+          id: "00000000-0000-4000-8000-0000000003e9",
           expires_at: new Date(Date.now() - DAY_MS).toISOString(),
         }),
       ];

@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
-import net from "node:net";
 import path from "node:path";
 import jwt from "jsonwebtoken";
 import "./register-ts-loader.mjs";
 import { loadLocalEnv } from "./load-local-env.ts";
+import { detectRuntimeBaseURL } from "./detect-base-url.mjs";
 
 const rootDir = process.cwd();
 const envPath = path.join(rootDir, ".env.local");
@@ -57,55 +57,6 @@ const targets = [
   { path: "/premium/health-checks", kind: "html" },
   { path: "/premium/migrations?status=pending", kind: "html" },
 ];
-
-async function detectBaseURL() {
-  const candidates = [
-    process.env.BASE_URL,
-    process.env.NEXT_PUBLIC_API_URL,
-    "http://127.0.0.1:3001",
-    "http://127.0.0.1:3000",
-    "http://localhost:3001",
-    "http://localhost:3000",
-  ].filter(Boolean);
-
-  const uniqueCandidates = [...new Set(candidates)];
-
-  for (const candidate of uniqueCandidates) {
-    try {
-      const url = new URL(candidate);
-      const canConnect = await new Promise((resolve) => {
-        const socket = net.createConnection({
-          host: url.hostname,
-          port: Number(url.port || (url.protocol === "https:" ? 443 : 80)),
-        });
-        const cleanup = () => socket.destroy();
-        socket.setTimeout(3000);
-        socket.once("connect", () => {
-          cleanup();
-          resolve(true);
-        });
-        socket.once("timeout", () => {
-          cleanup();
-          resolve(false);
-        });
-        socket.once("error", () => {
-          cleanup();
-          resolve(false);
-        });
-      });
-
-      if (canConnect) {
-        return candidate;
-      }
-    } catch {
-      // Try next candidate.
-    }
-  }
-
-  throw new Error(
-    `Unable to detect runtime base URL. Tried: ${uniqueCandidates.join(", ")}`
-  );
-}
 
 async function runLocalHarnessSmoke() {
   await trace("local harness start");
@@ -215,7 +166,7 @@ async function runLocalHarnessSmoke() {
   process.exit(0);
 }
 
-const baseURL = await detectBaseURL().catch(() => null);
+const baseURL = await detectRuntimeBaseURL().catch(() => null);
 
 if (!baseURL) {
   await runLocalHarnessSmoke();

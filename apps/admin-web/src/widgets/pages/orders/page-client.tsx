@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Eye, Printer, Trash2, CheckCircle2, Clock } from "lucide-react";
 import { appToast } from "@/shared/lib/toast";
 import { useDebounce } from "@/shared/hooks/use-debounce";
+import { hasSearchTokens } from "@/shared/lib/filtering/search";
 
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { PageContainer } from "@/shared/ui/page-layout";
@@ -99,11 +100,12 @@ export default function OrdersPage() {
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
   const debouncedQuery = useDebounce(searchQuery, 500);
   const deferredQuery = useDeferredValue(debouncedQuery);
+  const hasSearchQuery = hasSearchTokens(deferredQuery);
 
   const { data: pageData, isLoading, isFetching } = useOrders({
     page: pageIndex + 1,
     limit: pageSize,
-    search: deferredQuery || undefined,
+    search: hasSearchQuery ? deferredQuery.trim() : undefined,
     status: statusFilter || undefined,
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
@@ -121,6 +123,16 @@ export default function OrdersPage() {
     const rawOrders = rawOrdersData as unknown as RawOrder[];
     return rawOrders.map(mapRawToOrderRow);
   }, [pageData?.data]);
+  const selectedOrderIdsArray = useMemo(() => Array.from(selectedOrderIds), [selectedOrderIds]);
+  const selectedOrderCount = selectedOrderIdsArray.length;
+  const handleToggleOrderSelect = useCallback((orderId: string) => {
+    setSelectedOrderIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  }, []);
 
   const { openContextMenu, ContextMenuRender } = useContextMenu();
 
@@ -176,10 +188,10 @@ export default function OrdersPage() {
   }, [deletingOrder, deleteOrder]);
 
   async function handleBulkStatusUpdate(newStatus: string) {
-    if (selectedOrderIds.size === 0 || !newStatus) return;
+    if (selectedOrderCount === 0 || !newStatus) return;
     try {
-      await Promise.all(Array.from(selectedOrderIds).map((id) => updateOrder({ id, status: newStatus })));
-      appToast.success(`Đã cập nhật ${selectedOrderIds.size} đơn hàng`);
+      await Promise.all(selectedOrderIdsArray.map((id) => updateOrder({ id, status: newStatus })));
+      appToast.success(`Đã cập nhật ${selectedOrderCount} đơn hàng`);
       setSelectedOrderIds(new Set());
       setBulkSelectValue("");
     } catch {
@@ -188,15 +200,15 @@ export default function OrdersPage() {
   }
 
   async function handleBatchDelete() {
-    if (selectedOrderIds.size === 0) return;
+    if (selectedOrderCount === 0) return;
     try {
-      await batchDeleteOrders(Array.from(selectedOrderIds));
-      appToast.success(`Đã xóa ${selectedOrderIds.size} đơn hàng`);
+      await batchDeleteOrders(selectedOrderIdsArray);
+      appToast.success(`Đã xóa ${selectedOrderCount} đơn hàng`);
       setSelectedOrderIds(new Set());
       setBulkSelectValue("");
       setShowBatchDeleteConfirm(false);
-    } catch {
-      appToast.error("Có lỗi xảy ra khi xóa hàng loạt");
+    } catch (error) {
+      appToast.error(error instanceof Error && error.message ? error.message : "Có lỗi xảy ra khi xóa hàng loạt");
     }
   }
 
@@ -289,12 +301,16 @@ export default function OrdersPage() {
         printingOrder={printingOrder}
         renewingOrder={renewingOrder}
         selectedOrder={selectedOrder}
-        selectedOrderIdsCount={selectedOrderIds.size}
+        selectedOrderIdsCount={selectedOrderCount}
         showBatchDeleteConfirm={showBatchDeleteConfirm}
       />
 
       <PageContainer className="relative">
-        <OrdersPageHeader />
+        <OrdersPageHeader
+          totalOrders={meta.count}
+          isFetching={isFetching && !isLoading}
+          hasFilters={Boolean(hasSearchQuery || statusFilter || dateFrom || dateTo)}
+        />
 
         <OrdersKPIs
           search={deferredQuery || undefined}
@@ -324,6 +340,7 @@ export default function OrdersPage() {
             onPaginationChange={handlePaginationChange}
             mappedOrders={mappedOrders}
             selectedOrderIds={selectedOrderIds}
+            onToggleSelect={handleToggleOrderSelect}
             setSelectedOrderIds={setSelectedOrderIds}
             onRowClick={handleRowClick}
             onRowContextMenu={handleRowContextMenu}
@@ -331,9 +348,9 @@ export default function OrdersPage() {
         </div>
       </PageContainer>
 
-      {selectedOrderIds.size > 0 && (
+      {selectedOrderCount > 0 && (
         <BulkActionBar
-          selectedCount={selectedOrderIds.size}
+          selectedCount={selectedOrderCount}
           bulkSelectValue={bulkSelectValue}
           onBulkSelectChange={setBulkSelectValue}
           onApplyStatus={() => {

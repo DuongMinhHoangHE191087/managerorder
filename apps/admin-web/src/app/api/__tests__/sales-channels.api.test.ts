@@ -35,10 +35,12 @@ describe("GET /api/settings/sales-channels", () => {
   it("returns the configured sales channels", async () => {
     vi.mocked(listSalesChannelsForAccount).mockResolvedValue([
       {
-        id: "channel-1",
+        id: "00000000-0000-4000-8000-00000000000b",
         name: "CTV",
         defaultDeliveryMode: "landing_page",
         defaultLandingTemplateKey: "ctv_neutral",
+        defaultFailureTemplateKey: "seller_unlock_request",
+        sellerContactUrl: "https://zalo.me/channel",
         runtime: {
           linkedOrderCount: 2,
           shortLinkCount: 3,
@@ -65,10 +67,12 @@ describe("GET /api/settings/sales-channels", () => {
 describe("POST /api/settings/sales-channels", () => {
   beforeEach(() => {
     vi.mocked(createSalesChannelForAccount).mockResolvedValue({
-      id: "channel-1",
+      id: "00000000-0000-4000-8000-00000000000b",
       name: "CTV",
       defaultDeliveryMode: "landing_page",
       defaultLandingTemplateKey: "ctv_neutral",
+      defaultFailureTemplateKey: "seller_unlock_request",
+      sellerContactUrl: "https://zalo.me/channel",
     } as never);
   });
 
@@ -80,6 +84,8 @@ describe("POST /api/settings/sales-channels", () => {
           name: "CTV",
           defaultDeliveryMode: "landing_page",
           defaultLandingTemplateKey: "ctv_neutral",
+          defaultFailureTemplateKey: "seller_unlock_request",
+          sellerContactUrl: "https://zalo.me/channel",
         },
       }),
       { params: {} } as never,
@@ -94,6 +100,8 @@ describe("POST /api/settings/sales-channels", () => {
         name: "CTV",
         defaultDeliveryMode: "landing_page",
         defaultLandingTemplateKey: "ctv_neutral",
+        defaultFailureTemplateKey: "seller_unlock_request",
+        sellerContactUrl: "https://zalo.me/channel",
       }),
     );
   });
@@ -114,34 +122,40 @@ describe("POST /api/settings/sales-channels", () => {
 describe("PUT /api/settings/sales-channels/[id]", () => {
   beforeEach(() => {
     vi.mocked(updateSalesChannelForAccount).mockResolvedValue({
-      id: "channel-1",
+      id: "00000000-0000-4000-8000-00000000000b",
       name: "CTV updated",
       defaultDeliveryMode: "direct_redirect",
       defaultLandingTemplateKey: "owner_intro",
+      defaultFailureTemplateKey: "customer_offer_wall",
+      sellerContactUrl: null,
     } as never);
   });
 
   it("updates a sales channel policy", async () => {
     const response = await updateSalesChannel(
-      createTestRequest("http://localhost/api/settings/sales-channels/channel-1", {
+      createTestRequest("http://localhost/api/settings/sales-channels/00000000-0000-4000-8000-00000000000b", {
         method: "PUT",
         body: {
           defaultDeliveryMode: "direct_redirect",
           defaultLandingTemplateKey: "owner_intro",
+          defaultFailureTemplateKey: "customer_offer_wall",
+          sellerContactUrl: null,
         },
       }),
-      { params: Promise.resolve({ id: "channel-1" }) } as never,
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-00000000000b" }) } as never,
     );
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.data.defaultDeliveryMode).toBe("direct_redirect");
     expect(updateSalesChannelForAccount).toHaveBeenCalledWith(
-      "channel-1",
+      "00000000-0000-4000-8000-00000000000b",
       expect.any(String),
       expect.objectContaining({
         defaultDeliveryMode: "direct_redirect",
         defaultLandingTemplateKey: "owner_intro",
+        defaultFailureTemplateKey: "customer_offer_wall",
+        sellerContactUrl: null,
       }),
     );
   });
@@ -152,17 +166,17 @@ describe("DELETE /api/settings/sales-channels/[id]", () => {
     vi.mocked(deleteSalesChannelForAccount).mockResolvedValue(undefined as never);
 
     const response = await deleteSalesChannel(
-      createTestRequest("http://localhost/api/settings/sales-channels/channel-1", {
+      createTestRequest("http://localhost/api/settings/sales-channels/00000000-0000-4000-8000-00000000000b", {
         method: "DELETE",
       }),
-      { params: Promise.resolve({ id: "channel-1" }) } as never,
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-00000000000b" }) } as never,
     );
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
     expect(deleteSalesChannelForAccount).toHaveBeenCalledWith(
-      "channel-1",
+      "00000000-0000-4000-8000-00000000000b",
       expect.any(String),
     );
   });

@@ -1,9 +1,4 @@
-/**
- * Page Object — Calendar Page
- *
- * Encapsulates selectors and actions for the calendar/tasks page.
- */
-import { type Page, type Locator } from "@playwright/test";
+import { type Locator, type Page } from "@playwright/test";
 
 export class CalendarPage {
   readonly page: Page;
@@ -18,41 +13,40 @@ export class CalendarPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.calendarGrid = page.locator(
-      "[data-testid='calendar-grid'], .calendar-grid, .react-calendar, [role='grid']"
-    );
-    this.todayButton = page.locator(
-      "button:has-text('Hôm nay'), button:has-text('Today'), [data-testid='today-button']"
-    );
-    this.prevMonthButton = page.locator(
-      "button[aria-label='Previous month'], button:has-text('←'), [data-testid='prev-month']"
-    );
-    this.nextMonthButton = page.locator(
-      "button[aria-label='Next month'], button:has-text('→'), [data-testid='next-month']"
-    );
-    this.monthLabel = page.locator(
-      "[data-testid='month-label'], .month-label, h2, h3"
-    );
-    this.addTaskButton = page.locator(
-      "button:has-text('Thêm'), button:has-text('Tạo ghi chú'), button:has-text('Add'), [data-testid='add-task']"
-    );
-    this.taskItems = page.locator(
-      "[data-testid='task-item'], .task-item, .calendar-note"
-    );
-    this.taskCheckboxes = page.locator(
-      "[data-testid='task-checkbox'], .task-checkbox, input[type='checkbox']"
-    );
+    this.calendarGrid = page.locator("[data-testid='calendar-grid'], .calendar-grid, .react-calendar, [role='grid']");
+    this.todayButton = page.locator("[data-testid='today-button'], button:has-text('Hôm nay'), button:has-text('Today')");
+    this.prevMonthButton = page.locator("[data-testid='prev-month']").or(page.getByRole("button", { name: /trước|previous/i })).first();
+    this.nextMonthButton = page.locator("[data-testid='next-month']").or(page.getByRole("button", { name: /sau|next/i })).first();
+    this.monthLabel = page.locator("[data-testid='month-label'], .month-label, h2, h3");
+    this.addTaskButton = page.locator("[data-testid='add-task'], button:has-text('Thêm'), button:has-text('Tạo ghi chú'), button:has-text('Add')");
+    this.taskItems = page.locator("[data-testid='task-item'], .task-item, .calendar-note");
+    this.taskCheckboxes = page.locator("[data-testid='task-checkbox'], .task-checkbox, input[type='checkbox']");
   }
 
   async goto() {
-    await this.page.goto("/calendar");
-    await this.page.waitForLoadState("networkidle");
+    await this.page.request.get("/api/auth/session/me", { timeout: 10_000 }).catch(() => null);
+
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        await this.page.goto("/calendar", { waitUntil: "domcontentloaded", timeout: 45_000 });
+        break;
+      } catch (error) {
+        if (attempt === 2) {
+          throw error;
+        }
+        await this.page.waitForTimeout(1_000);
+      }
+    }
+
+    await this.page.getByRole("heading", { name: /lịch|calendar/i }).first().waitFor({
+      state: "visible",
+      timeout: 20_000,
+    });
   }
 
   async waitForCalendar() {
-    // Wait for any calendar content to load
-    await this.page.waitForLoadState("networkidle");
-    await this.page.waitForTimeout(1_000);
+    await this.calendarGrid.first().waitFor({ state: "visible", timeout: 20_000 });
+    await this.monthLabel.first().waitFor({ state: "visible", timeout: 20_000 });
   }
 
   async getVisibleTaskCount(): Promise<number> {
@@ -60,17 +54,17 @@ export class CalendarPage {
   }
 
   async navigateNextMonth() {
-    await this.nextMonthButton.first().click();
-    await this.page.waitForLoadState("networkidle");
+    await this.nextMonthButton.click();
+    await this.page.waitForTimeout(300);
   }
 
   async navigatePrevMonth() {
-    await this.prevMonthButton.first().click();
-    await this.page.waitForLoadState("networkidle");
+    await this.prevMonthButton.click();
+    await this.page.waitForTimeout(300);
   }
 
   async clickToday() {
     await this.todayButton.first().click();
-    await this.page.waitForLoadState("networkidle");
+    await this.page.waitForTimeout(300);
   }
 }

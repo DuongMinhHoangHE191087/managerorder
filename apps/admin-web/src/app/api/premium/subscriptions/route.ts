@@ -39,7 +39,7 @@ export const GET = withFlatAccountHandler(async (_request, { accountId }) => {
     ),
   ];
 
-  const [customersMap, accountsMap, usersMap] = await Promise.all([
+  const [customersMap, accountsMap, packagesMap, usersMap] = await Promise.all([
     loadRowsByIds<{
       id: string;
       full_name: string;
@@ -60,6 +60,23 @@ export const GET = withFlatAccountHandler(async (_request, { accountId }) => {
       accountId,
       premiumAccountIds,
       "id, primary_email, service_type_id",
+    ),
+    loadRowsByIds<{
+      id: string;
+      default_price: number | null;
+      renewal_price_factor: number | null;
+    }>(
+      supabaseAdmin,
+      "premium_packages",
+      accountId,
+      [
+        ...new Set(
+          (baseSubscriptions ?? [])
+            .map((item) => item.package_id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ],
+      "id, default_price, renewal_price_factor",
     ),
     loadRowsByIds<{
       id: string;
@@ -99,6 +116,7 @@ export const GET = withFlatAccountHandler(async (_request, { accountId }) => {
     const premiumAccountUser = item.premium_account_user_id
       ? usersMap.get(item.premium_account_user_id) ?? null
       : null;
+    const packageRow = item.package_id ? packagesMap.get(item.package_id) ?? null : null;
     const service = account?.service_type_id
       ? serviceTypeMap.get(account.service_type_id) ?? null
       : null;
@@ -116,6 +134,8 @@ export const GET = withFlatAccountHandler(async (_request, { accountId }) => {
       customer_name: customer?.full_name ?? "N/A",
       account_email: account?.primary_email ?? "N/A",
       service_name: service?.name ?? "N/A",
+      package_default_price: packageRow?.default_price ?? null,
+      renewal_price_factor: packageRow?.renewal_price_factor ?? null,
     };
   });
 

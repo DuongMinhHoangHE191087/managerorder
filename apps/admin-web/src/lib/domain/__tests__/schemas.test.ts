@@ -19,8 +19,8 @@ import {
 // ── createOrderInputSchema ───────────────────────────────────
 describe("createOrderInputSchema", () => {
   const validOrder = {
-    customerId: "cust-001",
-    items: [{ productId: "prod-001", quantity: 1 }],
+    customerId: "00000000-0000-4000-8000-000000000033",
+    items: [{ productId: "00000000-0000-4000-8000-000000000026", quantity: 1 }],
   };
 
   it("accepts minimal valid input", () => {
@@ -52,7 +52,7 @@ describe("createOrderInputSchema", () => {
   it("rejects item with quantity 0", () => {
     const result = createOrderInputSchema.safeParse({
       ...validOrder,
-      items: [{ productId: "prod-001", quantity: 0 }],
+      items: [{ productId: "00000000-0000-4000-8000-000000000026", quantity: 0 }],
     });
     expect(result.success).toBe(false);
   });
@@ -203,7 +203,7 @@ describe("createLicenseKeyInputSchema", () => {
   it("accepts valid key", () => {
     expect(createLicenseKeyInputSchema.safeParse({
       keyCode: "KEY-ABC-123",
-      productId: "prod-001",
+      productId: "00000000-0000-4000-8000-000000000026",
     }).success).toBe(true);
   });
 
@@ -252,7 +252,7 @@ describe("createCalendarEventSchema", () => {
 describe("addInventoryItemSchema", () => {
   it("accepts valid inventory item", () => {
     expect(addInventoryItemSchema.safeParse({
-      productId: "prod-001",
+      productId: "00000000-0000-4000-8000-000000000026",
       email: "acc@netflix.com",
       maxSlots: 6,
       expiresAt: "2026-12-01",
@@ -281,11 +281,11 @@ describe("addInventoryItemSchema", () => {
 // ── allocationRequestSchema ──────────────────────────────────
 describe("allocationRequestSchema", () => {
   it("accepts valid allocation request", () => {
-    expect(allocationRequestSchema.safeParse({ orderId: "ord-001" }).success).toBe(true);
+    expect(allocationRequestSchema.safeParse({ orderId: "00000000-0000-4000-8000-00000000001b" }).success).toBe(true);
   });
 
   it("defaults confirm to false", () => {
-    const result = allocationRequestSchema.parse({ orderId: "ord-001" });
+    const result = allocationRequestSchema.parse({ orderId: "00000000-0000-4000-8000-00000000001b" });
     expect(result.confirm).toBe(false);
   });
 

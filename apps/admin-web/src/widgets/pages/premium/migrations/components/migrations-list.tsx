@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Copy,
   Database,
+  ExternalLink,
   User,
   Warehouse,
 } from "lucide-react";
@@ -13,26 +14,27 @@ import { useRouter } from "next/navigation";
 import { ActionMenu } from "@/shared/ui/action-menu";
 import { Button } from "@/shared/ui/button";
 import { appToast } from "@/shared/lib/toast";
-import { Select } from "@/shared/ui/select";
-import { MIGRATION_STATUSES, formatDateTime, getStatusLabel } from "../utils";
-import type { MigrationListRow, MigrationStatus } from "../types";
+import { formatDateTime, getMigrationStatusLabel } from "../utils";
+import type { MigrationListMeta, MigrationListRow } from "../types";
 
 export function MigrationsList({
   migrations,
-  selectedStatus,
   activeAccountsCount,
   activeSubscriptionsCount,
   isLoading,
-  onStatusChange,
   onOpenDetail,
+  pagination,
+  onPreviousPage,
+  onNextPage,
 }: {
   migrations: MigrationListRow[];
-  selectedStatus: MigrationStatus;
   activeAccountsCount: number;
   activeSubscriptionsCount: number;
   isLoading: boolean;
-  onStatusChange: (status: MigrationStatus) => void;
   onOpenDetail: (migrationId: string) => void;
+  pagination: MigrationListMeta;
+  onPreviousPage: () => void;
+  onNextPage: () => void;
 }) {
   const router = useRouter();
 
@@ -55,17 +57,21 @@ export function MigrationsList({
             {activeAccountsCount} kho đích khả dụng · {activeSubscriptionsCount} thuê bao active
           </p>
         </div>
-        <Select
-          value={selectedStatus}
-          onChange={(event) => onStatusChange(event.target.value as MigrationStatus)}
-          className="w-full sm:w-56"
-        >
-          {MIGRATION_STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {getStatusLabel(status)}
-            </option>
-          ))}
-        </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-light)] px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]">
+            {pagination.total} migration
+          </span>
+          <Button variant="secondary" disabled={pagination.page <= 1} onClick={onPreviousPage}>
+            Trang trước
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={pagination.page >= Math.max(pagination.totalPages, 1)}
+            onClick={onNextPage}
+          >
+            Trang sau
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -108,7 +114,7 @@ export function MigrationsList({
                     <div className="min-w-0">
                       <p className="truncate text-[14px] font-extrabold text-[var(--fg-base)]">{migration.customer_name}</p>
                       <p className="truncate text-[11px] font-bold text-[var(--fg-muted)]">
-                        {migration.subscription_id.slice(0, 8)} · {getStatusLabel(migration.status)}
+                        {migration.subscription_id.slice(0, 8)} · {getMigrationStatusLabel(migration)}
                       </p>
                     </div>
                   </div>
@@ -160,6 +166,24 @@ export function MigrationsList({
                         icon: <User className="size-4" />,
                         onClick: () => router.push(`/customers/${migration.customer_id}`),
                       },
+                      ...(migration.source_account?.id
+                        ? [
+                            {
+                              label: "Mở kho nguồn",
+                              icon: <Warehouse className="size-4" />,
+                              onClick: () => router.push(`/premium/accounts/${migration.source_account?.id}`),
+                            },
+                          ]
+                        : []),
+                      ...(migration.target_account?.id
+                        ? [
+                            {
+                              label: "Mở kho đích",
+                              icon: <ExternalLink className="size-4" />,
+                              onClick: () => router.push(`/premium/accounts/${migration.target_account?.id}`),
+                            },
+                          ]
+                        : []),
                       {
                         label: "Sao chép ID",
                         icon: <Copy className="size-4" />,

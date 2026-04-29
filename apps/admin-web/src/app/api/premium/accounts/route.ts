@@ -1,11 +1,12 @@
-import { createCipheriv, randomBytes } from "crypto";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
   createFlatSuccessResponse,
   withFlatAccountHandler,
 } from "@/lib/api/flat-response";
+import { createActivityLog } from "@/lib/supabase/repositories/activity-logs.repo";
 import { ApplicationError, ConflictError } from "@/lib/utils/errors";
+import { encryptPremiumPassword } from "@/lib/utils/premium-account-credentials";
 import { loadRowsByIds } from "@/app/api/premium/relation-fallback";
 import {
   buildLocalPremiumAccounts,
@@ -61,39 +62,6 @@ function formatPremiumAccountRow<T extends PremiumAccountWithRelations>(account:
         }
       : null,
   };
-}
-
-function getPremiumEncryptionKey() {
-  const keyHex =
-    process.env.PREMIUM_PASSWORD_ENCRYPTION_KEY ?? process.env.ENCRYPTION_KEY;
-
-  if (!keyHex) {
-    throw new ApplicationError(
-      "PREMIUM_PASSWORD_ENCRYPTION_KEY chưa được cấu hình",
-      500,
-      "PREMIUM_ENCRYPTION_KEY_MISSING",
-    );
-  }
-
-  if (!/^[a-fA-F0-9]{64}$/.test(keyHex)) {
-    throw new ApplicationError(
-      "PREMIUM_PASSWORD_ENCRYPTION_KEY phải là chuỗi hex 64 ký tự",
-      500,
-      "PREMIUM_ENCRYPTION_KEY_INVALID",
-    );
-  }
-
-  return keyHex;
-}
-
-function encryptPassword(plaintext: string): string {
-  const key = Buffer.from(getPremiumEncryptionKey(), "hex");
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  let encrypted = cipher.update(plaintext, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  const authTag = cipher.getAuthTag().toString("hex");
-  return `${iv.toString("hex")}:${authTag}:${encrypted}`;
 }
 
 export const GET = withFlatAccountHandler(async (_request, { accountId }) => {
@@ -201,7 +169,7 @@ export const POST = withFlatAccountHandler(async (request, { accountId }) => {
   }
 
   const validated = parsed.data;
-  const encryptedPassword = encryptPassword(validated.primary_password_encrypted);
+  const encryptedPassword = encryptPremiumPassword(validated.primary_password_encrypted);
 
   const { data: inserted, error: insertError } = await supabaseAdmin
     .from("premium_accounts")
@@ -282,12 +250,28 @@ export const POST = withFlatAccountHandler(async (request, { accountId }) => {
     "id, name, slug, total_slots",
   );
 
+  const responsePayload = formatPremiumAccountRow({
+    ...baseAccount,
+    service: serviceMap.get(baseAccount.service_type_id) ?? null,
+    package: packageMap.get(baseAccount.package_id) ?? null,
+  });
+
+  await createActivityLog({
+    account_id: accountId,
+    action_type: "PREMIUM_ACCOUNT_CREATED",
+    source_account_id: baseAccount.id,
+    details: {
+      premium_account_id: baseAccount.id,
+      primary_email: baseAccount.primary_email,
+      service_type_id: baseAccount.service_type_id,
+      package_id: baseAccount.package_id,
+      total_slots: baseAccount.total_slots,
+      status: baseAccount.status,
+    },
+  });
+
   return createFlatSuccessResponse(
-    formatPremiumAccountRow({
-      ...baseAccount,
-      service: serviceMap.get(baseAccount.service_type_id) ?? null,
-      package: packageMap.get(baseAccount.package_id) ?? null,
-    }),
+    responsePayload,
     { status: 201 },
   );
 });

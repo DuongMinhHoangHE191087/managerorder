@@ -8,6 +8,14 @@ import {
   resolveShortLinkPolicy,
   logShortLinkClick,
 } from "@/domains/short-links";
+import { applyPublicShortLinkSecurityHeaders } from "@/domains/short-links/services/public-redirect";
+import {
+  createShortLinkRelayCookieValue,
+  isShortLinkRelayEnabled,
+  SHORT_LINK_RELAY_COOKIE_NAME,
+  SHORT_LINK_RELAY_MAX_AGE_SECONDS,
+  verifyShortLinkRelayCookieValue,
+} from "@/domains/short-links/services/public-relay";
 import { isMissingRelationError } from "@/lib/supabase/schema-errors";
 
 /**
@@ -19,6 +27,7 @@ const PUBLIC_ROUTES = [
   "/s/",                // Public short link redirect (NO auth — customer-facing)
   "/api/auth",          // All auth endpoints (session, callback, google, etc.)
   "/api/v1/auth",       // V1 auth endpoints (login, register, refresh, etc.)
+  "/api/health",        // Public health probe for runtime checks and process supervisors
   "/api/cron",          // Cron jobs (auth handled by CRON_SECRET)
   "/api/s/",            // Public short link API redirect (NO auth)
 ];
@@ -175,6 +184,20 @@ export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const rawUa = request.headers.get("user-agent") ?? "";
   const ua = rawUa.toLowerCase();
+  const isE2EMockSession = process.env.E2E_MOCK_SESSION === "1";
+
+  if (pathname === "/api/health") {
+    return NextResponse.next();
+  }
+
+  if (
+    isE2EMockSession
+    && PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
+    && !pathname.startsWith("/s/")
+    && !pathname.startsWith("/api/s/")
+  ) {
+    return NextResponse.next();
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // GLOBAL SECURITY: Block Malicious Scanners & Scripts
@@ -198,15 +221,14 @@ export default async function proxy(request: NextRequest) {
 
       // ── Detect social bot/crawler BEFORE any DB call ──
       // Ignore crawler flag if UA belongs to real mobile device (excludes real WebView users blocked by 'zalo' or 'preview')
-      const isMobileDevice = /iphone|ipad|android|mobile/i.test(ua);
-      const isExplicitBot = /facebookexternalhit|facebot|telegrambot|twitterbot|discordbot|linkedinbot|googlebot|bingbot|crawl|spider|slurp|ia_archiver/i.test(ua);
-      const hasSuspiciousAppKw = /zalo|whatsapp|preview/i.test(ua);
-      
-      const isCrawler = isExplicitBot || (!isMobileDevice && hasSuspiciousAppKw);
+      const deviceType = detectDeviceInMiddleware(rawUa);
+      const browser = parseBrowserInMiddleware(rawUa);
+      const isCrawler = deviceType === "bot" || !rawUa.trim();
+      const suspiciousReason = !rawUa.trim() ? "empty_user_agent" : isCrawler ? "bot_user_agent" : null;
 
       // ── Extract real visitor IP & Geolocation ──
       const visitorIp = extractVisitorIP(request.headers);
-      const ipVersion = visitorIp.includes(':') ? 'IPv6' : 'IPv4';
+      const ipVersion = detectIpVersionInMiddleware(visitorIp);
       const country = request.headers.get("x-vercel-ip-country") || null;
       const city = request.headers.get("x-vercel-ip-city") || null;
       const region = request.headers.get("x-vercel-ip-country-region") || null;
@@ -279,30 +301,36 @@ export default async function proxy(request: NextRequest) {
           if (isGoPath) {
             const fallbackUrl = request.nextUrl.clone();
             fallbackUrl.pathname = `/s/${slug}`;
-            return NextResponse.redirect(fallbackUrl);
+            return applyPublicShortLinkSecurityHeaders(NextResponse.redirect(fallbackUrl));
           }
 
         } else if (isCrawler && !isGoPath) {
           clearTimeout(timer);
+          if (linkMeta.require_token && linkMeta.access_token) {
+            const token = request.nextUrl.searchParams.get("t");
+            if (!token || token !== linkMeta.access_token) {
+              const requestHeaders = new Headers(request.headers);
+              requestHeaders.set("x-next-pathname", pathname);
+              return applyPublicShortLinkSecurityHeaders(NextResponse.next({ request: { headers: requestHeaders } }));
+            }
+          }
           // ── Crawler path: READ-ONLY — return OG-rich HTML (no click consumed) ──
           const notExpired = !linkMeta.expires_at || new Date(linkMeta.expires_at) > new Date();
           const notMaxed = !linkMeta.max_clicks || linkMeta.current_clicks < linkMeta.max_clicks;
 
           if (notExpired && notMaxed) {
             // Fire-and-forget: log crawler visit (for analytics)
-            const crawlerBrowser = parseBrowserInMiddleware(rawUa);
             logClickInMiddleware(supabaseAdmin, {
               linkId: linkMeta.id, ip: visitorIp, ua: rawUa, referer,
-              deviceType: "bot", isSuspicious: false, reason: "bot_preview", eventType: "bot_preview",
-              country, city, region, ipVersion, browser: crawlerBrowser,
+              deviceType: "bot", isSuspicious: true, reason: suspiciousReason ?? "bot_preview", eventType: "bot_preview",
+              country, city, region, ipVersion, browser,
             });
 
             const siteName = "DuolingoDMH";
             const linkTitle = escapeHtmlMiddleware(linkMeta.title || `${siteName} — Liên kết an toàn`);
             const description = "Truy cập nội dung được chia sẻ qua DuolingoDMH. Liên kết được bảo mật và xác thực.";
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
-            const tokenParam = request.nextUrl.searchParams.get("t");
-            const canonicalUrl = tokenParam ? `${siteUrl}/s/${slug}?t=${tokenParam}` : `${siteUrl}/s/${slug}`;
+            const canonicalUrl = `${siteUrl}/s/${slug}`;
 
             // OG-only HTML — NO redirect, NO meta-refresh, NO target_url exposure
             // Bots only get OG tags for rich preview. Target URL is NEVER leaked.
@@ -331,7 +359,7 @@ export default async function proxy(request: NextRequest) {
 </body>
 </html>`;
 
-            return new NextResponse(html, {
+            return applyPublicShortLinkSecurityHeaders(new NextResponse(html, {
               status: 200,
               headers: {
                 "Content-Type": "text/html; charset=utf-8",
@@ -339,56 +367,110 @@ export default async function proxy(request: NextRequest) {
                 "X-Robots-Tag": "noindex, nofollow",
                 "X-Content-Type-Options": "nosniff",
               },
-            });
+            }));
           }
 
         } else {
           // ── Human path ──
+          const queryToken = request.nextUrl.searchParams.get("t");
+          const relayState = isShortLinkRelayEnabled()
+            ? await verifyShortLinkRelayCookieValue(
+                request.cookies.get(SHORT_LINK_RELAY_COOKIE_NAME)?.value,
+                { userAgent: rawUa },
+              )
+            : null;
+          const resolvedToken = queryToken ?? (relayState?.slug === slug ? relayState.token : null);
 
           // ── Security: Token verification (if enabled) ──
           if (linkMeta.require_token && linkMeta.access_token) {
-            const token = request.nextUrl.searchParams.get("t");
-            if (!token || token !== linkMeta.access_token) {
+            if (!resolvedToken || resolvedToken !== linkMeta.access_token) {
               clearTimeout(timer);
               if (isGoPath) {
                 const fallbackUrl = request.nextUrl.clone();
                 fallbackUrl.pathname = `/s/${slug}`;
-                return NextResponse.redirect(fallbackUrl);
+                return applyPublicShortLinkSecurityHeaders(NextResponse.redirect(fallbackUrl));
               }
               const requestHeaders = new Headers(request.headers);
               requestHeaders.set("x-next-pathname", pathname);
-              return NextResponse.next({ request: { headers: requestHeaders } });
+              return applyPublicShortLinkSecurityHeaders(NextResponse.next({ request: { headers: requestHeaders } }));
             }
           }
 
           // ── Security: Dual IP Lock check (supports IPv4 + IPv6) ──
+          if (isCrawler && isGoPath) {
+            clearTimeout(timer);
+            logClickInMiddleware(supabaseAdmin, {
+              linkId: linkMeta.id,
+              ip: visitorIp,
+              ua: rawUa,
+              referer,
+              deviceType: "bot",
+              isSuspicious: true,
+              reason: suspiciousReason ?? "bot_user_agent",
+              eventType: "bot_preview",
+              country,
+              city,
+              region,
+              ipVersion,
+              browser,
+            });
+            const fallbackUrl = request.nextUrl.clone();
+            fallbackUrl.pathname = `/s/${slug}`;
+            return applyPublicShortLinkSecurityHeaders(NextResponse.redirect(fallbackUrl));
+          }
+
           const isIpv6 = ipVersion === 'IPv6';
           const relevantLockedIp = isIpv6 ? linkMeta.locked_ipv6 : linkMeta.locked_ip;
           if (relevantLockedIp && relevantLockedIp !== visitorIp) {
             clearTimeout(timer);
             // Different IP → log as suspicious, deny access
-            const lockBrowser = parseBrowserInMiddleware(rawUa);
             logClickInMiddleware(supabaseAdmin, {
               linkId: linkMeta.id, ip: visitorIp, ua: rawUa, referer,
-              deviceType: detectDeviceInMiddleware(rawUa),
+              deviceType,
               isSuspicious: true, reason: `ip_mismatch_${ipVersion}`, eventType: "blocked",
-              country, city, region, ipVersion, browser: lockBrowser,
+              country, city, region, ipVersion, browser,
             });
             console.warn(`[ShortLink] IP Lock denied: ${visitorIp} (${ipVersion}) ≠ locked ${relevantLockedIp} | slug=${slug}`);
             if (isGoPath) {
               const fallbackUrl = request.nextUrl.clone();
               fallbackUrl.pathname = `/s/${slug}`;
-              return NextResponse.redirect(fallbackUrl);
+              return applyPublicShortLinkSecurityHeaders(NextResponse.redirect(fallbackUrl));
             }
             const requestHeaders = new Headers(request.headers);
             requestHeaders.set("x-next-pathname", pathname);
-            return NextResponse.next({ request: { headers: requestHeaders } });
+            requestHeaders.set("x-short-link-blocked-logged", "1");
+            requestHeaders.set("x-short-link-blocked-reason", `ip_mismatch_${ipVersion}`);
+            return applyPublicShortLinkSecurityHeaders(NextResponse.next({ request: { headers: requestHeaders } }));
           }
 
           if (!isGoPath && resolvedPolicy?.effectiveDeliveryMode === "landing_page") {
+            const relayEnabled = isShortLinkRelayEnabled();
+            const relayCookie = relayEnabled
+              ? await createShortLinkRelayCookieValue({
+                  slug,
+                  token: resolvedToken,
+                  userAgent: rawUa,
+                })
+              : null;
+
+            if (relayEnabled && queryToken) {
+              clearTimeout(timer);
+              const cleanUrl = request.nextUrl.clone();
+              cleanUrl.searchParams.delete("t");
+              const response = NextResponse.redirect(cleanUrl, 302);
+              if (relayCookie) {
+                response.cookies.set(SHORT_LINK_RELAY_COOKIE_NAME, relayCookie, {
+                  httpOnly: true,
+                  maxAge: SHORT_LINK_RELAY_MAX_AGE_SECONDS,
+                  path: "/s",
+                  sameSite: "lax",
+                  secure: process.env.NODE_ENV === "production",
+                });
+              }
+              return applyPublicShortLinkSecurityHeaders(response);
+            }
+
             clearTimeout(timer);
-            const deviceType = detectDeviceInMiddleware(rawUa);
-            const browser = parseBrowserInMiddleware(rawUa);
             logClickInMiddleware(supabaseAdmin, {
               linkId: linkMeta.id,
               ip: visitorIp,
@@ -410,7 +492,17 @@ export default async function proxy(request: NextRequest) {
             requestHeaders.set("x-short-link-delivery-mode", "landing_page");
             requestHeaders.set("x-short-link-landing-template", resolvedPolicy.effectiveLandingTemplateKey ?? "");
             requestHeaders.set("x-short-link-landing-view-logged", "1");
-            return NextResponse.next({ request: { headers: requestHeaders } });
+            const response = NextResponse.next({ request: { headers: requestHeaders } });
+            if (relayCookie) {
+              response.cookies.set(SHORT_LINK_RELAY_COOKIE_NAME, relayCookie, {
+                httpOnly: true,
+                maxAge: SHORT_LINK_RELAY_MAX_AGE_SECONDS,
+                path: "/s",
+                sameSite: "lax",
+                secure: process.env.NODE_ENV === "production",
+              });
+            }
+            return applyPublicShortLinkSecurityHeaders(response);
           }
 
           // ── Atomic click: use_short_link RPC (consumes 1 click) ──
@@ -472,7 +564,7 @@ export default async function proxy(request: NextRequest) {
               });
             }
 
-            return new NextResponse(null, {
+            return applyPublicShortLinkSecurityHeaders(new NextResponse(null, {
               status: 302,
               headers: {
                 "Location": rows[0].target_url,
@@ -482,10 +574,17 @@ export default async function proxy(request: NextRequest) {
                 "Cache-Control": "no-store, no-cache, must-revalidate, private",
                 "Pragma": "no-cache",
               },
-            });
+            }));
           }
 
           if (resolvedPolicy?.effectiveDeliveryMode !== "landing_page" && linkMeta.target_url) {
+            if (isGoPath) {
+              const requestHeaders = new Headers(request.headers);
+              requestHeaders.set("x-next-pathname", pathname);
+              requestHeaders.set("x-short-link-proxy-rpc-failed", rpcFailed ? "1" : "0");
+              return applyPublicShortLinkSecurityHeaders(NextResponse.next({ request: { headers: requestHeaders } }));
+            }
+
             if (rpcFailed) {
               console.warn(
                 `[ShortLink] Falling back to direct redirect for slug=${slug} because use_short_link RPC is unavailable.`,
@@ -497,7 +596,7 @@ export default async function proxy(request: NextRequest) {
             }
             const goUrl = request.nextUrl.clone();
             goUrl.pathname = `/s/${slug}/go`;
-            return NextResponse.redirect(goUrl, 302);
+            return applyPublicShortLinkSecurityHeaders(NextResponse.redirect(goUrl, 302));
           }
         }
       } catch (e: unknown) {
@@ -507,7 +606,7 @@ export default async function proxy(request: NextRequest) {
     // Invalid/expired → fall through to page with pathname header
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-next-pathname", pathname);
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return applyPublicShortLinkSecurityHeaders(NextResponse.next({ request: { headers: requestHeaders } }));
   }
 
   // Allow static assets through without any processing
@@ -581,6 +680,10 @@ export default async function proxy(request: NextRequest) {
 
   // Allow other public routes
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.next();
+    }
+
     // Still update session cookies even for public routes
     const { supabaseResponse } = await updateSession(request);
     return supabaseResponse;
@@ -621,17 +724,19 @@ export default async function proxy(request: NextRequest) {
         requestHeaders.set("x-user-id", payload.sub);
       }
 
-      // Still update Supabase cookies for any supabase-related operations
-      const { supabaseResponse } = await updateSession(request);
-
       const response = NextResponse.next({
         request: { headers: requestHeaders },
       });
 
-      // Copy Supabase cookies to new response
-      supabaseResponse.cookies.getAll().forEach((cookie) => {
-        response.cookies.set(cookie.name, cookie.value, cookie);
-      });
+      if (process.env.E2E_MOCK_SESSION !== "1") {
+        // Still update Supabase cookies for any supabase-related operations
+        const { supabaseResponse } = await updateSession(request);
+
+        // Copy Supabase cookies to new response
+        supabaseResponse.cookies.getAll().forEach((cookie) => {
+          response.cookies.set(cookie.name, cookie.value, cookie);
+        });
+      }
 
       return finalizeAuthenticatedResponse(response, pathname, isApiRoute);
     } catch (e: unknown) {
@@ -772,17 +877,96 @@ function withPrivateNoStore(response: NextResponse): NextResponse {
 // MIDDLEWARE HELPERS — Edge Runtime compatible, fire-and-forget
 // ═══════════════════════════════════════════════════════════════
 
+const EXPLICIT_BOT_UA_IN_MIDDLEWARE =
+  /bot|spider|crawler|crawl|slurp|facebookexternalhit|facebot|telegrambot|twitterbot|discordbot|linkedinbot|googlebot|bingbot|slackbot|skypeuripreview|curl|wget|python|httpie|postman|insomnia|headless|phantomjs|playwright|puppeteer|ia_archiver/i;
+const SOCIAL_PREVIEW_UA_IN_MIDDLEWARE = /zalo|whatsapp|preview/i;
+const TABLET_UA_IN_MIDDLEWARE = /tablet|ipad|nexus 7|nexus 10|kindle|silk/i;
+const MOBILE_UA_IN_MIDDLEWARE = /mobile|android|iphone|ipod|opera mini|iemobile|blackberry|windows phone/i;
+
+function normalizeIpCandidateInMiddleware(value: string | null | undefined): string | null {
+  if (!value) return null;
+
+  let candidate = value.trim().replace(/^"|"$/g, "");
+  if (!candidate || candidate.toLowerCase() === "unknown") return null;
+
+  if (candidate.startsWith("[") && candidate.includes("]")) {
+    candidate = candidate.slice(1, candidate.indexOf("]"));
+  }
+
+  const ipv4WithPort = candidate.match(/^(\d{1,3}(?:\.\d{1,3}){3}):\d+$/);
+  if (ipv4WithPort) return ipv4WithPort[1] ?? null;
+
+  if (candidate.startsWith("::ffff:")) {
+    const mappedIpv4 = candidate.slice("::ffff:".length);
+    if (isIpv4InMiddleware(mappedIpv4)) return mappedIpv4;
+  }
+
+  return candidate;
+}
+
+function parseForwardedHeaderInMiddleware(value: string | null): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((entry) => entry.match(/(?:^|;)\s*for=([^;]+)/i)?.[1])
+    .filter((entry): entry is string => Boolean(entry))
+    .map((entry) => entry.trim());
+}
+
+function isIpv4InMiddleware(ip: string): boolean {
+  const parts = ip.split(".");
+  return parts.length === 4 && parts.every((part) => {
+    if (!/^\d{1,3}$/.test(part)) return false;
+    const value = Number(part);
+    return value >= 0 && value <= 255;
+  });
+}
+
+function isIpv6InMiddleware(ip: string): boolean {
+  if (!ip.includes(":") || !/^[0-9a-f:.]+$/i.test(ip)) return false;
+  if (ip.includes(":::")) return false;
+  if ((ip.match(/::/g) ?? []).length > 1) return false;
+
+  const sections = ip.split(":");
+  if (ip.includes("::")) {
+    return sections.length <= 8 && sections.every((section) => section === "" || section.length <= 4);
+  }
+
+  return sections.length === 8 && sections.every((section) => /^[0-9a-f]{1,4}$/i.test(section));
+}
+
+function detectIpVersionInMiddleware(ip: string | null | undefined): "IPv4" | "IPv6" | "unknown" {
+  const normalized = normalizeIpCandidateInMiddleware(ip);
+  if (!normalized) return "unknown";
+  if (isIpv4InMiddleware(normalized)) return "IPv4";
+  if (isIpv6InMiddleware(normalized)) return "IPv6";
+  return "unknown";
+}
+
 /** Extract real visitor IP from reverse proxy headers */
 function extractVisitorIP(headers: Headers): string {
-  // Priority: CF-Connecting-IP > X-Real-IP > X-Forwarded-For > fallback
-  const cfIp = headers.get("cf-connecting-ip");
-  if (cfIp) return cfIp.split(",")[0].trim();
+  const priorityHeaders: Array<{ name: string; split?: boolean }> = [
+    { name: "cf-connecting-ip" },
+    { name: "true-client-ip" },
+    { name: "x-real-ip" },
+    { name: "x-client-ip" },
+    { name: "x-vercel-forwarded-for", split: true },
+    { name: "x-forwarded-for", split: true },
+  ];
 
-  const realIp = headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
+  for (const header of priorityHeaders) {
+    const raw = headers.get(header.name);
+    const candidates = header.split ? (raw ?? "").split(",") : [raw];
+    for (const candidate of candidates) {
+      const ip = normalizeIpCandidateInMiddleware(candidate);
+      if (ip && detectIpVersionInMiddleware(ip) !== "unknown") return ip;
+    }
+  }
 
-  const forwarded = headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
+  for (const candidate of parseForwardedHeaderInMiddleware(headers.get("forwarded"))) {
+    const ip = normalizeIpCandidateInMiddleware(candidate);
+    if (ip && detectIpVersionInMiddleware(ip) !== "unknown") return ip;
+  }
 
   return "0.0.0.0";
 }
@@ -795,9 +979,10 @@ function escapeHtmlMiddleware(s: string): string {
 /** Detect device type from User-Agent */
 function detectDeviceInMiddleware(ua: string): string {
   if (!ua) return "unknown";
-  if (/bot|spider|crawler|curl|wget|python|httpie|postman|insomnia|zalo|facebookexternalhit|facebot|telegrambot|twitterbot|discordbot|linkedinbot|whatsapp|preview|slurp|ia_archiver/i.test(ua)) return "bot";
-  if (/tablet|ipad|nexus 7|nexus 10|kindle/i.test(ua)) return "tablet";
-  if (/mobile|android|iphone|ipad|ipod|opera mini|iemobile/i.test(ua)) return "mobile";
+  const looksMobile = MOBILE_UA_IN_MIDDLEWARE.test(ua) || TABLET_UA_IN_MIDDLEWARE.test(ua);
+  if (EXPLICIT_BOT_UA_IN_MIDDLEWARE.test(ua) || (SOCIAL_PREVIEW_UA_IN_MIDDLEWARE.test(ua) && !looksMobile)) return "bot";
+  if (TABLET_UA_IN_MIDDLEWARE.test(ua)) return "tablet";
+  if (MOBILE_UA_IN_MIDDLEWARE.test(ua)) return "mobile";
   return "desktop";
 }
 

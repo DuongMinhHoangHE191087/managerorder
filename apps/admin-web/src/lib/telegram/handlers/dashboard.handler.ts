@@ -13,6 +13,38 @@ import { formatDateCustom } from "@/lib/utils";
 
 const DASHBOARD_CACHE_TTL_SECONDS = 12;
 
+function sumRevenueRows(rows: Array<{ total_amount_vnd?: number | null }>) {
+  let total = 0;
+  for (const row of rows ?? []) {
+    total += row.total_amount_vnd ?? 0;
+  }
+  return total;
+}
+
+function sumDebtRows(rows: Array<{ total_amount_vnd?: number | null; total_paid?: number | null }>) {
+  let total = 0;
+  for (const row of rows ?? []) {
+    total += (row.total_amount_vnd ?? 0) - (row.total_paid ?? 0);
+  }
+  return total;
+}
+
+function summarizeSlotUsage(rows: Array<{ max_slots?: number | null; used_slots?: number | null }>) {
+  let totalSlots = 0;
+  let usedSlots = 0;
+
+  for (const row of rows ?? []) {
+    totalSlots += row.max_slots ?? 0;
+    usedSlots += row.used_slots ?? 0;
+  }
+
+  return {
+    totalSlots,
+    usedSlots,
+    slotPct: totalSlots > 0 ? Math.round((usedSlots / totalSlots) * 100) : 0,
+  };
+}
+
 /// ─── /start (Dashboard) ────────────────────────────────────
 export const handleStartCommand: BotHandler = async (ctx) => {
   const chatId = ctx.chatId;
@@ -50,18 +82,16 @@ export const handleStartCommand: BotHandler = async (ctx) => {
     supabaseAdmin.from('source_accounts').select('id', { count: 'exact', head: true }).eq('account_id', accountId).is('deleted_at', null).lte('expires_at', weekLater).gte('expires_at', now.toISOString()),
   ]);
 
-  const revToday = (revTodayData.data ?? []).reduce((s, o) => s + (o.total_amount_vnd ?? 0), 0);
-  const revWeek = (revWeekData.data ?? []).reduce((s, o) => s + (o.total_amount_vnd ?? 0), 0);
-  const _revMonth = (revMonthData.data ?? []).reduce((s, o) => s + (o.total_amount_vnd ?? 0), 0);
-  const totalDebt = (debtData.data ?? []).reduce((s, o) => s + ((o.total_amount_vnd ?? 0) - (o.total_paid ?? 0)), 0);
+  const revToday = sumRevenueRows(revTodayData.data ?? []);
+  const revWeek = sumRevenueRows(revWeekData.data ?? []);
+  const _revMonth = sumRevenueRows(revMonthData.data ?? []);
+  const totalDebt = sumDebtRows(debtData.data ?? []);
   const greeting = getGreeting();
   const tdy = ordersToday.count ?? 0, exp = ordersExpiring.count ?? 0, expd = ordersExpired.count ?? 0;
   const tsk = tasksCount.count ?? 0;
   const accounts = accountsData.data ?? [];
   const kho = accounts.length, newCusts = newCustsToday.count ?? 0, expSoon = expSoonAccounts.count ?? 0;
-  const totalSlots = accounts.reduce((s, a: any) => s + (a.max_slots ?? 0), 0);
-  const usedSlots = accounts.reduce((s, a: any) => s + (a.used_slots ?? 0), 0);
-  const khoPct = totalSlots > 0 ? Math.round((usedSlots / totalSlots) * 100) : 0;
+  const { totalSlots, usedSlots, slotPct: khoPct } = summarizeSlotUsage(accounts);
   const _dateStr = formatDateCustom(now, { timeZone: "Asia/Ho_Chi_Minh" }, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
   const timeStr = formatDateCustom(now, { timeZone: "Asia/Ho_Chi_Minh" }, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
@@ -155,14 +185,12 @@ export const handleStatsCommand: BotHandler = async (ctx) => {
     supabaseAdmin.from('customers').select('id', { count: 'exact', head: true }).eq('account_id', accountId),
   ]);
 
-  const revToday = (revTodayD.data ?? []).reduce((s, o) => s + (o.total_amount_vnd ?? 0), 0);
-  const revWeek = (revWeekD.data ?? []).reduce((s, o) => s + (o.total_amount_vnd ?? 0), 0);
-  const revMonth = (revMonthD.data ?? []).reduce((s, o) => s + (o.total_amount_vnd ?? 0), 0);
-  const totalDebt = (debtD.data ?? []).reduce((s, o) => s + ((o.total_amount_vnd ?? 0) - (o.total_paid ?? 0)), 0);
+  const revToday = sumRevenueRows(revTodayD.data ?? []);
+  const revWeek = sumRevenueRows(revWeekD.data ?? []);
+  const revMonth = sumRevenueRows(revMonthD.data ?? []);
+  const totalDebt = sumDebtRows(debtD.data ?? []);
   const allAccs = (accountsTotal.data ?? []) as { max_slots: number; used_slots: number }[];
-  const totalSlots = allAccs.reduce((s, a) => s + a.max_slots, 0);
-  const usedSlots = allAccs.reduce((s, a) => s + a.used_slots, 0);
-  const _slotPct = totalSlots > 0 ? Math.round((usedSlots / totalSlots) * 100) : 0;
+  const { totalSlots, usedSlots, slotPct: _slotPct } = summarizeSlotUsage(allAccs);
   const payRate = (totalOrders.count ?? 0) > 0 ? Math.round(((paidOrders.count ?? 0) / (totalOrders.count ?? 0)) * 100) : 0;
 
   const msg = [
@@ -223,8 +251,8 @@ export const handleSummaryCommand: BotHandler = async (ctx) => {
     supabaseAdmin.from('orders').select('id', { count: 'exact', head: true }).gte('created_at', todayStart).eq('account_id', accountId).eq('status', 'paid'),
   ]);
 
-  const tRevToday = (todayRev.data ?? []).reduce((s: number, o: any) => s + (o.total_amount_vnd ?? 0), 0);
-  const tRevYesterday = (yesterdayRev.data ?? []).reduce((s: number, o: any) => s + (o.total_amount_vnd ?? 0), 0);
+  const tRevToday = sumRevenueRows(todayRev.data ?? []);
+  const tRevYesterday = sumRevenueRows(yesterdayRev.data ?? []);
   const tOrdToday = todayOrders.count ?? 0, tOrdYesterday = yesterdayOrders.count ?? 0;
   const tCustToday = todayCusts.count ?? 0, tCustYesterday = yesterdayCusts.count ?? 0;
   const compare = (today: number, yesterday: number) => {

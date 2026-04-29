@@ -10,6 +10,7 @@ export interface ClickRecord {
   referer: string | null;
   country: string | null;
   device_type: string | null;
+  ip_version?: string | null;
   event_type: "bot_preview" | "landing_view" | "redirect_click" | "blocked";
   is_suspicious: boolean;
   suspicious_reason: string | null;
@@ -24,6 +25,14 @@ export interface ClickStats {
   browsers: Record<string, number>;
   topIPs: Array<{ ip: string; count: number }>;
   referers: Record<string, number>;
+  countries?: Record<string, number>;
+  cities?: Record<string, number>;
+  ipVersions?: Record<string, number>;
+  eventTypes?: Record<string, number>;
+  realUserClicks?: number;
+  botPreviewCount?: number;
+  landingViewCount?: number;
+  blockedCount?: number;
   hourlyTimeline: Array<{ hour: string; count: number }>;
   dailyTimeline: Array<{ day: string; count: number }>;
 }

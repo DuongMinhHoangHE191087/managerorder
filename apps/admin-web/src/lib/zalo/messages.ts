@@ -30,6 +30,7 @@ function formatCapabilityList(capabilities: ZaloCapabilities): string {
   if (capabilities.ai) items.push(capabilities.gemini ? "AI (Gemini)" : "AI (fallback)");
   if (capabilities.catalog) items.push("catalog");
   if (capabilities.orderLookup) items.push("tra cứu đơn");
+  if (capabilities.orderCreation) items.push("tạo đơn hàng");
   if (capabilities.humanHandoff) items.push("human-handoff");
   if (capabilities.adminNotify) items.push("admin notify");
   if (capabilities.gemini && !items.includes("AI (Gemini)")) items.push("Gemini");
@@ -54,11 +55,16 @@ export function formatZaloHelpMessage(config: ZaloRuntimeConfig): string {
     "/product - xem sản phẩm",
     "/sanpham - alias của /product",
     "/tracuu <mã đơn|SĐT> - tra cứu đơn",
+    "/neworder - tạo đơn hàng mới",
+    "/cancel - hủy đơn nháp đang mở",
     "/id - xem id và trạng thái bot",
     "/human hoặc /nhanvien - chuyển nhân viên",
     "/ai - quay lại sales-ai",
     "",
     `Trạng thái: ${config.accountBound ? "đã bind account" : "chưa bind account"}`,
+    !config.capabilities.orderCreation
+      ? "Lưu ý: /neworder cần ZALO_BOT_ACCOUNT_ID riêng, Zalo không dùng TELEGRAM_BOT_ACCOUNT_ID nữa."
+      : "",
   ];
   return lines.join("\n");
 }
@@ -70,6 +76,7 @@ export function formatZaloWelcomeMessage(config: ZaloRuntimeConfig, products: Za
     "Mình có thể hỗ trợ:",
     "• Tư vấn sản phẩm",
     "• Tra cứu đơn",
+    ...(config.capabilities.orderCreation ? ["• Tạo đơn hàng"] : []),
     "• Chuyển sang nhân viên khi cần",
     "",
     `Gõ /help để xem lệnh. Trạng thái: ${config.accountBound ? "đã sẵn sàng dữ liệu" : "chưa bind account"}.`,

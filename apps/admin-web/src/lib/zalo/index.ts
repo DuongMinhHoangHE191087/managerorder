@@ -13,6 +13,7 @@ import {
   formatZaloStartupNotification,
   formatZaloWelcomeMessage,
 } from "./messages";
+import { createZaloOrderWizard } from "./order-wizard";
 import { clearZaloMode, getZaloMode, setZaloMode, zaloModeStore } from "./store";
 import type {
   ZaloAssistantService,
@@ -65,6 +66,27 @@ function isCommandText(text: string): boolean {
   return text.trim().startsWith("/");
 }
 
+function parseSlashCommandText(text: string): ZaloCommandContext["command"] | null {
+  const normalized = text.trim();
+  if (!normalized.startsWith("/") || normalized.length <= 1) {
+    return null;
+  }
+
+  const body = normalized.slice(1);
+  const [rawName, ...rest] = body.split(/\s+/);
+  const name = rawName.split("@")[0]?.trim().toLowerCase() ?? "";
+  if (!name) {
+    return null;
+  }
+
+  const argsRaw = rest.join(" ").trim();
+  return {
+    name,
+    argsRaw,
+    args: argsRaw ? argsRaw.split(/\s+/) : [],
+  };
+}
+
 function isHumanRequest(text: string): boolean {
   return /(?:^|\s)(?:gặp nhân viên|gặp nv|nhan vien|nhân viên|human)(?:\s|$)/i.test(text);
 }
@@ -74,12 +96,16 @@ function isAiRequest(text: string): boolean {
 }
 
 function isLookupRequest(text: string): boolean {
-  return /^(?:\/tracuu|\/tra\s*c[uú]u|tracuu|tra\s*c[uú]u|m[aã]\s*don|ma\s*don|ki[eể]m\s*tra\s*don|order)\b/i.test(text);
+  const trimmed = text.trim();
+  const compact = trimmed.replace(/[\s.-]/g, "");
+  return /^(?:\/tracuu|\/tra\s*c[uú]u|\/kiemtra|\/ki[eể]m\s*tra|\/kt|tracuu|tra\s*c[uú]u|ki[eể]m\s*tra\s*(?:don|đơn)?|m[aã]\s*don|ma\s*don|order)\b/i.test(trimmed)
+    || /^(?:\+?84|0)\d{8,10}$/.test(compact)
+    || (/^[a-z0-9][a-z0-9_-]{4,}$/i.test(trimmed) && /\d/.test(trimmed));
 }
 
 function extractLookupTerm(text: string): string {
   const trimmed = text.trim();
-  const matched = trimmed.match(/^(?:\/tracuu|\/tra\s*c[uú]u|tracuu|tra\s*c[uú]u|m[aã]\s*don|ma\s*don|ki[eể]m\s*tra\s*don|order)\s*(.*)$/i);
+  const matched = trimmed.match(/^(?:\/tracuu|\/tra\s*c[uú]u|\/kiemtra|\/ki[eể]m\s*tra|\/kt|tracuu|tra\s*c[uú]u|ki[eể]m\s*tra\s*(?:don|đơn)?|m[aã]\s*don|ma\s*don|order)\s*(.*)$/i);
   return (matched?.[1] ?? trimmed).trim();
 }
 
@@ -127,7 +153,21 @@ export function registerZaloHandlers(
   const logger = createLogger(deps.logger);
   const assistant = deps.assistant ?? createDefaultAssistant();
   const modeStore = resolveModeStore(deps);
+  const handledCommandMessages = new WeakSet<ZaloMessageLike>();
   const dataServicePromise = resolveDataService(config, deps);
+  const orderWizard = createZaloOrderWizard(config.accountId, {
+    dataService: dataServicePromise,
+    logger,
+    orderWizardStore: deps.orderWizardStore,
+    services: deps.orderWizardServices,
+  });
+  const safeReplyText = async (message: ZaloMessageLike, replyText: string, context: string) => {
+    try {
+      await message.replyText(replyText);
+    } catch (error) {
+      logger.error(`[Zalo] Failed to reply in ${context}:`, error);
+    }
+  };
   const syncContact = async (message: ZaloMessageLike) => {
     if (!config.accountBound) return;
 
@@ -161,55 +201,63 @@ export function registerZaloHandlers(
     const products = config.capabilities.catalog
       ? await dataService.listProducts(config.accountId, undefined, 3)
       : [];
-    await message.replyText(formatZaloWelcomeMessage(config, products));
+    await safeReplyText(message, formatZaloWelcomeMessage(config, products), "start");
   };
 
   const handleHelp = async (message: ZaloMessageLike) => {
     await syncContact(message);
-    await message.replyText(formatZaloHelpMessage(config));
+    await safeReplyText(message, formatZaloHelpMessage(config), "help");
   };
 
   const handleProduct = async (message: ZaloMessageLike, context: ZaloCommandContext) => {
     await syncContact(message);
     if (!config.capabilities.catalog) {
-      await message.replyText(formatZaloFeatureUnavailableMessage("catalog", "Cần cấu hình ZALO_BOT_ACCOUNT_ID hoặc TELEGRAM_BOT_ACCOUNT_ID."));
+      await safeReplyText(message, formatZaloFeatureUnavailableMessage("catalog", "Cần cấu hình ZALO_BOT_ACCOUNT_ID riêng cho Zalo."), "product_unavailable");
       return;
     }
 
     const dataService = await dataServicePromise;
     const query = context.command?.argsRaw?.trim() || "";
     const products = await dataService.listProducts(config.accountId, query || undefined, 5);
-    await message.replyText(formatZaloProductCatalog(products, query || undefined));
+    await safeReplyText(message, formatZaloProductCatalog(products, query || undefined), "product");
   };
 
   const handleOrderLookup = async (message: ZaloMessageLike, context: ZaloCommandContext) => {
     await syncContact(message);
     if (!config.capabilities.orderLookup) {
-      await message.replyText(formatZaloFeatureUnavailableMessage("tra cứu đơn", "Cần cấu hình ZALO_BOT_ACCOUNT_ID hoặc TELEGRAM_BOT_ACCOUNT_ID."));
+      await safeReplyText(message, formatZaloFeatureUnavailableMessage("tra cứu đơn", "Cần cấu hình ZALO_BOT_ACCOUNT_ID riêng cho Zalo."), "lookup_unavailable");
       return;
     }
 
     const query = context.command?.argsRaw?.trim() || "";
     if (!query) {
-      await message.replyText("Nhắn /tracuu <mã đơn|SĐT> để tra cứu đơn.");
+      await safeReplyText(message, "Nhắn /tracuu <mã đơn|SĐT>, /kiemtra <mã đơn|SĐT> hoặc /kt <mã đơn|SĐT> để tra cứu đơn.", "lookup_empty");
       return;
     }
 
-    const dataService = await dataServicePromise;
-    const orders = await dataService.searchOrders(config.accountId, query, 5);
-    await message.replyText(formatZaloOrderLookup(query, orders));
+    try {
+      const dataService = await dataServicePromise;
+      const orders = await dataService.searchOrders(config.accountId, query, 5);
+      await safeReplyText(message, formatZaloOrderLookup(query, orders), "lookup");
+    } catch (error) {
+      logger.error("[Zalo] Order lookup failed:", error);
+      await safeReplyText(message, `Không thể tra cứu "${query}" lúc này. Vui lòng thử lại với /kt <mã đơn|SĐT> hoặc liên hệ người bán.`, "lookup_error");
+    }
   };
 
   const handleHuman = async (message: ZaloMessageLike) => {
     await syncContact(message);
     if (!config.capabilities.humanHandoff) {
-      await message.replyText(formatZaloFeatureUnavailableMessage("human-handoff", "Cần cấu hình ADMIN_ZALO_USER_IDS."));
+      await safeReplyText(message, formatZaloFeatureUnavailableMessage("human-handoff", "Cần cấu hình ADMIN_ZALO_USER_IDS."), "human_unavailable");
       return;
     }
 
     const actor = getActor(message);
+    if (await orderWizard.hasSession(message.chat.id)) {
+      await orderWizard.clear(message.chat.id);
+    }
     await modeStore.setMode(config.accountId, message.chat.id, "human-handoff", actor.userId);
-    await message.replyText(formatZaloHumanAck(config));
+    await safeReplyText(message, formatZaloHumanAck(config), "human");
     await notifyAdmins(
       bot,
       config.adminUserIds,
@@ -226,15 +274,40 @@ export function registerZaloHandlers(
 
   const handleAi = async (message: ZaloMessageLike) => {
     await syncContact(message);
+    if (await orderWizard.hasSession(message.chat.id)) {
+      await orderWizard.clear(message.chat.id);
+    }
     await modeStore.clearMode(config.accountId, message.chat.id);
-    await message.replyText(formatZaloAiAck());
+    await safeReplyText(message, formatZaloAiAck(), "ai");
+  };
+
+  const handleNewOrderStart = async (message: ZaloMessageLike) => {
+    await syncContact(message);
+    if (!config.capabilities.orderCreation) {
+      await safeReplyText(
+        message,
+        formatZaloFeatureUnavailableMessage("tạo đơn hàng", "Cần cấu hình ZALO_BOT_ACCOUNT_ID riêng cho Zalo."),
+        "neworder_unavailable",
+      );
+      return;
+    }
+
+    await orderWizard.clear(message.chat.id);
+    await modeStore.clearMode(config.accountId, message.chat.id);
+    await orderWizard.start(message);
+  };
+
+  const handleCancel = async (message: ZaloMessageLike) => {
+    await syncContact(message);
+    await orderWizard.cancel(message);
   };
 
   const handleId = async (message: ZaloMessageLike) => {
     await syncContact(message);
     const actor = getActor(message);
     const mode = await modeStore.getMode(config.accountId, message.chat.id);
-    await message.replyText(
+    await safeReplyText(
+      message,
       formatZaloIdStatus({
         userId: actor.userId,
         chatId: message.chat.id,
@@ -244,23 +317,78 @@ export function registerZaloHandlers(
         adminCount: config.adminUserIds.length,
         displayName: actor.displayName,
       }),
+      "id",
     );
   };
 
-  bot.command("start", handleStart);
-  bot.command("help", handleHelp);
-  bot.command("product", handleProduct);
-  bot.command("sanpham", handleProduct);
-  bot.command("tracuu", handleOrderLookup);
-  bot.command("id", handleId);
-  bot.command("nhanvien", handleHuman);
-  bot.command("human", handleHuman);
-  bot.command("ai", handleAi);
+  const commandHandlers: Record<string, (message: ZaloMessageLike, context: ZaloCommandContext) => Promise<void>> = {
+    start: handleStart,
+    help: handleHelp,
+    product: handleProduct,
+    sanpham: handleProduct,
+    tracuu: handleOrderLookup,
+    kiemtra: handleOrderLookup,
+    kt: handleOrderLookup,
+    neworder: handleNewOrderStart,
+    cancel: handleCancel,
+    id: handleId,
+    nhanvien: handleHuman,
+    human: handleHuman,
+    ai: handleAi,
+  };
+
+  const dispatchSlashCommand = async (message: ZaloMessageLike, text: string): Promise<boolean> => {
+    const command = parseSlashCommandText(text);
+    if (!command) {
+      return false;
+    }
+
+    const handler = commandHandlers[command.name];
+    if (!handler) {
+      return false;
+    }
+
+    handledCommandMessages.add(message);
+    await handler(message, { command });
+    return true;
+  };
+
+  for (const [command, handler] of Object.entries(commandHandlers)) {
+    bot.command(command, async (message, context) => {
+      if (handledCommandMessages.has(message)) {
+        handledCommandMessages.delete(message);
+        return;
+      }
+
+      await handler(message, context);
+    });
+  }
 
   bot.on("text", async (message) => {
     await syncContact(message);
     const text = (message.text ?? "").trim();
-    if (!text || isCommandText(text)) return;
+    if (!text) return;
+
+    if (isCommandText(text)) {
+      if (await dispatchSlashCommand(message, text)) {
+        return;
+      }
+      return;
+    }
+
+    if (isHumanRequest(text)) {
+      await handleHuman(message);
+      return;
+    }
+
+    if (isAiRequest(text)) {
+      await handleAi(message);
+      return;
+    }
+
+    if (await orderWizard.handleText(message)) {
+      return;
+    }
 
     const actor = getActor(message);
     const currentMode = await modeStore.getMode(config.accountId, message.chat.id);
@@ -286,7 +414,7 @@ export function registerZaloHandlers(
     if (isHumanRequest(text)) {
       if (config.capabilities.humanHandoff) {
         await modeStore.setMode(config.accountId, message.chat.id, "human-handoff", actor.userId);
-        await message.replyText(formatZaloHumanAck(config));
+        await safeReplyText(message, formatZaloHumanAck(config), "text_human");
         await notifyAdmins(
           bot,
           config.adminUserIds,
@@ -300,22 +428,37 @@ export function registerZaloHandlers(
           logger,
         );
       } else {
-        await message.replyText(formatZaloFeatureUnavailableMessage("human-handoff", "Cần cấu hình ADMIN_ZALO_USER_IDS."));
+        await safeReplyText(message, formatZaloFeatureUnavailableMessage("human-handoff", "Cần cấu hình ADMIN_ZALO_USER_IDS."), "text_human_unavailable");
       }
       return;
     }
 
     if (isAiRequest(text)) {
       await modeStore.clearMode(config.accountId, message.chat.id);
-      await message.replyText(formatZaloAiAck());
+      await safeReplyText(message, formatZaloAiAck(), "text_ai");
       return;
     }
 
-    if (isLookupRequest(text) && config.capabilities.orderLookup) {
-      const dataService = await dataServicePromise;
+    if (isLookupRequest(text)) {
+      if (!config.capabilities.orderLookup) {
+        await safeReplyText(message, formatZaloFeatureUnavailableMessage("tra cứu đơn", "Cần cấu hình ZALO_BOT_ACCOUNT_ID hoặc TELEGRAM_BOT_ACCOUNT_ID."), "text_lookup_unavailable");
+        return;
+      }
+
       const lookupTerm = extractLookupTerm(text);
-      const orders = await dataService.searchOrders(config.accountId, lookupTerm, 5);
-      await message.replyText(formatZaloOrderLookup(lookupTerm, orders));
+      if (!lookupTerm) {
+        await safeReplyText(message, "Nhắn /kt <mã đơn|SĐT> để tra cứu đơn.", "text_lookup_empty");
+        return;
+      }
+
+      try {
+        const dataService = await dataServicePromise;
+        const orders = await dataService.searchOrders(config.accountId, lookupTerm, 5);
+        await safeReplyText(message, formatZaloOrderLookup(lookupTerm, orders), "text_lookup");
+      } catch (error) {
+        logger.error("[Zalo] Text order lookup failed:", error);
+        await safeReplyText(message, `Không thể tra cứu "${lookupTerm}" lúc này. Vui lòng thử lại với /kt <mã đơn|SĐT> hoặc liên hệ người bán.`, "text_lookup_error");
+      }
       return;
     }
 
@@ -333,7 +476,7 @@ export function registerZaloHandlers(
         accountBound: config.accountBound,
       },
     });
-    await message.replyText(reply);
+    await safeReplyText(message, reply, "sales_ai");
   });
 }
 
@@ -379,7 +522,6 @@ export async function createZaloRuntime(
     await bot.startPolling({
       timeoutSeconds: 30,
       retryDelayMs: 1000,
-      allowedUpdates: ["message"],
     });
   };
 

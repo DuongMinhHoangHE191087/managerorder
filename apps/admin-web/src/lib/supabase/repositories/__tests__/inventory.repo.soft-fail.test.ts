@@ -51,7 +51,7 @@ describe("inventory.repo soft-fail behavior", () => {
       throw new Error(`Unexpected table: ${table}`);
     });
 
-    await expect(listLicenseKeys("acc-1")).resolves.toEqual([]);
+    await expect(listLicenseKeys("00000000-0000-4000-8000-000000000016")).resolves.toEqual([]);
   });
 
   it("throws a schema initialization error when writes hit a missing license_keys table", async () => {
@@ -69,9 +69,9 @@ describe("inventory.repo soft-fail behavior", () => {
     });
 
     await expect(
-      createLicenseKey("acc-1", {
+      createLicenseKey("00000000-0000-4000-8000-000000000016", {
         key_code: "KEY-001",
-        product_id: "prod-1",
+        product_id: "00000000-0000-4000-8000-000000000039",
       }),
     ).rejects.toMatchObject({
       code: "SCHEMA_NOT_INITIALIZED",

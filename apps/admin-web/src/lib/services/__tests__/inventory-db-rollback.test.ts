@@ -30,7 +30,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getOrderById, updateOrderStatus } from "@/lib/supabase/repositories/orders.repo";
 import { confirmAllocation } from "@/lib/services/allocation.service";
 
-const ACCOUNT_ID = "test-account-uuid";
+const ACCOUNT_ID = "00000000-0000-4000-8000-0000000000fa";
 const ORDER_ID = "order-rollback-test";
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -97,14 +97,14 @@ describe("Rollback: RPC exception leaves no side effects", () => {
     setupMockChain({
       order_items: {
         data: [{
-          id: "oi-1", order_id: ORDER_ID, product_id: "prod-1",
+          id: "00000000-0000-4000-8000-0000000000f9", order_id: ORDER_ID, product_id: "00000000-0000-4000-8000-000000000039",
           quantity: 1, product_name_snapshot: "Netflix",
           assigned_source_account_id: null, customer_nick_used: null,
         }],
         error: null,
       },
       products: {
-        data: [{ id: "prod-1", name: "Netflix", mode: "slot",
+        data: [{ id: "00000000-0000-4000-8000-000000000039", name: "Netflix", mode: "slot",
           buy_price_vnd: 0, sell_price_vnd: 100000,
           duration_type: "months", duration_value: 1, is_active: true,
         }],
@@ -112,8 +112,8 @@ describe("Rollback: RPC exception leaves no side effects", () => {
       },
       source_accounts: {
         data: [{
-          id: "sa-1", email: "test@test.com", provider: "netflix",
-          product_ids: ["prod-1"], max_slots: 10, used_slots: 3,
+          id: "00000000-0000-4000-8000-000000000040", email: "test@test.com", provider: "netflix",
+          product_ids: ["00000000-0000-4000-8000-000000000039"], max_slots: 10, used_slots: 3,
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           account_id: ACCOUNT_ID,
         }],
@@ -163,14 +163,14 @@ describe("Rollback: partial allocation failure", () => {
     setupMockChain({
       order_items: {
         data: [{
-          id: "oi-1", order_id: ORDER_ID, product_id: "prod-1",
+          id: "00000000-0000-4000-8000-0000000000f9", order_id: ORDER_ID, product_id: "00000000-0000-4000-8000-000000000039",
           quantity: 1, product_name_snapshot: "Netflix",
           assigned_source_account_id: null, customer_nick_used: null,
         }],
         error: null,
       },
       products: {
-        data: [{ id: "prod-1", name: "Netflix", mode: "slot",
+        data: [{ id: "00000000-0000-4000-8000-000000000039", name: "Netflix", mode: "slot",
           buy_price_vnd: 0, sell_price_vnd: 100000,
           duration_type: "months", duration_value: 1, is_active: true,
         }],
@@ -178,8 +178,8 @@ describe("Rollback: partial allocation failure", () => {
       },
       source_accounts: {
         data: [{
-          id: "sa-1", email: "test@test.com", provider: "netflix",
-          product_ids: ["prod-1"], max_slots: 10, used_slots: 3,
+          id: "00000000-0000-4000-8000-000000000040", email: "test@test.com", provider: "netflix",
+          product_ids: ["00000000-0000-4000-8000-000000000039"], max_slots: 10, used_slots: 3,
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           account_id: ACCOUNT_ID,
         }],
@@ -228,7 +228,7 @@ describe("Rollback: key allocation failure after slot success", () => {
     setupMockChain({
       order_items: {
         data: [{
-          id: "oi-1", order_id: ORDER_ID, product_id: "prod-hybrid",
+          id: "00000000-0000-4000-8000-0000000000f9", order_id: ORDER_ID, product_id: "prod-hybrid",
           quantity: 1, product_name_snapshot: "Hybrid Product",
           assigned_source_account_id: null, customer_nick_used: null,
         }],
@@ -243,7 +243,7 @@ describe("Rollback: key allocation failure after slot success", () => {
       },
       source_accounts: {
         data: [{
-          id: "sa-1", email: "test@test.com", provider: "hybrid_provider",
+          id: "00000000-0000-4000-8000-000000000040", email: "test@test.com", provider: "hybrid_provider",
           product_ids: ["prod-hybrid"], max_slots: 10, used_slots: 3,
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           account_id: ACCOUNT_ID,
@@ -251,7 +251,7 @@ describe("Rollback: key allocation failure after slot success", () => {
         error: null,
       },
       license_keys: {
-        data: [{ id: "key-1", product_id: "prod-hybrid" }],
+        data: [{ id: "00000000-0000-4000-8000-0000000000e5", product_id: "prod-hybrid" }],
         error: null,
       },
     });

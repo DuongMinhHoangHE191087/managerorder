@@ -11,6 +11,12 @@ apps/*/playwright-report/
 apps/*/test-results/
 apps/*/.tmp-dev/
 apps/*/.understand-anything/
+apps/*/qa-artifacts/
+apps/*/*.log
+apps/*/*.out.log
+apps/*/*.err.log
+qa-artifacts/
+.codex-runtime/
 packages/*/node_modules/
 packages/*/dist/
 packages/*/.tmp/

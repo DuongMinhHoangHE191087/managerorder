@@ -2,7 +2,13 @@
 
 import { format } from "date-fns";
 import { calculateAvailableSlots } from "@/lib/domain/premium-account-math";
-import type { MigrationAccountRow, MigrationStatus, MigrationStepRow, MigrationSubscriptionRow } from "./types";
+import type {
+  MigrationAccountRow,
+  MigrationListRow,
+  MigrationStatus,
+  MigrationStepRow,
+  MigrationSubscriptionRow,
+} from "./types";
 
 export const MIGRATION_STATUSES: MigrationStatus[] = ["pending", "in_progress", "completed", "failed", "rollback"];
 
@@ -34,6 +40,18 @@ export function getStatusLabel(status: MigrationStatus) {
     default:
       return status;
   }
+}
+
+export function getMigrationStatusLabel(migration: Pick<MigrationListRow, "status" | "terminal_reason" | "details">) {
+  const terminalReason =
+    migration.terminal_reason ??
+    (typeof migration.details?.terminal_reason === "string" ? migration.details.terminal_reason : null);
+
+  if (migration.status === "failed" && terminalReason === "cancelled_by_admin") {
+    return "Đã hủy";
+  }
+
+  return getStatusLabel(migration.status);
 }
 
 export function getStatusClass(status: MigrationStatus) {

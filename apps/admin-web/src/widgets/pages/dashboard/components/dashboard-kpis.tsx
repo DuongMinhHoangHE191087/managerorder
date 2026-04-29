@@ -61,7 +61,9 @@ export function DashboardKPIs({
             {vi.dashboard.kpis.totalRevenueMonth}
           </p>
         </div>
-        <h3 className="mt-2 text-3xl font-black tracking-tight text-[var(--fg-base)]">{formatMoney(totalRevenue)}</h3>
+        <h3 className="mt-2 text-3xl font-black tracking-tight text-[var(--fg-base)]" data-testid="dashboard-kpi-value">
+          {formatMoney(totalRevenue)}
+        </h3>
       </KPIStyleCard>
 
       <KPIStyleCard>
@@ -75,7 +77,7 @@ export function DashboardKPIs({
             {vi.dashboard.kpis.collected(timeLabel)}
           </p>
         </div>
-        <h3 className="mt-2 text-3xl font-black tracking-tight text-emerald-600">
+        <h3 className="mt-2 text-3xl font-black tracking-tight text-emerald-600" data-testid="dashboard-kpi-value">
           {formatMoney(totalCollected)}
         </h3>
       </KPIStyleCard>
@@ -94,13 +96,17 @@ export function DashboardKPIs({
             {vi.dashboard.kpis.totalProfit(timeLabel)}
           </p>
         </div>
-        <h3 className="mt-2 text-3xl font-black tracking-tight text-[var(--fg-base)]">{formatMoney(totalProfit)}</h3>
+        <h3 className="mt-2 text-3xl font-black tracking-tight text-[var(--fg-base)]" data-testid="dashboard-kpi-value">
+          {formatMoney(totalProfit)}
+        </h3>
       </KPIStyleCard>
 
       <KPIStyleCard>
         <div className="flex items-center justify-between gap-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{vi.dashboard.kpis.fillRate}</p>
-          <span className="text-lg font-bold text-[var(--accent)]">{fillRate}%</span>
+          <span className="text-lg font-bold text-[var(--accent)]" data-testid="dashboard-kpi-value">
+            {fillRate}%
+          </span>
         </div>
         <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-[var(--border-soft)] shadow-inner">
           <div
@@ -117,17 +123,23 @@ export function DashboardKPIs({
         </p>
         <div className="mt-auto flex items-center justify-between gap-2">
           <div className="flex-1 text-center">
-            <p className="text-2xl font-black text-[var(--accent)]">{availableKeys}</p>
+            <p className="text-2xl font-black text-[var(--accent)]" data-testid="dashboard-kpi-value">
+              {availableKeys}
+            </p>
             <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{vi.dashboard.kpis.active}</p>
           </div>
           <div className="h-8 w-px bg-[var(--border-soft)]" />
           <div className="flex-1 text-center">
-            <p className="text-2xl font-black text-[var(--warning)]">{reservedKeys}</p>
+            <p className="text-2xl font-black text-[var(--warning)]" data-testid="dashboard-kpi-value">
+              {reservedKeys}
+            </p>
             <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{vi.dashboard.kpis.expiring}</p>
           </div>
           <div className="h-8 w-px bg-[var(--border-soft)]" />
           <div className="flex-1 text-center">
-            <p className="text-2xl font-black text-[var(--danger)]">{consumedKeys}</p>
+            <p className="text-2xl font-black text-[var(--danger)]" data-testid="dashboard-kpi-value">
+              {consumedKeys}
+            </p>
             <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{vi.dashboard.kpis.used}</p>
           </div>
         </div>
@@ -144,10 +156,16 @@ export function DashboardKPIs({
         </div>
         <div className="mt-2 text-[var(--fg-base)]">
           <p className="text-xl font-black tracking-tight">
-            <span className="text-[var(--danger)]">{overdueCustomersCount}</span> {vi.dashboard.kpis.debtCustomerSuffix}
+            <span className="text-[var(--danger)]" data-testid="dashboard-kpi-value">
+              {overdueCustomersCount}
+            </span>{" "}
+            {vi.dashboard.kpis.debtCustomerSuffix}
           </p>
           <p className="mt-1 text-xl font-black tracking-tight">
-            <span className="text-[var(--warning)]">{pendingCount}</span> {vi.dashboard.kpis.pendingOrderSuffix}
+            <span className="text-[var(--warning)]" data-testid="dashboard-kpi-value">
+              {pendingCount}
+            </span>{" "}
+            {vi.dashboard.kpis.pendingOrderSuffix}
           </p>
         </div>
       </KPIStyleCard>

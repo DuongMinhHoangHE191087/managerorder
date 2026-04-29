@@ -4,8 +4,11 @@ import { createRequire } from "module";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import { loadLocalEnv } from "./load-local-env";
+import {
+  acquireRuntimeSupervisorLock,
+  releaseRuntimeSupervisorLock,
+} from "../src/lib/dev/runtime-supervisor-lock";
 import { resolveTelegramRuntimeMode } from "../src/lib/bot-manager/runtime-mode";
-import { canStartZaloBot, describeZaloRuntime, resolveZaloRuntimeConfig } from "../src/lib/zalo/config";
 
 type ManagedChild = {
   name: string;
@@ -21,16 +24,17 @@ type ManagedChild = {
 const require = createRequire(import.meta.url);
 const nextBin = require.resolve("next/dist/bin/next");
 
-loadLocalEnv();
-
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = process.cwd();
+const projectRoot = path.resolve(currentDir, "..");
+loadLocalEnv(path.resolve(projectRoot, ".env.local"));
+const supervisorLockPath = path.resolve(projectRoot, ".next", "dev", "runtime-supervisor.lock.json");
 const registerLoaderPath = path.resolve(currentDir, "register-ts-loader.mjs");
 const registerLoaderUrl = pathToFileURL(registerLoaderPath).href;
 const modeArg = process.argv.find((arg) => arg.startsWith("--mode="));
 const mode = (modeArg?.split("=")[1] || process.argv[2] || "dev").trim();
 
 const logger = console;
+let shutdownRequested = false;
 
 function makeNodeArgs(scriptPath: string): string[] {
   const relativeScriptPath = path.relative(projectRoot, scriptPath).split(path.sep).join("/");
@@ -107,10 +111,6 @@ function resolveTelegramScript(): string {
   return path.resolve(projectRoot, "scripts", "telegram-bot-poll.ts");
 }
 
-function resolveZaloScript(): string {
-  return path.resolve(projectRoot, "scripts", "zalo-bot-poll.ts");
-}
-
 function resolveWebArgs(): string[] {
   if (mode === "docker") {
     const standaloneServer = path.resolve(projectRoot, ".next", "standalone", "server.js");
@@ -125,19 +125,44 @@ function resolveWebArgs(): string[] {
   return [nextBin, "dev", "--turbopack"];
 }
 
+async function shutdown(
+  webChild: ManagedChild,
+  telegramChild: ManagedChild,
+  code = 0,
+): Promise<void> {
+  if (shutdownRequested) {
+    return;
+  }
+  shutdownRequested = true;
+  stopChild(webChild);
+  stopChild(telegramChild);
+  await releaseRuntimeSupervisorLock(supervisorLockPath).catch(() => undefined);
+  process.exit(code);
+}
+
 async function main(): Promise<void> {
   const webArgs = resolveWebArgs();
   const telegramToken = (process.env.TELEGRAM_BOT_TOKEN ?? "").trim();
-  const zaloConfig = resolveZaloRuntimeConfig(process.env);
   const telegramRuntimeMode = resolveTelegramRuntimeMode(process.env);
 
   logger.log(`[Supervisor] Starting runtime in ${mode} mode.`);
   logger.log(`[Supervisor] Telegram runtime mode: ${telegramRuntimeMode}.`);
-  for (const warning of zaloConfig.warnings) {
-    logger.warn(`[Supervisor] Zalo config: ${warning}`);
-  }
-  if (canStartZaloBot(zaloConfig)) {
-    logger.log(`[Supervisor] Zalo runtime: ${describeZaloRuntime(zaloConfig)}`);
+  logger.log("[Supervisor] Zalo runtime is not started here. Use pnpm zalo:poll for standalone testing.");
+
+  const supervisorLock = await acquireRuntimeSupervisorLock({
+    lockPath: supervisorLockPath,
+    cwd: projectRoot,
+    mode,
+  });
+
+  if (!supervisorLock.acquired) {
+    const activeLock = supervisorLock.activeLock;
+    logger.warn(
+      `[Supervisor] Another ${activeLock?.mode ?? mode} supervisor is already running for ${activeLock?.cwd ?? projectRoot} ` +
+        `(pid ${activeLock?.pid ?? "unknown"}, started ${activeLock?.startedAt ?? "unknown"}). ` +
+        "Reusing that instance instead of starting a duplicate.",
+    );
+    process.exit(0);
   }
 
   const webChild: ManagedChild = {
@@ -148,10 +173,8 @@ async function main(): Promise<void> {
     stopped: false,
     restartDelayMs: 0,
     onExit(code) {
-      logger.error(`[Supervisor] Web process exited (${code ?? 0}). Shutting down bots.`);
-      stopChild(telegramChild);
-      stopChild(zaloChild);
-      process.exit(code ?? 0);
+      logger.error(`[Supervisor] Web process exited (${code ?? 0}). Shutting down Telegram.`);
+      void shutdown(webChild, telegramChild, code ?? 0);
     },
   };
 
@@ -164,29 +187,14 @@ async function main(): Promise<void> {
     restartDelayMs: 2_000,
   };
 
-  const zaloChild: ManagedChild = {
-    name: "zalo",
-    command: process.execPath,
-    args: makeNodeArgs(resolveZaloScript()),
-    restartable: true,
-    stopped: false,
-    restartDelayMs: 2_000,
-  };
-
   process.once("SIGINT", () => {
     logger.log("[Supervisor] SIGINT received. Stopping children...");
-    stopChild(webChild);
-    stopChild(telegramChild);
-    stopChild(zaloChild);
-    setTimeout(() => process.exit(0), 500);
+    void shutdown(webChild, telegramChild, 0);
   });
 
   process.once("SIGTERM", () => {
     logger.log("[Supervisor] SIGTERM received. Stopping children...");
-    stopChild(webChild);
-    stopChild(telegramChild);
-    stopChild(zaloChild);
-    setTimeout(() => process.exit(0), 500);
+    void shutdown(webChild, telegramChild, 0);
   });
 
   spawnManagedChild(webChild);
@@ -198,15 +206,10 @@ async function main(): Promise<void> {
   } else {
     logger.warn("[Supervisor] Skipping Telegram bot: TELEGRAM_BOT_TOKEN is missing.");
   }
-
-  if (canStartZaloBot(zaloConfig)) {
-    spawnManagedChild(zaloChild);
-  } else {
-    logger.warn("[Supervisor] Skipping Zalo bot: ZALO_BOT_TOKEN is missing.");
-  }
 }
 
 void main().catch((error) => {
   logger.error("[Supervisor] Fatal startup error:", error);
+  void releaseRuntimeSupervisorLock(supervisorLockPath).catch(() => undefined);
   process.exit(1);
 });

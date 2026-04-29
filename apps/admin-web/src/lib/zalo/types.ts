@@ -1,9 +1,14 @@
+import type { CreateCustomerInput } from "@/lib/domain/schemas";
+import type { Customer } from "@/lib/domain/types";
+import type { CreateOrderInput, CreateOrderResult } from "@/lib/services/order.service";
+
 export type ZaloMode = "sales-ai" | "human-handoff";
 
 export interface ZaloCapabilities {
   ai: boolean;
   catalog: boolean;
   orderLookup: boolean;
+  orderCreation: boolean;
   humanHandoff: boolean;
   adminNotify: boolean;
   gemini: boolean;
@@ -19,6 +24,88 @@ export interface ZaloRuntimeConfig {
   accountBound: boolean;
   capabilities: ZaloCapabilities;
   warnings: string[];
+}
+
+export type ZaloOrderDurationType = "days" | "months" | "years";
+
+export interface ZaloOrderWizardCustomerCandidate {
+  id: string;
+  name: string;
+  contactPreview?: string;
+}
+
+export interface ZaloOrderWizardProductCandidate {
+  id: string;
+  name: string;
+  mode: string;
+  sellPriceVnd: number;
+  buyPriceVnd?: number | null;
+  durationType?: ZaloOrderDurationType | null;
+  durationValue?: number | null;
+  isActive?: boolean;
+}
+
+export interface ZaloOrderWizardSelectedCustomer {
+  id: string;
+  name: string;
+  contactSnapshot?: string;
+}
+
+export interface ZaloOrderWizardDraftItem {
+  productId: string;
+  productName: string;
+  mode: string;
+  sellPriceVnd: number;
+  buyPriceVnd?: number | null;
+  durationType: ZaloOrderDurationType;
+  durationValue: number;
+  quantity: number;
+}
+
+export type ZaloOrderWizardStep =
+  | "customer-query"
+  | "customer-pick"
+  | "customer-name"
+  | "customer-contact"
+  | "product-query"
+  | "product-pick"
+  | "quantity"
+  | "more-items"
+  | "payment-terms"
+  | "order-notes"
+  | "confirm";
+
+export interface ZaloOrderWizardState {
+  step: ZaloOrderWizardStep;
+  startedAt: string;
+  updatedAt: string;
+  customerCandidates?: ZaloOrderWizardCustomerCandidate[];
+  selectedCustomer?: ZaloOrderWizardSelectedCustomer;
+  pendingCustomerName?: string;
+  pendingCustomerContact?: {
+    ok: boolean;
+    normalizedValue?: string;
+    normalizedChannel?: "phone" | "email" | "zalo" | "facebook" | "telegram" | "other";
+    extractedId?: string;
+    error?: string;
+  };
+  productCandidates?: ZaloOrderWizardProductCandidate[];
+  pendingProduct?: ZaloOrderWizardProductCandidate;
+  items: ZaloOrderWizardDraftItem[];
+  paymentTerms?: "prepaid" | "credit" | "cod";
+  orderNotes?: string;
+}
+
+export interface ZaloOrderWizardStore {
+  getSession(accountId: string, chatId: string): Promise<ZaloOrderWizardState | null>;
+  setSession(accountId: string, chatId: string, state: ZaloOrderWizardState): Promise<void>;
+  clearSession(accountId: string, chatId: string): Promise<void>;
+}
+
+export interface ZaloOrderWizardServices {
+  listCustomers(accountId: string, options?: { search?: string }): Promise<Customer[]>;
+  createCustomer(accountId: string, input: CreateCustomerInput): Promise<Customer>;
+  createOrder(accountId: string, input: CreateOrderInput): Promise<CreateOrderResult>;
 }
 
 export interface ZaloBotIdentity {
@@ -105,6 +192,8 @@ export interface ZaloRuntimeDeps {
   dataService?: ZaloDataService;
   assistant?: ZaloAssistantService;
   modeStore?: ZaloModeStore;
+  orderWizardStore?: ZaloOrderWizardStore;
+  orderWizardServices?: Partial<ZaloOrderWizardServices>;
   logger?: Pick<Console, "log" | "warn" | "error">;
 }
 

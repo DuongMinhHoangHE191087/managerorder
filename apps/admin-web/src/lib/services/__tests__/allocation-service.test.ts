@@ -39,7 +39,7 @@ import {
 
 // ── Constants ───────────────────────────────────────────────
 const ACCOUNT_ID = "550e8400-e29b-41d4-a716-446655440000";
-const ORDER_ID = "order-001";
+const ORDER_ID = "00000000-0000-4000-8000-00000000003f";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -54,7 +54,7 @@ function makeOrder(overrides: Record<string, unknown> = {}) {
 
 function makeOrderItem(overrides: Record<string, unknown> = {}) {
   return {
-    id: "oi-001",
+    id: "00000000-0000-4000-8000-0000000000e4",
     order_id: ORDER_ID,
     product_id: "prod-slot",
     quantity: 1,
@@ -81,7 +81,7 @@ function makeProduct(overrides: Record<string, unknown> = {}) {
 
 function makeSourceAccountRow(overrides: Record<string, unknown> = {}) {
   return {
-    id: "sa-001",
+    id: "00000000-0000-4000-8000-000000000036",
     email: "source@test.com",
     provider: "netflix",
     product_ids: ["prod-slot"],
@@ -217,7 +217,7 @@ describe("buildAllocationSuggestion", () => {
       source_accounts: { data: [], error: null },
       license_keys: {
         // Only 1 available key
-        data: [{ id: "k-1", product_id: "prod-key" }],
+        data: [{ id: "00000000-0000-4000-8000-0000000003ef", product_id: "prod-key" }],
         error: null,
       },
     });
@@ -250,7 +250,7 @@ describe("buildAllocationSuggestion", () => {
         error: null,
       },
       license_keys: {
-        data: [{ id: "key-1", product_id: "prod-hybrid" }],
+        data: [{ id: "00000000-0000-4000-8000-0000000000e5", product_id: "prod-hybrid" }],
         error: null,
       },
     });
@@ -345,12 +345,12 @@ describe("deallocateOrder", () => {
     setupSupabaseFromMock({
       order_items: {
         data: [
-          makeOrderItem({ assigned_source_account_id: "sa-1", quantity: 2 }),
+          makeOrderItem({ assigned_source_account_id: "00000000-0000-4000-8000-000000000040", quantity: 2 }),
         ],
         error: null,
       },
       license_keys: {
-        data: [{ id: "key-1" }],
+        data: [{ id: "00000000-0000-4000-8000-0000000000e5" }],
         error: null,
       },
     });

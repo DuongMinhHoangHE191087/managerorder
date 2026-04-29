@@ -69,26 +69,82 @@ async function logValidationFailure(
 export const GET = withFlatAccountHandler(async (request, { accountId }) => {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status") || "pending";
+  const subscriptionId = searchParams.get("subscription_id");
+  const sourceAccountId = searchParams.get("source_account_id");
+  const targetAccountId = searchParams.get("target_account_id");
+  const customerId = searchParams.get("customer_id");
+  const fromDate = searchParams.get("from_date");
+  const toDate = searchParams.get("to_date");
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const limit = Math.min(Math.max(1, Number(searchParams.get("limit")) || 20), 100);
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
 
   const preferLocalPremiumFixtures =
     process.env.NODE_ENV === "development" &&
     process.env.CODEX_DISABLE_LOCAL_FALLBACK !== "1";
 
   if (preferLocalPremiumFixtures) {
-    const fallbackMigrations = buildLocalPremiumMigrations(accountId, status);
+    const fallbackMigrations = buildLocalPremiumMigrations(accountId, status)
+      .filter((item) => (subscriptionId ? item.subscription_id === subscriptionId : true))
+      .filter((item) => (sourceAccountId ? item.source_account_id === sourceAccountId : true))
+      .filter((item) => (targetAccountId ? item.target_account_id === targetAccountId : true))
+      .filter((item) => (customerId ? item.customer_id === customerId : true))
+      .filter((item) => (fromDate ? new Date(item.created_at) >= new Date(fromDate) : true))
+      .filter((item) => {
+        if (!toDate) {
+          return true;
+        }
+        const end = new Date(toDate);
+        end.setDate(end.getDate() + 1);
+        return new Date(item.created_at) < end;
+      });
+    const pagedFallback = fallbackMigrations.slice(from, to + 1);
 
-    return createFlatSuccessResponse(fallbackMigrations, {
-      meta: { total: fallbackMigrations.length, status },
+    return createFlatSuccessResponse(pagedFallback, {
+      meta: {
+        total: fallbackMigrations.length,
+        status,
+        page,
+        limit,
+        totalPages: Math.ceil(fallbackMigrations.length / limit) || 1,
+      },
     });
   }
 
   try {
-    const { data: baseMigrations, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("account_migrations")
-      .select("*")
-      .eq("account_id", accountId)
-      .eq("status", status)
-      .order("created_at", { ascending: false });
+      .select("*", { count: "exact" })
+      .eq("account_id", accountId);
+
+    if (status) {
+      query = query.eq("status", status);
+    }
+    if (subscriptionId) {
+      query = query.eq("subscription_id", subscriptionId);
+    }
+    if (sourceAccountId) {
+      query = query.eq("source_account_id", sourceAccountId);
+    }
+    if (targetAccountId) {
+      query = query.eq("target_account_id", targetAccountId);
+    }
+    if (customerId) {
+      query = query.eq("customer_id", customerId);
+    }
+    if (fromDate) {
+      query = query.gte("created_at", fromDate);
+    }
+    if (toDate) {
+      const inclusiveEnd = new Date(toDate);
+      inclusiveEnd.setDate(inclusiveEnd.getDate() + 1);
+      query = query.lt("created_at", inclusiveEnd.toISOString());
+    }
+
+    const { data: baseMigrations, error, count } = await query
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
     if (error) {
       throw error;
@@ -168,16 +224,33 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
     });
 
     return createFlatSuccessResponse(formattedData, {
-      meta: { total: formattedData.length, status },
+      meta: {
+        total: count ?? formattedData.length,
+        status,
+        page,
+        limit,
+        totalPages: count ? Math.ceil(count / limit) : 0,
+      },
     });
   } catch (error) {
     if (shouldUseLocalPremiumFallback(error)) {
       const { searchParams } = new URL(request.url);
       const status = searchParams.get("status") || "pending";
-      const fallbackMigrations = buildLocalPremiumMigrations(accountId, status);
+      const fallbackMigrations = buildLocalPremiumMigrations(accountId, status)
+        .filter((item) => (subscriptionId ? item.subscription_id === subscriptionId : true))
+        .filter((item) => (sourceAccountId ? item.source_account_id === sourceAccountId : true))
+        .filter((item) => (targetAccountId ? item.target_account_id === targetAccountId : true))
+        .filter((item) => (customerId ? item.customer_id === customerId : true));
+      const pagedFallback = fallbackMigrations.slice(from, to + 1);
 
-      return createFlatSuccessResponse(fallbackMigrations, {
-        meta: { total: fallbackMigrations.length, status },
+      return createFlatSuccessResponse(pagedFallback, {
+        meta: {
+          total: fallbackMigrations.length,
+          status,
+          page,
+          limit,
+          totalPages: Math.ceil(fallbackMigrations.length / limit) || 1,
+        },
       });
     }
 

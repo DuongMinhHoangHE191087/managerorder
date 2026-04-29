@@ -81,6 +81,17 @@ export class BotRouter {
     return this;
   }
 
+  getDebugSnapshot() {
+    return {
+      middlewareCount: this.middlewares.length,
+      commands: [...this.commandHandlers.keys()].sort(),
+      actions: [...this.callbackHandlers.keys()].sort(),
+      actionPrefixes: this.callbackPrefixHandlers.map((entry) => entry.prefix).sort(),
+      texts: [...this.textHandlers.keys()].sort(),
+      hasFallback: Boolean(this.fallbackHandler),
+    };
+  }
+
   /**
    * Process an incoming Telegram update through the router.
    */

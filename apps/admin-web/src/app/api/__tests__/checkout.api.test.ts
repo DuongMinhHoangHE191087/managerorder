@@ -46,15 +46,15 @@ import { POST } from "@/app/api/orders/route";
 
 // ── Fixtures ─────────────────────────────────────────────────
 const validSingleItemBody = {
-  customerId: "cust-uuid-001",
-  items: [{ productId: "prod-001", quantity: 1 }],
+  customerId: "00000000-0000-4000-8000-000000000025",
+  items: [{ productId: "00000000-0000-4000-8000-000000000026", quantity: 1 }],
 };
 
 const validMultiItemBody = {
-  customerId: "cust-uuid-001",
+  customerId: "00000000-0000-4000-8000-000000000025",
   items: [
-    { productId: "prod-001", quantity: 2 },
-    { productId: "prod-002", quantity: 1, notes: "Account B" },
+    { productId: "00000000-0000-4000-8000-000000000026", quantity: 2 },
+    { productId: "00000000-0000-4000-8000-000000000027", quantity: 1, notes: "Account B" },
   ],
   paymentMethod: "debt" as const,
   salesNote: "Flash sale order",
@@ -62,16 +62,16 @@ const validMultiItemBody = {
 
 const mockCreatedOrder = {
   order: {
-    id: "ord-new-001",
+    id: "00000000-0000-4000-8000-000000000028",
     status: "pending_payment",
     total_amount_vnd: 100000,
     total_paid: 0,
-    customer_id: "cust-uuid-001",
+    customer_id: "00000000-0000-4000-8000-000000000025",
   },
   items: [
     {
-      id: "item-001",
-      product_id: "prod-001",
+      id: "00000000-0000-4000-8000-000000000029",
+      product_id: "00000000-0000-4000-8000-000000000026",
       quantity: 1,
       price_vnd: 100000,
       subtotal_vnd: 100000,
@@ -106,20 +106,20 @@ describe("POST /api/orders — Checkout", () => {
       const res = await postOrder(validSingleItemBody);
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.data.id).toBe("ord-new-001");
+      expect(body.data.id).toBe("00000000-0000-4000-8000-000000000028");
       expect(body.data.items).toHaveLength(1);
     });
 
     it("creates a multi-item order with optional fields", async () => {
       vi.mocked(createOrderWithItems).mockResolvedValue({
         order: {
-          id: "ord-new-002",
+          id: "00000000-0000-4000-8000-00000000002a",
           status: "pending_payment",
           total_amount_vnd: 350000,
         },
         items: [
-          { id: "item-001", subtotal_vnd: 200000 },
-          { id: "item-002", subtotal_vnd: 150000 },
+          { id: "00000000-0000-4000-8000-000000000029", subtotal_vnd: 200000 },
+          { id: "00000000-0000-4000-8000-00000000002b", subtotal_vnd: 150000 },
         ],
       } as any);
 
@@ -135,11 +135,47 @@ describe("POST /api/orders — Checkout", () => {
       expect(createOrderWithItems).toHaveBeenCalledWith(
         expect.any(String), // accountId
         expect.objectContaining({
-          customerId: "cust-uuid-001",
+          customerId: "00000000-0000-4000-8000-000000000025",
           items: expect.arrayContaining([
-            expect.objectContaining({ productId: "prod-001", quantity: 1 }),
+            expect.objectContaining({ productId: "00000000-0000-4000-8000-000000000026", quantity: 1 }),
           ]),
         })
+      );
+    });
+
+    it("passes duration override, pricing snapshot, and actor metadata to the service", async () => {
+      await postOrder({
+        customerId: "00000000-0000-4000-8000-000000000025",
+        items: [
+          {
+            productId: "00000000-0000-4000-8000-000000000026",
+            quantity: 1,
+            sellPriceVnd: 199000,
+            costPriceVnd: 120000,
+            durationType: "months",
+            durationValue: 12,
+            bonusDurationValue: 1,
+          },
+        ],
+      });
+
+      expect(createOrderWithItems).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          customerId: "00000000-0000-4000-8000-000000000025",
+          createdBy: "Test User",
+          items: [
+            expect.objectContaining({
+              productId: "00000000-0000-4000-8000-000000000026",
+              quantity: 1,
+              sellPriceVnd: 199000,
+              costPriceVnd: 120000,
+              durationType: "months",
+              durationValue: 12,
+              bonusDurationValue: 1,
+            }),
+          ],
+        }),
       );
     });
 
@@ -148,7 +184,7 @@ describe("POST /api/orders — Checkout", () => {
 
       expect(createOrderStatusHistory).toHaveBeenCalledWith(
         expect.objectContaining({
-          order_id: "ord-new-001",
+          order_id: "00000000-0000-4000-8000-000000000028",
           old_status: null,
           new_status: "pending_payment",
           changed_by: "Test User",
@@ -164,7 +200,7 @@ describe("POST /api/orders — Checkout", () => {
     it("creates order with paymentMethod=paid → status may be paid", async () => {
       vi.mocked(createOrderWithItems).mockResolvedValue({
         order: { id: "ord-paid", status: "paid", total_paid: 100000 },
-        items: [{ id: "item-001" }],
+        items: [{ id: "00000000-0000-4000-8000-000000000029" }],
       } as any);
 
       const res = await postOrder({
@@ -217,14 +253,14 @@ describe("POST /api/orders — Checkout", () => {
 
     it("rejects missing customerId → 400", async () => {
       const res = await postOrder({
-        items: [{ productId: "prod-001", quantity: 1 }],
+        items: [{ productId: "00000000-0000-4000-8000-000000000026", quantity: 1 }],
       });
       expect(res.status).toBe(400);
     });
 
     it("rejects empty items array → 400", async () => {
       const res = await postOrder({
-        customerId: "cust-uuid-001",
+        customerId: "00000000-0000-4000-8000-000000000025",
         items: [],
       });
       expect(res.status).toBe(400);
@@ -232,23 +268,39 @@ describe("POST /api/orders — Checkout", () => {
 
     it("rejects item with quantity=0 → 400", async () => {
       const res = await postOrder({
-        customerId: "cust-uuid-001",
-        items: [{ productId: "prod-001", quantity: 0 }],
+        customerId: "00000000-0000-4000-8000-000000000025",
+        items: [{ productId: "00000000-0000-4000-8000-000000000026", quantity: 0 }],
       });
       expect(res.status).toBe(400);
     });
 
     it("rejects item with negative quantity → 400", async () => {
       const res = await postOrder({
-        customerId: "cust-uuid-001",
-        items: [{ productId: "prod-001", quantity: -1 }],
+        customerId: "00000000-0000-4000-8000-000000000025",
+        items: [{ productId: "00000000-0000-4000-8000-000000000026", quantity: -1 }],
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects item with negative bonusDurationValue → 400", async () => {
+      const res = await postOrder({
+        customerId: "00000000-0000-4000-8000-000000000025",
+        items: [
+          {
+            productId: "00000000-0000-4000-8000-000000000026",
+            quantity: 1,
+            durationType: "months",
+            durationValue: 12,
+            bonusDurationValue: -1,
+          },
+        ],
       });
       expect(res.status).toBe(400);
     });
 
     it("rejects item without productId → 400", async () => {
       const res = await postOrder({
-        customerId: "cust-uuid-001",
+        customerId: "00000000-0000-4000-8000-000000000025",
         items: [{ quantity: 1 }],
       });
       expect(res.status).toBe(400);
@@ -265,7 +317,7 @@ describe("POST /api/orders — Checkout", () => {
     it("rejects customerId as empty string → 400", async () => {
       const res = await postOrder({
         customerId: "",
-        items: [{ productId: "prod-001", quantity: 1 }],
+        items: [{ productId: "00000000-0000-4000-8000-000000000026", quantity: 1 }],
       });
       expect(res.status).toBe(400);
     });
@@ -284,11 +336,11 @@ describe("POST /api/orders — Checkout", () => {
 
     it("returns 404 when service throws product-not-found", async () => {
       vi.mocked(createOrderWithItems).mockRejectedValue(
-        Object.assign(new Error("Product not found: prod-999"), { status: 404 })
+        Object.assign(new Error("Product not found: 00000000-0000-4000-8000-00000000002c"), { status: 404 })
       );
       const res = await postOrder({
-        customerId: "cust-uuid-001",
-        items: [{ productId: "prod-999", quantity: 1 }],
+        customerId: "00000000-0000-4000-8000-000000000025",
+        items: [{ productId: "00000000-0000-4000-8000-00000000002c", quantity: 1 }],
       });
       expect(res.status).toBe(404);
     });
@@ -320,30 +372,30 @@ describe("POST /api/orders — Checkout", () => {
   describe.each([
     {
       scenario: "Standard price — no discount",
-      items: [{ productId: "prod-001", quantity: 2 }],
+      items: [{ productId: "00000000-0000-4000-8000-000000000026", quantity: 2 }],
       expectedTotal: 200000,
     },
     {
       scenario: "Multiple products — mixed quantities",
       items: [
-        { productId: "prod-001", quantity: 3 },
-        { productId: "prod-002", quantity: 1 },
+        { productId: "00000000-0000-4000-8000-000000000026", quantity: 3 },
+        { productId: "00000000-0000-4000-8000-000000000027", quantity: 1 },
       ],
       expectedTotal: 450000,
     },
     {
       scenario: "Single item — quantity 1",
-      items: [{ productId: "prod-001", quantity: 1 }],
+      items: [{ productId: "00000000-0000-4000-8000-000000000026", quantity: 1 }],
       expectedTotal: 100000,
     },
     {
       scenario: "Large quantity order",
-      items: [{ productId: "prod-001", quantity: 100 }],
+      items: [{ productId: "00000000-0000-4000-8000-000000000026", quantity: 100 }],
       expectedTotal: 10000000,
     },
     {
       scenario: "Odd VND amount — no rounding issues",
-      items: [{ productId: "prod-003", quantity: 3 }],
+      items: [{ productId: "00000000-0000-4000-8000-00000000002d", quantity: 3 }],
       expectedTotal: 240000,
     },
   ])("Data-driven: $scenario", ({ items, expectedTotal }) => {
@@ -361,7 +413,7 @@ describe("POST /api/orders — Checkout", () => {
         })),
       } as any);
 
-      const res = await postOrder({ customerId: "cust-uuid-001", items });
+      const res = await postOrder({ customerId: "00000000-0000-4000-8000-000000000025", items });
       expect(res.status).toBe(201);
       const body = await res.json();
       expect(body.data.total_amount_vnd).toBe(expectedTotal);
@@ -389,9 +441,9 @@ describe("POST /api/orders — Checkout", () => {
 
     it("accepts notes per item (up to 300 chars)", async () => {
       const res = await postOrder({
-        customerId: "cust-uuid-001",
+        customerId: "00000000-0000-4000-8000-000000000025",
         items: [
-          { productId: "prod-001", quantity: 1, notes: "N".repeat(300) },
+          { productId: "00000000-0000-4000-8000-000000000026", quantity: 1, notes: "N".repeat(300) },
         ],
       });
       expect(res.status).toBe(201);
@@ -399,9 +451,9 @@ describe("POST /api/orders — Checkout", () => {
 
     it("rejects notes per item exceeding 300 chars → 400", async () => {
       const res = await postOrder({
-        customerId: "cust-uuid-001",
+        customerId: "00000000-0000-4000-8000-000000000025",
         items: [
-          { productId: "prod-001", quantity: 1, notes: "N".repeat(301) },
+          { productId: "00000000-0000-4000-8000-000000000026", quantity: 1, notes: "N".repeat(301) },
         ],
       });
       expect(res.status).toBe(400);

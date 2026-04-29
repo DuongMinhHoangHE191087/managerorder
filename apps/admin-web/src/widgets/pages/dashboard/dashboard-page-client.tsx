@@ -146,7 +146,7 @@ export default function DashboardPage() {
           expiringAccounts={expiringAccounts}
         />
 
-        <DeferredSection fallback={<DashboardAnalyticsSkeleton />}>
+        <DeferredSection data-testid="dashboard-analytics-section" fallback={<DashboardAnalyticsSkeleton />}>
           <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
             <ProductProfitTable days={days} />
             <ImportSummaryTable />
@@ -154,7 +154,7 @@ export default function DashboardPage() {
           </div>
         </DeferredSection>
 
-        <DeferredSection fallback={<DashboardRevenueSkeleton />}>
+        <DeferredSection data-testid="dashboard-revenue-section" fallback={<DashboardRevenueSkeleton />}>
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
             <RevenueChart
               timeRange={timeRange}
@@ -172,7 +172,7 @@ export default function DashboardPage() {
           </div>
         </DeferredSection>
 
-        <DeferredSection fallback={<DashboardGrowthSkeleton />}>
+        <DeferredSection data-testid="dashboard-growth-section" fallback={<DashboardGrowthSkeleton />}>
           <DashboardGrowthPanels
             forecast={stats?.revenueForecast ?? []}
             cohorts={stats?.cohortAnalysis ?? []}
@@ -180,7 +180,7 @@ export default function DashboardPage() {
           />
         </DeferredSection>
 
-        <DeferredSection fallback={<DashboardOrdersSkeleton />}>
+        <DeferredSection data-testid="dashboard-recent-orders-section" fallback={<DashboardOrdersSkeleton />}>
           <DashboardRecentOrders recentOrders={recentOrders} />
         </DeferredSection>
       </PageContainer>

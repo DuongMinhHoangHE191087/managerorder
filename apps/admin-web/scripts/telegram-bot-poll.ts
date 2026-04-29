@@ -60,6 +60,8 @@ async function fetchUpdates() {
         await markBotRuntimeError("telegram", new Error("Telegram polling conflict (409)"), {
           status: 409,
         });
+        isPolling = false;
+        return;
       }
       throw new Error(`HTTP ${res.status}`);
     }

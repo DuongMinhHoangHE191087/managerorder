@@ -12,11 +12,13 @@ import type { ProviderPurchaseOrder } from "@/shared/types/providers";
 /**
  * Fetch single provider by ID.
  */
-export function useProviderDetail(providerId: string) {
+export function useProviderDetail(providerId: string, includeDeleted = false) {
   return useQuery({
-    queryKey: queryKeys.provider(providerId),
+    queryKey: [...queryKeys.provider(providerId), includeDeleted ? "trash" : "active"],
     queryFn: async () => {
-      const res = await fetcher<Provider>(`/api/providers/${providerId}`);
+      const res = await fetcher<Provider>(
+        `/api/providers/${providerId}${includeDeleted ? "?include_deleted=1" : ""}`,
+      );
       return res;
     },
     enabled: !!providerId,

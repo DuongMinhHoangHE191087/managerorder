@@ -12,6 +12,14 @@ const DEFAULT_POLL_TIMEOUT_SECONDS = 30;
 const DEFAULT_RETRY_DELAY_MS = 1000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
 
+export function describeZaloApiHost(baseUrl: string): string {
+  try {
+    return new URL(baseUrl).origin;
+  } catch {
+    return baseUrl.replace(/\/bot[^/]+/i, "/bot[redacted]");
+  }
+}
+
 type BotEventName = "message" | "text";
 
 type ListenerCallback = (message: ZaloMessageLike, metadata?: unknown) => Promise<void> | void;
@@ -124,7 +132,7 @@ class LocalZaloBot implements ZaloBotLike {
       transport: "polling",
       configuredMode: "polling",
       metadata: {
-        baseUrl: this.baseUrl,
+        apiHost: describeZaloApiHost(this.baseUrl),
       },
     });
     this.pollingState = "starting";
@@ -349,7 +357,7 @@ class LocalZaloBot implements ZaloBotLike {
       {
         timeout: input.timeoutSeconds,
         offset: this.nextUpdateOffset,
-        allowed_updates: input.allowedUpdates?.join(","),
+        allowed_updates: input.allowedUpdates,
       },
       {
         timeoutMs,
@@ -430,7 +438,8 @@ function parseUpdate(value: unknown, bot: LocalZaloBot): ParsedUpdate | undefine
     return undefined;
   }
 
-  const message = parseMessage(value.message, bot);
+  const messagePayload = value.message ?? value.data ?? value.event ?? value;
+  const message = parseMessage(messagePayload, bot);
   if (!message) {
     return undefined;
   }
@@ -449,14 +458,27 @@ function parseMessage(value: unknown, bot: LocalZaloBot): ZaloMessageLike | unde
     return undefined;
   }
 
-  const chat = parseChat(value.chat);
-  const messageId = normalizeMessageId(value.message_id);
+  const chat =
+    parseChat(value.chat)
+    ?? parseChat(value.conversation)
+    ?? parseChat(value.thread)
+    ?? parseChat(value.recipient)
+    ?? parseChat(value.sender)
+    ?? parseChat(value.chat_id)
+    ?? parseChat(value.from_id)
+    ?? parseChat(value.sender_id);
+  const messageId = normalizeMessageId(value.message_id ?? value.msg_id ?? value.mid ?? value.id ?? value.messageId);
   if (!chat || !messageId) {
     return undefined;
   }
 
-  const fromUser = parseMessageUser(value.from);
-  const text = asString(value.text);
+  const fromUser =
+    parseMessageUser(value.from)
+    ?? parseMessageUser(value.sender)
+    ?? parseMessageUser(value.user)
+    ?? parseMessageUser(value.from_id)
+    ?? parseMessageUser(value.sender_id);
+  const text = extractMessageText(value);
 
   return {
     chat,
@@ -467,24 +489,74 @@ function parseMessage(value: unknown, bot: LocalZaloBot): ZaloMessageLike | unde
 }
 
 function parseChat(value: unknown): { id: string } | undefined {
-  if (!isRecord(value) || typeof value.id !== "string") {
-    return undefined;
+  if (typeof value === "string" && value.trim()) {
+    return { id: value.trim() };
   }
 
-  return { id: value.id };
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return { id: String(value) };
+  }
+
+  if (isRecord(value)) {
+    const id = value.id ?? value.chat_id ?? value.user_id ?? value.uid;
+    if (typeof id === "string" && id.trim()) {
+      return { id: id.trim() };
+    }
+    if (typeof id === "number" && Number.isFinite(id)) {
+      return { id: String(id) };
+    }
+  }
+
+  return undefined;
 }
 
 function parseMessageUser(value: unknown): ZaloMessageUser | undefined {
-  if (!isRecord(value) || typeof value.id !== "string") {
+  if (typeof value === "string" && value.trim()) {
+    return { id: value.trim() };
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return { id: String(value) };
+  }
+
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const id = value.id ?? value.user_id ?? value.uid ?? value.sender_id;
+  if (typeof id !== "string" && typeof id !== "number") {
     return undefined;
   }
 
   return {
-    id: value.id,
+    id: String(id),
     displayName: asString(value.display_name),
     accountName: asString(value.account_name),
     isBot: typeof value.is_bot === "boolean" ? value.is_bot : undefined,
   };
+}
+
+function extractMessageText(value: Record<string, unknown>): string | undefined {
+  const direct = asString(value.text ?? value.message_text ?? value.content);
+  if (direct) {
+    return direct;
+  }
+
+  if (typeof value.message === "string") {
+    return value.message;
+  }
+
+  const nestedMessage = value.message;
+  if (isRecord(nestedMessage)) {
+    return asString(nestedMessage.text ?? nestedMessage.content ?? nestedMessage.message);
+  }
+
+  const attachment = value.attachment;
+  if (isRecord(attachment)) {
+    return asString(attachment.text ?? attachment.content);
+  }
+
+  return undefined;
 }
 
 function parseBotIdentity(value: unknown): ZaloBotIdentity | undefined {

@@ -32,12 +32,18 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
     id: string;
     customer_id: string;
     premium_account_id: string;
+    package_id: string;
+    billing_cycle: string;
+    cycle_months: number;
+    expiry_date: string;
+    final_price: number | null;
+    original_price: number | null;
   }>(
     supabaseAdmin,
     "customer_premium_subscriptions",
     accountId,
     originalSubscriptionIds,
-    "id, customer_id, premium_account_id",
+    "id, customer_id, premium_account_id, package_id, billing_cycle, cycle_months, expiry_date, final_price, original_price",
   );
 
   const customerIds = [
@@ -55,8 +61,15 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
         .filter((id): id is string => Boolean(id)),
     ),
   ];
+  const packageIds = [
+    ...new Set(
+      [...subscriptionMap.values()]
+        .map((item) => item.package_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
 
-  const [customerMap, accountMap] = await Promise.all([
+  const [customerMap, accountMap, packageMap] = await Promise.all([
     loadRowsByIds<{
       id: string;
       full_name: string;
@@ -77,6 +90,17 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
       accountId,
       premiumAccountIds,
       "id, primary_email, service_type_id",
+    ),
+    loadRowsByIds<{
+      id: string;
+      default_price: number | null;
+      renewal_price_factor: number | null;
+    }>(
+      supabaseAdmin,
+      "premium_packages",
+      accountId,
+      packageIds,
+      "id, default_price, renewal_price_factor",
     ),
   ]);
 
@@ -109,6 +133,9 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
     const account = subscription?.premium_account_id
       ? accountMap.get(subscription.premium_account_id) ?? null
       : null;
+    const packageRow = subscription?.package_id
+      ? packageMap.get(subscription.package_id) ?? null
+      : null;
     const service = account?.service_type_id
       ? serviceTypeMap.get(account.service_type_id) ?? null
       : null;
@@ -130,6 +157,12 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
       customer_name: customer?.full_name ?? "N/A",
       account_email: account?.primary_email ?? "N/A",
       service_name: service?.name ?? "N/A",
+      current_billing_cycle: subscription?.billing_cycle ?? null,
+      current_cycle_months: subscription?.cycle_months ?? null,
+      current_expiry_date: subscription?.expiry_date ?? null,
+      current_subscription_price: subscription?.final_price ?? subscription?.original_price ?? null,
+      package_default_price: packageRow?.default_price ?? null,
+      renewal_price_factor: packageRow?.renewal_price_factor ?? null,
     };
   });
 

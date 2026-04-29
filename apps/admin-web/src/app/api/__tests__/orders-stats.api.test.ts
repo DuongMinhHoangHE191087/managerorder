@@ -97,11 +97,11 @@ describe("GET /api/orders/stats", () => {
     });
 
     it("passes customer_id filter", async () => {
-      await fetchOrderStats({ customer_id: "cust-123" });
+      await fetchOrderStats({ customer_id: "00000000-0000-4000-8000-000000000011" });
 
       expect(getOrdersStats).toHaveBeenCalledWith(
         TEST_ACCOUNT_ID,
-        expect.objectContaining({ customerId: "cust-123" })
+        expect.objectContaining({ customerId: "00000000-0000-4000-8000-000000000011" })
       );
     });
 

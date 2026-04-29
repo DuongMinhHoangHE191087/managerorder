@@ -2,10 +2,17 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { Calendar, Loader2, ShieldCheck, Star, User } from "lucide-react";
+import { Calendar, ShieldCheck, Star, User } from "lucide-react";
+
 import { appToast } from "@/shared/ui/app-toast";
+import {
+  CreateActionFooter,
+  CreateFlowDialog,
+  CreateFormSection,
+  AdvancedOptionsDisclosure,
+} from "@/shared/ui/create-flow-shell";
 import type { ContactInfo, Provider } from "@/lib/domain/types";
-import { Modal } from "@/shared/ui/modal";
+import { Input } from "@/shared/ui/input";
 import { vi } from "@/shared/messages/vi";
 
 const DynamicContactListLazy = dynamic(
@@ -15,7 +22,7 @@ const DynamicContactListLazy = dynamic(
     })),
   {
     ssr: false,
-    loading: () => <div className="h-28 rounded-xl bg-[var(--surface-light)] animate-pulse" />,
+    loading: () => <div className="h-28 rounded-2xl bg-[var(--surface-light)] animate-pulse" />,
   },
 );
 
@@ -35,12 +42,8 @@ export function ProviderEditModal({
   const text = vi.providers.editModal;
   const [name, setName] = useState(provider.name);
   const [tier, setTier] = useState<"regular" | "vip">(provider.tier || "regular");
-  const [reliabilityScore, setReliabilityScore] = useState(
-    String(provider.reliabilityScore || 100),
-  );
-  const [createdAt, setCreatedAt] = useState(
-    provider.createdAt?.slice(0, 10) || new Date().toISOString().slice(0, 10),
-  );
+  const [reliabilityScore, setReliabilityScore] = useState(String(provider.reliabilityScore || 100));
+  const [createdAt, setCreatedAt] = useState(provider.createdAt?.slice(0, 10) || new Date().toISOString().slice(0, 10));
   const [contacts, setContacts] = useState<ContactInfo[]>([]);
   const [saving, setSaving] = useState(false);
   const [notes, setNotes] = useState(provider.notes || "");
@@ -55,11 +58,10 @@ export function ProviderEditModal({
     setReliabilityScore(String(provider.reliabilityScore || 100));
     setCreatedAt(provider.createdAt?.slice(0, 10) || new Date().toISOString().slice(0, 10));
     setNotes(provider.notes || "");
-    const cloned = (provider.contacts ?? []).map((contact) => ({
+    setContacts((provider.contacts ?? []).map((contact) => ({
       ...contact,
       id: contact.id || crypto.randomUUID(),
-    }));
-    setContacts(cloned);
+    })));
   }, [isOpen, provider]);
 
   async function handleSave() {
@@ -79,6 +81,7 @@ export function ProviderEditModal({
         contacts: contacts.filter((contact) => contact.value.trim()),
         notes: notes.trim() || undefined,
       };
+
       const res = await fetch(`/api/providers/${provider.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -103,99 +106,94 @@ export function ProviderEditModal({
   }
 
   return (
-    <Modal
+    <CreateFlowDialog
       isOpen={isOpen}
       onClose={onClose}
       title={text.title}
+      description="Cập nhật thông tin nhà cung cấp trong cùng một layout gọn, rộng và dễ nhập liệu."
       size="lg"
       footer={
-        <div className="flex w-full justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-[var(--border-soft)] px-6 py-2.5 text-[13px] font-bold text-[var(--fg-muted)] transition-colors hover:bg-gray-50"
-          >
-            {text.cancel}
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving || !name.trim()}
-            className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-2.5 text-[13px] font-bold text-white shadow-sm transition-all hover:opacity-90 disabled:opacity-50"
-          >
-            {saving && <Loader2 className="size-4 animate-spin" />}
-            {saving ? text.saving : text.save}
-          </button>
-        </div>
+        <CreateActionFooter
+          primaryLabel={text.save}
+          onPrimary={handleSave}
+          onCancel={onClose}
+          cancelLabel={text.cancel}
+          pending={saving}
+          disabled={saving || !name.trim()}
+        />
       }
     >
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-            {text.nameLabel} <span className="text-[var(--danger)]">*</span>
-          </label>
-          <input
-            autoFocus
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            onKeyDown={(event) => event.key === "Enter" && handleSave()}
-            placeholder={text.namePlaceholder}
-            className="h-11 w-full rounded-xl border border-[var(--border-soft)] bg-[#f8f9fa] px-4 text-[14px] font-medium text-[var(--fg-base)] outline-none transition-all placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:bg-white focus:ring-2 focus:ring-[var(--accent)]/20"
-          />
-        </div>
-
-        <div>
-          <label className="mb-3 block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-            {text.tierLabel}
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setTier("regular")}
-              className={`flex flex-col gap-1.5 rounded-xl border-2 p-3 text-left transition-all ${
-                tier === "regular"
-                  ? "border-[var(--accent)] bg-[var(--accent)]/10"
-                  : "border-[var(--border-soft)] hover:border-[var(--accent)]/30"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <User className={`size-4 ${tier === "regular" ? "text-[var(--accent)]" : "text-[var(--fg-muted)]"}`} />
-                <p className={`text-[13px] font-bold leading-tight ${tier === "regular" ? "text-[var(--accent)]" : "text-[var(--fg-base)]"}`}>
-                  {text.tier.regular.title}
-                </p>
-              </div>
-              <p className="text-[11px] text-[var(--fg-muted)]">{text.tier.regular.desc}</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setTier("vip")}
-              className={`flex flex-col gap-1.5 rounded-xl border-2 p-3 text-left transition-all ${
-                tier === "vip"
-                  ? "border-[#ff9500] bg-[#ff9500]/10"
-                  : "border-[var(--border-soft)] hover:border-[#ff9500]/30"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Star className={`size-4 ${tier === "vip" ? "text-[#ff9500]" : "text-[var(--fg-muted)]"}`} />
-                <p className={`text-[13px] font-bold leading-tight ${tier === "vip" ? "text-[#ff9500]" : "text-[var(--fg-base)]"}`}>
-                  {text.tier.vip.title}
-                </p>
-              </div>
-              <p className="text-[11px] text-[var(--fg-muted)]">{text.tier.vip.desc}</p>
-            </button>
+      <div className="grid gap-5">
+        <CreateFormSection
+          title="Thông tin chính"
+          description="Tên nhà cung cấp là trường bắt buộc. Các trường còn lại được tổ chức để nhập nhanh và dễ đọc."
+        >
+          <div className="space-y-2">
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+              {text.nameLabel} <span className="text-[var(--danger)]">*</span>
+            </label>
+            <Input
+              autoFocus
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void handleSave();
+                }
+              }}
+              placeholder={text.namePlaceholder}
+            />
           </div>
-        </div>
+        </CreateFormSection>
 
-        <div>
-          <DynamicContactListLazy
-            contacts={contacts}
-            onChange={setContacts}
-            title={text.contactTitle}
-            description={text.contactDescription}
-          />
-        </div>
+        <CreateFormSection
+          title="Phân loại và độ tin cậy"
+          description="Chuyển đổi nhanh giữa khách thường và VIP, đồng thời giữ thang độ tin cậy rõ ràng."
+        >
+          <div>
+            <label className="mb-3 block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+              {text.tierLabel}
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setTier("regular")}
+                className={`flex flex-col gap-1.5 rounded-2xl border-2 p-4 text-left transition-all ${
+                  tier === "regular"
+                    ? "border-[var(--accent)] bg-[var(--accent)]/10"
+                    : "border-[var(--border-soft)] hover:border-[var(--accent)]/30"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <User className={`size-4 ${tier === "regular" ? "text-[var(--accent)]" : "text-[var(--fg-muted)]"}`} />
+                  <p className={`text-[13px] font-bold leading-tight ${tier === "regular" ? "text-[var(--accent)]" : "text-[var(--fg-base)]"}`}>
+                    {text.tier.regular.title}
+                  </p>
+                </div>
+                <p className="text-[11px] text-[var(--fg-muted)]">{text.tier.regular.desc}</p>
+              </button>
 
-        <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setTier("vip")}
+                className={`flex flex-col gap-1.5 rounded-2xl border-2 p-4 text-left transition-all ${
+                  tier === "vip"
+                    ? "border-[#ff9500] bg-[#ff9500]/10"
+                    : "border-[var(--border-soft)] hover:border-[#ff9500]/30"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Star className={`size-4 ${tier === "vip" ? "text-[#ff9500]" : "text-[var(--fg-muted)]"}`} />
+                  <p className={`text-[13px] font-bold leading-tight ${tier === "vip" ? "text-[#ff9500]" : "text-[var(--fg-base)]"}`}>
+                    {text.tier.vip.title}
+                  </p>
+                </div>
+                <p className="text-[11px] text-[var(--fg-muted)]">{text.tier.vip.desc}</p>
+              </button>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
               <ShieldCheck className="size-3" />
@@ -218,34 +216,47 @@ export function ProviderEditModal({
               <span>{text.reliabilityHigh}</span>
             </div>
           </div>
+        </CreateFormSection>
 
-          <div className="space-y-2">
-            <label className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-              <Calendar className="size-3" />
-              {text.createdAtLabel}
-            </label>
-            <input
-              type="date"
-              value={createdAt}
-              onChange={(event) => setCreatedAt(event.target.value)}
-              className="h-11 w-full rounded-xl border border-[var(--border-soft)] bg-[#f8f9fa] px-4 text-[13px] font-medium text-[var(--fg-base)] outline-none transition-all placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:bg-white focus:ring-2 focus:ring-[var(--accent)]/20"
-            />
-          </div>
-        </div>
+        <CreateFormSection
+          title="Liên hệ"
+          description="Danh sách kênh liên hệ được giữ cùng một chuẩn để dùng lại cho search, detail và các luồng automation."
+        >
+          <DynamicContactListLazy
+            contacts={contacts}
+            onChange={setContacts}
+            title={text.contactTitle}
+            description={text.contactDescription}
+          />
+        </CreateFormSection>
 
-        <div className="space-y-2">
-          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-            {text.notesLabel}
-          </label>
+        <CreateFormSection
+          title="Ghi chú"
+          description="Ghi chú ngắn gọn giúp truy ngược lý do chỉnh sửa sau này."
+        >
           <textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            rows={3}
+            rows={4}
             placeholder={text.notesPlaceholder}
-            className="w-full resize-none rounded-xl border border-[var(--border-soft)] bg-[#f8f9fa] px-4 py-3 text-[14px] font-medium text-[var(--fg-base)] outline-none transition-all placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:bg-white focus:ring-2 focus:ring-[var(--accent)]/20"
+            className="w-full resize-none rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[14px] font-medium text-[var(--fg-base)] outline-none transition-all placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
           />
-        </div>
+        </CreateFormSection>
+
+        <AdvancedOptionsDisclosure title="Tùy chọn nâng cao">
+          <div className="space-y-2">
+            <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+              <Calendar className="size-3" />
+              {text.createdAtLabel}
+            </label>
+            <Input
+              type="date"
+              value={createdAt}
+              onChange={(event) => setCreatedAt(event.target.value)}
+            />
+          </div>
+        </AdvancedOptionsDisclosure>
       </div>
-    </Modal>
+    </CreateFlowDialog>
   );
 }

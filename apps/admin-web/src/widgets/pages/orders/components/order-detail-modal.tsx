@@ -1,13 +1,14 @@
 "use client";
 
+import { memo } from "react";
 import { Clock, User, Phone, Mail, MessageCircle, Globe, Package, Store, Wallet, TrendingUp, CreditCard, DollarSign, RefreshCw, Printer, Trash2, History } from "lucide-react";
-import { Modal } from "@/shared/ui/modal";
+import { CreateFlowDialog } from "@/shared/ui/create-flow-shell";
 import { ActivityTimeline } from "@/widgets/pages/activity-logs/components/activity-timeline";
 import { OrderStatusTimeline } from "@/widgets/pages/orders/components/order-status-timeline";
 import { PaymentHistory } from "@/widgets/pages/orders/components/payment-history";
 import { formatMoney } from "@/lib/utils";
 import { formatPaymentTermsLabel } from "@/lib/domain/financial";
-import type { OrderRow } from "./orders-table";
+import type { OrderContact, OrderRow } from "./orders-table";
 import { getStatusLabel, getStatusStyle } from "@/widgets/pages/orders/lib/status";
 import { getOrderNextStatuses } from "@/lib/domain/order-state-machine";
 import type { OrderStatus } from "@/lib/domain/types";
@@ -23,6 +24,79 @@ interface OrderDetailModalProps {
   onStatusChange: (orderId: string, status: string) => void;
 }
 
+type OrderContactRowProps = {
+  contact: OrderContact;
+};
+
+function getOrderContactIcon(channel: string) {
+  switch (channel) {
+    case "phone":
+      return <Phone className="size-3.5" />;
+    case "email":
+      return <Mail className="size-3.5" />;
+    case "zalo":
+    case "telegram":
+      return <MessageCircle className="size-3.5" />;
+    case "facebook":
+      return <Globe className="size-3.5" />;
+    default:
+      return <User className="size-3.5" />;
+  }
+}
+
+function getOrderContactLabel(channel: string) {
+  switch (channel) {
+    case "phone":
+      return "SĐT";
+    case "email":
+      return "Email";
+    case "zalo":
+      return "Zalo";
+    case "facebook":
+      return "Facebook";
+    case "telegram":
+      return "Telegram";
+    default:
+      return channel;
+  }
+}
+
+const OrderContactRow = memo(function OrderContactRow({ contact }: OrderContactRowProps) {
+  return (
+    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[var(--surface-light)] border border-[var(--border-soft)]/50 hover:border-[var(--accent)]/30 transition-colors">
+      <span className="w-7 h-7 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center shrink-0">
+        {getOrderContactIcon(contact.channel)}
+      </span>
+      <div className="flex-1 min-w-0">
+        <span className="text-[13px] font-bold text-[var(--fg-base)] block truncate">{contact.value}</span>
+        <span className="text-[10px] text-[var(--fg-muted)] font-medium">{getOrderContactLabel(contact.channel)}</span>
+      </div>
+      {contact.is_verified && (
+        <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-[var(--accent)]/10 text-[var(--accent)] shrink-0">Chính</span>
+      )}
+    </div>
+  );
+});
+
+type ProofImageThumbProps = {
+  url: string;
+  index: number;
+};
+
+const ProofImageThumb = memo(function ProofImageThumb({ url, index }: ProofImageThumbProps) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block rounded-lg overflow-hidden border border-[var(--border-soft)] hover:border-[var(--accent)] transition-colors aspect-square bg-[var(--surface-light)]"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt={`Proof ${index + 1}`} className="w-full h-full object-cover" />
+    </a>
+  );
+});
+
 export function OrderDetailModal({
   isOpen,
   onClose,
@@ -35,13 +109,18 @@ export function OrderDetailModal({
 }: OrderDetailModalProps) {
   if (!order) return null;
   const paymentLabel = formatPaymentTermsLabel(order.payment_terms ?? order.payment_method);
+  const currentStatus = order.status as OrderStatus;
+  const nextStatuses = getOrderNextStatuses(currentStatus);
+  const customerContacts = order.customerContacts ?? [];
+  const proofImageUrls = order.proof_image_urls ?? [];
 
   return (
-    <Modal
+    <CreateFlowDialog
       isOpen={isOpen}
       onClose={onClose}
       title={`Chi tiết Đơn hàng: ${order.order_code || order.id.slice(0, 8)}`}
-      size="lg"
+      description={`${order.customerName} • ${order.productName} • Tổng tiền ${formatMoney(order.total_amount_vnd)}`}
+      size="2xl"
       footer={
         <div className="flex gap-3 w-full">
           <button
@@ -100,46 +179,17 @@ export function OrderDetailModal({
 
             {/* All contacts */}
             <div>
-              <span className="text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-wider block mb-2">Liên hệ ({order.customerContacts?.length || 0})</span>
-              {(!order.customerContacts || order.customerContacts.length === 0) ? (
+              <span className="text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-wider block mb-2">Liên hệ ({customerContacts.length})</span>
+              {customerContacts.length === 0 ? (
                 <p className="text-[12px] text-[var(--fg-muted)] italic py-2">Chưa có thông tin liên hệ</p>
               ) : (
                 <div className="space-y-2">
-                  {order.customerContacts.map((contact, idx) => {
-                    const icon = (() => {
-                      switch (contact.channel) {
-                        case 'phone': return <Phone className="size-3.5" />;
-                        case 'email': return <Mail className="size-3.5" />;
-                        case 'zalo': case 'telegram': return <MessageCircle className="size-3.5" />;
-                        case 'facebook': return <Globe className="size-3.5" />;
-                        default: return <User className="size-3.5" />;
-                      }
-                    })();
-                    const typeLabel = (() => {
-                      switch (contact.channel) {
-                        case 'phone': return 'SĐT';
-                        case 'email': return 'Email';
-                        case 'zalo': return 'Zalo';
-                        case 'facebook': return 'Facebook';
-                        case 'telegram': return 'Telegram';
-                        default: return contact.channel;
-                      }
-                    })();
-                    return (
-                      <div key={idx} className="flex items-center gap-2 p-2.5 rounded-lg bg-[var(--surface-light)] border border-[var(--border-soft)]/50 hover:border-[var(--accent)]/30 transition-colors">
-                        <span className="w-7 h-7 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center shrink-0">
-                          {icon}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[13px] font-bold text-[var(--fg-base)] block truncate">{contact.value}</span>
-                          <span className="text-[10px] text-[var(--fg-muted)] font-medium">{typeLabel}</span>
-                        </div>
-                        {contact.is_verified && (
-                          <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-[var(--accent)]/10 text-[var(--accent)] shrink-0">Chính</span>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {customerContacts.map((contact, idx) => (
+                    <OrderContactRow
+                      key={contact.id || `${contact.channel}-${contact.value}-${idx}`}
+                      contact={contact}
+                    />
+                  ))}
                 </div>
               )}
             </div>
@@ -282,14 +332,11 @@ export function OrderDetailModal({
         {order.proof_image_urls && order.proof_image_urls.length > 0 && (
           <div className="glass-card p-5 rounded-xl border border-[var(--border-soft)] bg-white">
             <h3 className="text-[12px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
-              📸 Ảnh xác minh ({order.proof_image_urls.length})
+              📸 Ảnh xác minh ({proofImageUrls.length})
             </h3>
             <div className="grid grid-cols-3 gap-2">
-              {order.proof_image_urls.map((url, idx) => (
-                <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="block rounded-lg overflow-hidden border border-[var(--border-soft)] hover:border-[var(--accent)] transition-colors aspect-square bg-[var(--surface-light)]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt={`Proof ${idx + 1}`} className="w-full h-full object-cover" />
-                </a>
+              {proofImageUrls.map((url, idx) => (
+                <ProofImageThumb key={`${url}-${idx}`} url={url} index={idx} />
               ))}
             </div>
           </div>
@@ -299,12 +346,12 @@ export function OrderDetailModal({
         <div className="glass-card p-5 rounded-xl border border-[var(--border-soft)] bg-white">
           <h3 className="text-[12px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-3">Đổi trạng thái nhanh</h3>
           <div className="mb-3">
-            <div className={`px-3 py-2 rounded-lg text-[11px] font-bold text-center ${getStatusStyle(order.status)}`}>
-              Hiện tại: {getStatusLabel(order.status)}
+            <div className={`px-3 py-2 rounded-lg text-[11px] font-bold text-center ${getStatusStyle(currentStatus)}`}>
+              Hiện tại: {getStatusLabel(currentStatus)}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {getOrderNextStatuses(order.status as OrderStatus).map(s => (
+            {nextStatuses.map(s => (
               <button
                 key={s}
                 onClick={() => onStatusChange(order.id, s)}
@@ -313,7 +360,7 @@ export function OrderDetailModal({
                 → {getStatusLabel(s)}
               </button>
             ))}
-            {getOrderNextStatuses(order.status as OrderStatus).length === 0 && (
+            {nextStatuses.length === 0 && (
               <p className="col-span-2 text-[12px] text-[var(--fg-muted)] italic text-center py-2">Trạng thái cuối — không thể chuyển tiếp.</p>
             )}
           </div>
@@ -351,6 +398,6 @@ export function OrderDetailModal({
           </div>
         </div>
       </div>
-    </Modal>
+    </CreateFlowDialog>
   );
 }

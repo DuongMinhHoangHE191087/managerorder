@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import {
   ClipboardCopy,
   Edit,
@@ -22,7 +22,7 @@ import { SlideOverDrawer } from "@/shared/ui/slide-over-drawer";
 import { cn, formatDateLabel, formatMoney } from "@/lib/utils";
 import { vi } from "@/shared/messages/vi";
 import type { Customer } from "@/lib/domain/types";
-import type { CustomerGroup } from "@/shared/types/customers";
+import type { CustomerGroup, CustomerOrder } from "@/shared/types/customers";
 import { RfmBadge } from "@/widgets/pages/customers/components/rfm-badge";
 import {
   useCustomerDetail,
@@ -75,7 +75,7 @@ function getOrderStatusClass(status: string) {
   return "border-[var(--border-soft)] bg-[var(--surface-light)] text-[var(--fg-muted)]";
 }
 
-function DrawerMetric({
+const DrawerMetric = memo(function DrawerMetric({
   label,
   value,
   accent = "text-[var(--fg-base)]",
@@ -83,14 +83,163 @@ function DrawerMetric({
   label: string;
   value: string;
   accent?: string;
-}) {
+  }) {
   return (
     <div className="rounded-[1rem] border border-[var(--border-soft)] bg-white/85 p-3.5 shadow-sm">
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">{label}</p>
       <p className={cn("mt-1 text-[14px] font-black tracking-tight", accent)}>{value}</p>
     </div>
   );
+});
+
+type CustomerContact = NonNullable<Customer["contacts"]>[number];
+type CustomerNick = NonNullable<Customer["nicksRegistry"]>[number];
+type CustomerTag = NonNullable<Customer["tags"]>[number];
+
+function getContactIcon(type: string) {
+  if (type === "email") {
+    return <Mail className="size-4 text-blue-600" />;
+  }
+
+  if (type === "phone" || type === "zalo" || type === "telegram") {
+    return <Phone className="size-4 text-emerald-600" />;
+  }
+
+  return <UserRound className="size-4 text-[var(--accent)]" />;
 }
+
+type CustomerContactRowProps = {
+  contact: CustomerContact;
+  onCopy: (value: string) => void;
+};
+
+const CustomerContactRow = memo(function CustomerContactRow({ contact, onCopy }: CustomerContactRowProps) {
+  return (
+    <div
+      className="flex items-center justify-between gap-3 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] px-4 py-3"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white">{getContactIcon(contact.type)}</div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+            {contact.type}
+            {contact.isPrimary ? ` · ${vi.common.primary}` : ""}
+          </p>
+          <p className="truncate text-[13px] font-bold text-[var(--fg-base)]">{contact.value}</p>
+        </div>
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() => onCopy(contact.value)}
+        className="rounded-[0.85rem] px-3 py-1.5 text-[11px] font-bold"
+      >
+        <ClipboardCopy className="size-3.5" />
+        Copy
+      </Button>
+    </div>
+  );
+});
+
+type CustomerRecentOrderCardProps = {
+  order: CustomerOrder;
+};
+
+const CustomerRecentOrderCard = memo(function CustomerRecentOrderCard({ order }: CustomerRecentOrderCardProps) {
+  const remaining = Math.max(order.total_amount - order.total_paid, 0);
+  const paidPercent = order.total_amount > 0 ? Math.min((order.total_paid / order.total_amount) * 100, 100) : 0;
+  const productNames = order.items
+    .map((item) => item.productName ?? item.product_name ?? customerDetailText.ordersPanel.productLabel)
+    .join(", ");
+  const statusLabel =
+    customerDetailText.ordersPanel.statusLabels[order.status as keyof typeof customerDetailText.ordersPanel.statusLabels] ??
+    order.status;
+
+  return (
+    <div className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[14px] font-bold text-[var(--fg-base)]">{productNames || customerDetailText.ordersPanel.orderLabel}</p>
+          <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
+            {formatDateLabel(order.created_at)} · #{order.id.slice(0, 8)}
+          </p>
+        </div>
+        <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", getOrderStatusClass(order.status))}>
+          {statusLabel}
+        </span>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <div className="flex-1">
+          <div className="mb-1.5 flex justify-between text-[10px] font-bold uppercase tracking-wider">
+            <span className="text-[var(--fg-muted)]">{customerDetailText.ordersPanel.paymentLabel}</span>
+            <span className={paidPercent >= 100 ? "text-emerald-500" : "text-[var(--fg-base)]"}>
+              {formatMoney(order.total_paid)} / {formatMoney(order.total_amount)}
+            </span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--border-soft)]">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                paidPercent >= 100 ? "bg-emerald-500" : paidPercent > 0 ? "bg-amber-500" : "bg-[var(--border-soft)]",
+              )}
+              style={{ width: `${paidPercent}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        <DrawerMetric label="Tổng" value={formatMoney(order.total_amount)} />
+        <DrawerMetric label="Đã thu" value={formatMoney(order.total_paid)} accent="text-emerald-600" />
+        <DrawerMetric
+          label="Còn lại"
+          value={remaining > 0 ? formatMoney(remaining) : vi.customers.detail.cards.noDebt}
+          accent={remaining > 0 ? "text-[var(--danger)]" : "text-emerald-600"}
+        />
+      </div>
+    </div>
+  );
+});
+
+type CustomerNickRowProps = {
+  nick: CustomerNick;
+};
+
+const CustomerNickRow = memo(function CustomerNickRow({ nick }: CustomerNickRowProps) {
+  return (
+    <div className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] px-4 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-bold text-[var(--fg-base)]">{nick.nick}</p>
+          <p className="mt-1 text-[11px] text-[var(--fg-muted)]">{nick.type}</p>
+        </div>
+        {nick.notes ? (
+          <span className="max-w-[50%] truncate text-right text-[12px] italic text-[var(--fg-muted)]">{nick.notes}</span>
+        ) : null}
+      </div>
+    </div>
+  );
+});
+
+type CustomerTagChipProps = {
+  tag: CustomerTag;
+};
+
+const CustomerTagChip = memo(function CustomerTagChip({ tag }: CustomerTagChipProps) {
+  return (
+    <span
+      className="inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] font-bold"
+      style={{
+        backgroundColor: `${tag.color}12`,
+        color: tag.color,
+        borderColor: `${tag.color}30`,
+      }}
+    >
+      {tag.name}
+    </span>
+  );
+});
 
 function DrawerSkeleton() {
   return (
@@ -139,13 +288,11 @@ export function CustomerDetailDrawer({
   const statsQuery = useCustomer360Stats(activeCustomerId, isOpen);
 
   const customer = customerQuery.data ?? fallbackCustomer ?? null;
-  const customerGroup = useMemo(() => {
-    if (!customer?.group_id) {
-      return null;
-    }
-
-    return groups.find((group) => group.id === customer.group_id) ?? null;
-  }, [customer?.group_id, groups]);
+  const groupById = useMemo(
+    () => new Map(groups.map((group) => [group.id, group] as const)),
+    [groups],
+  );
+  const customerGroup = customer?.group_id ? groupById.get(customer.group_id) ?? null : null;
 
   const contacts = customer?.contacts ?? [];
   const tags = customer?.tags ?? [];
@@ -153,14 +300,26 @@ export function CustomerDetailDrawer({
   const recentOrders = orders.slice(0, 4);
   const stats = statsQuery.data;
 
-  const lifetimeValue = stats?.totalSpentVnd ?? orders.reduce((sum, order) => sum + order.total_amount, 0);
-  const totalPaid = stats?.totalPaymentsVnd ?? orders.reduce((sum, order) => sum + order.total_paid, 0);
+  const orderSummary = useMemo(() => {
+    let totalSpent = 0;
+    let totalPaidAmount = 0;
+
+    for (const order of orders) {
+      totalSpent += Number(order.total_amount ?? 0);
+      totalPaidAmount += Number(order.total_paid ?? 0);
+    }
+
+    return { totalSpent, totalPaidAmount };
+  }, [orders]);
+
+  const lifetimeValue = stats?.totalSpentVnd ?? orderSummary.totalSpent;
+  const totalPaid = stats?.totalPaymentsVnd ?? orderSummary.totalPaidAmount;
   const totalOrders = stats?.totalOrders ?? orders.length;
   const avgOrderValue = stats?.avgOrderValueVnd ?? (totalOrders > 0 ? lifetimeValue / totalOrders : 0);
   const outstandingDebt = customer?.debtAmountVnd ?? stats?.outstandingDebtVnd ?? 0;
   const customerIsLoading = customerQuery.isLoading && !customer;
 
-  const copyToClipboard = async (value: string, message: string) => {
+  const copyToClipboard = useCallback(async (value: string, message: string) => {
     try {
       await navigator.clipboard.writeText(value);
       appToast.success(message);
@@ -168,7 +327,7 @@ export function CustomerDetailDrawer({
       console.error("[copyCustomerDetail]", error);
       appToast.error(vi.common.copyFailed);
     }
-  };
+  }, []);
 
   if (!isOpen) {
     return null;
@@ -300,45 +459,13 @@ export function CustomerDetailDrawer({
                   {customerDetailText.noContacts}
                 </div>
               ) : (
-                contacts.map((contact, index) => {
-                  const icon =
-                    contact.type === "email" ? (
-                      <Mail className="size-4 text-blue-600" />
-                    ) : contact.type === "phone" || contact.type === "zalo" || contact.type === "telegram" ? (
-                      <Phone className="size-4 text-emerald-600" />
-                    ) : (
-                      <UserRound className="size-4 text-[var(--accent)]" />
-                    );
-
-                  return (
-                    <div
-                      key={contact.id || `${contact.type}-${index}`}
-                      className="flex items-center justify-between gap-3 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] px-4 py-3"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white">
-                          {icon}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
-                            {contact.type}
-                            {contact.isPrimary ? ` · ${vi.common.primary}` : ""}
-                          </p>
-                          <p className="truncate text-[13px] font-bold text-[var(--fg-base)]">{contact.value}</p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => void copyToClipboard(contact.value, "Đã sao chép liên hệ")}
-                        className="rounded-[0.85rem] px-3 py-1.5 text-[11px] font-bold"
-                      >
-                        <ClipboardCopy className="size-3.5" />
-                        Copy
-                      </Button>
-                    </div>
-                  );
-                })
+                contacts.map((contact, index) => (
+                  <CustomerContactRow
+                    key={contact.id || `${contact.type}-${index}`}
+                    contact={contact}
+                    onCopy={(value) => void copyToClipboard(value, "Đã sao chép liên hệ")}
+                  />
+                ))
               )}
             </div>
           </section>
@@ -386,17 +513,7 @@ export function CustomerDetailDrawer({
                   {tags.length > 0 ? (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {tags.map((tag) => (
-                        <span
-                          key={tag.id}
-                          className="inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] font-bold"
-                          style={{
-                            backgroundColor: `${tag.color}12`,
-                            color: tag.color,
-                            borderColor: `${tag.color}30`,
-                          }}
-                        >
-                          {tag.name}
-                        </span>
+                        <CustomerTagChip key={tag.id} tag={tag} />
                       ))}
                     </div>
                   ) : (
@@ -488,22 +605,7 @@ export function CustomerDetailDrawer({
             ) : (
               <div className="mt-4 space-y-3">
                 {(customer.nicksRegistry ?? []).slice(0, 6).map((nick, index) => (
-                  <div
-                    key={`${nick.nick}-${index}`}
-                    className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] px-4 py-3"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-[13px] font-bold text-[var(--fg-base)]">{nick.nick}</p>
-                        <p className="mt-1 text-[11px] text-[var(--fg-muted)]">{nick.type}</p>
-                      </div>
-                      {nick.notes ? (
-                        <span className="max-w-[50%] truncate text-right text-[12px] italic text-[var(--fg-muted)]">
-                          {nick.notes}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
+                  <CustomerNickRow key={`${nick.nick}-${index}`} nick={nick} />
                 ))}
                 {(customer.nicksRegistry ?? []).length > 6 ? (
                   <p className="text-[12px] text-[var(--fg-muted)]">
@@ -542,65 +644,9 @@ export function CustomerDetailDrawer({
               </div>
             ) : (
               <div className="mt-4 space-y-3">
-                {recentOrders.map((order) => {
-                  const remaining = Math.max(order.total_amount - order.total_paid, 0);
-                  const paidPercent = order.total_amount > 0 ? Math.min((order.total_paid / order.total_amount) * 100, 100) : 0;
-                  const productNames = order.items
-                    .map((item) => item.productName ?? item.product_name ?? customerDetailText.ordersPanel.productLabel)
-                    .join(", ");
-                  const statusLabel =
-                    customerDetailText.ordersPanel.statusLabels[order.status as keyof typeof customerDetailText.ordersPanel.statusLabels] ??
-                    order.status;
-
-                  return (
-                    <div
-                      key={order.id}
-                      className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-[14px] font-bold text-[var(--fg-base)]">{productNames || customerDetailText.ordersPanel.orderLabel}</p>
-                          <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
-                            {formatDateLabel(order.created_at)} · #{order.id.slice(0, 8)}
-                          </p>
-                        </div>
-                        <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", getOrderStatusClass(order.status))}>
-                          {statusLabel}
-                        </span>
-                      </div>
-
-                      <div className="mt-3 flex items-center gap-3">
-                        <div className="flex-1">
-                          <div className="mb-1.5 flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                            <span className="text-[var(--fg-muted)]">{customerDetailText.ordersPanel.paymentLabel}</span>
-                            <span className={paidPercent >= 100 ? "text-emerald-500" : "text-[var(--fg-base)]"}>
-                              {formatMoney(order.total_paid)} / {formatMoney(order.total_amount)}
-                            </span>
-                          </div>
-                          <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--border-soft)]">
-                            <div
-                              className={cn(
-                                "h-full rounded-full transition-all duration-500",
-                                paidPercent >= 100 ? "bg-emerald-500" : paidPercent > 0 ? "bg-amber-500" : "bg-[var(--border-soft)]",
-                              )}
-                              style={{ width: `${paidPercent}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                        <DrawerMetric label="Tổng" value={formatMoney(order.total_amount)} />
-                        <DrawerMetric label="Đã thu" value={formatMoney(order.total_paid)} accent="text-emerald-600" />
-                        <DrawerMetric
-                          label="Còn lại"
-                          value={remaining > 0 ? formatMoney(remaining) : vi.customers.detail.cards.noDebt}
-                          accent={remaining > 0 ? "text-[var(--danger)]" : "text-emerald-600"}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                {recentOrders.map((order) => (
+                  <CustomerRecentOrderCard key={order.id} order={order} />
+                ))}
               </div>
             )}
           </section>

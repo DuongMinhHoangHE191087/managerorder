@@ -27,7 +27,7 @@ import { GET } from "@/app/api/customers/[id]/stats/route";
 
 // ── Helpers ──────────────────────────────────────────────────
 
-const CUSTOMER_ID = "cust-001";
+const CUSTOMER_ID = "00000000-0000-4000-8000-000000000033";
 
 function createStatsRequest() {
   return createTestRequest(

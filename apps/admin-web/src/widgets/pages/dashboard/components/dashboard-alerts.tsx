@@ -38,8 +38,8 @@ const QUICK_ACTIONS = [
 
 export function DashboardAlerts({ pendingOrders, topOverdueCustomers, expiringAccounts }: DashboardAlertsProps) {
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-      <div className="app-card flex flex-col overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+    <div data-testid="dashboard-alerts" className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <div data-testid="dashboard-quick-actions" className="app-card flex flex-col overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
         <div className="border-b border-[var(--border-soft)] px-5 py-4">
           <p className="mb-4 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
             <span className="material-symbols-outlined text-[16px]">bolt</span>
@@ -50,6 +50,7 @@ export function DashboardAlerts({ pendingOrders, topOverdueCustomers, expiringAc
               <Link
                 key={action.href}
                 href={action.href}
+                data-testid={`dashboard-quick-action-${action.href.replaceAll("/", "-").replace(/^-/, "")}`}
                 className={`group flex flex-col items-center justify-center gap-2 rounded-[1rem] border border-transparent p-4 text-center text-[12px] font-bold transition-all hover:shadow-md ${action.color}`}
               >
                 <span className="material-symbols-outlined text-[24px] transition-transform group-hover:scale-110">
@@ -62,7 +63,7 @@ export function DashboardAlerts({ pendingOrders, topOverdueCustomers, expiringAc
         </div>
       </div>
 
-      <div className="app-card flex flex-col overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+      <div data-testid="dashboard-pending-alert" className="app-card flex flex-col overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
           <div>
             <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
@@ -104,7 +105,7 @@ export function DashboardAlerts({ pendingOrders, topOverdueCustomers, expiringAc
         </div>
       </div>
 
-      <div className="app-card flex flex-col overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+      <div data-testid="dashboard-overdue-alert" className="app-card flex flex-col overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
           <div>
             <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[var(--warning)]">
@@ -148,7 +149,7 @@ export function DashboardAlerts({ pendingOrders, topOverdueCustomers, expiringAc
         </div>
       </div>
 
-      <div className="app-card flex flex-col overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+      <div data-testid="dashboard-expiring-alert" className="app-card flex flex-col overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
           <div>
             <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[var(--danger)]">

@@ -91,7 +91,7 @@ const shortcuts: ShortcutItem[] = [
   },
   {
     id: "premium-health-checks",
-    label: "Sức khỏe",
+    label: vi.navigation.items.healthChecks,
     description: "Xem log health check và chạy lại tài khoản premium",
     href: "/premium/health-checks",
     icon: Activity,

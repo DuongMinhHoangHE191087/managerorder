@@ -11,10 +11,10 @@ function makeAccount(
   overrides: Partial<SourceAccount> = {},
 ): SourceAccount {
   return {
-    id: "sa-1",
+    id: "00000000-0000-4000-8000-000000000040",
     email: "test@example.com",
-    provider: "provider-1",
-    productIds: ["product-1"],
+    provider: "00000000-0000-4000-8000-0000000000d6",
+    productIds: ["00000000-0000-4000-8000-0000000000d7"],
     maxSlots: 10,
     usedSlots: 5,
     expiresAt: new Date(
@@ -123,18 +123,18 @@ describe("suggestTopAccounts", () => {
   ];
 
   it("returns top 3 by default", () => {
-    const result = suggestTopAccounts("product-1", 1, accounts);
+    const result = suggestTopAccounts("00000000-0000-4000-8000-0000000000d7", 1, accounts);
     expect(result.length).toBeLessThanOrEqual(3);
   });
 
   it("excludes expired accounts", () => {
-    const result = suggestTopAccounts("product-1", 1, accounts);
+    const result = suggestTopAccounts("00000000-0000-4000-8000-0000000000d7", 1, accounts);
     const ids = result.map((r) => r.sourceAccountId);
     expect(ids).not.toContain("a4"); // expired@test.com
   });
 
   it("excludes accounts without enough slots", () => {
-    const result = suggestTopAccounts("product-1", 5, accounts);
+    const result = suggestTopAccounts("00000000-0000-4000-8000-0000000000d7", 5, accounts);
     const ids = result.map((r) => r.sourceAccountId);
     // a1 has only 2 free slots, can't fit 5
     expect(ids).not.toContain("a1");
@@ -150,14 +150,14 @@ describe("suggestTopAccounts", () => {
   });
 
   it("sorts by score descending", () => {
-    const result = suggestTopAccounts("product-1", 1, accounts);
+    const result = suggestTopAccounts("00000000-0000-4000-8000-0000000000d7", 1, accounts);
     for (let i = 1; i < result.length; i++) {
       expect(result[i - 1].score).toBeGreaterThanOrEqual(result[i].score);
     }
   });
 
   it("includes reason text", () => {
-    const result = suggestTopAccounts("product-1", 1, accounts);
+    const result = suggestTopAccounts("00000000-0000-4000-8000-0000000000d7", 1, accounts);
     expect(result.length).toBeGreaterThan(0);
     for (const suggestion of result) {
       expect(suggestion.reason).toBeTruthy();
@@ -166,7 +166,7 @@ describe("suggestTopAccounts", () => {
 
   it("preferred nick boosts specific account to top", () => {
     const result = suggestTopAccounts(
-      "product-1",
+      "00000000-0000-4000-8000-0000000000d7",
       1,
       accounts,
       "beta@test.com",
@@ -176,7 +176,7 @@ describe("suggestTopAccounts", () => {
   });
 
   it("returns empty array when no candidates", () => {
-    const result = suggestTopAccounts("product-1", 100, accounts);
+    const result = suggestTopAccounts("00000000-0000-4000-8000-0000000000d7", 100, accounts);
     expect(result).toEqual([]);
   });
 });

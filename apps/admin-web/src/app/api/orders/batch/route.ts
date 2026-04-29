@@ -1,34 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import { batchDeleteOrders } from "@/lib/supabase/repositories/orders.repo";
+import { z } from "zod";
+import { batchDeleteOrdersWithAudit } from "@/lib/services/order-deletion.service";
 import { withAccount } from "@/lib/api/with-account";
 import { withErrorHandler } from "@/lib/api/with-error-handler";
+import { requirePermissions } from "@/lib/api/rbac";
 
 export const dynamic = "force-dynamic";
 
-export const DELETE = withErrorHandler(
-  withAccount(async (request: NextRequest, { accountId }) => {
-    const body = await request.json();
-    const ids: string[] = body.ids;
+const batchDeleteSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(100),
+});
 
-    if (!Array.isArray(ids) || ids.length === 0) {
+const batchDeleteHandler = withAccount(
+  requirePermissions(["order:delete"])(async (request: NextRequest, { accountId, user }) => {
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
-        { error: "ids must be a non-empty array" },
-        { status: 400 }
+        { error: "Request body rỗng hoặc không hợp lệ" },
+        { status: 400 },
       );
     }
 
-    if (ids.length > 100) {
+    const parsed = batchDeleteSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Cannot delete more than 100 orders at once" },
-        { status: 400 }
+        { error: "ids must be a non-empty array of valid order UUIDs" },
+        { status: 400 },
       );
     }
 
-    await batchDeleteOrders(ids, accountId);
+    const ids = Array.from(new Set(parsed.data.ids));
+    const deletedCount = await batchDeleteOrdersWithAudit(ids, accountId, user);
 
     return NextResponse.json({
-      data: { deleted: ids.length },
-      message: `${ids.length} orders deleted successfully`,
+      data: { deleted: deletedCount },
+      message: `${deletedCount} orders deleted successfully`,
     });
   })
 );
+
+export const POST = withErrorHandler(batchDeleteHandler);
+export const DELETE = withErrorHandler(batchDeleteHandler);

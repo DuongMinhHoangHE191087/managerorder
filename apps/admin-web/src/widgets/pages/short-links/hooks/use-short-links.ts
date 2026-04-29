@@ -9,6 +9,7 @@ import type {
   SalesChannel,
   ShortLinkClickEventType,
   ShortLinkDeliveryMode,
+  ShortLinkFailureTemplateKey,
   ShortLinkLandingTemplateKey,
 } from "@/lib/domain/types";
 
@@ -39,6 +40,8 @@ export function useCreateShortLink() {
       sales_channel_id?: string | null;
       delivery_mode?: ShortLinkDeliveryMode;
       landing_template_key?: ShortLinkLandingTemplateKey | null;
+      failure_template_key?: ShortLinkFailureTemplateKey | null;
+      seller_contact_url?: string | null;
     }) =>
       fetcher<ShortLinkRow>("/api/short-links", {
         method: "POST",
@@ -65,6 +68,7 @@ export function useUpdateShortLink() {
       id: string;
       title?: string;
       max_clicks?: number;
+      current_clicks?: number;
       expires_at?: string | null;
       status?: string;
       require_token?: boolean;
@@ -74,6 +78,8 @@ export function useUpdateShortLink() {
       sales_channel_id?: string | null;
       delivery_mode?: ShortLinkDeliveryMode;
       landing_template_key?: ShortLinkLandingTemplateKey | null;
+      failure_template_key?: ShortLinkFailureTemplateKey | null;
+      seller_contact_url?: string | null;
     }) =>
       fetcher<ShortLinkRow>(`/api/short-links/${id}`, {
         method: "PATCH",
@@ -117,6 +123,7 @@ interface ClickRecord {
   referer: string | null;
   country: string | null;
   device_type: string | null;
+  ip_version?: string | null;
   event_type: ShortLinkClickEventType;
   is_suspicious: boolean;
   suspicious_reason: string | null;
@@ -131,6 +138,14 @@ interface ClickStats {
   browsers: Record<string, number>;
   topIPs: Array<{ ip: string; count: number }>;
   referers: Record<string, number>;
+  countries?: Record<string, number>;
+  cities?: Record<string, number>;
+  ipVersions?: Record<string, number>;
+  eventTypes?: Record<string, number>;
+  realUserClicks?: number;
+  botPreviewCount?: number;
+  landingViewCount?: number;
+  blockedCount?: number;
   hourlyTimeline: Array<{ hour: string; count: number }>;
   dailyTimeline: Array<{ day: string; count: number }>;
 }
@@ -141,17 +156,22 @@ export interface ShortLinkDetailResponse {
   resolvedPolicy: {
     effectiveDeliveryMode: Exclude<ShortLinkDeliveryMode, "inherit_channel">;
     effectiveLandingTemplateKey: ShortLinkLandingTemplateKey | null;
+    effectiveFailureTemplateKey: ShortLinkFailureTemplateKey;
+    sellerContactUrl: string | null;
     deliveryModeSource: "link_override" | "channel_default" | "system_default";
     landingTemplateSource: "link_override" | "channel_default" | "system_default" | "not_applicable";
+    failureTemplateSource: "link_override" | "channel_default" | "system_default";
+    sellerContactSource: "link_override" | "channel_default" | "system_default" | "not_configured";
   };
   clicks: ClickRecord[];
   stats: ClickStats | null;
 }
 
-export function useShortLinkDetail(linkId: string | null) {
+export function useShortLinkDetail(linkId: string | null, includeDeleted = false) {
   return useQuery<ShortLinkDetailResponse>({
-    queryKey: ["short-link-detail", linkId],
-    queryFn: () => fetcher(`/api/short-links/${linkId}`),
+    queryKey: ["short-link-detail", linkId, includeDeleted ? "trash" : "active"],
+    queryFn: () =>
+      fetcher(`/api/short-links/${linkId}${includeDeleted ? "?include_deleted=1" : ""}`),
     enabled: !!linkId,
     staleTime: 15_000,
     placeholderData: keepPreviousData,

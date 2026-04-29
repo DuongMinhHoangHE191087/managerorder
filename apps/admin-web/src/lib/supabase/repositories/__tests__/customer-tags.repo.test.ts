@@ -55,8 +55,8 @@ describe("customer-tags.repo base hydration", () => {
     const assignmentsBuilder = createQueryBuilder(
       {
         data: [
-          { tag_id: "tag-1", assigned_at: "2026-04-10T00:00:00.000Z" },
-          { tag_id: "tag-2", assigned_at: "2026-04-11T00:00:00.000Z" },
+          { tag_id: "00000000-0000-4000-8000-000000000030", assigned_at: "2026-04-10T00:00:00.000Z" },
+          { tag_id: "00000000-0000-4000-8000-000000000115", assigned_at: "2026-04-11T00:00:00.000Z" },
         ],
         error: null,
       },
@@ -66,8 +66,8 @@ describe("customer-tags.repo base hydration", () => {
     const tagsBuilder = createQueryBuilder(
       {
         data: [
-          { id: "tag-1", account_id: "acc-1", name: "VIP", color: "#ef4444", created_at: "2026-04-01T00:00:00.000Z" },
-          { id: "tag-2", account_id: "acc-1", name: "Priority", color: "#22c55e", created_at: "2026-04-02T00:00:00.000Z" },
+          { id: "00000000-0000-4000-8000-000000000030", account_id: "00000000-0000-4000-8000-000000000016", name: "VIP", color: "#ef4444", created_at: "2026-04-01T00:00:00.000Z" },
+          { id: "00000000-0000-4000-8000-000000000115", account_id: "00000000-0000-4000-8000-000000000016", name: "Priority", color: "#22c55e", created_at: "2026-04-02T00:00:00.000Z" },
         ],
         error: null,
       },
@@ -80,11 +80,11 @@ describe("customer-tags.repo base hydration", () => {
     });
 
     const { getCustomerTags } = await loadRepo(supabaseAdmin);
-    const tags = await getCustomerTags("cust-1");
+    const tags = await getCustomerTags("00000000-0000-4000-8000-000000000005");
 
     expect(tags).toHaveLength(2);
-    expect(tags[0].id).toBe("tag-1");
-    expect(tags[1].id).toBe("tag-2");
+    expect(tags[0].id).toBe("00000000-0000-4000-8000-000000000030");
+    expect(tags[1].id).toBe("00000000-0000-4000-8000-000000000115");
     expect(assignmentsBuilder.order).toHaveBeenCalledWith("assigned_at", { ascending: true });
     expect(tagsBuilder.select).toHaveBeenCalledWith("id, account_id, name, color, created_at");
   });

@@ -7,8 +7,8 @@ import { useCallback } from "react";
 import { appToast } from "@/shared/lib/toast";
 import { formatDateShort } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
-import { Modal } from "@/shared/ui/modal";
 import { Input } from "@/shared/ui/input";
+import { CreateFlowDialog } from "@/shared/ui/create-flow-shell";
 import { queryKeys } from "@/shared/lib/react-query/query-keys";
 import { vi } from "@/shared/messages/vi";
 import type { OrderRow } from "@/widgets/pages/orders/components/orders-table";
@@ -24,10 +24,6 @@ const PaymentModal = dynamic(
 );
 const InvoiceTemplate = dynamic(
   () => import("@/widgets/pages/orders/components/invoice-template").then((m) => ({ default: m.InvoiceTemplate })),
-  { ssr: false }
-);
-const SlideOverDrawer = dynamic(
-  () => import("@/shared/ui/slide-over-drawer").then((m) => ({ default: m.SlideOverDrawer })),
   { ssr: false }
 );
 
@@ -99,11 +95,12 @@ function PrintInvoiceModal({ isOpen, onClose, order }: { isOpen: boolean; onClos
   };
 
   return (
-    <Modal
+    <CreateFlowDialog
       isOpen={isOpen}
       onClose={onClose}
       title={modalText.printTitle}
-      size="lg"
+      description="Preview hóa đơn trước khi in hoặc xuất cho khách."
+      size="2xl"
       footer={
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={onClose}>
@@ -126,7 +123,7 @@ function PrintInvoiceModal({ isOpen, onClose, order }: { isOpen: boolean; onClos
           </div>
         )}
       </div>
-    </Modal>
+    </CreateFlowDialog>
   );
 }
 
@@ -143,11 +140,13 @@ function RenewalDrawer({
 }) {
   const modalText = vi.orders.pageModals;
   return (
-    <SlideOverDrawer
+    <CreateFlowDialog
       isOpen={isOpen}
       onClose={onClose}
       title={modalText.renewTitle(order?.order_code || order?.id?.slice(0, 8) || "")}
-      width="max-w-md"
+      description="Chỉnh lại ngày hết hạn ngay trong admin flow mà không cần rời khỏi chi tiết đơn hàng."
+      size="md"
+      footer={null}
     >
       {order && (
         <form
@@ -189,7 +188,7 @@ function RenewalDrawer({
           </div>
         </form>
       )}
-    </SlideOverDrawer>
+    </CreateFlowDialog>
   );
 }
 
@@ -247,11 +246,11 @@ export function OrdersPageModals({
 
       <PrintInvoiceModal isOpen={isPrintModalOpen} onClose={onClosePrint} order={printingOrder} />
 
-      <Modal
+      <CreateFlowDialog
         isOpen={!!deletingOrder}
         onClose={onCloseDelete}
         title={vi.orders.pageModals.deleteOrderTitle}
-        size="sm"
+        size="md"
         footer={
           <div className="flex justify-end gap-3">
             <Button variant="secondary" onClick={onCloseDelete}>
@@ -272,7 +271,7 @@ export function OrdersPageModals({
             {vi.orders.pageModals.deleteOrderWarning(deletingOrder?.order_code || deletingOrder?.id?.slice(0, 8) || "")}
           </p>
         </div>
-      </Modal>
+      </CreateFlowDialog>
 
       {payingOrder ? (
         <PaymentModal
@@ -288,11 +287,11 @@ export function OrdersPageModals({
         />
       ) : null}
 
-      <Modal
+      <CreateFlowDialog
         isOpen={showBatchDeleteConfirm}
         onClose={onCloseBatchDelete}
         title={vi.orders.pageModals.batchDeleteTitle}
-        size="sm"
+        size="md"
         footer={
           <div className="flex justify-end gap-3">
             <Button variant="secondary" onClick={onCloseBatchDelete} disabled={isBatchDeleting}>
@@ -313,7 +312,7 @@ export function OrdersPageModals({
             {vi.orders.pageModals.batchDeleteWarning(selectedOrderIdsCount)}
           </p>
         </div>
-      </Modal>
+      </CreateFlowDialog>
     </>
   );
 }

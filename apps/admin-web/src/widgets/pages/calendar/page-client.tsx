@@ -158,7 +158,7 @@ export default function CalendarPage() {
   const todayDateStr = formatDateKey(todayRef); // Local timezone, ISO format (yyyy-MM-dd)
   
   const todayTodoList = useMemo(() => {
-    return events.filter(e => e.date === todayDateStr).sort((a,b) => {
+    return events.filter((event): event is CalendarEvent => Boolean(event?.date)).filter(e => e.date === todayDateStr).sort((a,b) => {
       if (a.isDone !== b.isDone) return a.isDone ? 1 : -1;
       return (a.time||"").localeCompare(b.time||"");
     });
@@ -166,7 +166,7 @@ export default function CalendarPage() {
 
   const debtEvents = useMemo(() => {
     const t = new Date(todayDateStr + 'T00:00:00');
-    return events.filter(e => {
+    return events.filter((event): event is CalendarEvent => Boolean(event?.date)).filter(e => {
       if (e.date >= todayDateStr) return false;
       const eventDate = new Date(e.date + 'T00:00:00');
       const diffDays = Math.floor((t.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -213,6 +213,9 @@ export default function CalendarPage() {
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
     for (const e of events) {
+      if (!e?.date) {
+        continue;
+      }
       const existing = map.get(e.date);
       if (existing) existing.push(e);
       else map.set(e.date, [e]);
@@ -325,7 +328,7 @@ export default function CalendarPage() {
         <div className="grid grid-cols-1 xl:grid-cols-[7fr_3fr] gap-6 items-start">
 
           {/* ─── LEFT: Calendar Grid ─── */}
-          <div className="min-w-0">
+          <div className="min-w-0" data-testid="calendar-grid">
             <div className="glass-card rounded-xl overflow-hidden border border-[var(--border-soft)] bg-white">
               {/* Nav */}
               <div className="flex flex-col sm:flex-row items-center justify-between px-5 py-4 border-b border-[var(--border-soft)] bg-[var(--bg-app)]/50 backdrop-blur-sm gap-4">
@@ -333,11 +336,12 @@ export default function CalendarPage() {
                     <button
                      onClick={prevPeriod}
                      aria-label={calendarText.prev}
+                     data-testid="prev-month"
                     className="p-2 hover:bg-[var(--surface-light)] rounded-lg transition-colors cursor-pointer"
                   >
                     <ChevronLeft className="size-4 text-[var(--fg-muted)]" />
                   </button>
-                  <h3 className="text-[15px] font-black text-[var(--fg-base)] tracking-tight w-40 text-center">
+                  <h3 data-testid="month-label" className="text-[15px] font-black text-[var(--fg-base)] tracking-tight w-40 text-center">
                     {calendarView === "month" && `${monthNames[month]} ${year}`}
                     {calendarView === "week" && `T${weekDays[0].getMonth()+1} - T${weekDays[6].getMonth()+1} ${year}`}
                     {calendarView === "day" && `${currentMonth.getDate()} ${monthNames[month]}, ${year}`}
@@ -345,6 +349,7 @@ export default function CalendarPage() {
                     <button
                      onClick={nextPeriod}
                      aria-label={calendarText.next}
+                     data-testid="next-month"
                     className="p-2 hover:bg-[var(--surface-light)] rounded-lg transition-colors cursor-pointer"
                   >
                     <ChevronRight className="size-4 text-[var(--fg-muted)]" />

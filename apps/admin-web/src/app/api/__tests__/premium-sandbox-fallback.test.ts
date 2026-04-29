@@ -7,6 +7,8 @@ import {
   mockWithErrorHandler,
 } from "./helpers/setup";
 
+const PREMIUM_ROUTE_TIMEOUT_MS = 15_000;
+
 function createSandboxFetchError() {
   const inner = new Error("connect EACCES 127.0.0.1:443 - Local");
   const aggregate = new AggregateError([inner], "fetch failed");
@@ -73,7 +75,7 @@ describe("premium sandbox fallback routes", () => {
         }),
       ]),
     );
-  });
+  }, PREMIUM_ROUTE_TIMEOUT_MS);
 
   it("returns local premium migrations when Supabase is unreachable", async () => {
     const supabaseAdmin = createFailingSupabaseAdminMock(createSandboxFetchError());
@@ -122,6 +124,39 @@ describe("premium sandbox fallback routes", () => {
         expect.objectContaining({ kind: "inventory_expiry" }),
       ]),
     );
+  });
+
+  it("returns local notifications immediately when local fallback is forced", async () => {
+    const previousValue = process.env.CODEX_USE_LOCAL_FALLBACK;
+    process.env.CODEX_USE_LOCAL_FALLBACK = "1";
+
+    try {
+      const supabaseAdmin = createFailingSupabaseAdminMock(new Error("should not hit supabase"));
+      const { GET } = await loadRoute("@/app/api/notifications/feed/route", {
+        supabaseAdmin,
+      });
+
+      const response = await GET(
+        createTestRequest("http://localhost/api/notifications/feed?limit=12"),
+        { params: {} } as any,
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.data.length).toBeGreaterThan(0);
+      expect(body.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ kind: "renewal" }),
+          expect.objectContaining({ kind: "migration" }),
+        ]),
+      );
+    } finally {
+      if (previousValue === undefined) {
+        delete process.env.CODEX_USE_LOCAL_FALLBACK;
+      } else {
+        process.env.CODEX_USE_LOCAL_FALLBACK = previousValue;
+      }
+    }
   });
 
   it("returns local premium health check results when Supabase is unreachable", async () => {

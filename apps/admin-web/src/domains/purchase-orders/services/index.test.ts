@@ -36,8 +36,8 @@ describe("purchase-orders service", () => {
   it("lists and maps purchase orders", async () => {
     vi.mocked(listPurchaseOrdersRepo).mockResolvedValue([
       {
-        id: "po-1",
-        provider_id: "prov-1",
+        id: "00000000-0000-4000-8000-000000000094",
+        provider_id: "00000000-0000-4000-8000-000000000095",
         items: [],
         status: "pending",
         total_amount_vnd: 1000,
@@ -47,18 +47,18 @@ describe("purchase-orders service", () => {
       } as any,
     ]);
 
-    const result = await listPurchaseOrdersForAccount("acct-1");
+    const result = await listPurchaseOrdersForAccount("00000000-0000-4000-8000-0000000000bc");
 
     expect(result).toHaveLength(1);
-    expect(result[0].providerId).toBe("prov-1");
-    expect(listPurchaseOrdersRepo).toHaveBeenCalledWith("acct-1", undefined);
+    expect(result[0].providerId).toBe("00000000-0000-4000-8000-000000000095");
+    expect(listPurchaseOrdersRepo).toHaveBeenCalledWith("00000000-0000-4000-8000-0000000000bc", undefined);
   });
 
   it("creates a purchase order and logs activity", async () => {
     vi.mocked(createPurchaseOrderRepo).mockResolvedValue({
-      id: "po-2",
-      provider_id: "prov-2",
-      items: [{ product_id: "prod-1" }],
+      id: "00000000-0000-4000-8000-000000000096",
+      provider_id: "00000000-0000-4000-8000-000000000097",
+      items: [{ product_id: "00000000-0000-4000-8000-000000000039" }],
       status: "partial",
       total_amount_vnd: 1200,
       total_paid_vnd: 200,
@@ -67,24 +67,24 @@ describe("purchase-orders service", () => {
     } as any);
 
     const result = await createPurchaseOrderForAccount(
-      "acct-1",
+      "00000000-0000-4000-8000-0000000000bc",
       {
-        provider_id: "prov-2",
-        items: [{ product_id: "prod-1" }],
+        provider_id: "00000000-0000-4000-8000-000000000097",
+        items: [{ product_id: "00000000-0000-4000-8000-000000000039" }],
         total_amount_vnd: 1200,
         total_paid_vnd: 200,
       },
       "owner@example.com",
     );
 
-    expect(result.id).toBe("po-2");
+    expect(result.id).toBe("00000000-0000-4000-8000-000000000096");
     expect(createPurchaseOrderRepo).toHaveBeenCalledWith(
-      "acct-1",
-      expect.objectContaining({ provider_id: "prov-2" }),
+      "00000000-0000-4000-8000-0000000000bc",
+      expect.objectContaining({ provider_id: "00000000-0000-4000-8000-000000000097" }),
     );
     expect(createActivityLog).toHaveBeenCalledWith(
       expect.objectContaining({
-        account_id: "acct-1",
+        account_id: "00000000-0000-4000-8000-0000000000bc",
         action_type: "PROCUREMENT_UPDATED",
         created_by: "owner@example.com",
       }),
@@ -93,8 +93,8 @@ describe("purchase-orders service", () => {
 
   it("updates a purchase order and logs activity", async () => {
     vi.mocked(updatePurchaseOrderRepo).mockResolvedValue({
-      id: "po-3",
-      provider_id: "prov-3",
+      id: "00000000-0000-4000-8000-0000000000bd",
+      provider_id: "00000000-0000-4000-8000-0000000000be",
       items: [],
       status: "received",
       total_amount_vnd: 1200,
@@ -104,21 +104,21 @@ describe("purchase-orders service", () => {
     } as any);
 
     const result = await updatePurchaseOrderForAccount(
-      "po-3",
-      "acct-1",
+      "00000000-0000-4000-8000-0000000000bd",
+      "00000000-0000-4000-8000-0000000000bc",
       { total_paid_vnd: 1200, status: "received" },
       "owner@example.com",
     );
 
     expect(result.status).toBe("received");
     expect(updatePurchaseOrderRepo).toHaveBeenCalledWith(
-      "po-3",
-      "acct-1",
+      "00000000-0000-4000-8000-0000000000bd",
+      "00000000-0000-4000-8000-0000000000bc",
       expect.objectContaining({ status: "received" }),
     );
     expect(createActivityLog).toHaveBeenCalledWith(
       expect.objectContaining({
-        account_id: "acct-1",
+        account_id: "00000000-0000-4000-8000-0000000000bc",
         action_type: "PROCUREMENT_UPDATED",
         created_by: "owner@example.com",
       }),
@@ -127,8 +127,8 @@ describe("purchase-orders service", () => {
 
   it("deletes a purchase order and logs activity", async () => {
     vi.mocked(getPurchaseOrderByIdRepo).mockResolvedValue({
-      id: "po-4",
-      provider_id: "prov-4",
+      id: "00000000-0000-4000-8000-0000000000bf",
+      provider_id: "00000000-0000-4000-8000-0000000000c0",
       items: [],
       status: "pending",
       total_amount_vnd: 1000,
@@ -138,13 +138,13 @@ describe("purchase-orders service", () => {
     } as any);
     vi.mocked(deletePurchaseOrderRepo).mockResolvedValue(undefined as any);
 
-    await deletePurchaseOrderForAccount("po-4", "acct-1", "owner@example.com");
+    await deletePurchaseOrderForAccount("00000000-0000-4000-8000-0000000000bf", "00000000-0000-4000-8000-0000000000bc", "owner@example.com");
 
-    expect(getPurchaseOrderByIdRepo).toHaveBeenCalledWith("po-4", "acct-1");
-    expect(deletePurchaseOrderRepo).toHaveBeenCalledWith("po-4", "acct-1");
+    expect(getPurchaseOrderByIdRepo).toHaveBeenCalledWith("00000000-0000-4000-8000-0000000000bf", "00000000-0000-4000-8000-0000000000bc");
+    expect(deletePurchaseOrderRepo).toHaveBeenCalledWith("00000000-0000-4000-8000-0000000000bf", "00000000-0000-4000-8000-0000000000bc");
     expect(createActivityLog).toHaveBeenCalledWith(
       expect.objectContaining({
-        account_id: "acct-1",
+        account_id: "00000000-0000-4000-8000-0000000000bc",
         action_type: "PROCUREMENT_UPDATED",
         created_by: "owner@example.com",
       }),
@@ -153,8 +153,8 @@ describe("purchase-orders service", () => {
 
   it("gets a purchase order and maps it", async () => {
     vi.mocked(getPurchaseOrderByIdRepo).mockResolvedValue({
-      id: "po-5",
-      provider_id: "prov-5",
+      id: "00000000-0000-4000-8000-0000000000c1",
+      provider_id: "00000000-0000-4000-8000-0000000000c2",
       items: [],
       status: "pending",
       total_amount_vnd: 1000,
@@ -163,9 +163,9 @@ describe("purchase-orders service", () => {
       updated_at: "2026-04-19T00:00:00.000Z",
     } as any);
 
-    const result = await getPurchaseOrderForAccount("po-5", "acct-1");
+    const result = await getPurchaseOrderForAccount("00000000-0000-4000-8000-0000000000c1", "00000000-0000-4000-8000-0000000000bc");
 
-    expect(result.id).toBe("po-5");
-    expect(result.providerId).toBe("prov-5");
+    expect(result.id).toBe("00000000-0000-4000-8000-0000000000c1");
+    expect(result.providerId).toBe("00000000-0000-4000-8000-0000000000c2");
   });
 });

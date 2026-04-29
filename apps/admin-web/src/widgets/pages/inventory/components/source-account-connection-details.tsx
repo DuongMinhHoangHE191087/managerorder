@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Info, Loader2 } from "lucide-react";
 import { useConnectionsEnriched } from "@/widgets/pages/inventory/hooks/use-source-accounts";
 import { ConnectionDetailRow } from "@/widgets/pages/inventory/components/connection-detail-row";
@@ -10,7 +11,7 @@ interface SourceAccountConnectionDetailsPanelProps {
   productMap: Map<string, string>;
 }
 
-export function SourceAccountConnectionDetailsPanel({
+export const SourceAccountConnectionDetailsPanel = memo(function SourceAccountConnectionDetailsPanel({
   sourceAccountId,
   productMap,
 }: SourceAccountConnectionDetailsPanelProps) {
@@ -55,4 +56,4 @@ export function SourceAccountConnectionDetailsPanel({
       ))}
     </div>
   );
-}
+});

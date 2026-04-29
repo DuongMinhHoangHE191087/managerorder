@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { usePayments } from "@/widgets/pages/orders/hooks/use-payments";
 import type { PaymentRecord } from "@/shared/types/orders";
 import { CreditCard, Image as ImageIcon, Loader2, Receipt } from "lucide-react";
@@ -10,7 +11,11 @@ import { formatPaymentMethodLabel } from "@/lib/domain/financial";
 // Payment History — displays all individual payments for an order
 // ============================================================
 
-function PaymentCard({ payment }: { payment: PaymentRecord }) {
+type PaymentCardProps = {
+  payment: PaymentRecord;
+};
+
+const PaymentCard = memo(function PaymentCard({ payment }: PaymentCardProps) {
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg border border-[var(--border-soft)]
                      bg-gradient-to-br from-white to-slate-50
@@ -63,7 +68,7 @@ function PaymentCard({ payment }: { payment: PaymentRecord }) {
       </div>
     </div>
   );
-}
+});
 
 export function PaymentHistory({ orderId }: { orderId: string }) {
   const { data: payments, isLoading, error } = usePayments(orderId);

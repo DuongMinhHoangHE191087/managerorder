@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatZaloHelpMessage,
   formatZaloIdStatus,
   formatZaloOrderLookup,
   formatZaloProductCatalog,
@@ -9,14 +10,15 @@ import {
 describe("zalo messages", () => {
   it("formats /id with status and capabilities", () => {
     const text = formatZaloIdStatus({
-      userId: "user-1",
-      chatId: "chat-1",
-      accountId: "account-1",
+      userId: "00000000-0000-4000-8000-000000000088",
+      chatId: "00000000-0000-4000-8000-00000000007c",
+      accountId: "00000000-0000-4000-8000-000000000009",
       mode: "human-handoff",
       capabilities: {
         ai: true,
         catalog: true,
         orderLookup: true,
+        orderCreation: true,
         humanHandoff: true,
         adminNotify: true,
         gemini: true,
@@ -25,9 +27,9 @@ describe("zalo messages", () => {
       displayName: "Nguyen A",
     });
 
-    expect(text).toContain("user-1");
-    expect(text).toContain("chat-1");
-    expect(text).toContain("account-1");
+    expect(text).toContain("00000000-0000-4000-8000-000000000088");
+    expect(text).toContain("00000000-0000-4000-8000-00000000007c");
+    expect(text).toContain("00000000-0000-4000-8000-000000000009");
     expect(text).toContain("human-handoff");
     expect(text).toContain("AI (Gemini)");
     expect(text).toContain("admin notify");
@@ -36,7 +38,7 @@ describe("zalo messages", () => {
   it("formats product and order lists", () => {
     const productText = formatZaloProductCatalog([
       {
-        id: "p-1",
+        id: "00000000-0000-4000-8000-0000000003ed",
         name: "ChatGPT Plus",
         mode: "key",
         durationType: "months",
@@ -53,7 +55,7 @@ describe("zalo messages", () => {
 
     const orderText = formatZaloOrderLookup("DMH_A1B2", [
       {
-        id: "o-1",
+        id: "00000000-0000-4000-8000-0000000003f9",
         orderCode: "DMH_A1B2",
         customerName: "Nguyen A",
         productNameSnapshot: "ChatGPT Plus",
@@ -73,12 +75,13 @@ describe("zalo messages", () => {
   it("formats startup notification", () => {
     const text = formatZaloStartupNotification({
       botName: "ManagerOrder Zalo Bot",
-      botUserId: "bot-1",
-      accountId: "account-1",
+      botUserId: "00000000-0000-4000-8000-000000000167",
+      accountId: "00000000-0000-4000-8000-000000000009",
       capabilities: {
         ai: true,
         catalog: true,
         orderLookup: true,
+        orderCreation: true,
         humanHandoff: true,
         adminNotify: true,
         gemini: false,
@@ -89,6 +92,31 @@ describe("zalo messages", () => {
 
     expect(text).toContain("bot đã chạy thành công");
     expect(text).toContain("ManagerOrder Zalo Bot");
-    expect(text).toContain("account-1");
+    expect(text).toContain("00000000-0000-4000-8000-000000000009");
+  });
+
+  it("includes order flow commands in help", () => {
+    const text = formatZaloHelpMessage({
+      botToken: "token",
+      accountId: "account",
+      adminUserIds: [],
+      geminiApiKey: "",
+      geminiModel: "gemini-2.5-flash",
+      appName: "ManagerOrder",
+      accountBound: true,
+      capabilities: {
+        ai: true,
+        catalog: true,
+        orderLookup: true,
+        orderCreation: true,
+        humanHandoff: false,
+        adminNotify: false,
+        gemini: false,
+      },
+      warnings: [],
+    });
+
+    expect(text).toContain("/neworder");
+    expect(text).toContain("/cancel");
   });
 });

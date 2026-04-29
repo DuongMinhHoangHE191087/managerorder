@@ -49,6 +49,7 @@ export function applyShortLinkRuntimePolicy(
   }
 
   return {
+    ...policy,
     effectiveDeliveryMode: "direct_redirect",
     effectiveLandingTemplateKey: null,
     deliveryModeSource: "system_default",

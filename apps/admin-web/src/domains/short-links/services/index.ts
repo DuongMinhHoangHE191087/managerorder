@@ -18,6 +18,7 @@ import {
 import {
   resolveShortLinkPolicy,
   type ResolvedShortLinkPolicy,
+  type ShortLinkSystemPolicyCarrier,
 } from "./policy";
 import {
   applyShortLinkRuntimePolicy,
@@ -93,6 +94,8 @@ function normalizeCreateInput(
     delivery_mode: deliveryMode,
     landing_template_key:
       deliveryMode === "direct_redirect" ? null : (input.landing_template_key ?? null),
+    failure_template_key: input.failure_template_key ?? null,
+    seller_contact_url: input.seller_contact_url ?? null,
   };
 }
 
@@ -128,7 +131,7 @@ export async function updateShortLinkForAccount(
 ): Promise<ShortLinkRow> {
   const existing = await getShortLinkByIdRepo(id, accountId);
   if (!existing) {
-    throw new Error("Short link not found");
+    throw new Error("Không tìm thấy link rút gọn");
   }
 
   const normalizedInput = normalizeUpdateInput(input);
@@ -149,7 +152,8 @@ export async function updateShortLinkForAccount(
 }
 
 export async function resolveShortLinkContext(
-  link: Pick<ShortLinkPublicSummary, "account_id" | "sales_channel_id" | "order_id" | "delivery_mode" | "landing_template_key">,
+  link: Pick<ShortLinkPublicSummary, "account_id" | "sales_channel_id" | "order_id" | "delivery_mode" | "landing_template_key" | "failure_template_key" | "seller_contact_url">,
+  systemPolicy?: ShortLinkSystemPolicyCarrier | null,
 ): Promise<ShortLinkResolvedContext> {
   const effectiveSalesChannelId = await getEffectiveSalesChannelId(link);
   const salesChannelRow = effectiveSalesChannelId
@@ -165,13 +169,18 @@ export async function resolveShortLinkContext(
         {
           delivery_mode: link.delivery_mode,
           landing_template_key: link.landing_template_key,
+          failure_template_key: link.failure_template_key,
+          seller_contact_url: link.seller_contact_url,
         },
         salesChannelRow
           ? {
               default_delivery_mode: salesChannelRow.default_delivery_mode,
               default_landing_template_key: salesChannelRow.default_landing_template_key,
+              default_failure_template_key: salesChannelRow.default_failure_template_key,
+              seller_contact_url: salesChannelRow.seller_contact_url,
             }
           : null,
+        systemPolicy,
       ),
       runtimePolicy,
     ),
@@ -180,13 +189,14 @@ export async function resolveShortLinkContext(
 
 export async function resolvePublicShortLinkSummaryBySlug(
   slug: string,
+  systemPolicy?: ShortLinkSystemPolicyCarrier | null,
 ): Promise<ShortLinkPublicSummaryRecord | null> {
   const link = await getShortLinkBySlugSummaryRepo(slug);
   if (!link) {
     return null;
   }
 
-  const context = await resolveShortLinkContext(link);
+  const context = await resolveShortLinkContext(link, systemPolicy);
   return {
     link,
     ...context,
@@ -196,13 +206,15 @@ export async function resolvePublicShortLinkSummaryBySlug(
 export async function getShortLinkDetailForAccount(
   id: string,
   accountId: string,
+  options: { includeDeleted?: boolean } = {},
+  systemPolicy?: ShortLinkSystemPolicyCarrier | null,
 ): Promise<ShortLinkDetailRecord | null> {
-  const link = await getShortLinkByIdRepo(id, accountId);
+  const link = await getShortLinkByIdRepo(id, accountId, options);
   if (!link) {
     return null;
   }
 
-  const context = await resolveShortLinkContext(link);
+  const context = await resolveShortLinkContext(link, systemPolicy);
   return {
     link,
     ...context,
@@ -211,13 +223,14 @@ export async function getShortLinkDetailForAccount(
 
 export async function resolvePublicShortLinkBySlug(
   slug: string,
+  systemPolicy?: ShortLinkSystemPolicyCarrier | null,
 ): Promise<ShortLinkDetailRecord | null> {
   const link = await getShortLinkBySlugRepo(slug);
   if (!link) {
     return null;
   }
 
-  const context = await resolveShortLinkContext(link);
+  const context = await resolveShortLinkContext(link, systemPolicy);
   return {
     link,
     ...context,

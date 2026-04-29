@@ -57,10 +57,10 @@ describe("validateMigrationEligibility", () => {
 
     const result = await validateMigrationEligibility(
       db as any,
-      "sub-1",
-      "acc-1",
-      "source-1",
-      "target-1"
+      "00000000-0000-4000-8000-000000000017",
+      "00000000-0000-4000-8000-000000000016",
+      "00000000-0000-4000-8000-000000000066",
+      "00000000-0000-4000-8000-00000000015a"
     );
     expect(result.isValid).toBe(false);
     expect(result.error).toBe("Subscription not found");
@@ -69,15 +69,15 @@ describe("validateMigrationEligibility", () => {
   it("returns invalid for cancelled subscription", async () => {
     const db = createMockSupabase();
     db._mocks.mockSingle.mockResolvedValue({
-      data: { id: "sub-1", status: "cancelled", premium_account_id: "source-1" },
+      data: { id: "00000000-0000-4000-8000-000000000017", status: "cancelled", premium_account_id: "00000000-0000-4000-8000-000000000066" },
     });
 
     const result = await validateMigrationEligibility(
       db as any,
-      "sub-1",
-      "acc-1",
-      "source-1",
-      "target-1"
+      "00000000-0000-4000-8000-000000000017",
+      "00000000-0000-4000-8000-000000000016",
+      "00000000-0000-4000-8000-000000000066",
+      "00000000-0000-4000-8000-00000000015a"
     );
     expect(result.isValid).toBe(false);
     expect(result.error).toContain("cancelled");
@@ -86,15 +86,15 @@ describe("validateMigrationEligibility", () => {
   it("returns invalid when source != subscription account", async () => {
     const db = createMockSupabase();
     db._mocks.mockSingle.mockResolvedValue({
-      data: { id: "sub-1", status: "active", premium_account_id: "other-source" },
+      data: { id: "00000000-0000-4000-8000-000000000017", status: "active", premium_account_id: "other-source" },
     });
 
     const result = await validateMigrationEligibility(
       db as any,
-      "sub-1",
-      "acc-1",
-      "source-1",
-      "target-1"
+      "00000000-0000-4000-8000-000000000017",
+      "00000000-0000-4000-8000-000000000016",
+      "00000000-0000-4000-8000-000000000066",
+      "00000000-0000-4000-8000-00000000015a"
     );
     expect(result.isValid).toBe(false);
     expect(result.error).toContain("does not belong");
@@ -103,13 +103,13 @@ describe("validateMigrationEligibility", () => {
   it("returns invalid when source == target", async () => {
     const db = createMockSupabase();
     db._mocks.mockSingle.mockResolvedValue({
-      data: { id: "sub-1", status: "active", premium_account_id: "same-id" },
+      data: { id: "00000000-0000-4000-8000-000000000017", status: "active", premium_account_id: "same-id" },
     });
 
     const result = await validateMigrationEligibility(
       db as any,
-      "sub-1",
-      "acc-1",
+      "00000000-0000-4000-8000-000000000017",
+      "00000000-0000-4000-8000-000000000016",
       "same-id",
       "same-id"
     );
@@ -120,15 +120,15 @@ describe("validateMigrationEligibility", () => {
   it("returns valid for eligible migration", async () => {
     const db = createMockSupabase();
     db._mocks.mockSingle.mockResolvedValue({
-      data: { id: "sub-1", status: "active", premium_account_id: "source-1" },
+      data: { id: "00000000-0000-4000-8000-000000000017", status: "active", premium_account_id: "00000000-0000-4000-8000-000000000066" },
     });
 
     const result = await validateMigrationEligibility(
       db as any,
-      "sub-1",
-      "acc-1",
-      "source-1",
-      "target-1"
+      "00000000-0000-4000-8000-000000000017",
+      "00000000-0000-4000-8000-000000000016",
+      "00000000-0000-4000-8000-000000000066",
+      "00000000-0000-4000-8000-00000000015a"
     );
     expect(result.isValid).toBe(true);
   });
@@ -139,7 +139,7 @@ describe("checkTargetCapacity", () => {
     const db = createMockSupabase();
     db._mocks.mockSingle.mockResolvedValue({ data: null });
 
-    const result = await checkTargetCapacity(db as any, "target-1", "acc-1");
+    const result = await checkTargetCapacity(db as any, "00000000-0000-4000-8000-00000000015a", "00000000-0000-4000-8000-000000000016");
     expect(result.isValid).toBe(false);
     expect(result.error).toContain("not found");
   });
@@ -150,7 +150,7 @@ describe("checkTargetCapacity", () => {
       data: { id: "t1", status: "inactive", total_slots: 5, used_slots: 2 },
     });
 
-    const result = await checkTargetCapacity(db as any, "target-1", "acc-1");
+    const result = await checkTargetCapacity(db as any, "00000000-0000-4000-8000-00000000015a", "00000000-0000-4000-8000-000000000016");
     expect(result.isValid).toBe(false);
     expect(result.error).toContain("not active");
   });
@@ -161,7 +161,7 @@ describe("checkTargetCapacity", () => {
       data: { id: "t1", status: "active", total_slots: 5, used_slots: 5 },
     });
 
-    const result = await checkTargetCapacity(db as any, "target-1", "acc-1");
+    const result = await checkTargetCapacity(db as any, "00000000-0000-4000-8000-00000000015a", "00000000-0000-4000-8000-000000000016");
     expect(result.isValid).toBe(false);
     expect(result.error).toContain("no available slots");
   });
@@ -172,7 +172,7 @@ describe("checkTargetCapacity", () => {
       data: { id: "t1", status: "active", total_slots: 5, used_slots: 3 },
     });
 
-    const result = await checkTargetCapacity(db as any, "target-1", "acc-1");
+    const result = await checkTargetCapacity(db as any, "00000000-0000-4000-8000-00000000015a", "00000000-0000-4000-8000-000000000016");
     expect(result.isValid).toBe(true);
   });
 });
@@ -182,17 +182,17 @@ describe("checkNoPendingMigration", () => {
     const db = createMockSupabase();
     db._mocks.mockMaybeSingle.mockResolvedValue({ data: null });
 
-    const result = await checkNoPendingMigration(db as any, "sub-1");
+    const result = await checkNoPendingMigration(db as any, "00000000-0000-4000-8000-000000000017");
     expect(result.isValid).toBe(true);
   });
 
   it("returns invalid when pending migration exists", async () => {
     const db = createMockSupabase();
     db._mocks.mockMaybeSingle.mockResolvedValue({
-      data: { id: "mig-1", status: "pending" },
+      data: { id: "00000000-0000-4000-8000-00000000008f", status: "pending" },
     });
 
-    const result = await checkNoPendingMigration(db as any, "sub-1");
+    const result = await checkNoPendingMigration(db as any, "00000000-0000-4000-8000-000000000017");
     expect(result.isValid).toBe(false);
     expect(result.error).toContain("pending");
   });
@@ -200,10 +200,10 @@ describe("checkNoPendingMigration", () => {
   it("returns invalid when in_progress migration exists", async () => {
     const db = createMockSupabase();
     db._mocks.mockMaybeSingle.mockResolvedValue({
-      data: { id: "mig-2", status: "in_progress" },
+      data: { id: "00000000-0000-4000-8000-00000000015b", status: "in_progress" },
     });
 
-    const result = await checkNoPendingMigration(db as any, "sub-1");
+    const result = await checkNoPendingMigration(db as any, "00000000-0000-4000-8000-000000000017");
     expect(result.isValid).toBe(false);
     expect(result.error).toContain("in_progress");
   });
@@ -214,8 +214,8 @@ describe("setStepStatus", () => {
     const db = createMockSupabase();
 
     const ctx: MigrationContext = {
-      migrationId: "mig-1",
-      accountId: "acc-1",
+      migrationId: "00000000-0000-4000-8000-00000000008f",
+      accountId: "00000000-0000-4000-8000-000000000016",
       supabase: db as any,
     };
 
@@ -231,8 +231,8 @@ describe("setStepStatus", () => {
     const db = createMockSupabase();
 
     const ctx: MigrationContext = {
-      migrationId: "mig-1",
-      accountId: "acc-1",
+      migrationId: "00000000-0000-4000-8000-00000000008f",
+      accountId: "00000000-0000-4000-8000-000000000016",
       supabase: db as any,
     };
 
@@ -248,7 +248,7 @@ describe("decrementUsedSlots", () => {
     const db = createMockSupabase();
     db._mocks.mockSingle.mockResolvedValue({ data: { used_slots: 3 } });
 
-    await decrementUsedSlots(db as any, "pa-1");
+    await decrementUsedSlots(db as any, "00000000-0000-4000-8000-0000000003f0");
     expect(db._mocks.mockUpdate).toHaveBeenCalled();
     const updateArg = db._mocks.mockUpdate.mock.calls[0][0];
     expect(updateArg.used_slots).toBe(2);
@@ -258,7 +258,7 @@ describe("decrementUsedSlots", () => {
     const db = createMockSupabase();
     db._mocks.mockSingle.mockResolvedValue({ data: { used_slots: 0 } });
 
-    await decrementUsedSlots(db as any, "pa-1");
+    await decrementUsedSlots(db as any, "00000000-0000-4000-8000-0000000003f0");
     expect(db._mocks.mockUpdate).not.toHaveBeenCalled();
   });
 });
@@ -268,7 +268,7 @@ describe("incrementUsedSlots", () => {
     const db = createMockSupabase();
     db._mocks.mockSingle.mockResolvedValue({ data: { used_slots: 3 } });
 
-    await incrementUsedSlots(db as any, "pa-1");
+    await incrementUsedSlots(db as any, "00000000-0000-4000-8000-0000000003f0");
     const updateArg = db._mocks.mockUpdate.mock.calls[0][0];
     expect(updateArg.used_slots).toBe(4);
   });
@@ -277,7 +277,7 @@ describe("incrementUsedSlots", () => {
     const db = createMockSupabase();
     db._mocks.mockSingle.mockResolvedValue({ data: null });
 
-    await incrementUsedSlots(db as any, "pa-1");
+    await incrementUsedSlots(db as any, "00000000-0000-4000-8000-0000000003f0");
     expect(db._mocks.mockUpdate).not.toHaveBeenCalled();
   });
 });
@@ -287,7 +287,7 @@ describe("getMigrationWithSteps", () => {
     const db = createMockSupabase();
     db._mocks.mockSingle.mockResolvedValue({ data: null });
 
-    const result = await getMigrationWithSteps(db as any, "mig-1", "acc-1");
+    const result = await getMigrationWithSteps(db as any, "00000000-0000-4000-8000-00000000008f", "00000000-0000-4000-8000-000000000016");
     expect(result).toBeNull();
   });
 });

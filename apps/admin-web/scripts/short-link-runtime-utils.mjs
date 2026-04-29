@@ -1,11 +1,15 @@
 import fs from "node:fs/promises";
-import net from "node:net";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import jwt from "jsonwebtoken";
 import { createClient } from "@supabase/supabase-js";
+import { detectRuntimeBaseURL } from "./detect-base-url.mjs";
 
-export const rootDir = process.cwd();
-const envPath = path.join(rootDir, ".env.local");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+export const appDir = path.resolve(scriptDir, "..");
+export const workspaceDir = path.resolve(appDir, "..", "..");
+export const rootDir = workspaceDir;
+const envPath = path.join(appDir, ".env.local");
 const envSource = await fs.readFile(envPath, "utf8").catch(() => "");
 const TRUE_VALUES = new Set(["1", "true", "yes", "on"]);
 const FALSE_VALUES = new Set(["0", "false", "no", "off"]);
@@ -102,50 +106,7 @@ export function createSupabaseAdminClient() {
 }
 
 export async function detectBaseURL() {
-  const candidates = [
-    process.env.BASE_URL,
-    process.env.NEXT_PUBLIC_API_URL,
-    "http://localhost:3000",
-    "http://localhost:3001",
-  ].filter(Boolean);
-
-  const uniqueCandidates = [...new Set(candidates)];
-
-  for (const candidate of uniqueCandidates) {
-    try {
-      const url = new URL(candidate);
-      const canConnect = await new Promise((resolve) => {
-        const socket = net.createConnection({
-          host: url.hostname,
-          port: Number(url.port || (url.protocol === "https:" ? 443 : 80)),
-        });
-        const cleanup = () => socket.destroy();
-        socket.setTimeout(3000);
-        socket.once("connect", () => {
-          cleanup();
-          resolve(true);
-        });
-        socket.once("timeout", () => {
-          cleanup();
-          resolve(false);
-        });
-        socket.once("error", () => {
-          cleanup();
-          resolve(false);
-        });
-      });
-
-      if (canConnect) {
-        return candidate;
-      }
-    } catch {
-      // Try the next candidate.
-    }
-  }
-
-  throw new Error(
-    `Unable to detect runtime base URL. Tried: ${uniqueCandidates.join(", ")}`,
-  );
+  return detectRuntimeBaseURL();
 }
 
 export async function assertShortLinkDeliverySchema() {
@@ -221,14 +182,14 @@ export async function assertShortLinkDeliverySchema() {
 
   return {
     ok: failures.length === 0,
-    failures,
-    connectionFailure,
-    migrationFile: path.join(
-      rootDir,
-      "supabase",
-      "migrations",
-      "20260417143000_short_link_public_full_schema.sql",
-    ),
+      failures,
+      connectionFailure,
+      migrationFile: path.join(
+        appDir,
+        "supabase",
+        "migrations",
+        "20260417143000_short_link_public_full_schema.sql",
+      ),
   };
 }
 

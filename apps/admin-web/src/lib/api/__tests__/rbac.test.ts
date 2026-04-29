@@ -24,7 +24,12 @@ vi.mock("@/lib/supabase/admin", () => ({
   },
 }));
 
+vi.mock("@/lib/utils/jwt", () => ({
+  verifyToken: vi.fn(),
+}));
+
 import { resolveUser } from "../rbac";
+import { verifyToken } from "@/lib/utils/jwt";
 
 describe("resolveUser", () => {
   beforeEach(() => {
@@ -47,7 +52,7 @@ describe("resolveUser", () => {
   it("returns the DB-backed user when x-user-id matches an admin user", async () => {
     rbacMocks.maybeSingleMock.mockResolvedValue({
       data: {
-        id: "admin-1",
+        id: "00000000-0000-4000-8000-0000000000d0",
         email: TEST_USER_EMAIL,
         role: "sales_staff",
         full_name: "Test Admin",
@@ -58,7 +63,7 @@ describe("resolveUser", () => {
     const req = new NextRequest("http://localhost/api/test", {
       headers: {
         "x-account-id": TEST_ACCOUNT_ID,
-        "x-user-id": "admin-1",
+        "x-user-id": "00000000-0000-4000-8000-0000000000d0",
         "x-user-email": TEST_USER_EMAIL,
       },
     });
@@ -66,19 +71,19 @@ describe("resolveUser", () => {
     const user = await resolveUser(req, TEST_ACCOUNT_ID);
 
     expect(user).toEqual({
-      userId: "admin-1",
+      userId: "00000000-0000-4000-8000-0000000000d0",
       email: TEST_USER_EMAIL,
       role: "sales_staff",
       accountId: TEST_ACCOUNT_ID,
       displayName: "Test Admin",
     });
-    expect(rbacMocks.eqIdentityMock).toHaveBeenCalledWith("id", "admin-1");
+    expect(rbacMocks.eqIdentityMock).toHaveBeenCalledWith("id", "00000000-0000-4000-8000-0000000000d0");
   });
 
   it("falls back to x-user-email when x-user-id is missing", async () => {
     rbacMocks.maybeSingleMock.mockResolvedValue({
       data: {
-        id: "admin-2",
+        id: "00000000-0000-4000-8000-0000000000d1",
         email: TEST_USER_EMAIL,
         role: "sales_staff",
         full_name: "Email User",
@@ -96,7 +101,7 @@ describe("resolveUser", () => {
     const user = await resolveUser(req, TEST_ACCOUNT_ID);
 
     expect(user).toEqual({
-      userId: "admin-2",
+      userId: "00000000-0000-4000-8000-0000000000d1",
       email: TEST_USER_EMAIL,
       role: "sales_staff",
       accountId: TEST_ACCOUNT_ID,
@@ -115,6 +120,55 @@ describe("resolveUser", () => {
       headers: {
         "x-account-id": TEST_ACCOUNT_ID,
         "x-user-id": "missing-admin",
+      },
+    });
+
+    const user = await resolveUser(req, TEST_ACCOUNT_ID);
+
+    expect(user).toBeNull();
+  });
+
+  it("falls back to the verified JWT cookie when user headers are missing", async () => {
+    vi.mocked(verifyToken).mockReturnValue({
+      sub: "codex-qa",
+      accountId: TEST_ACCOUNT_ID,
+      role: "admin_owner",
+      email: "codex-qa@local",
+    });
+    rbacMocks.maybeSingleMock.mockResolvedValue({
+      data: null,
+      error: null,
+    });
+
+    const req = new NextRequest("http://localhost/api/test", {
+      headers: {
+        cookie: "access_token=valid-cookie-token",
+      },
+    });
+
+    const user = await resolveUser(req, TEST_ACCOUNT_ID);
+
+    expect(user).toEqual({
+      userId: "codex-qa",
+      email: "codex-qa@local",
+      role: "admin_owner",
+      accountId: TEST_ACCOUNT_ID,
+      displayName: null,
+    });
+    expect(verifyToken).toHaveBeenCalledWith("valid-cookie-token");
+  });
+
+  it("rejects JWT fallback when the token account differs", async () => {
+    vi.mocked(verifyToken).mockReturnValue({
+      sub: "codex-qa",
+      accountId: "another-account",
+      role: "admin_owner",
+      email: "codex-qa@local",
+    });
+
+    const req = new NextRequest("http://localhost/api/test", {
+      headers: {
+        cookie: "access_token=valid-cookie-token",
       },
     });
 

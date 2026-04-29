@@ -98,8 +98,9 @@ export async function listProvidersForAccount(accountId: string): Promise<Provid
 export async function getProviderForAccount(
   id: string,
   accountId: string,
+  options: { includeDeleted?: boolean } = {},
 ): Promise<Provider> {
-  const row = await getProviderByIdRepo(id, accountId);
+  const row = await getProviderByIdRepo(id, accountId, options);
   return mapProviderRow(row as unknown as Record<string, unknown>);
 }
 

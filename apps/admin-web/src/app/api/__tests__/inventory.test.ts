@@ -39,7 +39,7 @@ describe("POST /api/inventory", () => {
   it("creates license key and returns 201", async () => {
     const res = await POST(createTestRequest("http://localhost/api/inventory", {
       method: "POST",
-      body: { keyCode: "NEW-001", productId: "prod-1", status: "available" },
+      body: { keyCode: "NEW-001", productId: "00000000-0000-4000-8000-000000000039", status: "available" },
     }), { params: {} } as any);
     expect(res.status).toBe(201);
     const body = await res.json();

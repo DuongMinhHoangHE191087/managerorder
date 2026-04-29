@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useId } from "react";
 import { cn } from "@/lib/utils";
 import { vi } from "@/shared/messages/vi";
 
@@ -32,6 +32,8 @@ export function Modal({
   footer,
   size = "md",
 }: ModalProps) {
+  const titleId = useId();
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -57,15 +59,15 @@ export function Modal({
   }
 
   return (
-    <div className="fixed inset-0 overflow-y-auto" style={{ zIndex: "var(--z-modal)" }}>
+    <div className="fixed inset-0 overflow-y-auto overscroll-contain" style={{ zIndex: "var(--z-modal)" }}>
       <button
         type="button"
-        className="fixed inset-0 bg-[rgba(15,23,42,0.38)] backdrop-blur-[2px]"
+        className="fixed inset-0 bg-[rgba(15,23,42,0.38)] backdrop-blur-[2px] touch-manipulation"
         onClick={onClose}
         aria-label={vi.common.close}
       />
 
-      <div className="flex min-h-full p-3 sm:p-4 md:p-6">
+      <div className="flex min-h-full p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 md:p-6">
         <div
           className={cn(
             "relative m-auto flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-[30px] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.96)] shadow-[0_26px_70px_rgba(15,23,42,0.14)] md:max-h-[90vh]",
@@ -73,9 +75,12 @@ export function Modal({
           )}
           role="dialog"
           aria-modal="true"
+          aria-labelledby={titleId}
         >
           <div className="flex shrink-0 items-center justify-between border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.88))] px-4 py-4 sm:px-6">
-            <h2 className="text-[16px] font-bold tracking-tight text-[var(--fg-base)]">{title}</h2>
+            <h2 id={titleId} className="text-[16px] font-bold tracking-tight text-[var(--fg-base)] text-pretty">
+              {title}
+            </h2>
             <button
               type="button"
               onClick={onClose}
@@ -86,7 +91,7 @@ export function Modal({
             </button>
           </div>
 
-          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
             {children}
           </div>
 

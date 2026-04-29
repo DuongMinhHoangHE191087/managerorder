@@ -48,8 +48,8 @@ describe("providers.repo soft-fail behavior", () => {
     const providersChain = createQueryChain({
       data: [
         {
-          id: "pv-1",
-          account_id: "acc-1",
+          id: "00000000-0000-4000-8000-0000000000b8",
+          account_id: "00000000-0000-4000-8000-000000000016",
           name: "Provider A",
           contacts: [],
           tier: "regular",
@@ -77,9 +77,9 @@ describe("providers.repo soft-fail behavior", () => {
       throw new Error(`Unexpected table: ${table}`);
     });
 
-    await expect(listProviders("acc-1")).resolves.toEqual([
+    await expect(listProviders("00000000-0000-4000-8000-000000000016")).resolves.toEqual([
       expect.objectContaining({
-        id: "pv-1",
+        id: "00000000-0000-4000-8000-0000000000b8",
         total_import_amount_vnd: 0,
         purchase_order_count: 0,
       }),
@@ -89,8 +89,8 @@ describe("providers.repo soft-fail behavior", () => {
   it("keeps provider detail stable when stats relation is missing", async () => {
     const providerChain = createQueryChain({
       data: {
-        id: "pv-9",
-        account_id: "acc-1",
+        id: "00000000-0000-4000-8000-000000000126",
+        account_id: "00000000-0000-4000-8000-000000000016",
         name: "Provider Z",
         contacts: [],
         tier: "regular",
@@ -117,9 +117,9 @@ describe("providers.repo soft-fail behavior", () => {
       throw new Error(`Unexpected table: ${table}`);
     });
 
-    await expect(getProviderById("pv-9", "acc-1")).resolves.toEqual(
+    await expect(getProviderById("00000000-0000-4000-8000-000000000126", "00000000-0000-4000-8000-000000000016")).resolves.toEqual(
       expect.objectContaining({
-        id: "pv-9",
+        id: "00000000-0000-4000-8000-000000000126",
         total_import_amount_vnd: 0,
         purchase_order_count: 0,
       }),

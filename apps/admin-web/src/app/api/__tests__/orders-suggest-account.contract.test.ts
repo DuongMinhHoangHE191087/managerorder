@@ -53,12 +53,12 @@ describe("POST /api/orders/suggest-account", () => {
 
   it("maps account rows and returns ranked suggestions for the requested product", async () => {
     const rawRows = [
-      { id: "source-1", primary_email: "slot-a@example.com" },
-      { id: "source-2", primary_email: "slot-b@example.com" },
+      { id: "00000000-0000-4000-8000-000000000066", primary_email: "slot-a@example.com" },
+      { id: "00000000-0000-4000-8000-000000000067", primary_email: "slot-b@example.com" },
     ];
     const mappedAccounts = [
       {
-        id: "source-1",
+        id: "00000000-0000-4000-8000-000000000066",
         email: "slot-a@example.com",
         productIds: ["product-netflix"],
         maxSlots: 5,
@@ -66,7 +66,7 @@ describe("POST /api/orders/suggest-account", () => {
         expiresAt: "2026-05-01T00:00:00.000Z",
       },
       {
-        id: "source-2",
+        id: "00000000-0000-4000-8000-000000000067",
         email: "slot-b@example.com",
         productIds: ["product-netflix"],
         maxSlots: 5,
@@ -76,7 +76,7 @@ describe("POST /api/orders/suggest-account", () => {
     ];
     const suggestions = [
       {
-        sourceAccountId: "source-1",
+        sourceAccountId: "00000000-0000-4000-8000-000000000066",
         email: "slot-a@example.com",
         score: 812,
         reason: "Gan day (1 slot trong)",

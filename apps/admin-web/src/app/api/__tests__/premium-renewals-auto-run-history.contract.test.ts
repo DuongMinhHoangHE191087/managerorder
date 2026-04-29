@@ -12,6 +12,7 @@ type RouteModule = typeof import("@/app/api/premium/renewals/auto-run/history/ro
 const mocks = vi.hoisted(() => ({
   getAutoRenewalEngineRunHistory: vi.fn(),
 }));
+const PREMIUM_ROUTE_TIMEOUT_MS = 15_000;
 
 async function loadRoute(options?: { allowRoles?: boolean; role?: string }) {
   vi.resetModules();
@@ -61,15 +62,15 @@ describe("GET /api/premium/renewals/auto-run/history", () => {
       currentRole: "sales_staff",
     });
     expect(mocks.getAutoRenewalEngineRunHistory).not.toHaveBeenCalled();
-  });
+  }, PREMIUM_ROUTE_TIMEOUT_MS);
 
   it("returns the paginated engine history for the current account", async () => {
     const history = {
       items: [
         {
-          id: "log-1",
+          id: "00000000-0000-4000-8000-00000000000e",
           accountId: TEST_ACCOUNT_ID,
-          createdBy: "test-user-id-001",
+          createdBy: "00000000-0000-4000-8000-00000000007f",
           createdAt: "2026-04-22T02:30:00.000Z",
           mode: "manual",
           scannedCount: 4,
@@ -83,9 +84,9 @@ describe("GET /api/premium/renewals/auto-run/history", () => {
           created: [
             {
               accountId: TEST_ACCOUNT_ID,
-              subscriptionId: "sub-1",
-              renewalId: "renew-1",
-              customerId: "cust-1",
+              subscriptionId: "00000000-0000-4000-8000-000000000017",
+              renewalId: "00000000-0000-4000-8000-000000000018",
+              customerId: "00000000-0000-4000-8000-000000000005",
               customerName: "Nguyen Van A",
               daysRemaining: 4,
             },

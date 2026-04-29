@@ -177,7 +177,10 @@ export function RevenueChart<T extends string = string>({
   }
 
   return (
-    <div className="glass-card flex flex-col overflow-hidden rounded-ios border border-[var(--border-soft)] shadow-[var(--accent)]/5 transition-shadow hover:shadow-[var(--accent)]/10 lg:col-span-2">
+    <div
+      data-testid="dashboard-revenue-chart"
+      className="glass-card flex flex-col overflow-hidden rounded-ios border border-[var(--border-soft)] shadow-[var(--accent)]/5 transition-shadow hover:shadow-[var(--accent)]/10 lg:col-span-2"
+    >
       <div className="border-b border-[var(--border-soft)] bg-[var(--bg-app)]/50 p-6 backdrop-blur-sm">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
@@ -196,10 +199,18 @@ export function RevenueChart<T extends string = string>({
               <span className="size-2 rounded-full bg-amber-500" />
               Vốn nhập
             </div>
-            <div className="flex items-center gap-1 rounded-xl border border-[var(--border-soft)] bg-[var(--bg-app)] p-1">
+            <div
+              role="tablist"
+              aria-label="Dashboard chart time range"
+              data-testid="dashboard-chart-time-tabs"
+              className="flex items-center gap-1 rounded-xl border border-[var(--border-soft)] bg-[var(--bg-app)] p-1"
+            >
               {timeTabs.map((tab) => (
                 <button
                   key={tab.value}
+                  role="tab"
+                  aria-selected={timeRange === tab.value}
+                  data-testid={`dashboard-chart-time-tab-${tab.value}`}
                   type="button"
                   onClick={() => setTimeRange(tab.value)}
                   className={`rounded-lg px-3 py-1 text-[11px] font-bold transition-all ${
@@ -247,6 +258,7 @@ export function RevenueChart<T extends string = string>({
 
             <div className="relative h-[350px] rounded-2xl border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.65),rgba(255,255,255,0.35))] p-2">
               <svg
+                data-testid="dashboard-revenue-chart-svg"
                 viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
                 className="h-full w-full overflow-visible"
                 preserveAspectRatio="none"
@@ -286,8 +298,9 @@ export function RevenueChart<T extends string = string>({
                   </g>
                 ))}
 
-                <path d={geometry.revenueAreaPath} fill={`url(#${gradientId})`} />
+                <path data-testid="dashboard-revenue-area" d={geometry.revenueAreaPath} fill={`url(#${gradientId})`} />
                 <path
+                  data-testid="dashboard-revenue-line"
                   d={geometry.revenueLinePath}
                   fill="none"
                   stroke="var(--accent)"
@@ -296,6 +309,7 @@ export function RevenueChart<T extends string = string>({
                   strokeLinecap="round"
                 />
                 <path
+                  data-testid="dashboard-cost-line"
                   d={geometry.costLinePath}
                   fill="none"
                   stroke={COST_STROKE}
@@ -354,6 +368,7 @@ export function RevenueChart<T extends string = string>({
 
               {activePoint ? (
                 <div
+                  data-testid="dashboard-revenue-tooltip"
                   className="pointer-events-none absolute rounded-2xl border border-[var(--border-soft)] bg-[var(--bg-surface)]/95 px-3 py-2 shadow-xl backdrop-blur-md"
                   style={{
                     left: `${clamp(activePoint.x, PADDING.left + 24, SVG_WIDTH - PADDING.right - 88)}px`,

@@ -11,14 +11,14 @@ describe('parseOrderRelation', () => {
   });
 
   it('returns the object directly when input is a single object', () => {
-    const order = { id: 'order-1', customer_id: 'cust-1' };
+    const order = { id: '00000000-0000-4000-8000-00000000005b', customer_id: '00000000-0000-4000-8000-000000000005' };
     expect(parseOrderRelation(order)).toEqual(order);
   });
 
   it('returns first element when input is an array', () => {
     const orders = [
-      { id: 'order-1', customer_id: 'cust-1' },
-      { id: 'order-2', customer_id: 'cust-2' },
+      { id: '00000000-0000-4000-8000-00000000005b', customer_id: '00000000-0000-4000-8000-000000000005' },
+      { id: '00000000-0000-4000-8000-0000000000c5', customer_id: '00000000-0000-4000-8000-000000000006' },
     ];
     expect(parseOrderRelation(orders)).toEqual(orders[0]);
   });
@@ -28,8 +28,8 @@ describe('parseOrderRelation', () => {
   });
 
   it('returns first when array has one item', () => {
-    const orders = [{ id: 'order-1' }];
-    expect(parseOrderRelation(orders)).toEqual({ id: 'order-1' });
+    const orders = [{ id: '00000000-0000-4000-8000-00000000005b' }];
+    expect(parseOrderRelation(orders)).toEqual({ id: '00000000-0000-4000-8000-00000000005b' });
   });
 
   it('works with generic types', () => {

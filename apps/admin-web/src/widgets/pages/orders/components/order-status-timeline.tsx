@@ -121,70 +121,73 @@ export function OrderStatusTimeline({ orderId }: OrderStatusTimelineProps) {
       <div className="absolute left-[7px] top-2 bottom-2 w-px bg-[var(--border-soft)]" />
 
       <div className="space-y-3">
-        {history.map((entry, idx) => {
-          const newCfg = getStatusConfig(entry.new_status);
-          const oldCfg = entry.old_status ? getStatusConfig(entry.old_status) : null;
-          const Icon = newCfg.icon;
-          const isLatest = idx === history.length - 1;
-
-          return (
-            <div key={entry.id} className="relative flex gap-3">
-              {/* Dot */}
-              <div
-                className={`mt-1 flex-none w-4 h-4 rounded-full flex items-center justify-center z-10 -ml-0.5 ring-2 ring-[var(--bg-surface)] ${
-                  isLatest ? newCfg.bg + " ring-[var(--accent)]/30" : newCfg.bg
-                }`}
-              >
-                <Icon className={`w-2.5 h-2.5 ${newCfg.color}`} />
-              </div>
-
-              {/* Card */}
-              <div
-                className={`flex-1 p-2.5 rounded-lg border transition-colors ${
-                  isLatest
-                    ? "bg-[var(--accent)]/5 border-[var(--accent)]/20"
-                    : "bg-[var(--surface-light)] border-[var(--border-soft)]/50"
-                }`}
-              >
-                {/* Header: status transition + timestamp */}
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {oldCfg && (
-                      <>
-                        <span className={`text-[11px] font-bold ${oldCfg.color}`}>
-                          {oldCfg.label}
-                        </span>
-                        <ArrowRight className="w-3 h-3 text-[var(--fg-muted)]" />
-                      </>
-                    )}
-                    <span className={`text-[11px] font-black ${newCfg.color}`}>
-                      {newCfg.label}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-[var(--fg-muted)] whitespace-nowrap">
-                    {formatDateTime(entry.created_at)}
-                  </span>
-                </div>
-
-                {/* Who changed + reason */}
-                <div className="flex flex-col gap-0.5">
-                  {entry.changed_by && (
-                    <span className="text-[10px] text-[var(--fg-muted)] flex items-center gap-1">
-                      <Shield className="w-2.5 h-2.5" />
-                      {entry.changed_by}
-                    </span>
-                  )}
-                  {entry.change_reason && (
-                    <span className="text-[10px] text-[var(--fg-muted)] italic">
-                      &quot;{entry.change_reason}&quot;
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {history.map((entry, idx) => (
+          <OrderStatusEntry key={entry.id} entry={entry} isLatest={idx === history.length - 1} />
+        ))}
       </div>
     </div>
   );
 }
+
+type OrderStatusEntryProps = {
+  entry: {
+    id: string;
+    new_status: string;
+    old_status?: string | null;
+    created_at: string;
+    changed_by?: string | null;
+    change_reason?: string | null;
+  };
+  isLatest: boolean;
+};
+
+const OrderStatusEntry = React.memo(function OrderStatusEntry({ entry, isLatest }: OrderStatusEntryProps) {
+  const newCfg = getStatusConfig(entry.new_status);
+  const oldCfg = entry.old_status ? getStatusConfig(entry.old_status) : null;
+  const Icon = newCfg.icon;
+
+  return (
+    <div className="relative flex gap-3">
+      <div
+        className={`mt-1 flex-none w-4 h-4 rounded-full flex items-center justify-center z-10 -ml-0.5 ring-2 ring-[var(--bg-surface)] ${
+          isLatest ? newCfg.bg + " ring-[var(--accent)]/30" : newCfg.bg
+        }`}
+      >
+        <Icon className={`w-2.5 h-2.5 ${newCfg.color}`} />
+      </div>
+
+      <div
+        className={`flex-1 p-2.5 rounded-lg border transition-colors ${
+          isLatest
+            ? "bg-[var(--accent)]/5 border-[var(--accent)]/20"
+            : "bg-[var(--surface-light)] border-[var(--border-soft)]/50"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {oldCfg && (
+              <>
+                <span className={`text-[11px] font-bold ${oldCfg.color}`}>{oldCfg.label}</span>
+                <ArrowRight className="w-3 h-3 text-[var(--fg-muted)]" />
+              </>
+            )}
+            <span className={`text-[11px] font-black ${newCfg.color}`}>{newCfg.label}</span>
+          </div>
+          <span className="text-[10px] text-[var(--fg-muted)] whitespace-nowrap">{formatDateTime(entry.created_at)}</span>
+        </div>
+
+        <div className="flex flex-col gap-0.5">
+          {entry.changed_by && (
+            <span className="text-[10px] text-[var(--fg-muted)] flex items-center gap-1">
+              <Shield className="w-2.5 h-2.5" />
+              {entry.changed_by}
+            </span>
+          )}
+          {entry.change_reason && (
+            <span className="text-[10px] text-[var(--fg-muted)] italic">&quot;{entry.change_reason}&quot;</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});

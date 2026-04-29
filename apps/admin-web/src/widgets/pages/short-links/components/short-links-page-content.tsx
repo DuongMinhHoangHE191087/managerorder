@@ -1,8 +1,14 @@
 ﻿"use client";
 
-import { Fragment, useCallback, useDeferredValue, useMemo, useState } from "react";
+import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import NextLink from "next/link";
 import { AppLayout } from "@/widgets/layout/app-layout";
+import {
+  AdvancedOptionsDisclosure,
+  CreateActionFooter,
+  CreateFlowShell,
+  CreateFormSection,
+} from "@/shared/ui/create-flow-shell";
 import { PageContainer } from "@/shared/ui/page-layout";
 import { SectionCard } from "@/shared/ui/section-card";
 import {
@@ -13,6 +19,7 @@ import { useSalesChannels } from "@/widgets/pages/settings/hooks/use-settings";
 import type { ShortLinkRow } from "@/lib/supabase/repositories/short-links.repo";
 import type {
   ShortLinkDeliveryMode,
+  ShortLinkFailureTemplateKey,
   ShortLinkLandingTemplateKey,
 } from "@/lib/domain/types";
 import { resolveShortLinkPolicy } from "@/domains/short-links/services/policy";
@@ -27,6 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 import { appToast } from "@/shared/ui/app-toast";
 import { vi } from "@/shared/messages/vi";
+import { hasSearchTokens, matchesSearchQuery } from "@/shared/lib/filtering/search";
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -122,6 +130,22 @@ type CreateShortLinkFormState = {
   sales_channel_id: string | null;
   delivery_mode: ShortLinkDeliveryMode;
   landing_template_key: ShortLinkLandingTemplateKey | null;
+  failure_template_key: ShortLinkFailureTemplateKey | null;
+  seller_contact_url: string;
+};
+
+const DEFAULT_CREATE_FORM: CreateShortLinkFormState = {
+  target_url: "",
+  title: "",
+  max_clicks: 5,
+  expiry: "",
+  require_token: false,
+  notify_clicks: false,
+  sales_channel_id: null,
+  delivery_mode: "inherit_channel",
+  landing_template_key: null,
+  failure_template_key: null,
+  seller_contact_url: "",
 };
 
 const DELIVERY_MODE_OPTIONS: Array<{ value: ShortLinkDeliveryMode; label: string }> = [
@@ -135,6 +159,11 @@ const LANDING_TEMPLATE_OPTIONS: Array<{ value: ShortLinkLandingTemplateKey; labe
   { value: "ctv_neutral", label: "Mẫu CTV trung tính" },
 ];
 
+const FAILURE_TEMPLATE_OPTIONS: Array<{ value: ShortLinkFailureTemplateKey; label: string }> = [
+  { value: "customer_offer_wall", label: "Khách thường: landing mua hàng" },
+  { value: "seller_unlock_request", label: "CTV: xin người bán mở lại" },
+];
+
 // â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function ShortLinksPage() {
@@ -146,17 +175,7 @@ export default function ShortLinksPage() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
-  const [form, setForm] = useState<CreateShortLinkFormState>({
-    target_url: "",
-    title: "",
-    max_clicks: 5,
-    expiry: "",
-    require_token: false,
-    notify_clicks: false,
-    sales_channel_id: null,
-    delivery_mode: "inherit_channel",
-    landing_template_key: null,
-  });
+  const [form, setForm] = useState<CreateShortLinkFormState>(DEFAULT_CREATE_FORM);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditState>({ max_clicks: 5, expiry: "", status: "active", require_token: false, notify_clicks: false });
@@ -172,15 +191,33 @@ export default function ShortLinksPage() {
 
   // Analytics
   const { data: analytics, isLoading: analyticsLoading } = useShortLinkAnalytics(analyticsId);
-  const selectedSalesChannel = salesChannels.find((channel) => channel.id === form.sales_channel_id) ?? null;
+  const salesChannelById = useMemo(
+    () => new Map(salesChannels.map((channel) => [channel.id, channel] as const)),
+    [salesChannels],
+  );
+  const linkById = useMemo(
+    () => new Map(links.map((link) => [link.id, link] as const)),
+    [links],
+  );
+  const linkBySlug = useMemo(
+    () => new Map(links.map((link) => [link.slug, link] as const)),
+    [links],
+  );
+  const selectedSalesChannel = salesChannelById.get(form.sales_channel_id ?? "") ?? null;
   const salesChannelNameMap = useMemo(
     () => new Map(salesChannels.map((channel) => [channel.id, channel.name] as const)),
     [salesChannels],
+  );
+  const createdLink = useMemo(
+    () => (createdSlug ? linkBySlug.get(createdSlug) ?? null : null),
+    [createdSlug, linkBySlug],
   );
   const effectivePolicy = resolveShortLinkPolicy(
     {
       delivery_mode: form.delivery_mode,
       landing_template_key: form.landing_template_key,
+      failure_template_key: form.failure_template_key,
+      seller_contact_url: form.seller_contact_url || null,
     },
     selectedSalesChannel,
   );
@@ -207,26 +244,39 @@ export default function ShortLinksPage() {
     effectivePolicy.effectiveDeliveryMode === "direct_redirect"
       ? "Không áp dụng"
       : landingTemplateLabel(effectivePolicy.effectiveLandingTemplateKey);
+  const failureTemplateLabel = (templateKey: ShortLinkFailureTemplateKey) =>
+    FAILURE_TEMPLATE_OPTIONS.find((option) => option.value === templateKey)?.label ?? templateKey;
 
   // Stats
   const stats = useMemo(() => {
-    const active = links.filter(l => l.status === "active").length;
-    const expired = links.filter(l => l.status === "expired").length;
-    const totalClicks = links.reduce((s, l) => s + l.current_clicks, 0);
-    const protectedLinks = links.filter(l => l.require_token).length;
-    return { total: links.length, active, expired, totalClicks, protectedLinks };
+    return links.reduce(
+      (acc, link) => {
+        acc.total += 1;
+        acc.totalClicks += link.current_clicks;
+        if (link.status === "active") acc.active += 1;
+        if (link.status === "expired") acc.expired += 1;
+        if (link.require_token) acc.protectedLinks += 1;
+        return acc;
+      },
+      { total: 0, active: 0, expired: 0, totalClicks: 0, protectedLinks: 0 },
+    );
   }, [links]);
 
   // Filtered + searched
   const filteredLinks = useMemo(() => {
     let result = links;
     if (statusFilter !== "all") result = result.filter(l => l.status === statusFilter);
-    if (deferredSearchQuery.trim()) {
-      const q = deferredSearchQuery.toLowerCase();
-      result = result.filter(l =>
-        l.title?.toLowerCase().includes(q) ||
-        l.slug.toLowerCase().includes(q) ||
-        l.target_url.toLowerCase().includes(q)
+    if (hasSearchTokens(deferredSearchQuery)) {
+      result = result.filter((link) =>
+        matchesSearchQuery(
+          deferredSearchQuery,
+          link.title,
+          link.slug,
+          link.target_url,
+          link.access_token,
+          link.order_id,
+          link.sales_channel_id ? salesChannelNameMap.get(link.sales_channel_id) ?? "" : "",
+        ),
       );
     }
     
@@ -244,7 +294,7 @@ export default function ShortLinksPage() {
     }
     
     return result;
-  }, [links, statusFilter, deferredSearchQuery, sortOrder]);
+  }, [links, statusFilter, deferredSearchQuery, sortOrder, salesChannelNameMap]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredLinks.length / PAGE_SIZE));
@@ -252,6 +302,10 @@ export default function ShortLinksPage() {
     const start = currentPage * PAGE_SIZE;
     return filteredLinks.slice(start, start + PAGE_SIZE);
   }, [filteredLinks, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage((value) => Math.min(value, Math.max(0, totalPages - 1)));
+  }, [totalPages]);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
@@ -276,19 +330,11 @@ export default function ShortLinksPage() {
         sales_channel_id: form.sales_channel_id,
         delivery_mode: form.delivery_mode,
         landing_template_key: form.landing_template_key,
+        failure_template_key: form.failure_template_key,
+        seller_contact_url: form.seller_contact_url || null,
       });
       setCreatedSlug((result as { slug?: string; access_token?: string | null })?.slug || null);
-      setForm({
-        target_url: "",
-        title: "",
-        max_clicks: 5,
-        expiry: "",
-        require_token: false,
-        notify_clicks: false,
-        sales_channel_id: null,
-        delivery_mode: "inherit_channel",
-        landing_template_key: null,
-      });
+      setForm(DEFAULT_CREATE_FORM);
     } catch { /* handled by mutation */ }
   };
 
@@ -316,7 +362,7 @@ export default function ShortLinksPage() {
 
   const saveEdit = async (id: string) => {
     const updates: Record<string, unknown> = {};
-    const original = links.find(l => l.id === id);
+    const original = linkById.get(id);
 
     if (original && editForm.max_clicks !== original.max_clicks) updates.max_clicks = editForm.max_clicks;
     if (editForm.expiry) updates.expires_at = expiryToDate(editForm.expiry);
@@ -340,7 +386,7 @@ export default function ShortLinksPage() {
   };
 
   const handleQuickRenew = async (id: string, days: number) => {
-    const link = links.find(l => l.id === id);
+    const link = linkById.get(id);
     if (!link) return;
     const baseDate = link.expires_at && new Date(link.expires_at) > new Date() ? new Date(link.expires_at) : new Date();
     const expires_at = new Date(baseDate.getTime() + days * 24 * 3600_000).toISOString();
@@ -367,7 +413,7 @@ export default function ShortLinksPage() {
     const ids = Array.from(selectedIds);
     await Promise.allSettled(
       ids.map(id => {
-        const link = links.find(l => l.id === id);
+        const link = linkById.get(id);
         if (!link) return Promise.resolve();
         const baseDate = link.expires_at && new Date(link.expires_at) > new Date() ? new Date(link.expires_at) : new Date();
         const expires_at = new Date(baseDate.getTime() + days * 24 * 3600_000).toISOString();
@@ -408,6 +454,7 @@ export default function ShortLinksPage() {
           </div>
           <button
             onClick={() => { setShowCreate(!showCreate); setCreatedSlug(null); }}
+            data-testid="short-links-create-toggle"
             className="flex items-center gap-2 bg-[var(--fg-base)] text-[var(--bg-app)] px-5 py-2.5 rounded-full font-bold text-sm shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
             <Plus className="size-4" />
@@ -436,98 +483,110 @@ export default function ShortLinksPage() {
 
         {/* Create Form */}
         {showCreate && (
-          <SectionCard title={vi.shortLinks.page.createTitle} description={vi.shortLinks.page.createDescription}>
-            {createdSlug ? (
+          createdSlug ? (
+            <SectionCard title={vi.shortLinks.page.createTitle} description={vi.shortLinks.page.createDescription}>
               <CreatedSuccess
                 slug={createdSlug}
-                links={links}
+                link={createdLink}
                 onCopy={handleCopy}
                 onCreateAnother={() => setCreatedSlug(null)}
                 onClose={() => { setShowCreate(false); setCreatedSlug(null); }}
               />
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-1.5 block">
-                    {vi.shortLinks.page.targetUrl} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="url"
-                    value={form.target_url}
-                    onChange={e => setForm(f => ({ ...f, target_url: e.target.value }))}
-                    placeholder={vi.shortLinks.page.targetUrlPlaceholder}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                      <label className="text-xs font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-1.5 block">{vi.shortLinks.page.titleLabel}</label>
-                    <input
-                      type="text"
-                      value={form.title}
-                      onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                      placeholder={vi.shortLinks.page.titlePlaceholder}
-                      className="w-full px-4 py-2.5 rounded-xl bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
-                    />
-                  </div>
-                  <div>
-                      <label className="text-xs font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-1.5 block">{vi.shortLinks.page.maxClicks}</label>
-                    <input
-                      type="number" min={1} max={100}
-                      value={form.max_clicks}
-                      onChange={e => setForm(f => ({ ...f, max_clicks: Number(e.target.value) || 1 }))}
-                      className="w-full px-4 py-2.5 rounded-xl bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-1.5 block">{vi.shortLinks.page.expiresAfter}</label>
-                    <select
-                      value={form.expiry}
-                      onChange={e => setForm(f => ({ ...f, expiry: e.target.value }))}
-                      className="w-full px-4 py-2.5 rounded-xl bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer"
-                    >
-                      {EXPIRY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-xs font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-1.5 block">
-                      Kênh bán
+            </SectionCard>
+          ) : (
+            <CreateFlowShell
+              title={vi.shortLinks.page.createTitle}
+              description="Chỉ mở những trường thật sự cần để tạo link mới. Template lỗi, chống gian lận và notify được gom vào nhóm nâng cao."
+              footer={
+                <CreateActionFooter
+                  primaryLabel={vi.shortLinks.page.createSubmit}
+                  onPrimary={() => void handleCreate()}
+                  onCancel={() => { setShowCreate(false); setCreatedSlug(null); }}
+                  pending={createMut.isPending}
+                  disabled={!form.target_url}
+                />
+              }
+            >
+              <CreateFormSection
+                title="Thông tin chính"
+                description="URL đích, tiêu đề hiển thị và kênh bán là ba trường cốt lõi để vận hành link."
+              >
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                      {vi.shortLinks.page.targetUrl} <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      value={form.sales_channel_id ?? ""}
-                      onChange={(e) => setForm((current) => ({
-                        ...current,
-                        sales_channel_id: e.target.value || null,
-                      }))}
-                      className="w-full px-4 py-2.5 rounded-xl bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer"
-                    >
-                      <option value="">Không gắn kênh bán</option>
-                      {salesChannels.map((channel) => (
-                        <option key={channel.id} value={channel.id}>
-                          {channel.name}
-                        </option>
-                      ))}
-                    </select>
+                    <input
+                      type="url"
+                      value={form.target_url}
+                      onChange={(event) => setForm((current) => ({ ...current, target_url: event.target.value }))}
+                      placeholder={vi.shortLinks.page.targetUrlPlaceholder}
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
+                    />
                   </div>
-                  <div>
-                    <label className="text-xs font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-1.5 block">
+
+                  <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(220px,0.7fr)]">
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                        {vi.shortLinks.page.titleLabel}
+                      </label>
+                      <input
+                        type="text"
+                        value={form.title}
+                        onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                        placeholder={vi.shortLinks.page.titlePlaceholder}
+                        className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                        Kênh bán
+                      </label>
+                      <select
+                        value={form.sales_channel_id ?? ""}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            sales_channel_id: event.target.value || null,
+                          }))
+                        }
+                        className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer"
+                      >
+                        <option value="">Không gắn kênh bán</option>
+                        {salesChannels.map((channel) => (
+                          <option key={channel.id} value={channel.id}>
+                            {channel.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </CreateFormSection>
+
+              <CreateFormSection
+                title="Chính sách public"
+                description="Delivery mode được mở ngay vì nó quyết định link redirect thẳng hay đi qua landing."
+              >
+                <div className="grid gap-4 xl:grid-cols-[minmax(240px,0.7fr)_minmax(0,1.3fr)]">
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
                       Cách mở link
                     </label>
                     <select
                       value={form.delivery_mode}
-                      onChange={(e) => setForm((current) => ({
-                        ...current,
-                        delivery_mode: e.target.value as ShortLinkDeliveryMode,
-                        landing_template_key:
-                          e.target.value === "direct_redirect"
-                            ? null
-                            : current.landing_template_key,
-                      }))}
-                      className="w-full px-4 py-2.5 rounded-xl bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer"
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          delivery_mode: event.target.value as ShortLinkDeliveryMode,
+                          landing_template_key:
+                            event.target.value === "direct_redirect"
+                              ? null
+                              : current.landing_template_key,
+                        }))
+                      }
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer"
                     >
                       {DELIVERY_MODE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -536,18 +595,76 @@ export default function ShortLinksPage() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="text-xs font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-1.5 block">
+
+                  <div className="rounded-2xl border border-[var(--border-soft)] bg-slate-50 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[13px] font-bold text-[var(--fg-base)]">Chính sách hiệu lực</p>
+                        <p className="mt-0.5 text-[11px] leading-6 text-[var(--fg-muted)]">
+                          Xem nhanh template landing, template lỗi và nguồn quyết định đang được resolve.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                        Preview
+                      </span>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                      <PolicyChip label="Cách mở link" value={deliveryModeLabel(effectivePolicy.effectiveDeliveryMode)} />
+                      <PolicyChip label="Mẫu landing" value={effectiveLandingTemplateLabel} />
+                      <PolicyChip label="Mẫu khi lỗi" value={failureTemplateLabel(effectivePolicy.effectiveFailureTemplateKey)} />
+                      <PolicyChip label="Nguồn quyết định" value={`${policySourceLabel(effectivePolicy.deliveryModeSource)} / ${policySourceLabel(effectivePolicy.landingTemplateSource)}`} />
+                    </div>
+                  </div>
+                </div>
+              </CreateFormSection>
+
+              <AdvancedOptionsDisclosure>
+                <div className="grid gap-4 xl:grid-cols-3">
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                      {vi.shortLinks.page.maxClicks}
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={form.max_clicks}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, max_clicks: Number(event.target.value) || 1 }))
+                      }
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                      {vi.shortLinks.page.expiresAfter}
+                    </label>
+                    <select
+                      value={form.expiry}
+                      onChange={(event) => setForm((current) => ({ ...current, expiry: event.target.value }))}
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer"
+                    >
+                      {EXPIRY_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
                       Mẫu landing
                     </label>
                     <select
                       value={form.landing_template_key ?? ""}
-                      onChange={(e) => setForm((current) => ({
-                        ...current,
-                        landing_template_key: (e.target.value || null) as ShortLinkLandingTemplateKey | null,
-                      }))}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          landing_template_key: (event.target.value || null) as ShortLinkLandingTemplateKey | null,
+                        }))
+                      }
                       disabled={form.delivery_mode === "direct_redirect"}
-                      className="w-full px-4 py-2.5 rounded-xl bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer disabled:opacity-60"
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer disabled:opacity-60"
                     >
                       <option value="">Kế thừa theo kênh bán</option>
                       {LANDING_TEMPLATE_OPTIONS.map((option) => (
@@ -559,96 +676,107 @@ export default function ShortLinksPage() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-[var(--border-soft)] bg-slate-50 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-[13px] font-bold text-[var(--fg-base)]">Xem trước chính sách hiệu lực</p>
-                      <p className="mt-0.5 text-[11px] text-[var(--fg-muted)]">
-                        Giao diện sẽ phản ánh đúng kênh bán đã chọn và template landing hiện tại.
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                      Mẫu khi link lỗi / hết hạn
+                    </label>
+                    <select
+                      value={form.failure_template_key ?? ""}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          failure_template_key: (event.target.value || null) as ShortLinkFailureTemplateKey | null,
+                        }))
+                      }
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer"
+                    >
+                      <option value="">Kế thừa theo kênh bán / hệ thống</option>
+                      {FAILURE_TEMPLATE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                      Link liên hệ người bán
+                    </label>
+                    <input
+                      type="url"
+                      value={form.seller_contact_url}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, seller_contact_url: event.target.value }))
+                      }
+                      placeholder="https://zalo.me/... hoặc link chat người bán"
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm((current) => ({ ...current, require_token: !current.require_token }))}
+                    className="flex items-center gap-3 rounded-2xl border border-violet-200/40 bg-violet-50 p-4 text-left"
+                  >
+                    <div
+                      className={cn(
+                        "relative h-6 w-11 rounded-full transition-colors",
+                        form.require_token ? "bg-violet-500" : "bg-slate-300",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-md transition-transform",
+                          form.require_token ? "translate-x-[22px]" : "translate-x-0.5",
+                        )}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="flex items-center gap-1.5 text-sm font-bold text-violet-700">
+                        <ShieldCheck className="size-4" />
+                        {vi.shortLinks.page.antiFraud}
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-medium text-violet-600/70">
+                        {vi.shortLinks.page.antiFraudDescription}
                       </p>
                     </div>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
-                      Preview
-                    </span>
-                  </div>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                    <PolicyChip label="Cách mở link" value={deliveryModeLabel(effectivePolicy.effectiveDeliveryMode)} />
-                    <PolicyChip label="Mẫu landing" value={effectiveLandingTemplateLabel} />
-                    <PolicyChip label="Nguồn quyết định" value={`${policySourceLabel(effectivePolicy.deliveryModeSource)} / ${policySourceLabel(effectivePolicy.landingTemplateSource)}`} />
-                  </div>
-                </div>
+                  </button>
 
-                {/* Anti-Fraud Toggle */}
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-violet-50 border border-violet-200/40">
                   <button
                     type="button"
-                    onClick={() => setForm(f => ({ ...f, require_token: !f.require_token }))}
-                    className={cn(
-                      "relative w-11 h-6 rounded-full transition-colors cursor-pointer flex-shrink-0",
-                      form.require_token ? "bg-violet-500" : "bg-slate-300"
-                    )}
+                    onClick={() => setForm((current) => ({ ...current, notify_clicks: !current.notify_clicks }))}
+                    className="flex items-center gap-3 rounded-2xl border border-amber-200/40 bg-amber-50 p-4 text-left"
                   >
-                    <div className={cn(
-                      "absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform",
-                      form.require_token ? "translate-x-[22px]" : "translate-x-0.5"
-                    )} />
-                  </button>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-violet-700 flex items-center gap-1.5">
-                      <ShieldCheck className="size-4" />
-                       {vi.shortLinks.page.antiFraud}
-                     </p>
-                     <p className="text-[11px] text-violet-600/70 font-medium mt-0.5">
-                       {vi.shortLinks.page.antiFraudDescription}
-                     </p>
-                  </div>
-                </div>
-
-                {/* Telegram Notification Toggle */}
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200/40">
-                  <button
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, notify_clicks: !f.notify_clicks }))}
-                    className={cn(
-                      "relative w-11 h-6 rounded-full transition-colors cursor-pointer flex-shrink-0",
-                      form.notify_clicks ? "bg-amber-500" : "bg-slate-300"
-                    )}
-                  >
-                    <div className={cn(
-                      "absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform",
-                      form.notify_clicks ? "translate-x-[22px]" : "translate-x-0.5"
-                    )} />
-                  </button>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-amber-700 flex items-center gap-1.5">
-                      <Bell className="size-4" />
-                       {vi.shortLinks.page.telegramNotify}
-                     </p>
-                     <p className="text-[11px] text-amber-600/70 font-medium mt-0.5">
-                       {vi.shortLinks.page.telegramNotifyDescription}
-                     </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 pt-2">
-                  <button
-                    onClick={handleCreate}
-                    disabled={createMut.isPending}
-                    className="flex items-center gap-2 bg-[var(--accent)] text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
-                  >
-                    {createMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-                    {vi.shortLinks.page.createSubmit}
-                  </button>
-                  <button
-                    onClick={() => { setShowCreate(false); setCreatedSlug(null); }}
-                    className="px-4 py-2.5 text-sm font-medium text-[var(--fg-muted)] hover:text-[var(--fg-base)] transition-colors cursor-pointer"
-                  >
-                    {vi.common.cancel}
+                    <div
+                      className={cn(
+                        "relative h-6 w-11 rounded-full transition-colors",
+                        form.notify_clicks ? "bg-amber-500" : "bg-slate-300",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-md transition-transform",
+                          form.notify_clicks ? "translate-x-[22px]" : "translate-x-0.5",
+                        )}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="flex items-center gap-1.5 text-sm font-bold text-amber-700">
+                        <Bell className="size-4" />
+                        {vi.shortLinks.page.telegramNotify}
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-medium text-amber-600/70">
+                        {vi.shortLinks.page.telegramNotifyDescription}
+                      </p>
+                    </div>
                   </button>
                 </div>
-              </div>
-            )}
-          </SectionCard>
+              </AdvancedOptionsDisclosure>
+            </CreateFlowShell>
+          )
         )}
 
         {/* Links Table */}
@@ -657,6 +785,7 @@ export default function ShortLinksPage() {
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 mb-4">
             <button
               onClick={handleToggleSelectAll}
+              data-testid="short-links-select-all"
               className={cn(
                 "flex items-center justify-center size-[42px] rounded-xl border flex-shrink-0 transition-colors cursor-pointer disabled:opacity-50",
                 selectedIds.size > 0 && selectedIds.size === paginatedLinks.length ? "bg-[var(--accent)] border-[var(--accent)] text-white" : "bg-white border-[var(--border-soft)] hover:border-[var(--accent)]/50 text-[var(--fg-muted)]"
@@ -677,15 +806,17 @@ export default function ShortLinksPage() {
                 value={searchQuery}
                 onChange={e => handleSearchChange(e.target.value)}
                 placeholder={vi.shortLinks.page.searchPlaceholder}
+                data-testid="short-links-search"
                 className="w-full pl-10 pr-4 py-2 rounded-xl bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
               />
             </div>
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--border-soft)]/50">
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--border-soft)]/50" data-testid="short-links-status-filters">
               <Filter className="size-3.5 text-[var(--fg-muted)] mx-1.5" />
               {FILTER_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
                   onClick={() => handleFilterChange(opt.value)}
+                  data-testid={`short-links-filter-${opt.value}`}
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
                     statusFilter === opt.value
@@ -700,6 +831,7 @@ export default function ShortLinksPage() {
             <select
               value={sortOrder}
               onChange={e => setSortOrder(e.target.value as "newest" | "clicks" | "expiry")}
+              data-testid="short-links-sort"
               className="p-2.5 rounded-xl bg-white border border-[var(--border-soft)] text-xs font-bold text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none cursor-pointer"
             >
               <option value="newest">{vi.shortLinks.page.sortNewest}</option>
@@ -713,10 +845,10 @@ export default function ShortLinksPage() {
               <Loader2 className="size-8 text-[var(--accent)] animate-spin" />
             </div>
           ) : paginatedLinks.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12" data-testid="short-links-empty-state">
               <Link2 className="size-12 text-[var(--fg-muted)]/30 mx-auto mb-3" />
               <p className="text-sm font-medium text-[var(--fg-muted)]">
-                {searchQuery || statusFilter !== "all" ? vi.shortLinks.page.noResults : vi.shortLinks.page.noLinks}
+                {hasSearchTokens(searchQuery) || statusFilter !== "all" ? vi.shortLinks.page.noResults : vi.shortLinks.page.noLinks}
               </p>
             </div>
           ) : (
@@ -838,14 +970,13 @@ function PolicyChip({ label, value }: { label: string; value: string }) {
 // SUB-COMPONENTS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-function CreatedSuccess({ slug, links, onCopy, onCreateAnother, onClose }: {
+function CreatedSuccess({ slug, link, onCopy, onCreateAnother, onClose }: {
   slug: string;
-  links: { slug: string; access_token?: string | null }[];
+  link: { slug: string; access_token?: string | null } | null;
   onCopy: (slug: string, token?: string | null) => void;
   onCreateAnother: () => void;
   onClose: () => void;
 }) {
-  const link = links.find(l => l.slug === slug);
   const token = link?.access_token;
 
   return (
@@ -935,7 +1066,10 @@ function LinkCard({
     <div className={cn(
       "glass-card p-4 rounded-2xl transition-all group",
       isEditing ? "border-[var(--accent)]/40 ring-2 ring-[var(--accent)]/10" : "hover:border-[var(--accent)]/20"
-    )}>
+    )}
+      data-testid="short-links-row"
+      data-short-link-id={link.id}
+    >
       <div className="flex flex-col gap-3">
         {/* Row 1: Info */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -1077,9 +1211,9 @@ function LinkCard({
                 <select value={editForm.status} onChange={e => setEditForm((f: EditState) => ({ ...f, status: e.target.value }))}
                   className="w-full px-3 py-2 rounded-lg bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none cursor-pointer"
                 >
-                  <option value="active">ðŸŸ¢ {vi.shortLinks.shared.active}</option>
-                  <option value="expired">ðŸŸ¡ {vi.shortLinks.shared.expired}</option>
-                  <option value="disabled">ðŸ”´ {vi.shortLinks.shared.disabled}</option>
+                  <option value="active">{vi.shortLinks.shared.active}</option>
+                  <option value="expired">{vi.shortLinks.shared.expired}</option>
+                  <option value="disabled">{vi.shortLinks.shared.disabled}</option>
                 </select>
               </div>
               <div>
@@ -1168,7 +1302,7 @@ function LinkCard({
                 {/* Hourly Timeline Bar Chart */}
                 {analytics.stats.hourlyTimeline && analytics.stats.hourlyTimeline.some(h => h.count > 0) && (
                   <div>
-                    <p className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-2">ðŸ“Š {vi.shortLinks.analytics.clicks24h}</p>
+                    <p className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-2">{vi.shortLinks.analytics.clicks24h}</p>
                     <div className="flex items-end gap-px h-16 bg-[var(--border-soft)]/20 rounded-lg p-1.5">
                       {analytics.stats.hourlyTimeline.map((h, i) => {
                         const maxCount = Math.max(...analytics.stats!.hourlyTimeline.map(t => t.count), 1);
@@ -1204,7 +1338,7 @@ function LinkCard({
                   {/* Top IPs */}
                   {analytics.stats.topIPs && analytics.stats.topIPs.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-1.5">ðŸŒ {vi.shortLinks.analytics.topIPs}</p>
+                      <p className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-1.5">{vi.shortLinks.analytics.topIPs}</p>
                       <div className="space-y-1 max-h-32 overflow-y-auto">
                         {analytics.stats.topIPs.map((entry, i) => (
                           <div key={entry.ip} className="flex items-center gap-2 text-xs">
@@ -1281,7 +1415,7 @@ function ClickLogTable({ clicks }: {
   const [visibleCount, setVisibleCount] = useState(20);
 
   function abbreviateReferer(ref: string | null): string {
-    if (!ref) return 'â€”';
+    if (!ref) return "-";
     try { return new URL(ref).hostname; } catch { return ref.length > 30 ? ref.slice(0, 30) + '...' : ref; }
   }
 
@@ -1296,7 +1430,7 @@ function ClickLogTable({ clicks }: {
   return (
     <div>
       <p className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-2">
-        ðŸ“‹ {vi.shortLinks.analytics.clickLog(clicks.length)}
+        {vi.shortLinks.analytics.clickLog(clicks.length)}
       </p>
       <div className="max-h-[400px] overflow-y-auto rounded-lg border border-[var(--border-soft)]">
         <table className="w-full text-xs">
@@ -1372,7 +1506,7 @@ function ClickLogTable({ clicks }: {
                             <div>
                               <span className="font-bold text-[var(--fg-muted)] uppercase tracking-wider text-[9px] block mb-0.5">{vi.shortLinks.analytics.userAgentFull}</span>
                               <p className="font-mono text-[10px] text-[var(--fg-base)] bg-white px-2.5 py-1.5 rounded-lg border border-[var(--border-soft)] break-all leading-relaxed">
-                                {click.user_agent || 'â€”'}
+                                {click.user_agent || "-"}
                               </p>
                             </div>
                             <div>

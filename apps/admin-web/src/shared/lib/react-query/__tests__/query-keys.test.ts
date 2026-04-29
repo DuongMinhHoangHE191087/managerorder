@@ -35,11 +35,11 @@ describe("queryKeys", () => {
   });
 
   it("order(id) returns ['orders', id]", () => {
-    expect(queryKeys.order("ord-456")).toEqual(["orders", "ord-456"]);
+    expect(queryKeys.order("00000000-0000-4000-8000-000000000012")).toEqual(["orders", "00000000-0000-4000-8000-000000000012"]);
   });
 
   it("customer(id) returns ['customers', id]", () => {
-    expect(queryKeys.customer("cust-789")).toEqual(["customers", "cust-789"]);
+    expect(queryKeys.customer("00000000-0000-4000-8000-00000000016c")).toEqual(["customers", "00000000-0000-4000-8000-00000000016c"]);
   });
 
   it("orderStatusHistory(id) returns nested key", () => {
@@ -59,7 +59,7 @@ describe("queryKeys", () => {
   });
 
   it("inventoryItem(id) returns nested key", () => {
-    expect(queryKeys.inventoryItem("inv-1")).toEqual(["inventory", "inv-1"]);
+    expect(queryKeys.inventoryItem("00000000-0000-4000-8000-000000000136")).toEqual(["inventory", "00000000-0000-4000-8000-000000000136"]);
   });
 
   it("static keys are readonly (no push possible at runtime)", () => {

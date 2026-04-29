@@ -36,7 +36,7 @@ import {
 describe("GET /api/short-links", () => {
   it("returns the account short-link list", async () => {
     vi.mocked(listShortLinksForAccount).mockResolvedValue([
-      { id: "link-1", slug: "abcd1234" } as never,
+      { id: "00000000-0000-4000-8000-0000000000ad", slug: "abcd1234" } as never,
     ]);
 
     const response = await listShortLinks(
@@ -54,11 +54,13 @@ describe("GET /api/short-links", () => {
 describe("POST /api/short-links", () => {
   beforeEach(() => {
     vi.mocked(createShortLinkForAccount).mockResolvedValue({
-      id: "link-1",
+      id: "00000000-0000-4000-8000-0000000000ad",
       slug: "landing01",
       target_url: "https://example.com",
       delivery_mode: "inherit_channel",
       landing_template_key: "ctv_neutral",
+      failure_template_key: "seller_unlock_request",
+      seller_contact_url: "https://zalo.me/seller",
     } as never);
   });
 
@@ -72,6 +74,8 @@ describe("POST /api/short-links", () => {
           sales_channel_id: "550e8400-e29b-41d4-a716-446655440001",
           delivery_mode: "inherit_channel",
           landing_template_key: "ctv_neutral",
+          failure_template_key: "seller_unlock_request",
+          seller_contact_url: "https://zalo.me/seller",
           require_token: false,
           notify_clicks: true,
         },
@@ -88,6 +92,8 @@ describe("POST /api/short-links", () => {
         sales_channel_id: "550e8400-e29b-41d4-a716-446655440001",
         delivery_mode: "inherit_channel",
         landing_template_key: "ctv_neutral",
+        failure_template_key: "seller_unlock_request",
+        seller_contact_url: "https://zalo.me/seller",
         notify_clicks: true,
       }),
     );
@@ -114,21 +120,27 @@ describe("GET /api/short-links/[id]", () => {
   beforeEach(() => {
     vi.mocked(getShortLinkDetailForAccount).mockResolvedValue({
       link: {
-        id: "link-1",
+        id: "00000000-0000-4000-8000-0000000000ad",
         slug: "landing01",
         target_url: "https://example.com",
       },
       salesChannel: {
-        id: "channel-1",
+        id: "00000000-0000-4000-8000-00000000000b",
         name: "CTV",
         defaultDeliveryMode: "landing_page",
         defaultLandingTemplateKey: "ctv_neutral",
+        defaultFailureTemplateKey: "seller_unlock_request",
+        sellerContactUrl: "https://zalo.me/channel",
       },
       resolvedPolicy: {
         effectiveDeliveryMode: "landing_page",
         effectiveLandingTemplateKey: "ctv_neutral",
+        effectiveFailureTemplateKey: "seller_unlock_request",
+        sellerContactUrl: "https://zalo.me/channel",
         deliveryModeSource: "channel_default",
         landingTemplateSource: "channel_default",
+        failureTemplateSource: "channel_default",
+        sellerContactSource: "channel_default",
       },
     } as never);
     vi.mocked(getClickAnalytics).mockResolvedValue({
@@ -139,8 +151,8 @@ describe("GET /api/short-links/[id]", () => {
 
   it("returns link detail with sales-channel policy context", async () => {
     const response = await getShortLinkDetail(
-      createTestRequest("http://localhost/api/short-links/link-1"),
-      { params: Promise.resolve({ id: "link-1" }) } as never,
+      createTestRequest("http://localhost/api/short-links/00000000-0000-4000-8000-0000000000ad"),
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-0000000000ad" }) } as never,
     );
     const body = await response.json();
 
@@ -153,45 +165,53 @@ describe("GET /api/short-links/[id]", () => {
 describe("PATCH /api/short-links/[id]", () => {
   beforeEach(() => {
     vi.mocked(updateShortLinkForAccount).mockResolvedValue({
-      id: "link-1",
+      id: "00000000-0000-4000-8000-0000000000ad",
       delivery_mode: "landing_page",
       landing_template_key: "owner_intro",
+      failure_template_key: "customer_offer_wall",
+      seller_contact_url: null,
       locked_ipv6: null,
     } as never);
   });
 
   it("updates landing and lock fields", async () => {
     const response = await updateShortLink(
-      createTestRequest("http://localhost/api/short-links/link-1", {
+      createTestRequest("http://localhost/api/short-links/00000000-0000-4000-8000-0000000000ad", {
         method: "PATCH",
         body: {
           delivery_mode: "landing_page",
           landing_template_key: "owner_intro",
+          failure_template_key: "customer_offer_wall",
+          seller_contact_url: null,
           locked_ipv6: null,
+          current_clicks: 2,
         },
       }),
-      { params: Promise.resolve({ id: "link-1" }) } as never,
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-0000000000ad" }) } as never,
     );
 
     expect(response.status).toBe(200);
     expect(updateShortLinkForAccount).toHaveBeenCalledWith(
-      "link-1",
+      "00000000-0000-4000-8000-0000000000ad",
       expect.any(String),
       expect.objectContaining({
         delivery_mode: "landing_page",
         landing_template_key: "owner_intro",
+        failure_template_key: "customer_offer_wall",
+        seller_contact_url: null,
         locked_ipv6: null,
+        current_clicks: 2,
       }),
     );
   });
 
   it("rejects empty updates", async () => {
     const response = await updateShortLink(
-      createTestRequest("http://localhost/api/short-links/link-1", {
+      createTestRequest("http://localhost/api/short-links/00000000-0000-4000-8000-0000000000ad", {
         method: "PATCH",
         body: {},
       }),
-      { params: Promise.resolve({ id: "link-1" }) } as never,
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-0000000000ad" }) } as never,
     );
     const body = await response.json();
 
@@ -205,15 +225,15 @@ describe("DELETE /api/short-links/[id]", () => {
     vi.mocked(deleteShortLink).mockResolvedValue(undefined as never);
 
     const response = await deleteShortLinkRoute(
-      createTestRequest("http://localhost/api/short-links/link-1", {
+      createTestRequest("http://localhost/api/short-links/00000000-0000-4000-8000-0000000000ad", {
         method: "DELETE",
       }),
-      { params: Promise.resolve({ id: "link-1" }) } as never,
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-0000000000ad" }) } as never,
     );
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.data.deleted).toBe(true);
-    expect(deleteShortLink).toHaveBeenCalledWith("link-1", expect.any(String));
+    expect(deleteShortLink).toHaveBeenCalledWith("00000000-0000-4000-8000-0000000000ad", expect.any(String));
   });
 });

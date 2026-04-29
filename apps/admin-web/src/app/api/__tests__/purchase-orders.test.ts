@@ -30,8 +30,8 @@ describe("GET /api/purchase-orders", () => {
   beforeEach(() => {
     vi.mocked(listPurchaseOrdersForAccount).mockResolvedValue([
       {
-        id: "po-1",
-        providerId: "prov-1",
+        id: "00000000-0000-4000-8000-000000000094",
+        providerId: "00000000-0000-4000-8000-000000000095",
         items: [],
         status: "pending",
         totalAmountVnd: 1000,
@@ -44,21 +44,21 @@ describe("GET /api/purchase-orders", () => {
 
   it("returns mapped purchase orders", async () => {
     const res = await GET(
-      createTestRequest("http://localhost/api/purchase-orders?provider_id=prov-1"),
+      createTestRequest("http://localhost/api/purchase-orders?provider_id=00000000-0000-4000-8000-000000000095"),
       { params: {} } as any,
     );
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.data).toHaveLength(1);
-    expect(body.data[0].providerId).toBe("prov-1");
+    expect(body.data[0].providerId).toBe("00000000-0000-4000-8000-000000000095");
   });
 });
 
 describe("POST /api/purchase-orders", () => {
   beforeEach(() => {
     vi.mocked(createPurchaseOrderForAccount).mockResolvedValue({
-      id: "po-2",
-      providerId: "prov-2",
+      id: "00000000-0000-4000-8000-000000000096",
+      providerId: "00000000-0000-4000-8000-000000000097",
       items: [],
       status: "pending",
       totalAmountVnd: 1200,
@@ -73,8 +73,8 @@ describe("POST /api/purchase-orders", () => {
       createTestRequest("http://localhost/api/purchase-orders", {
         method: "POST",
         body: {
-          provider_id: "prov-2",
-          items: [{ productId: "prod-1", quantity: 1, priceVnd: 1200 }],
+          provider_id: "00000000-0000-4000-8000-000000000097",
+          items: [{ productId: "00000000-0000-4000-8000-000000000039", quantity: 1, priceVnd: 1200 }],
           total_amount_vnd: 1200,
           total_paid_vnd: 0,
           payment_method: "bank_transfer",
@@ -87,11 +87,11 @@ describe("POST /api/purchase-orders", () => {
     const body = await res.json();
 
     expect(res.status).toBe(201);
-    expect(body.data.providerId).toBe("prov-2");
+    expect(body.data.providerId).toBe("00000000-0000-4000-8000-000000000097");
     expect(createPurchaseOrderForAccount).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
-        provider_id: "prov-2",
+        provider_id: "00000000-0000-4000-8000-000000000097",
         total_amount_vnd: 1200,
       }),
       expect.any(String),
@@ -113,7 +113,7 @@ describe("POST /api/purchase-orders", () => {
     const res = await POST(
       createTestRequest("http://localhost/api/purchase-orders", {
         method: "POST",
-        body: { provider_id: "prov-2" },
+        body: { provider_id: "00000000-0000-4000-8000-000000000097" },
       }),
       { params: {} } as any,
     );
@@ -124,8 +124,8 @@ describe("POST /api/purchase-orders", () => {
 describe("GET /api/purchase-orders/[id]", () => {
   it("returns purchase order detail", async () => {
     vi.mocked(getPurchaseOrderForAccount).mockResolvedValue({
-      id: "po-1",
-      providerId: "prov-1",
+      id: "00000000-0000-4000-8000-000000000094",
+      providerId: "00000000-0000-4000-8000-000000000095",
       items: [],
       status: "pending",
       totalAmountVnd: 1000,
@@ -135,21 +135,21 @@ describe("GET /api/purchase-orders/[id]", () => {
     } as any);
 
     const res = await GET_DETAIL(
-      createTestRequest("http://localhost/api/purchase-orders/po-1"),
-      { params: Promise.resolve({ id: "po-1" }) } as any,
+      createTestRequest("http://localhost/api/purchase-orders/00000000-0000-4000-8000-000000000094"),
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-000000000094" }) } as any,
     );
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body.data.id).toBe("po-1");
+    expect(body.data.id).toBe("00000000-0000-4000-8000-000000000094");
   });
 });
 
 describe("PUT /api/purchase-orders/[id]", () => {
   it("updates purchase order", async () => {
     vi.mocked(updatePurchaseOrderForAccount).mockResolvedValue({
-      id: "po-1",
-      providerId: "prov-1",
+      id: "00000000-0000-4000-8000-000000000094",
+      providerId: "00000000-0000-4000-8000-000000000095",
       items: [],
       status: "received",
       totalAmountVnd: 1200,
@@ -159,21 +159,21 @@ describe("PUT /api/purchase-orders/[id]", () => {
     } as any);
 
     const res = await PUT(
-      createTestRequest("http://localhost/api/purchase-orders/po-1", {
+      createTestRequest("http://localhost/api/purchase-orders/00000000-0000-4000-8000-000000000094", {
         method: "PUT",
         body: {
           total_paid_vnd: 1200,
           status: "received",
         },
       }),
-      { params: Promise.resolve({ id: "po-1" }) } as any,
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-000000000094" }) } as any,
     );
     const body = await res.json();
 
     expect(res.status).toBe(200);
     expect(body.data.status).toBe("received");
     expect(updatePurchaseOrderForAccount).toHaveBeenCalledWith(
-      "po-1",
+      "00000000-0000-4000-8000-000000000094",
       expect.any(String),
       expect.objectContaining({
         total_paid_vnd: 1200,
@@ -189,17 +189,17 @@ describe("DELETE /api/purchase-orders/[id]", () => {
     vi.mocked(deletePurchaseOrderForAccount).mockResolvedValue(undefined as any);
 
     const res = await DELETE(
-      createTestRequest("http://localhost/api/purchase-orders/po-1", {
+      createTestRequest("http://localhost/api/purchase-orders/00000000-0000-4000-8000-000000000094", {
         method: "DELETE",
       }),
-      { params: Promise.resolve({ id: "po-1" }) } as any,
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-000000000094" }) } as any,
     );
     const body = await res.json();
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
     expect(deletePurchaseOrderForAccount).toHaveBeenCalledWith(
-      "po-1",
+      "00000000-0000-4000-8000-000000000094",
       expect.any(String),
       expect.any(String),
     );

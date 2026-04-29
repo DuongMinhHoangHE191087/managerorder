@@ -65,8 +65,8 @@ describe("GET /api/calendar", () => {
 
   it("should return mapped events", async () => {
     const mockRows = [
-      { id: "evt-1", title: "Event 1", due_at: "2025-01-15T14:00:00", type: "renewal" },
-      { id: "evt-2", title: "Event 2", due_at: "2025-01-20T00:00:00", type: "follow_up" },
+      { id: "00000000-0000-4000-8000-000000000020", title: "Event 1", due_at: "2025-01-15T14:00:00", type: "renewal" },
+      { id: "00000000-0000-4000-8000-000000000021", title: "Event 2", due_at: "2025-01-20T00:00:00", type: "follow_up" },
     ];
     mockListCalendarEvents.mockResolvedValue(mockRows);
     mockMapCalendarEventRow.mockImplementation((r: any) => ({ ...r, mapped: true }));
@@ -99,7 +99,7 @@ describe("POST /api/calendar", () => {
   };
 
   const mockCreated = {
-    id: "new-evt-1",
+    id: "00000000-0000-4000-8000-000000000022",
     title: "Test Event",
     due_at: "2025-06-15T00:00:00",
     type: "reminder",
@@ -227,7 +227,7 @@ describe("POST /api/calendar", () => {
     await POST(req, { params: {} } as any);
     expect(mockSyncEventToGCal).toHaveBeenCalledWith(
       TEST_ACCOUNT_ID,
-      expect.objectContaining({ id: "new-evt-1" }),
+      expect.objectContaining({ id: "00000000-0000-4000-8000-000000000022" }),
       "create"
     );
   });
@@ -241,7 +241,7 @@ describe("POST /api/calendar", () => {
     });
     await POST(req, { params: {} } as any);
     expect(mockUpdateCalendarEvent).toHaveBeenCalledWith(
-      "new-evt-1", TEST_ACCOUNT_ID, { gcal_event_id: "gcal-123" }
+      "00000000-0000-4000-8000-000000000022", TEST_ACCOUNT_ID, { gcal_event_id: "gcal-123" }
     );
   });
 });

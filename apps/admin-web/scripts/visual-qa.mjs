@@ -1,12 +1,15 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import jwt from "jsonwebtoken";
-import { chromium } from "playwright";
+import { chromium } from "@playwright/test";
+import { detectRuntimeBaseURL } from "./detect-base-url.mjs";
 
-const baseURL = process.env.BASE_URL ?? "http://localhost:3001";
-const rootDir = process.cwd();
-const envPath = path.join(rootDir, ".env.local");
-const outputDir = path.join(rootDir, "qa-artifacts", "visual-qa");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const appDir = path.resolve(scriptDir, "..");
+const workspaceDir = path.resolve(appDir, "..", "..");
+const envPath = path.join(appDir, ".env.local");
+const outputDir = path.join(workspaceDir, "qa-artifacts", "visual-qa");
 
 const viewports = [
   { name: "390", width: 390, height: 844 },
@@ -16,7 +19,7 @@ const viewports = [
 ];
 
 const report = {
-  baseURL,
+  baseURL: "",
   generatedAt: new Date().toISOString(),
   screenshots: [],
   issues: [],
@@ -40,6 +43,9 @@ const testAccountId =
   process.env.NEXT_PUBLIC_TEST_ACCOUNT_ID ??
   readEnvValue("NEXT_PUBLIC_TEST_ACCOUNT_ID") ??
   "550e8400-e29b-41d4-a716-446655440000";
+
+const baseURL = await detectRuntimeBaseURL();
+report.baseURL = baseURL;
 
 function createAccessToken() {
   if (!jwtSecret) {
@@ -139,12 +145,36 @@ async function openFirstInventorySourceAccountDetails(page) {
   return true;
 }
 
+async function openFirstProductDetails(page) {
+  const cards = page.locator("div.cursor-pointer");
+  if (!(await cards.count())) {
+    return false;
+  }
+
+  await cards.first().click();
+  await settle(page);
+  return true;
+}
+
+async function openFirstOrderDetails(page) {
+  const cards = page.locator("article.cursor-pointer");
+  if (!(await cards.count())) {
+    return false;
+  }
+
+  await cards.first().click();
+  await settle(page);
+  return true;
+}
+
 async function runViewport(viewport) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
   });
   const page = await context.newPage();
+  page.setDefaultNavigationTimeout(90_000);
+  page.setDefaultTimeout(45_000);
   const accessToken = createAccessToken();
 
   if (accessToken) {
@@ -201,11 +231,11 @@ async function runViewport(viewport) {
   });
 
   try {
-    await page.goto(`${baseURL}/dashboard`);
+    await page.goto(`${baseURL}/dashboard`, { waitUntil: "domcontentloaded" });
     await settle(page);
     await saveShot(page, viewport.name, "dashboard");
 
-    await page.goto(`${baseURL}/short-links`);
+    await page.goto(`${baseURL}/short-links`, { waitUntil: "domcontentloaded" });
     await settle(page);
     await saveShot(page, viewport.name, "short-links");
 
@@ -216,11 +246,25 @@ async function runViewport(viewport) {
       await saveShot(page, viewport.name, "short-links-detail");
     }
 
-    await page.goto(`${baseURL}/settings/bot`);
+    await page.goto(`${baseURL}/settings/bot`, { waitUntil: "domcontentloaded" });
     await settle(page);
     await saveShot(page, viewport.name, "settings-bot");
 
-    await page.goto(`${baseURL}/premium/accounts`);
+    await page.goto(`${baseURL}/settings/webhooks`, { waitUntil: "domcontentloaded" });
+    await settle(page);
+    await saveShot(page, viewport.name, "settings-webhooks");
+    const createWebhookButton = page.getByRole("button", { name: /webhook/i });
+    if (await createWebhookButton.count()) {
+      await createWebhookButton.first().click();
+      await settle(page);
+      await saveShot(page, viewport.name, "settings-webhooks-create");
+    }
+
+    await page.goto(`${baseURL}/activity-logs`, { waitUntil: "domcontentloaded" });
+    await settle(page);
+    await saveShot(page, viewport.name, "activity-logs");
+
+    await page.goto(`${baseURL}/premium/accounts`, { waitUntil: "domcontentloaded" });
     await settle(page);
     await saveShot(page, viewport.name, "premium-accounts");
 
@@ -251,7 +295,7 @@ async function runViewport(viewport) {
       await page.keyboard.press("Escape");
     }
 
-    await page.goto(`${baseURL}/inventory`);
+    await page.goto(`${baseURL}/inventory`, { waitUntil: "domcontentloaded" });
     await settle(page);
     const createInventoryButton = page.getByRole("button", { name: /Thêm tài khoản/i });
     if (await createInventoryButton.count()) {
@@ -261,8 +305,9 @@ async function runViewport(viewport) {
       await page.keyboard.press("Escape");
     }
 
-    await page.goto(`${baseURL}/orders/new`);
+    await page.goto(`${baseURL}/orders/new`, { waitUntil: "domcontentloaded" });
     await settle(page);
+    await saveShot(page, viewport.name, "orders-new");
     const warehouseButtons = page.getByRole("button", { name: /Kết nối kho hàng/i });
     if (await warehouseButtons.count()) {
       await warehouseButtons.first().click();
@@ -276,11 +321,19 @@ async function runViewport(viewport) {
       await page.keyboard.press("Escape");
     }
 
-    await page.goto(`${baseURL}/premium/migrations?status=pending`);
+    await page.goto(`${baseURL}/orders`, { waitUntil: "domcontentloaded" });
+    await settle(page);
+    await saveShot(page, viewport.name, "orders");
+    if (await openFirstOrderDetails(page)) {
+      await saveShot(page, viewport.name, "orders-detail-modal");
+      await page.keyboard.press("Escape");
+    }
+
+    await page.goto(`${baseURL}/premium/migrations?status=pending`, { waitUntil: "domcontentloaded" });
     await settle(page);
     await saveShot(page, viewport.name, "premium-migrations");
 
-    await page.goto(`${baseURL}/providers`);
+    await page.goto(`${baseURL}/providers`, { waitUntil: "domcontentloaded" });
     await settle(page);
     if (await openFirstProviderDetails(page)) {
       await saveShot(page, viewport.name, "provider-detail");
@@ -301,14 +354,22 @@ async function runViewport(viewport) {
       }
     }
 
-    await page.goto(`${baseURL}/customers`);
+    await page.goto(`${baseURL}/customers`, { waitUntil: "domcontentloaded" });
     await settle(page);
     await saveShot(page, viewport.name, "customers");
     if (await openFirstCustomerDetails(page)) {
       await saveShot(page, viewport.name, "customer-detail");
     }
 
-    await page.goto(`${baseURL}/inventory`);
+    await page.goto(`${baseURL}/products`, { waitUntil: "domcontentloaded" });
+    await settle(page);
+    await saveShot(page, viewport.name, "products");
+    if (await openFirstProductDetails(page)) {
+      await saveShot(page, viewport.name, "product-detail-modal");
+      await page.keyboard.press("Escape");
+    }
+
+    await page.goto(`${baseURL}/inventory`, { waitUntil: "domcontentloaded" });
     await settle(page);
     if (await openFirstInventorySourceAccountDetails(page)) {
       await saveShot(page, viewport.name, "inventory-source-account-detail");
@@ -330,17 +391,16 @@ for (const viewport of viewports) {
   await runViewport(viewport);
 }
 
-await fs.writeFile(
-  path.join(outputDir, "report.json"),
-  JSON.stringify(
-    {
-      ...report,
-      issues: report.issues.map(({ key: _key, ...issue }) => issue),
-    },
-    null,
-    2,
-  ),
-  "utf8",
-);
+const publicReport = {
+  ...report,
+  issues: report.issues.map(({ key: _key, ...issue }) => issue),
+};
 
-console.log(JSON.stringify({ outputDir, reportPath: path.join(outputDir, "report.json") }, null, 2));
+const reportPath = path.join(outputDir, "report.json");
+await fs.writeFile(reportPath, JSON.stringify(publicReport, null, 2), "utf8");
+
+console.log(JSON.stringify({ outputDir, reportPath, issueCount: publicReport.issues.length }, null, 2));
+
+if (publicReport.issues.length > 0) {
+  process.exit(1);
+}

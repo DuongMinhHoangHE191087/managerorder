@@ -3,7 +3,8 @@
 import { useState, memo } from "react";
 import {
   Settings, Pencil, Save, X, Loader2, Power, Eye, ShieldCheck,
-  Bell, CalendarDays, Unlock, Trash2,
+  Bell, CalendarDays, Unlock, Trash2, LockKeyhole, ExternalLink,
+  MousePointerClick, BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { vi } from "@/shared/messages/vi";
@@ -13,10 +14,19 @@ import { useSalesChannels } from "@/widgets/pages/settings/hooks/use-settings";
 import type { ShortLinkRow } from "@/lib/supabase/repositories/short-links.repo";
 import type {
   ShortLinkDeliveryMode,
+  ShortLinkFailureTemplateKey,
   ShortLinkLandingTemplateKey,
 } from "@/lib/domain/types";
 import { resolveShortLinkPolicy } from "@/domains/short-links/services/policy";
 import { formatDate } from "./detail-types";
+
+function maskTargetHost(url: string) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
 
 interface SettingsTabProps {
   link: ShortLinkRow;
@@ -29,10 +39,12 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     title: "", notify_clicks: false, require_token: false,
-    max_clicks: 5, status: "active", expires_at: "",
+    max_clicks: 5, current_clicks: 0, status: "active", expires_at: "",
     sales_channel_id: null as string | null,
     delivery_mode: "inherit_channel" as ShortLinkDeliveryMode,
     landing_template_key: null as ShortLinkLandingTemplateKey | null,
+    failure_template_key: null as ShortLinkFailureTemplateKey | null,
+    seller_contact_url: "",
   });
 
   const deliveryModeOptions: Array<{ value: ShortLinkDeliveryMode; label: string }> = [
@@ -44,11 +56,18 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
     { value: "owner_intro", label: "Giới thiệu chủ shop" },
     { value: "ctv_neutral", label: "Mẫu CTV trung tính" },
   ];
+  const failureTemplateOptions: Array<{ value: ShortLinkFailureTemplateKey; label: string }> = [
+    { value: "customer_offer_wall", label: "Khách thường: landing mua hàng" },
+    { value: "seller_unlock_request", label: "CTV: xin người bán mở lại" },
+  ];
   const deliveryModeLabel = (mode: string) =>
     deliveryModeOptions.find((option) => option.value === mode)?.label ?? mode;
   const landingTemplateLabel = (templateKey: ShortLinkLandingTemplateKey | null) =>
     landingTemplateOptions.find((option) => option.value === templateKey)?.label ??
     "Kế thừa theo kênh bán";
+  const failureTemplateLabel = (templateKey: ShortLinkFailureTemplateKey | null) =>
+    failureTemplateOptions.find((option) => option.value === templateKey)?.label ??
+    "Kế thừa theo kênh bán / hệ thống";
   const policySourceLabel = (source: string) => {
     switch (source) {
       case "link_override":
@@ -75,6 +94,8 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
   const policyLink = {
     delivery_mode: isEditing ? editForm.delivery_mode : (link.delivery_mode ?? "inherit_channel"),
     landing_template_key: isEditing ? editForm.landing_template_key : (link.landing_template_key ?? null),
+    failure_template_key: isEditing ? editForm.failure_template_key : (link.failure_template_key ?? null),
+    seller_contact_url: isEditing ? editForm.seller_contact_url || null : (link.seller_contact_url ?? null),
   };
   const policyChannel = salesChannels.find((channel) => channel.id === (isEditing ? editForm.sales_channel_id : link.sales_channel_id)) ?? null;
   const effectivePolicy = resolveShortLinkPolicy(policyLink, policyChannel);
@@ -89,11 +110,14 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
       notify_clicks: link.notify_clicks ?? false,
       require_token: link.require_token ?? false,
       max_clicks: link.max_clicks,
+      current_clicks: link.current_clicks,
       status: link.status,
       expires_at: link.expires_at ? new Date(link.expires_at).toISOString().slice(0, 16) : "",
       sales_channel_id: link.sales_channel_id ?? null,
       delivery_mode: link.delivery_mode ?? "inherit_channel",
       landing_template_key: link.landing_template_key ?? null,
+      failure_template_key: link.failure_template_key ?? null,
+      seller_contact_url: link.seller_contact_url ?? "",
     });
     setIsEditing(true);
   };
@@ -104,6 +128,7 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
     if (editForm.notify_clicks !== (link.notify_clicks ?? false)) updates.notify_clicks = editForm.notify_clicks;
     if (editForm.require_token !== (link.require_token ?? false)) updates.require_token = editForm.require_token;
     if (editForm.max_clicks !== link.max_clicks) updates.max_clicks = editForm.max_clicks;
+    if (editForm.current_clicks !== link.current_clicks) updates.current_clicks = editForm.current_clicks;
     if (editForm.status !== link.status) updates.status = editForm.status;
     const newExpiry = editForm.expires_at ? new Date(editForm.expires_at).toISOString() : null;
     if (newExpiry !== (link.expires_at ?? null)) updates.expires_at = newExpiry;
@@ -111,6 +136,12 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
     if (editForm.delivery_mode !== (link.delivery_mode ?? "inherit_channel")) updates.delivery_mode = editForm.delivery_mode;
     if (editForm.landing_template_key !== (link.landing_template_key ?? null)) {
       updates.landing_template_key = editForm.delivery_mode === "direct_redirect" ? null : editForm.landing_template_key;
+    }
+    if (editForm.failure_template_key !== (link.failure_template_key ?? null)) {
+      updates.failure_template_key = editForm.failure_template_key;
+    }
+    if ((editForm.seller_contact_url || null) !== (link.seller_contact_url ?? null)) {
+      updates.seller_contact_url = editForm.seller_contact_url || null;
     }
 
     if (Object.keys(updates).length === 0) {
@@ -125,9 +156,20 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
     await updateMut.mutateAsync({ id: link.id, locked_ip: null, locked_ipv6: null });
   };
 
+  const previewTemplateKey = effectivePolicy.effectiveLandingTemplateKey ?? "owner_intro";
+  const previewTitle = (isEditing ? editForm.title || link.title : link.title) || "Liên kết chia sẻ";
+  const previewMaxClicks = isEditing ? editForm.max_clicks : link.max_clicks;
+  const previewCurrentClicks = isEditing ? editForm.current_clicks : link.current_clicks;
+  const previewRemainingClicks = Math.max(previewMaxClicks - previewCurrentClicks, 0);
+  const previewPublicUrl = `/s/${link.slug}${
+    (isEditing ? editForm.require_token : link.require_token) && link.access_token
+      ? `?t=${link.access_token}`
+      : ""
+  }`;
+
   return (
     <div className="bg-[var(--bg-surface)] rounded-2xl shadow-sm overflow-hidden border border-[var(--border-soft)]">
-      <div className="p-5 border-b border-[var(--border-soft)] flex justify-between items-center">
+      <div className="flex flex-col gap-3 border-b border-[var(--border-soft)] p-5 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-[15px] font-bold text-[var(--fg-base)] flex items-center gap-2">
           <Settings className="text-[var(--accent)] size-5" />
           {vi.legacy.settings.title}
@@ -137,7 +179,7 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
             <Pencil className="size-3.5" /> {vi.legacy.settings.edit}
           </button>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button onClick={saveEdit} disabled={updateMut.isPending}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors cursor-pointer disabled:opacity-50">
               {updateMut.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} {vi.legacy.settings.save}
@@ -268,6 +310,48 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
           )}
         </SettingsRow>
 
+        <SettingsRow icon={<LockKeyhole className="size-4 text-emerald-600" />} label="Mẫu khi link lỗi / hết hạn" desc="Dùng cho trạng thái expired, disabled, quá lượt click hoặc sai token">
+          {isEditing ? (
+            <select
+              value={editForm.failure_template_key ?? ""}
+              onChange={(e) =>
+                setEditForm((current) => ({
+                  ...current,
+                  failure_template_key: (e.target.value || null) as ShortLinkFailureTemplateKey | null,
+                }))
+              }
+              className="min-w-52 px-3 py-2 rounded-lg bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none cursor-pointer"
+            >
+              <option value="">Kế thừa theo kênh bán / hệ thống</option>
+              {failureTemplateOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-[13px] font-bold text-[var(--fg-base)]">
+              {failureTemplateLabel(link.failure_template_key)}
+            </span>
+          )}
+        </SettingsRow>
+
+        <SettingsRow icon={<Bell className="size-4 text-lime-600" />} label="Link liên hệ người bán" desc="Dùng cho template CTV xin mở lại link">
+          {isEditing ? (
+            <input
+              type="url"
+              value={editForm.seller_contact_url}
+              onChange={(e) => setEditForm((current) => ({ ...current, seller_contact_url: e.target.value }))}
+              placeholder="https://zalo.me/... hoặc link chat"
+              className="w-72 max-w-full px-3 py-2 rounded-lg bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none"
+            />
+          ) : (
+            <span className="max-w-xs truncate text-[13px] font-bold text-[var(--fg-base)]">
+              {link.seller_contact_url || "Chưa cấu hình"}
+            </span>
+          )}
+        </SettingsRow>
+
         <div className="rounded-xl border border-[var(--border-soft)] bg-slate-50 p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -280,9 +364,10 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
               {isEditing ? "Đang chỉnh" : "Đang xem"}
             </span>
           </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="mt-3 grid gap-2 sm:grid-cols-4">
             <PolicyChip label="Cách mở link" value={deliveryModeLabel(effectivePolicy.effectiveDeliveryMode)} />
             <PolicyChip label="Mẫu landing" value={effectiveLandingTemplateLabel} />
+            <PolicyChip label="Mẫu khi lỗi" value={failureTemplateLabel(effectivePolicy.effectiveFailureTemplateKey)} />
             <PolicyChip label="Nguồn quyết định" value={`${policySourceLabel(effectivePolicy.deliveryModeSource)} / ${policySourceLabel(effectivePolicy.landingTemplateSource)}`} />
           </div>
         </div>
@@ -290,14 +375,47 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
         {/* Max Clicks */}
         <SettingsRow icon={<Eye className="size-4 text-purple-500" />} label={vi.legacy.settings.maxClicksLabel} desc={vi.legacy.settings.maxClicksDescription}>
           {isEditing ? (
-            <input type="number" min={1} max={100} value={editForm.max_clicks}
-              onChange={e => setEditForm(f => ({ ...f, max_clicks: Number(e.target.value) || 1 }))}
+            <input type="number" min={1} max={999} value={editForm.max_clicks}
+              onChange={e => setEditForm(f => ({ ...f, max_clicks: Math.min(999, Math.max(1, Number(e.target.value) || 1)) }))}
               className="w-20 px-3 py-2 rounded-lg bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] text-center font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none"
             />
           ) : (
             <span className="text-lg font-black text-[var(--fg-base)]">{link.max_clicks}</span>
           )}
         </SettingsRow>
+
+        <SettingsRow icon={<MousePointerClick className="size-4 text-blue-500" />} label="Lượt đã dùng" desc="Chỉnh số lượt nhấp đã ghi nhận để mở thêm lượt, reset test hoặc đồng bộ với dữ liệu ngoài.">
+          {isEditing ? (
+            <div className="text-right">
+              <input
+                type="number"
+                min={0}
+                max={999}
+                value={editForm.current_clicks}
+                onChange={e => setEditForm(f => ({ ...f, current_clicks: Math.min(999, Math.max(0, Number(e.target.value) || 0)) }))}
+                className="w-24 px-3 py-2 rounded-lg bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] text-center font-bold focus:ring-2 focus:ring-blue-500/30 outline-none"
+              />
+              <p className={cn(
+                "mt-1 text-[10px] font-bold",
+                previewCurrentClicks >= previewMaxClicks ? "text-red-500" : "text-[var(--fg-muted)]",
+              )}>
+                Còn {previewRemainingClicks} lượt
+              </p>
+            </div>
+          ) : (
+            <span className="text-lg font-black text-[var(--fg-base)]">{link.current_clicks}</span>
+          )}
+        </SettingsRow>
+
+        <LandingPreviewPanel
+          deliveryMode={effectivePolicy.effectiveDeliveryMode}
+          templateKey={previewTemplateKey}
+          title={previewTitle}
+          targetHost={maskTargetHost(link.target_url)}
+          salesChannelName={policyChannel?.name ?? null}
+          publicUrl={previewPublicUrl}
+          isEditing={isEditing}
+        />
 
         {/* Token chống gian lận */}
         <div className="flex items-center justify-between p-4 rounded-xl bg-violet-50 border border-violet-200/30">
@@ -340,8 +458,8 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
         {/* Danger Zone */}
         <div className="border-t border-[var(--border-soft)] pt-5 mt-5">
           <p className="text-[11px] font-bold text-red-500 uppercase tracking-wider mb-3">{vi.legacy.settings.dangerTitle}</p>
-          <div className="flex gap-3">
-            <button onClick={handleUnlockIP} disabled={!link.locked_ip}
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button onClick={handleUnlockIP} disabled={!link.locked_ip && !link.locked_ipv6}
               className="flex items-center gap-2 px-4 py-2.5 text-[13px] font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <Unlock className="size-4" /> {vi.legacy.settings.unlockIp}
@@ -359,14 +477,122 @@ function SettingsTab({ link, onDelete }: SettingsTabProps) {
 }
 
 // ── Sub-components ────────────────────────────────────────
+function LandingPreviewPanel({
+  deliveryMode,
+  templateKey,
+  title,
+  targetHost,
+  salesChannelName,
+  publicUrl,
+  isEditing,
+}: {
+  deliveryMode: "direct_redirect" | "landing_page";
+  templateKey: ShortLinkLandingTemplateKey;
+  title: string;
+  targetHost: string;
+  salesChannelName: string | null;
+  publicUrl: string;
+  isEditing: boolean;
+}) {
+  const isLanding = deliveryMode === "landing_page";
+  const isOwnerTemplate = templateKey === "owner_intro";
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-white shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-[var(--border-soft)] bg-gradient-to-r from-sky-50 via-white to-emerald-50 p-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[12px] font-black uppercase tracking-wider text-sky-700">
+            <BarChart3 className="size-4" />
+            Xem trước landing khách cuối
+          </p>
+          <p className="mt-1 text-[12px] leading-5 text-[var(--fg-muted)]">
+            Preview này cập nhật theo form đang chỉnh và không làm tăng lượt nhấp.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+            {isEditing ? "Đang chỉnh" : "Đang xem"}
+          </span>
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full bg-slate-950 px-3 py-1.5 text-[11px] font-black text-white transition-transform hover:-translate-y-0.5"
+          >
+            Mở preview thật
+            <ExternalLink className="size-3.5" />
+          </a>
+        </div>
+      </div>
+
+      <div className="grid gap-4 p-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className={cn(
+          "rounded-[26px] border p-5",
+          isLanding
+            ? "border-sky-200 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.18),transparent_38%),linear-gradient(135deg,#f8fafc,#eff6ff)]"
+            : "border-emerald-200 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_38%),linear-gradient(135deg,#f8fafc,#ecfdf5)]",
+        )}>
+          <div className="inline-flex rounded-full border border-white/80 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-600 shadow-sm">
+            {isLanding ? (isOwnerTemplate ? "Giới thiệu chính thức" : "Mẫu CTV trung tính") : "Chuyển hướng trực tiếp"}
+          </div>
+          <h4 className="mt-4 text-2xl font-black tracking-tight text-slate-950">{title}</h4>
+          <p className="mt-3 max-w-xl text-[13px] leading-6 text-slate-600">
+            {isLanding
+              ? isOwnerTemplate
+                ? "Khách sẽ thấy thông tin tin cậy của shop, điểm bảo vệ và nút tiếp tục trước khi tới trang đích."
+                : "Khách sẽ thấy mẫu trung tính phù hợp cho CTV, không nhấn mạnh branding riêng của chủ shop."
+              : "Khách đi qua màn kiểm tra nội bộ thật nhanh rồi được chuyển sang trang đích nếu không phải bot và không vi phạm token/IP."}
+          </p>
+          <div className="mt-5 grid gap-2 sm:grid-cols-3">
+            <PreviewMetric label="Đích" value={targetHost} />
+            <PreviewMetric label="Luồng mở" value={isLanding ? "Landing + CTA" : "Kiểm tra + redirect"} />
+            <PreviewMetric label="Kênh" value={salesChannelName ?? "Không gắn"} />
+          </div>
+        </div>
+
+        <div className="rounded-[26px] border border-slate-200 bg-slate-950 p-5 text-white">
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-200">
+            Tín hiệu kiểm tra
+          </p>
+          <div className="mt-4 space-y-3">
+            <PreviewCheck title="IPv4 / IPv6" desc="Ghi nhận riêng phiên bản IP và khóa đúng trường locked_ip hoặc locked_ipv6." />
+            <PreviewCheck title="Bot vs người thật" desc="Bot preview, landing view, blocked và redirect click được tách sự kiện." />
+            <PreviewCheck title="Thời gian chuẩn" desc="Thời gian analytics hiển thị theo Asia/Ho_Chi_Minh." />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/80 bg-white/80 px-3 py-2 shadow-sm">
+      <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">{label}</p>
+      <p className="mt-1 truncate text-[12px] font-bold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function PreviewCheck({ title, desc }: { title: string; desc: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+      <p className="text-[12px] font-black">{title}</p>
+      <p className="mt-1 text-[11px] leading-5 text-slate-300">{desc}</p>
+    </div>
+  );
+}
+
 function SettingsRow({ icon, label, desc, children }: { icon: React.ReactNode; label: string; desc: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--border-soft)]/10">
-      <div>
+    <div className="flex flex-col gap-3 rounded-xl bg-[var(--border-soft)]/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
         <p className="text-[13px] font-bold text-[var(--fg-base)] flex items-center gap-2">{icon} {label}</p>
         <p className="text-[11px] text-[var(--fg-muted)] mt-0.5">{desc}</p>
       </div>
-      {children}
+      <div className="w-full sm:w-auto sm:text-right">
+        {children}
+      </div>
     </div>
   );
 }

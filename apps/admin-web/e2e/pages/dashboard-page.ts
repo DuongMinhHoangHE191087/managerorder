@@ -1,17 +1,8 @@
-/**
- * ============================================================
- * PAGE OBJECT MODEL — Dashboard Page
- *
- * Encapsulates all UI interactions for the Dashboard module.
- * Follows POM pattern matching existing inventory-page.ts style.
- * ============================================================
- */
-import type { Page, Locator } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 export class DashboardPage {
   readonly page: Page;
 
-  // ── KPI Cards ─────────────────────────────────────────────
   readonly kpiSection: Locator;
   readonly revenueCard: Locator;
   readonly profitCard: Locator;
@@ -19,90 +10,73 @@ export class DashboardPage {
   readonly slotsCard: Locator;
   readonly pendingCard: Locator;
 
-  // ── Time Range Tabs ───────────────────────────────────────
   readonly tabWeek: Locator;
   readonly tabMonth: Locator;
   readonly tabQuarter: Locator;
   readonly tabYear: Locator;
 
-  // ── Revenue Chart ─────────────────────────────────────────
   readonly chartContainer: Locator;
   readonly chartSvg: Locator;
   readonly chartTooltip: Locator;
   readonly chartEmptyState: Locator;
 
-  // ── Alerts Section ────────────────────────────────────────
   readonly alertsSection: Locator;
   readonly pendingAlert: Locator;
   readonly overdueAlert: Locator;
   readonly expiringAlert: Locator;
 
-  // ── Recent Orders Table ───────────────────────────────────
   readonly recentOrdersSection: Locator;
   readonly recentOrdersRows: Locator;
   readonly recentOrdersEmpty: Locator;
 
-  // ── Quick Actions ─────────────────────────────────────────
   readonly actionOrders: Locator;
   readonly actionCustomers: Locator;
   readonly actionProducts: Locator;
   readonly actionInventory: Locator;
 
-  // ── Refresh Button ────────────────────────────────────────
   readonly refreshButton: Locator;
 
   constructor(page: Page) {
     this.page = page;
 
-    // KPI section
     this.kpiSection = page.locator("[class*='grid']").first();
     this.revenueCard = page.getByText(/doanh thu/i).first();
-    this.profitCard = page.getByText(/lợi nhuận/i).first();
-    this.ordersCard = page.getByText(/đơn hàng/i).first();
-    this.slotsCard = page.getByText(/slot|tài khoản/i).first();
-    this.pendingCard = page.getByText(/chờ thanh toán/i).first();
+    this.profitCard = page.getByText(/lợi nhuận|loi nhuan/i).first();
+    this.ordersCard = page.getByText(/đơn hàng|don hang/i).first();
+    this.slotsCard = page.getByText(/slot|tài khoản|tai khoan/i).first();
+    this.pendingCard = page.getByText(/chờ thanh toán|cho thanh toan/i).first();
 
-    // Time range tabs
-    this.tabWeek = page.getByRole("tab", { name: /tuần|7 ngày/i });
-    this.tabMonth = page.getByRole("tab", { name: /tháng|30 ngày/i });
-    this.tabQuarter = page.getByRole("tab", { name: /quý|90 ngày/i });
-    this.tabYear = page.getByRole("tab", { name: /năm|365 ngày/i });
+    this.tabWeek = page.locator("[data-testid='dashboard-time-tab-7']").first();
+    this.tabMonth = page.locator("[data-testid='dashboard-time-tab-30']").first();
+    this.tabQuarter = page.locator("[data-testid='dashboard-time-tab-90']").first();
+    this.tabYear = page.locator("[data-testid='dashboard-time-tab-365']").first();
 
-    // Chart
-    this.chartContainer = page.locator("[class*='chart'], .recharts-responsive-container").first();
-    this.chartSvg = page.locator(".recharts-surface, svg.recharts-surface").first();
-    this.chartTooltip = page.locator(".recharts-tooltip-wrapper");
-    this.chartEmptyState = page.getByText(/chưa có doanh thu|không có dữ liệu/i);
+    this.chartContainer = page.locator("[data-testid='dashboard-revenue-chart']").first();
+    this.chartSvg = page.locator("[data-testid='dashboard-revenue-chart-svg']").first();
+    this.chartTooltip = page.locator("[data-testid='dashboard-revenue-tooltip']").first();
+    this.chartEmptyState = page.getByText(/chưa có doanh thu|không có dữ liệu|chua co doanh thu|khong co du lieu/i);
 
-    // Alerts
-    this.alertsSection = page.locator("[class*='alert']").first();
-    this.pendingAlert = page.getByText(/đơn hàng chờ/i);
-    this.overdueAlert = page.getByText(/khách hàng quá hạn|nợ quá hạn/i);
-    this.expiringAlert = page.getByText(/sắp hết hạn/i);
+    this.alertsSection = page.locator("[data-testid='dashboard-alerts']").first();
+    this.pendingAlert = page.locator("[data-testid='dashboard-pending-alert']").first();
+    this.overdueAlert = page.locator("[data-testid='dashboard-overdue-alert']").first();
+    this.expiringAlert = page.locator("[data-testid='dashboard-expiring-alert']").first();
 
-    // Recent orders
-    this.recentOrdersSection = page.getByText(/đơn hàng gần đây/i).locator("..");
-    this.recentOrdersRows = page.locator("table tbody tr, [class*='recent'] [class*='row']");
-    this.recentOrdersEmpty = page.getByText(/không có đơn hàng/i);
+    this.recentOrdersSection = page.locator("[data-testid='dashboard-recent-orders']").first();
+    this.recentOrdersRows = page.locator("[data-testid='dashboard-recent-order-row']");
+    this.recentOrdersEmpty = page.locator("[data-testid='dashboard-recent-orders-empty']").first();
 
-    // Quick actions
-    this.actionOrders = page.getByRole("link", { name: /quản lý đơn hàng|đơn hàng/i });
-    this.actionCustomers = page.getByRole("link", { name: /khách hàng/i });
-    this.actionProducts = page.getByRole("link", { name: /sản phẩm/i });
-    this.actionInventory = page.getByRole("link", { name: /kho hàng|inventory/i });
+    this.actionOrders = page.locator("[data-testid='dashboard-quick-action-orders-new']").first();
+    this.actionCustomers = page.locator("[data-testid='dashboard-quick-action-customers']").first();
+    this.actionProducts = page.locator("[data-testid='dashboard-quick-action-products']").first();
+    this.actionInventory = page.locator("[data-testid='dashboard-quick-action-inventory']").first();
 
-    // Refresh
-    this.refreshButton = page.getByRole("button", { name: /làm mới|refresh/i });
+    this.refreshButton = page.locator("[data-testid='dashboard-refresh']").first();
   }
-
-  // ── Navigation ────────────────────────────────────────────
 
   async goto() {
-    await this.page.goto("/dashboard");
-    await this.page.waitForLoadState("networkidle");
+    await this.page.goto("/dashboard", { waitUntil: "domcontentloaded", timeout: 60_000 });
+    await this.refreshButton.waitFor({ state: "visible", timeout: 60_000 });
   }
-
-  // ── Time Range Actions ────────────────────────────────────
 
   async selectTimeRange(range: "week" | "month" | "quarter" | "year") {
     const tabs: Record<string, Locator> = {
@@ -112,16 +86,22 @@ export class DashboardPage {
       year: this.tabYear,
     };
     await tabs[range].click();
-    await this.page.waitForTimeout(500); // Wait for data refresh
+    await this.page.waitForTimeout(500);
   }
 
-  // ── Chart Interactions ────────────────────────────────────
+  async showRevenueChart() {
+    await this.page.locator("[data-testid='dashboard-revenue-section']").scrollIntoViewIfNeeded();
+    await this.chartContainer.waitFor({ state: "visible", timeout: 120_000 });
+    await this.chartContainer.scrollIntoViewIfNeeded();
+  }
 
   async isChartVisible(): Promise<boolean> {
+    await this.showRevenueChart();
     return this.chartSvg.isVisible();
   }
 
   async hoverChart(x: number, y: number) {
+    await this.showRevenueChart();
     const box = await this.chartContainer.boundingBox();
     if (box) {
       await this.page.mouse.move(box.x + x, box.y + y);
@@ -133,10 +113,8 @@ export class DashboardPage {
     return this.chartTooltip.isVisible();
   }
 
-  // ── KPI Actions ───────────────────────────────────────────
-
   async getKpiCardValues(): Promise<string[]> {
-    const cards = this.page.locator("[class*='card'] [class*='value'], [class*='kpi'] [class*='number']");
+    const cards = this.page.locator("[data-testid='dashboard-kpi-value']");
     const values: string[] = [];
     const count = await cards.count();
     for (let i = 0; i < count; i++) {
@@ -145,8 +123,6 @@ export class DashboardPage {
     }
     return values;
   }
-
-  // ── Alerts ────────────────────────────────────────────────
 
   async hasPendingAlert(): Promise<boolean> {
     return this.pendingAlert.isVisible();
@@ -160,24 +136,34 @@ export class DashboardPage {
     return this.expiringAlert.isVisible();
   }
 
-  // ── Recent Orders ─────────────────────────────────────────
+  async showRecentOrders() {
+    await this.page.locator("[data-testid='dashboard-recent-orders-section']").scrollIntoViewIfNeeded();
+    await this.recentOrdersSection.waitFor({ state: "visible", timeout: 30_000 }).catch(() => null);
+    if (await this.recentOrdersSection.count()) {
+      await this.recentOrdersSection.scrollIntoViewIfNeeded();
+    }
+  }
 
   async getRecentOrderCount(): Promise<number> {
+    await this.showRecentOrders();
+    if (!(await this.recentOrdersSection.count())) {
+      return 0;
+    }
     return this.recentOrdersRows.count();
   }
 
   async isRecentOrdersEmpty(): Promise<boolean> {
+    await this.showRecentOrders();
+    if (!(await this.recentOrdersSection.count())) {
+      return true;
+    }
     return this.recentOrdersEmpty.isVisible();
   }
 
-  // ── Refresh ───────────────────────────────────────────────
-
   async refresh() {
     await this.refreshButton.click();
-    await this.page.waitForLoadState("networkidle");
+    await this.page.waitForTimeout(500);
   }
-
-  // ── Responsive ────────────────────────────────────────────
 
   async setViewport(width: number, height: number) {
     await this.page.setViewportSize({ width, height });

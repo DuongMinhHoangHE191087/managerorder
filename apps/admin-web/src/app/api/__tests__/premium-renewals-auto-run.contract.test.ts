@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   runAutoRenewalEngine: vi.fn(),
   recordAutoRenewalEngineRun: vi.fn(),
 }));
+const PREMIUM_ROUTE_TIMEOUT_MS = 15_000;
 
 async function loadRoute(options?: { allowRoles?: boolean; role?: string }) {
   vi.resetModules();
@@ -73,7 +74,7 @@ describe("POST /api/premium/renewals/auto-run", () => {
       currentRole: "sales_staff",
     });
     expect(mocks.runAutoRenewalEngine).not.toHaveBeenCalled();
-  });
+  }, PREMIUM_ROUTE_TIMEOUT_MS);
 
   it("passes the current account and parsed options to the engine", async () => {
     const report = {
@@ -87,10 +88,10 @@ describe("POST /api/premium/renewals/auto-run", () => {
       },
       created: [
         {
-          accountId: "account-1",
-          subscriptionId: "sub-1",
-          renewalId: "renew-1",
-          customerId: "cust-1",
+          accountId: "00000000-0000-4000-8000-000000000009",
+          subscriptionId: "00000000-0000-4000-8000-000000000017",
+          renewalId: "00000000-0000-4000-8000-000000000018",
+          customerId: "00000000-0000-4000-8000-000000000005",
           customerName: "Nguyen Van A",
           daysRemaining: 4,
         },
@@ -109,9 +110,9 @@ describe("POST /api/premium/renewals/auto-run", () => {
           created: [
             {
               accountId: TEST_ACCOUNT_ID,
-              subscriptionId: "sub-1",
-              renewalId: "renew-1",
-              customerId: "cust-1",
+              subscriptionId: "00000000-0000-4000-8000-000000000017",
+              renewalId: "00000000-0000-4000-8000-000000000018",
+              customerId: "00000000-0000-4000-8000-000000000005",
               customerName: "Nguyen Van A",
               daysRemaining: 4,
             },
@@ -159,5 +160,5 @@ describe("POST /api/premium/renewals/auto-run", () => {
       accountId: TEST_ACCOUNT_ID,
       mode: "manual",
     });
-  });
+  }, PREMIUM_ROUTE_TIMEOUT_MS);
 });

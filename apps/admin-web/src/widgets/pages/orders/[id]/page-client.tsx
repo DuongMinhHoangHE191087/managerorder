@@ -2,13 +2,13 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronRight, Mail, Phone, User, Store, Key,
   Banknote, CreditCard, Clock, Package,
   FileText, Copy, ArrowLeft, RefreshCw, AlertTriangle, Wallet, History,
-  Printer, Plus, Edit3, ImagePlus, TrendingUp, Loader2
+  Printer, Plus, Edit3, ImagePlus, TrendingUp, Loader2, Trash2
 } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
 import { vi } from "@/shared/messages/vi";
@@ -23,6 +23,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/shared/lib/react-query/query-keys";
 import { getOrderNextStatuses } from "@/lib/domain/order-state-machine";
 import type { OrderStatus } from "@/lib/domain/types";
+import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
 
 /* ─── Types ──────────────────────────────────────────────── */
 interface LicenseKey {
@@ -166,14 +167,18 @@ export default function OrderDetailPage() {
   const params = useParams();
   const orderId = params.id as string;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const trashMode = searchParams.get("trash") === "1";
   const queryClient = useQueryClient();
 
-  const { data: rawOrder, isLoading, error } = useOrder(orderId);
+  const { data: rawOrder, isLoading, error } = useOrder(orderId, trashMode);
   const order = rawOrder as OrderDetail | undefined | null;
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
+  const restoreItems = useRestoreItems();
+  const purgeItems = usePurgeItems();
   
   const { mutateAsync: updateOrder } = useUpdateOrder();
 
@@ -201,6 +206,18 @@ export default function OrderDetailPage() {
       quantity: String(order.quantity),
     });
     router.push(`/orders/new?${params.toString()}`);
+  }
+
+  async function handleRestoreFromTrash() {
+    if (!order) return;
+    await restoreItems.mutateAsync({ type: "orders", ids: [order.id] });
+    router.replace(`/orders/${order.id}`);
+  }
+
+  async function handlePurgeFromTrash() {
+    if (!order) return;
+    await purgeItems.mutateAsync({ type: "orders", ids: [order.id] });
+    router.push("/trash?type=orders");
   }
 
   async function fetchAndPrint(orderId: string) {
@@ -275,16 +292,20 @@ export default function OrderDetailPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="secondary" onClick={() => router.push("/orders")} className="text-[13px] font-bold">
-              <ArrowLeft className="size-4 mr-1.5" /> {vi.orders.detail.back}
-            </Button>
-            <Button variant="secondary" onClick={handleDuplicateOrder} className="text-[13px] font-bold">
-              <Plus className="size-4 mr-1.5" /> {vi.orders.detail.duplicate}
-            </Button>
-            <Button variant="secondary" onClick={() => fetchAndPrint(order.id)} className="text-[13px] font-bold">
-              <Printer className="size-4 mr-1.5" /> {vi.orders.detail.printInvoice}
-            </Button>
-            {order.expires_at && (
+          <Button
+            variant="secondary"
+            onClick={() => router.push(trashMode ? "/trash?type=orders" : "/orders")}
+            className="text-[13px] font-bold"
+          >
+            <ArrowLeft className="size-4 mr-1.5" /> {vi.orders.detail.back}
+          </Button>
+          <Button variant="secondary" onClick={handleDuplicateOrder} className="text-[13px] font-bold">
+            <Plus className="size-4 mr-1.5" /> {vi.orders.detail.duplicate}
+          </Button>
+          <Button variant="secondary" onClick={() => fetchAndPrint(order.id)} className="text-[13px] font-bold">
+            <Printer className="size-4 mr-1.5" /> {vi.orders.detail.printInvoice}
+          </Button>
+            {!trashMode && order.expires_at && (
               <Button
                 variant="secondary"
                 onClick={() => setIsRenewModalOpen(true)}
@@ -293,14 +314,43 @@ export default function OrderDetailPage() {
               <RefreshCw className="size-4 mr-1.5" /> {vi.orders.detail.renew}
               </Button>
             )}
-            <Button variant="secondary" onClick={() => setIsEditModalOpen(true)} className="text-[13px] font-bold">
-              <Edit3 className="size-4 mr-1.5" /> {vi.orders.detail.editInfo}
-            </Button>
-            <Button variant="primary" onClick={() => setIsPaymentModalOpen(true)} className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:opacity-90 active:scale-[0.98] shadow-sm text-[13px] font-bold border-none text-white">
-              <CreditCard className="size-4 mr-1.5" /> {vi.orders.detail.payment}
-            </Button>
+            {!trashMode ? (
+              <>
+                <Button variant="secondary" onClick={() => setIsEditModalOpen(true)} className="text-[13px] font-bold">
+                  <Edit3 className="size-4 mr-1.5" /> {vi.orders.detail.editInfo}
+                </Button>
+                <Button variant="primary" onClick={() => setIsPaymentModalOpen(true)} className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:opacity-90 active:scale-[0.98] shadow-sm text-[13px] font-bold border-none text-white">
+                  <CreditCard className="size-4 mr-1.5" /> {vi.orders.detail.payment}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="primary"
+                  isLoading={restoreItems.isPending}
+                  onClick={handleRestoreFromTrash}
+                  className="bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] text-[13px] font-bold text-white"
+                >
+                  <RefreshCw className="size-4 mr-1.5" /> Khôi phục
+                </Button>
+                <Button
+                  variant="danger"
+                  isLoading={purgeItems.isPending}
+                  onClick={handlePurgeFromTrash}
+                  className="text-[13px] font-bold"
+                >
+                  <Trash2 className="size-4 mr-1.5" /> Xóa vĩnh viễn
+                </Button>
+              </>
+            )}
           </div>
         </div>
+
+        {trashMode ? (
+          <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-700">
+            Bản ghi này đang ở thùng rác. Dữ liệu hiển thị để xem lại, còn khôi phục/xoá vĩnh viễn nằm ngay trên thanh thao tác.
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-12 gap-6">
           {/* ── Left Column ── */}
@@ -410,25 +460,51 @@ export default function OrderDetailPage() {
                    <RefreshCw className="size-3.5" /> {vi.orders.detail.changeStatus}
                 </h3>
                </div>
-               <div className="p-4 grid grid-cols-2 gap-2">
-                 {/* Current status (highlighted) */}
-                 <div className={`px-3 py-2.5 rounded-xl text-[11px] font-bold border shadow-sm border-transparent col-span-2 text-center ${getStatusStyle(order.status)}`}>
-                    {vi.orders.detail.currentStatus} {getStatusLabel(order.status)}
+               {trashMode ? (
+                 <div className="p-4 space-y-3">
+                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-[13px] font-medium text-amber-700">
+                     Đơn hàng đang ở thùng rác, không còn dùng luồng đổi trạng thái.
+                   </div>
+                   <div className="grid grid-cols-2 gap-2">
+                     <Button
+                       variant="primary"
+                       isLoading={restoreItems.isPending}
+                       onClick={handleRestoreFromTrash}
+                       className="text-[13px] font-bold"
+                     >
+                       <RefreshCw className="size-4 mr-1.5" /> Khôi phục
+                     </Button>
+                     <Button
+                       variant="danger"
+                       isLoading={purgeItems.isPending}
+                       onClick={handlePurgeFromTrash}
+                       className="text-[13px] font-bold"
+                     >
+                       <Trash2 className="size-4 mr-1.5" /> Xóa vĩnh viễn
+                     </Button>
+                   </div>
                  </div>
-                 {/* Only valid next statuses from state machine */}
-                 {getOrderNextStatuses(order.status as OrderStatus).map(s => (
-                  <button
-                    key={s}
-                    onClick={() => handleUpdateStatus(s)}
-                    className="px-3 py-2.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer border-[var(--border-soft)] text-[var(--fg-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] bg-[var(--surface-light)]"
-                  >
-                    → {getStatusLabel(s)}
-                  </button>
-                ))}
-                {getOrderNextStatuses(order.status as OrderStatus).length === 0 && (
-                   <p className="col-span-2 text-[12px] text-[var(--fg-muted)] italic text-center py-2">{vi.orders.detail.finalStatus}</p>
-                )}
-               </div>
+               ) : (
+                 <div className="p-4 grid grid-cols-2 gap-2">
+                   {/* Current status (highlighted) */}
+                   <div className={`px-3 py-2.5 rounded-xl text-[11px] font-bold border shadow-sm border-transparent col-span-2 text-center ${getStatusStyle(order.status)}`}>
+                      {vi.orders.detail.currentStatus} {getStatusLabel(order.status)}
+                   </div>
+                   {/* Only valid next statuses from state machine */}
+                   {getOrderNextStatuses(order.status as OrderStatus).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => handleUpdateStatus(s)}
+                      className="px-3 py-2.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer border-[var(--border-soft)] text-[var(--fg-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] bg-[var(--surface-light)]"
+                    >
+                      → {getStatusLabel(s)}
+                    </button>
+                  ))}
+                  {getOrderNextStatuses(order.status as OrderStatus).length === 0 && (
+                     <p className="col-span-2 text-[12px] text-[var(--fg-muted)] italic text-center py-2">{vi.orders.detail.finalStatus}</p>
+                  )}
+                 </div>
+               )}
             </div>
 
           </div>

@@ -32,8 +32,8 @@ describe("getClickAnalytics", () => {
     const dataChain = createQueryChain({
       data: [
         {
-          id: "click-1",
-          short_link_id: "link-1",
+          id: "00000000-0000-4000-8000-0000000000f0",
+          short_link_id: "00000000-0000-4000-8000-0000000000ad",
           ip_address: "10.0.0.1",
           user_agent: "Mozilla/5.0 Chrome/120.0",
           referer: "https://example.com",
@@ -48,8 +48,8 @@ describe("getClickAnalytics", () => {
           created_at: "2026-04-15T01:00:00.000Z",
         },
         {
-          id: "click-2",
-          short_link_id: "link-1",
+          id: "00000000-0000-4000-8000-0000000000f1",
+          short_link_id: "00000000-0000-4000-8000-0000000000ad",
           ip_address: "10.0.0.2",
           user_agent: "TelegramBot/1.0",
           referer: null,
@@ -64,8 +64,8 @@ describe("getClickAnalytics", () => {
           created_at: "2026-04-15T01:01:00.000Z",
         },
         {
-          id: "click-3",
-          short_link_id: "link-1",
+          id: "00000000-0000-4000-8000-0000000000f2",
+          short_link_id: "00000000-0000-4000-8000-0000000000ad",
           ip_address: "10.0.0.3",
           user_agent: "Mozilla/5.0",
           referer: null,
@@ -97,7 +97,7 @@ describe("getClickAnalytics", () => {
         return dataChain;
       });
 
-    const result = await getClickAnalytics("link-1");
+    const result = await getClickAnalytics("00000000-0000-4000-8000-0000000000ad");
 
     expect(result.stats?.totalClicks).toBe(1);
     expect(result.stats?.uniqueIPs).toBe(1);

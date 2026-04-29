@@ -50,12 +50,12 @@ describe("calendar.repo", () => {
       {
         data: [
           {
-            id: "rem-1",
+            id: "00000000-0000-4000-8000-000000000112",
             account_id: TEST_ACCOUNT_ID,
             title: "Follow up",
             due_at: "2026-04-11T00:00:00.000Z",
             customer_id: null,
-            customer_ids: ["cust-1"],
+            customer_ids: ["00000000-0000-4000-8000-000000000005"],
             has_reminder: true,
             is_done: false,
             notes: null,
@@ -73,7 +73,7 @@ describe("calendar.repo", () => {
       {
         data: [
           {
-            id: "cust-1",
+            id: "00000000-0000-4000-8000-000000000005",
             full_name: "Calendar Customer",
             type: "retail",
           },
@@ -87,8 +87,8 @@ describe("calendar.repo", () => {
       {
         data: [
           {
-            id: "ct-1",
-            customer_id: "cust-1",
+            id: "00000000-0000-4000-8000-0000000003e8",
+            customer_id: "00000000-0000-4000-8000-000000000005",
             channel: "zalo",
             value: "0900000000",
             is_primary: true,

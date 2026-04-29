@@ -41,17 +41,15 @@ export const GET = withErrorHandler(
       date_to,
     });
 
-    const decoratedRows = result.data
-      .map((row) => withFinancialSummary(row))
-      .filter((row) => !paymentState || row.payment_state === paymentState);
+    const decoratedRows = result.data.map((row) => withFinancialSummary(row));
 
     return NextResponse.json({ 
         data: decoratedRows,
         meta: {
-            count: paymentState ? decoratedRows.length : result.count,
+            count: result.count,
             page: result.page,
             limit: result.limit,
-            totalPages: paymentState ? Math.ceil(decoratedRows.length / result.limit) : result.totalPages
+            totalPages: result.totalPages
         }
     });
   })
@@ -65,7 +63,10 @@ export const POST = withErrorHandler(
 
     // 2. Delegate to service layer
     try {
-      const result = await createOrderWithItems(accountId, validatedData);
+      const result = await createOrderWithItems(accountId, {
+        ...validatedData,
+        createdBy: user.displayName ?? user.email,
+      });
       await createOrderStatusHistory({
         order_id: result.order.id,
         old_status: null,

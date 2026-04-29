@@ -8,6 +8,7 @@ import { SlideUp, FadeIn } from "@/shared/ui/animations";
 import { Button } from "@/shared/ui/button";
 import { OrderSuccessBanner } from "./order-success-banner";
 import type { OrderSuccessSnapshot } from "@/lib/orders/order-share";
+import { formatOrderDurationLabel, resolveOrderDuration, type OrderDurationType } from "@/lib/domain/order-duration";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 
@@ -16,6 +17,9 @@ interface FormItem {
   quantity: number;
   costPriceVnd?: number;
   sellPriceVnd?: number;
+  durationType?: OrderDurationType;
+  durationValue?: number;
+  bonusDurationValue?: number;
   notes?: string;
   assignedSourceAccountId?: string;
   customerNickUsed?: string;
@@ -62,6 +66,33 @@ export const OrderSummaryPanel = memo(function OrderSummaryPanel({
   successSnapshot,
   onClearSuccess,
 }: OrderSummaryPanelProps) {
+  const totalCost = formItems.reduce((sum, item) => {
+    const product = products.find((entry) => entry.id === item.productId);
+    const unitCost = item.costPriceVnd ?? product?.buyPriceVnd ?? 0;
+    return sum + unitCost * (item.quantity || 1);
+  }, 0);
+  const profit = total - totalCost;
+  const margin = total > 0 ? Math.round((profit / total) * 100) : 0;
+  const primaryDurationLabel = (() => {
+    const primaryItem = formItems[0];
+    if (!primaryItem?.productId) {
+      return null;
+    }
+
+    const primaryProduct = products.find((entry) => entry.id === primaryItem.productId);
+    if (!primaryProduct) {
+      return null;
+    }
+
+    return formatOrderDurationLabel(
+      resolveOrderDuration(primaryItem, {
+        durationType: primaryProduct.durationType,
+        durationValue: primaryProduct.durationValue,
+      }),
+      { includeBonus: true },
+    );
+  })();
+
   return (
     <div className="sticky top-24 space-y-6">
       {successSnapshot ? (
@@ -77,7 +108,34 @@ export const OrderSummaryPanel = memo(function OrderSummaryPanel({
           <div className="space-y-3 border-b border-[var(--border-soft)] pb-4">
             <span className="text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-wider block">Giỏ hàng</span>
             {formItems.every(i => !i.productId) ? <p className="text-[12px] text-[var(--fg-muted)] italic">Chưa chọn sản phẩm</p>
-              : formItems.map((item, i) => { const p = products.find(x => x.id === item.productId); if (!p) return null; const unitSell = item.sellPriceVnd ?? p.sellPriceVnd; return <div key={i} className="flex justify-between items-center text-[13px]"><div><span className="font-bold block truncate max-w-[130px]">{p.name}</span><span className="text-[10px] text-[var(--fg-muted)]">{item.quantity} x {formatMoney(unitSell)} ({p.durationValue} {p.durationType === 'months' ? 'tháng' : p.durationType === 'years' ? 'năm' : 'ngày'})</span></div><span className="font-bold shrink-0 text-[14px]">{formatMoney(unitSell * (item.quantity || 1))}</span></div>; })}
+                : formItems.map((item, i) => {
+                    const p = products.find(x => x.id === item.productId);
+                    if (!p) return null;
+                    const unitSell = item.sellPriceVnd ?? p.sellPriceVnd;
+                    const unitCost = item.costPriceVnd ?? p.buyPriceVnd;
+                    const duration = resolveOrderDuration(item, {
+                      durationType: p.durationType,
+                      durationValue: p.durationValue,
+                    });
+                    const lineRevenue = unitSell * (item.quantity || 1);
+                    const lineCost = unitCost * (item.quantity || 1);
+                    const lineProfit = lineRevenue - lineCost;
+
+                    return (
+                      <div key={i} className="flex justify-between items-center gap-3 text-[13px]">
+                        <div>
+                          <span className="font-bold block truncate max-w-[130px]">{p.name}</span>
+                          <span className="text-[10px] text-[var(--fg-muted)]">
+                            {item.quantity} x {formatMoney(unitSell)} ({formatOrderDurationLabel(duration, { includeBonus: true })})
+                          </span>
+                          <span className="mt-0.5 block text-[10px] text-[var(--fg-muted)]">
+                            Vốn {formatMoney(lineCost)} • Lãi {formatMoney(lineProfit)}
+                          </span>
+                        </div>
+                        <span className="font-bold shrink-0 text-[14px]">{formatMoney(lineRevenue)}</span>
+                      </div>
+                    );
+                  })}
           </div>
           {/* Summary info */}
           {[
@@ -87,6 +145,7 @@ export const OrderSummaryPanel = memo(function OrderSummaryPanel({
             { label: "Kênh bán", value: selChannel?.name },
             { label: "Ảnh XM", value: proofUrlsCount > 0 ? `${proofUrlsCount} ảnh` : undefined },
             { label: "Đăng ký", value: registeredAt ? formatDateShort(registeredAt) : "Hôm nay" },
+            { label: "Chu kỳ bán", value: primaryDurationLabel ?? undefined },
             { label: "Ngày HH", value: expiresAt ? formatDateShort(expiresAt) : "Tự động" },
           ].filter(r => r.value).map(r => (
             <div key={r.label} className="flex justify-between items-center text-[13px] border-b border-[var(--border-soft)] pb-2 last:border-b-0 last:pb-0">
@@ -94,29 +153,30 @@ export const OrderSummaryPanel = memo(function OrderSummaryPanel({
               <span className="font-bold text-right truncate max-w-[150px]">{r.value}</span>
             </div>
           ))}
-          {/* Profit estimate */}
-          {total > 0 && (() => {
-            const totalCost = formItems.reduce((a, item) => {
-              const p = products.find(x => x.id === item.productId);
-              const cost = item.costPriceVnd ?? p?.buyPriceVnd ?? 0;
-              return a + cost * (item.quantity || 1);
-            }, 0);
-            if (totalCost <= 0) return null;
-            const profit = total - totalCost;
-            const margin = Math.round(profit / total * 100);
-            return (
-              <div className="p-3 rounded-xl bg-[var(--accent)]/5 border border-[var(--accent)]/20">
-                <div className="flex items-center gap-1.5 mb-2">
+          {total > 0 ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Doanh thu</p>
+                <p className="mt-1 text-[18px] font-black text-emerald-700">{formatMoney(total)}</p>
+              </div>
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-700">Giá vốn</p>
+                <p className="mt-1 text-[18px] font-black text-orange-700">{formatMoney(totalCost)}</p>
+              </div>
+              <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-3">
+                <div className="mb-2 flex items-center gap-1.5">
                   <TrendingUp className="size-3.5 text-[var(--accent)]" />
-                  <span className="text-[10px] font-black text-[var(--accent)] uppercase tracking-wider">Lợi nhuận ước tính</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)]">Lợi nhuận</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[12px] font-bold text-[var(--fg-base)]">{formatMoney(profit)}</span>
-                  <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${margin >= 20 ? 'bg-emerald-100 text-emerald-600' : 'bg-[var(--warning)]/10 text-[var(--warning)]'}`}>{margin}% margin</span>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[16px] font-black text-[var(--fg-base)]">{formatMoney(profit)}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-black ${margin >= 20 ? "bg-emerald-100 text-emerald-600" : "bg-[var(--warning)]/10 text-[var(--warning)]"}`}>
+                    {margin}% margin
+                  </span>
                 </div>
               </div>
-            );
-          })()}
+            </div>
+          ) : null}
           {/* Total + Submit */}
           <div className="pt-3">
             <div className="flex justify-between items-end mb-5">

@@ -1,0 +1,25 @@
+
+> @managerorder/admin-web@0.1.0 dev D:\GITHUB\managerorder\apps\admin-web
+> node --experimental-strip-types --import ./scripts/register-ts-loader.mjs ./scripts/runtime-supervisor.ts --mode=dev
+
+[Supervisor] Starting runtime in dev mode.
+[Supervisor] Telegram runtime mode: polling.
+[Supervisor] Zalo runtime: app=Quản Lý Premium Admin, account=550e8400-e29b-41d4-a716-446655440000, admins=2, ai=on, catalog=on, lookup=on, order=on, handoff=on, gemini=off
+🚀 Starting Telegram Bot (Polling Relay Mode)...
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.25.240.1:3000
+- Environments: .env.local
+✓ Ready in 10.4s
+[Zalo] Runtime config: app=Quản Lý Premium Admin, account=550e8400-e29b-41d4-a716-446655440000, admins=2, ai=on, catalog=on, lookup=on, order=on, handoff=on, gemini=off
+[Zalo] Runtime ready: app=Quản Lý Premium Admin, account=550e8400-e29b-41d4-a716-446655440000, admins=2, ai=on, catalog=on, lookup=on, order=on, handoff=on, gemini=off
+✅ Webhook deleted to enable long polling.
+Creating turbopack project { dir: 'D:\\GITHUB\\managerorder\\apps\\admin-web', testMode: true }
+○ Compiling proxy ...
+- Experiments (use with caution):
+  · optimizePackageImports
+  ✓ workerThreads
+
+○ Compiling /_not-found/page ...
+[?25h
+ ELIFECYCLE  Command failed with exit code 4294967295.

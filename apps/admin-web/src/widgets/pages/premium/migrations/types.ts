@@ -9,6 +9,14 @@ export type MigrationAccountRow = PremiumAccount & {
   package: { name: string; slug: string; total_slots: number } | null;
 };
 
+export type MigrationTargetUserRow = {
+  id: string;
+  user_email: string;
+  status: "active" | "removed" | "suspended";
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type MigrationSubscriptionRow = CustomerPremiumSubscription & {
   customer_name: string;
   account_email: string;
@@ -28,6 +36,9 @@ export type MigrationListRow = AccountMigration & {
   customer_name: string;
   source_account_email: string | null;
   target_account_email: string | null;
+  source_user_id?: string | null;
+  target_user_id?: string | null;
+  terminal_reason?: string | null;
   source_account: {
     id: string;
     primary_email: string;
@@ -49,6 +60,14 @@ export type MigrationListRow = AccountMigration & {
   details: Record<string, unknown> | null;
 };
 
+export type MigrationListMeta = {
+  total: number;
+  status: string;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
 export type MigrationStepRow = {
   step_number: number;
   step_name: string;
@@ -61,4 +80,5 @@ export type MigrationStepRow = {
 
 export type MigrationDetailRow = MigrationListRow & {
   steps: MigrationStepRow[];
+  target_users?: MigrationTargetUserRow[];
 };

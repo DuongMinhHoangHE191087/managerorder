@@ -64,7 +64,7 @@ const navSections: NavSection[] = [
     label: vi.navigation.sections.premiumAccounts,
     items: [
       { href: "/premium/accounts", label: vi.navigation.items.premiumAccounts, icon: Package },
-      { href: "/premium/health-checks", label: "Sức khỏe", icon: Activity },
+      { href: "/premium/health-checks", label: vi.navigation.items.healthChecks, icon: Activity },
       { href: "/premium/subscriptions", label: vi.navigation.items.subscriptions, icon: ClipboardList },
       { href: "/premium/services", label: vi.navigation.items.services, icon: Settings2 },
       { href: "/premium/renewals", label: vi.navigation.items.renewals, icon: CalendarDays },
@@ -122,7 +122,7 @@ const SidebarContent = memo(function SidebarContent({
     <div className="flex h-full flex-col">
       <div className="border-b border-[var(--border-soft)] px-5 py-5">
         <Brand />
-        <RuntimeStatusChip />
+        {pathname.startsWith("/settings/bot") ? <RuntimeStatusChip /> : null}
       </div>
 
       <div className="custom-scrollbar flex-1 overflow-y-auto px-3 py-4">

@@ -13,6 +13,7 @@ import { timeAgo, formatDate, extractBrowser } from "./detail-types";
 
 type ClickDeviceFilter = "all" | "desktop" | "mobile" | "tablet" | "bot";
 type ClickStatusFilter = "all" | "clean" | "suspicious";
+type ClickIpVersionFilter = "all" | "IPv4" | "IPv6" | "unknown";
 
 const DEVICE_ICONS: Record<string, typeof Monitor> = {
   desktop: Monitor, mobile: Smartphone, tablet: Smartphone, bot: Bot,
@@ -32,11 +33,25 @@ const EVENT_TYPE_STYLES: Record<ClickRecord["event_type"], string> = {
   blocked: "bg-red-100 text-red-700",
 };
 
+function getIpVersion(click: ClickRecord): "IPv4" | "IPv6" | "unknown" {
+  if (click.ip_version === "IPv4" || click.ip_version === "IPv6") {
+    return click.ip_version;
+  }
+  if (click.ip_address?.includes(":")) {
+    return "IPv6";
+  }
+  if (click.ip_address) {
+    return "IPv4";
+  }
+  return "unknown";
+}
+
 /** Export click data to CSV */
 function exportClicksCSV(clicks: ClickRecord[], slug: string) {
   const headers = [
     vi.legacy.clicks.tableTime,
     vi.legacy.clicks.tableIp,
+    "Phiên bản IP",
     vi.legacy.clicks.tableDevice,
     vi.legacy.clicks.tableBrowser,
     vi.legacy.clicks.tableSource,
@@ -47,6 +62,7 @@ function exportClicksCSV(clicks: ClickRecord[], slug: string) {
   const rows = clicks.map(c => [
     formatDate(c.clicked_at),
     c.ip_address,
+    getIpVersion(c),
     c.device_type ? (vi.shortLinks.shared.deviceLabels[c.device_type as keyof typeof vi.shortLinks.shared.deviceLabels] ?? vi.legacy.clicks.unknownDevice) : vi.legacy.clicks.unknownDevice,
     extractBrowser(c.user_agent),
     c.referer || vi.legacy.clicks.directAccess,
@@ -66,6 +82,7 @@ function ClicksTab({ link, clicks, isLoading }: TabProps) {
   const [expandedClickId, setExpandedClickId] = useState<string | null>(null);
   const [clickDeviceFilter, setClickDeviceFilter] = useState<ClickDeviceFilter>("all");
   const [clickStatusFilter, setClickStatusFilter] = useState<ClickStatusFilter>("all");
+  const [clickIpVersionFilter, setClickIpVersionFilter] = useState<ClickIpVersionFilter>("all");
   const [clickSearch, setClickSearch] = useState("");
 
   const filteredClicks = useMemo(() => {
@@ -73,12 +90,17 @@ function ClicksTab({ link, clicks, isLoading }: TabProps) {
     if (clickDeviceFilter !== "all") result = result.filter(c => c.device_type === clickDeviceFilter);
     if (clickStatusFilter === "clean") result = result.filter(c => !c.is_suspicious);
     if (clickStatusFilter === "suspicious") result = result.filter(c => c.is_suspicious);
+    if (clickIpVersionFilter !== "all") result = result.filter(c => getIpVersion(c) === clickIpVersionFilter);
     if (clickSearch.trim()) {
       const q = clickSearch.toLowerCase();
-      result = result.filter(c => c.ip_address?.toLowerCase().includes(q) || c.user_agent?.toLowerCase().includes(q));
+      result = result.filter(c =>
+        c.ip_address?.toLowerCase().includes(q)
+        || c.user_agent?.toLowerCase().includes(q)
+        || c.referer?.toLowerCase().includes(q)
+      );
     }
     return result;
-  }, [clicks, clickDeviceFilter, clickStatusFilter, clickSearch]);
+  }, [clicks, clickDeviceFilter, clickStatusFilter, clickIpVersionFilter, clickSearch]);
 
   const formatDeviceLabel = useCallback((deviceType?: string | null) => {
     switch (deviceType) {
@@ -146,6 +168,14 @@ function ClicksTab({ link, clicks, isLoading }: TabProps) {
             <option value="clean">{vi.legacy.clicks.filterClean}</option>
             <option value="suspicious">{vi.legacy.clicks.filterSuspicious}</option>
           </select>
+          <select value={clickIpVersionFilter} onChange={e => setClickIpVersionFilter(e.target.value as ClickIpVersionFilter)}
+            className="px-2.5 py-1.5 rounded-lg bg-white border border-[var(--border-soft)] text-[12px] font-bold text-[var(--fg-base)] cursor-pointer outline-none"
+          >
+            <option value="all">Tất cả IP</option>
+            <option value="IPv4">IPv4</option>
+            <option value="IPv6">IPv6</option>
+            <option value="unknown">IP chưa rõ</option>
+          </select>
         </div>
       </div>
 
@@ -176,6 +206,7 @@ function ClicksTab({ link, clicks, isLoading }: TabProps) {
           {filteredClicks.map((click, idx) => {
             const isExpanded = expandedClickId === click.id;
             const DeviceIcon = click.device_type ? (DEVICE_ICONS[click.device_type] || Globe) : Globe;
+            const ipVersion = getIpVersion(click);
 
             return (
               <div key={click.id}>
@@ -184,7 +215,15 @@ function ClicksTab({ link, clicks, isLoading }: TabProps) {
                   className="grid grid-cols-12 gap-2 px-5 py-3 w-full text-left hover:bg-[var(--border-soft)]/20 transition-colors cursor-pointer"
                 >
                   <div className="col-span-1 text-[11px] font-bold text-[var(--fg-muted)]">{idx + 1}</div>
-                  <div className="col-span-2 text-[12px] font-mono font-bold text-[var(--fg-base)] truncate">{click.ip_address}</div>
+                  <div className="col-span-2 min-w-0">
+                    <p className="truncate font-mono text-[12px] font-bold text-[var(--fg-base)]">{click.ip_address}</p>
+                    <span className={cn(
+                      "mt-0.5 inline-flex rounded-full px-1.5 py-0.5 text-[8px] font-black",
+                      ipVersion === "IPv6" ? "bg-indigo-100 text-indigo-700" : ipVersion === "IPv4" ? "bg-sky-100 text-sky-700" : "bg-slate-100 text-slate-600",
+                    )}>
+                      {ipVersion}
+                    </span>
+                  </div>
                   <div className="col-span-2 text-[12px] flex items-center gap-1.5 capitalize text-[var(--fg-muted)]">
                     <DeviceIcon className="size-3.5" />
                     {formatDeviceLabel(click.device_type)}
@@ -228,6 +267,12 @@ function ClicksTab({ link, clicks, isLoading }: TabProps) {
                         <span className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider block mb-1">{vi.legacy.clicks.detailReferer}</span>
                         <p className="font-mono text-[11px] text-[var(--fg-base)] break-all bg-[var(--bg-surface)] p-2 rounded-lg border border-[var(--border-soft)]">
                           {click.referer || vi.legacy.clicks.directAccess}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider block mb-1">IP / phiên bản</span>
+                        <p className="font-mono text-[11px] text-[var(--fg-base)] break-all bg-[var(--bg-surface)] p-2 rounded-lg border border-[var(--border-soft)]">
+                          {click.ip_address} · {ipVersion}
                         </p>
                       </div>
                       <div>

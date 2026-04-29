@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { verifyToken } from "@/lib/utils/jwt";
 
 // ── Role Definitions ───────────────────────────────────────────────────────
 
@@ -133,6 +134,14 @@ interface AdminUserRow {
   full_name: string | null;
 }
 
+function isUserRole(value: string | null | undefined): value is UserRole {
+  return value === "admin_owner"
+    || value === "sales_staff"
+    || value === "inventory_staff"
+    || value === "customer_support"
+    || value === "accountant";
+}
+
 /**
  * Resolve the current user from the request.
  * Prefers x-user-id injected by middleware and falls back to x-user-email for
@@ -144,45 +153,99 @@ export async function resolveUser(
 ): Promise<RBACUser | null> {
   const userId = req.headers.get("x-user-id")?.trim();
   const userEmail = req.headers.get("x-user-email")?.trim();
-  const identityValue = userId ?? userEmail;
+  const identityValue = userId ?? userEmail ?? null;
   const identityColumn = userId ? "id" : "email";
 
-  if (!identityValue) {
-    return null;
-  }
+  const lookupAdminUser = async (
+    identity: { column: "id" | "email"; value: string }
+  ): Promise<RBACUser | null> => {
+    const { data: adminUser, error } = await supabaseAdmin
+      .from("admin_users")
+      .select("id, email, role, full_name")
+      .eq("account_id", accountId)
+      .eq(identity.column, identity.value)
+      .maybeSingle();
 
-  const { data: adminUser, error } = await supabaseAdmin
-    .from("admin_users")
-    .select("id, email, role, full_name")
-    .eq("account_id", accountId)
-    .eq(identityColumn, identityValue)
-    .maybeSingle();
-
-  if (error || !adminUser) {
-    if (error) {
-      console.error(
-        "[RBAC] admin_users lookup failed:",
-        error.message,
-        "| identity:",
-        identityColumn,
-        "| value:",
-        identityValue,
-        "| account:",
-        accountId
-      );
+    if (error || !adminUser) {
+      if (error) {
+        console.error(
+          "[RBAC] admin_users lookup failed:",
+          error.message,
+          "| identity:",
+          identity.column,
+          "| value:",
+          identity.value,
+          "| account:",
+          accountId
+        );
+      }
+      return null;
     }
+
+    const typedAdminUser = adminUser as AdminUserRow;
+
+    return {
+      userId: typedAdminUser.id,
+      email: typedAdminUser.email ?? identity.value,
+      role: isUserRole(typedAdminUser.role) ? typedAdminUser.role : "sales_staff",
+      accountId,
+      displayName: typedAdminUser.full_name ?? null,
+    };
+  };
+
+  if (identityValue) {
+    const resolvedFromHeaders = await lookupAdminUser({
+      column: identityColumn,
+      value: identityValue,
+    });
+    if (resolvedFromHeaders) {
+      return resolvedFromHeaders;
+    }
+  }
+
+  const authHeader = req.headers.get("authorization");
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const cookieToken = req.cookies.get("access_token")?.value ?? null;
+  const token = bearerToken ?? cookieToken;
+
+  if (!token) {
     return null;
   }
 
-  const typedAdminUser = adminUser as AdminUserRow;
+  try {
+    const decoded = verifyToken(token);
+    if (decoded.accountId !== accountId) {
+      return null;
+    }
 
-  return {
-    userId: typedAdminUser.id,
-    email: typedAdminUser.email ?? identityValue,
-    role: (typedAdminUser.role as UserRole) || "sales_staff",
-    accountId,
-    displayName: typedAdminUser.full_name ?? null,
-  };
+    const resolvedFromTokenUserId = decoded.sub
+      ? await lookupAdminUser({ column: "id", value: decoded.sub })
+      : null;
+    if (resolvedFromTokenUserId) {
+      return resolvedFromTokenUserId;
+    }
+
+    const resolvedFromTokenEmail = decoded.email
+      ? await lookupAdminUser({ column: "email", value: decoded.email })
+      : null;
+    if (resolvedFromTokenEmail) {
+      return resolvedFromTokenEmail;
+    }
+
+    if (!isUserRole(decoded.role)) {
+      return null;
+    }
+
+    return {
+      userId: decoded.sub,
+      email: decoded.email,
+      role: decoded.role,
+      accountId,
+      displayName: null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 // ── HOC: requireRole ────────────────────────────────────────────────────────

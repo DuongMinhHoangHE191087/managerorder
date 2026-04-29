@@ -10,7 +10,7 @@ import type { RfmInput } from "../rfm-calculator";
 // Helper to build RFM input
 function makeInput(overrides: Partial<RfmInput> = {}): RfmInput {
   return {
-    customerId: "cust-001",
+    customerId: "00000000-0000-4000-8000-000000000033",
     lastOrderDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
     totalOrders: 5,
     totalSpentVnd: 2_500_000,
@@ -58,7 +58,7 @@ describe("calculateRfm", () => {
   describe("new customer", () => {
     it("returns 'new' segment with score 20", () => {
       const result = calculateRfm({
-        customerId: "new-001",
+        customerId: "00000000-0000-4000-8000-000000000105",
         lastOrderDate: null,
         totalOrders: 0,
         totalSpentVnd: 0,

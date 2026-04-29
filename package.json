@@ -22,6 +22,13 @@
     "typecheck": "corepack pnpm typecheck:admin && corepack pnpm typecheck:bot",
     "test": "corepack pnpm test:admin && corepack pnpm test:bot",
     "build": "corepack pnpm build:admin && corepack pnpm build:bot",
+    "check:bots": "corepack pnpm --dir apps/admin-web run check:telegram-runtime && corepack pnpm --dir apps/admin-web run check:zalo-runtime",
+    "check:bots:live": "corepack pnpm --dir apps/admin-web run check:bots:live",
+    "seed:bots:live": "corepack pnpm --dir apps/admin-web run seed:bots:live",
+    "cleanup:bots:live": "corepack pnpm --dir apps/admin-web run cleanup:bots:live",
+    "check:runtime": "pwsh -NoProfile -File ./scripts/run-runtime-qa.ps1",
+    "check:all": "node ./scripts/check-all-project.mjs",
+    "check:all:live-telegram": "node ./scripts/check-all-project.mjs --live-telegram",
     "audit:prod": "corepack pnpm audit --prod",
     "check": "corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build"
   },

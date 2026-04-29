@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { memo, useState, useEffect, useCallback, useMemo } from "react";
 import {
   Key, Link2, Shield, Zap, MoreHorizontal, Copy, Check, ExternalLink,
   Eye, EyeOff, Users, Edit2, ShieldAlert, Calendar, AlertTriangle,
@@ -8,38 +8,139 @@ import {
 } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
 import { formatDateLabel, formatMoney } from "@/lib/utils";
-import type { SourceAccount, WarehouseCredentialType } from "@/lib/domain/types";
-import { useSourceAccountDecrypt } from "@/widgets/pages/inventory/hooks/use-source-accounts";
+import type { Provider, SourceAccount, WarehouseCredentialType } from "@/lib/domain/types";
+import { useSourceAccountDecrypt, type DecryptedSourceAccountCredential } from "@/widgets/pages/inventory/hooks/use-source-accounts";
 import { vi } from "@/shared/messages/vi";
 
-const CRED_META: Record<WarehouseCredentialType, { label: string; icon: React.FC<{ className?: string }>; color: string; sensitive?: boolean }> = {
-  link_join: { label: vi.inventory.page.detailDrawer.credentialLabels.linkJoin, icon: Link2, color: "text-blue-500" },
-  duolingo_id: { label: vi.inventory.page.detailDrawer.credentialLabels.duolingoId, icon: Zap, color: "text-green-500" },
-  "2fa": { label: vi.inventory.page.detailDrawer.credentialLabels.twoFa, icon: Shield, color: "text-amber-500", sensitive: true },
-  "2fa_backup": { label: vi.inventory.page.detailDrawer.credentialLabels.twoFaBackup, icon: ShieldAlert, color: "text-red-500", sensitive: true },
-  other: { label: vi.inventory.page.detailDrawer.credentialLabels.other, icon: MoreHorizontal, color: "text-gray-500" },
+const drawerText = vi.inventory.page.detailDrawer;
+
+type CredentialMeta = {
+  label: string;
+  icon: React.FC<{ className?: string }>;
+  color: string;
+  sensitive?: boolean;
+};
+
+const CRED_META: Record<WarehouseCredentialType, CredentialMeta> = {
+  link_join: { label: drawerText.credentialLabels.linkJoin, icon: Link2, color: "text-blue-500" },
+  duolingo_id: { label: drawerText.credentialLabels.duolingoId, icon: Zap, color: "text-green-500" },
+  "2fa": { label: drawerText.credentialLabels.twoFa, icon: Shield, color: "text-amber-500", sensitive: true },
+  "2fa_backup": { label: drawerText.credentialLabels.twoFaBackup, icon: ShieldAlert, color: "text-red-500", sensitive: true },
+  other: { label: drawerText.credentialLabels.other, icon: MoreHorizontal, color: "text-gray-500" },
 };
 
 interface InventoryDetailDrawerProps {
   account: SourceAccount;
   productMap: Map<string, string>;
-  providers: { id: string; name: string }[];
+  providerById: Map<string, Provider>;
   onEdit: () => void;
   onRecalculate: () => Promise<void>;
   isRecalculating?: boolean;
   children?: React.ReactNode; // Connections + Activity panels
 }
 
+type InventoryCredentialRowProps = {
+  cred: DecryptedSourceAccountCredential;
+  meta: CredentialMeta;
+  isSensitive: boolean;
+  isRevealed: boolean;
+  isCopied: boolean;
+  onToggleSensitive: (id: string) => void;
+  onCopy: (value: string, id: string) => void;
+};
+
+const InventoryCredentialRow = memo(function InventoryCredentialRow({
+  cred,
+  meta,
+  isSensitive,
+  isRevealed,
+  isCopied,
+  onToggleSensitive,
+  onCopy,
+}: InventoryCredentialRowProps) {
+  const Icon = meta.icon;
+  const displayValue = isSensitive && !isRevealed ? "••••••••" : cred.value;
+  const isUrl = cred.type === "link_join" && cred.value?.startsWith("http");
+
+  return (
+    <div className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--border-soft)] bg-[var(--bg-app)]/50 group hover:border-[var(--accent)]/30 transition-colors">
+      <div
+        className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${
+          cred.type === "link_join"
+            ? "bg-blue-100"
+            : cred.type === "duolingo_id"
+              ? "bg-green-100"
+              : cred.type === "2fa"
+                ? "bg-amber-100"
+                : cred.type === "2fa_backup"
+                  ? "bg-red-100"
+                  : "bg-gray-100"
+        }`}
+      >
+        <Icon className={`size-4 ${meta.color}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider block">
+          {cred.label || meta.label}
+        </span>
+        {isUrl ? (
+          <a
+            href={cred.value}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[12px] font-mono font-medium text-blue-600 hover:underline truncate block max-w-[200px]"
+          >
+            {cred.value}
+          </a>
+        ) : (
+          <span className="text-[12px] font-mono font-medium text-[var(--fg-base)] truncate block max-w-[200px]">
+            {displayValue}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        {isSensitive ? (
+          <button
+            onClick={() => onToggleSensitive(cred.id)}
+            className="p-1 rounded hover:bg-gray-100 transition-colors"
+            title={isRevealed ? drawerText.hide : drawerText.show}
+          >
+            {isRevealed ? <EyeOff className="size-3 text-[var(--fg-muted)]" /> : <Eye className="size-3 text-[var(--fg-muted)]" />}
+          </button>
+        ) : null}
+        <button
+          onClick={() => onCopy(cred.value, cred.id)}
+          className="p-1 rounded hover:bg-gray-100 transition-colors"
+          title={drawerText.copy}
+        >
+          {isCopied ? <Check className="size-3 text-green-500" /> : <Copy className="size-3 text-[var(--fg-muted)]" />}
+        </button>
+        {isUrl ? (
+          <a
+            href={cred.value}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1 rounded hover:bg-gray-100 transition-colors"
+            title={drawerText.openLink}
+          >
+            <ExternalLink className="size-3 text-[var(--fg-muted)]" />
+          </a>
+        ) : null}
+      </div>
+    </div>
+  );
+});
+
 export function InventoryDetailDrawer({
   account,
   productMap,
-  providers,
+  providerById,
   onEdit,
   onRecalculate,
   isRecalculating,
   children,
 }: InventoryDetailDrawerProps) {
-  const text = vi.inventory.page.detailDrawer;
+  const text = drawerText;
   const [showPassword, setShowPassword] = useState(false);
   const [visibleSensitive, setVisibleSensitive] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -47,6 +148,17 @@ export function InventoryDetailDrawer({
 
   const decryptedCreds = decryptedSecrets?.credentials ?? [];
   const decryptedPassword = decryptedSecrets?.password ?? null;
+  const productNames = useMemo(
+    () => account.productIds.map((pid) => productMap.get(pid) || pid).join(", "),
+    [account.productIds, productMap],
+  );
+  const credentialValueByType = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const cred of decryptedCreds) {
+      if (!map.has(cred.type)) map.set(cred.type, cred.value);
+    }
+    return map;
+  }, [decryptedCreds]);
 
   useEffect(() => {
     setShowPassword(false);
@@ -61,13 +173,13 @@ export function InventoryDetailDrawer({
     setTimeout(() => setCopiedId(null), 2000);
   }, [text.copy]);
 
-  const toggleSensitive = (id: string) => {
+  const toggleSensitive = useCallback((id: string) => {
     setVisibleSensitive(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-  };
+  }, []);
 
   // Compute expiry info
   const [now] = useState(() => Date.now());
@@ -79,11 +191,11 @@ export function InventoryDetailDrawer({
   const isFull = account.usedSlots >= account.maxSlots;
   const freeSlots = Math.max(0, account.maxSlots - account.usedSlots);
 
-  const providerName = providers.find(p => p.id === account.provider)?.name || account.provider;
+  const providerName = providerById.get(account.provider)?.name || account.provider;
 
   // Find invite link from credentials
-  const inviteLink = decryptedCreds.find(c => c.type === "link_join")?.value;
-  const duolingoInfo = decryptedCreds.find(c => c.type === "duolingo_id")?.value;
+  const inviteLink = credentialValueByType.get("link_join");
+  const duolingoInfo = credentialValueByType.get("duolingo_id");
 
   return (
     <div className="space-y-5">
@@ -115,7 +227,7 @@ export function InventoryDetailDrawer({
           <InfoRow label={text.provider} value={providerName} />
           <InfoRow
             label={text.products}
-            value={account.productIds.map(pid => productMap.get(pid) || pid).join(', ')}
+            value={productNames}
           />
           {decryptedPassword && (
             <div className="flex justify-between items-center">
@@ -235,77 +347,22 @@ export function InventoryDetailDrawer({
             </div>
           ) : (
             <div className="space-y-2">
-              {decryptedCreds.map(cred => {
+              {decryptedCreds.map((cred) => {
                 const meta = CRED_META[cred.type as WarehouseCredentialType] || CRED_META.other;
-                const Icon = meta.icon;
                 const isSensitive = meta.sensitive;
                 const isRevealed = visibleSensitive.has(cred.id);
-                const displayValue = isSensitive && !isRevealed ? "••••••••" : cred.value;
-                const isUrl = cred.type === 'link_join' && cred.value?.startsWith('http');
 
                 return (
-                  <div
+                  <InventoryCredentialRow
                     key={cred.id}
-                    className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--border-soft)] bg-[var(--bg-app)]/50 group hover:border-[var(--accent)]/30 transition-colors"
-                  >
-                    <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      cred.type === 'link_join' ? 'bg-blue-100'
-                        : cred.type === 'duolingo_id' ? 'bg-green-100'
-                        : cred.type === '2fa' ? 'bg-amber-100'
-                        : cred.type === '2fa_backup' ? 'bg-red-100'
-                        : 'bg-gray-100'
-                    }`}>
-                      <Icon className={`size-4 ${meta.color}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider block">
-                        {cred.label || meta.label}
-                      </span>
-                      {isUrl ? (
-                        <a
-                          href={cred.value}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[12px] font-mono font-medium text-blue-600 hover:underline truncate block max-w-[200px]"
-                        >
-                          {cred.value}
-                        </a>
-                      ) : (
-                        <span className="text-[12px] font-mono font-medium text-[var(--fg-base)] truncate block max-w-[200px]">
-                          {displayValue}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {isSensitive && (
-                      <button
-                        onClick={() => toggleSensitive(cred.id)}
-                        className="p-1 rounded hover:bg-gray-100 transition-colors"
-                        title={isRevealed ? text.hide : text.show}
-                      >
-                        {isRevealed ? <EyeOff className="size-3 text-[var(--fg-muted)]" /> : <Eye className="size-3 text-[var(--fg-muted)]" />}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleCopy(cred.value, cred.id)}
-                      className="p-1 rounded hover:bg-gray-100 transition-colors"
-                      title={text.copy}
-                    >
-                      {copiedId === cred.id ? <Check className="size-3 text-green-500" /> : <Copy className="size-3 text-[var(--fg-muted)]" />}
-                    </button>
-                    {isUrl && (
-                      <a
-                        href={cred.value}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 rounded hover:bg-gray-100 transition-colors"
-                        title={text.openLink}
-                      >
-                        <ExternalLink className="size-3 text-[var(--fg-muted)]" />
-                      </a>
-                    )}
-                    </div>
-                  </div>
+                    cred={cred}
+                    meta={meta}
+                    isSensitive={Boolean(isSensitive)}
+                    isRevealed={isRevealed}
+                    isCopied={copiedId === cred.id}
+                    onToggleSensitive={toggleSensitive}
+                    onCopy={handleCopy}
+                  />
                 );
               })}
             </div>
@@ -356,7 +413,7 @@ export function InventoryDetailDrawer({
 }
 
 // Helper row component
-function InfoRow({
+const InfoRow = memo(function InfoRow({
   label,
   value,
   copyable,
@@ -386,4 +443,4 @@ function InfoRow({
       </div>
     </div>
   );
-}
+});

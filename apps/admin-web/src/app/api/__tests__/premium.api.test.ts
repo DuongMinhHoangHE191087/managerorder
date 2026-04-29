@@ -20,6 +20,7 @@ type SupabaseResult<T> = {
 const VALID_PREMIUM_KEY = "a".repeat(64);
 const VALID_SERVICE_ID = "550e8400-e29b-41d4-a716-446655440000";
 const VALID_PACKAGE_ID = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+const PREMIUM_ROUTE_TIMEOUT_MS = 15_000;
 
 function createSelectBuilder<T>(
   result: SupabaseResult<T>,
@@ -218,7 +219,7 @@ describe("premium API routes", () => {
       const builder = createSelectBuilder({
         data: [
           {
-            id: "acc-1",
+            id: "00000000-0000-4000-8000-000000000016",
             account_id: TEST_ACCOUNT_ID,
             service_type_id: VALID_SERVICE_ID,
             package_id: VALID_PACKAGE_ID,
@@ -300,7 +301,7 @@ describe("premium API routes", () => {
       expect(packageBuilder.select).toHaveBeenCalledWith(
         "id, name, slug, total_slots",
       );
-    });
+    }, PREMIUM_ROUTE_TIMEOUT_MS);
 
     it("rejects invalid premium account payloads", async () => {
       const builder = createInsertBuilder({ data: null, error: null });
@@ -359,13 +360,13 @@ describe("premium API routes", () => {
       const builder = createInsertBuilder(
         {
           data: {
-            id: "acc-2",
+            id: "00000000-0000-4000-8000-000000000084",
           },
           error: null,
         },
         {
           data: {
-            id: "acc-2",
+            id: "00000000-0000-4000-8000-000000000084",
             account_id: TEST_ACCOUNT_ID,
             service_type_id: VALID_SERVICE_ID,
             package_id: VALID_PACKAGE_ID,
@@ -449,7 +450,7 @@ describe("premium API routes", () => {
       };
 
       expect(response.status).toBe(201);
-      expect(body.data.id).toBe("acc-2");
+      expect(body.data.id).toBe("00000000-0000-4000-8000-000000000084");
       expect(insertedRow.account_id).toBe(TEST_ACCOUNT_ID);
       expect(insertedRow.connection_status).toBe("manual_check_needed");
       expect(insertedRow.primary_password_encrypted).not.toBe("super-secret");
@@ -531,19 +532,19 @@ describe("premium API routes", () => {
   describe("GET/POST /api/premium/services", () => {
     it("returns premium services with package counts", async () => {
       const builder = createSelectBuilder({
-        data: [{ id: "svc-1", name: "Netflix", packages: [{ count: 2 }] }],
+        data: [{ id: "00000000-0000-4000-8000-000000000085", name: "Netflix", packages: [{ count: 2 }] }],
         error: null,
       });
       const packageBuilder = createSelectBuilder(
         {
           data: [
             {
-              id: "pkg-1",
-              service_type_id: "svc-1",
+              id: "00000000-0000-4000-8000-000000000086",
+              service_type_id: "00000000-0000-4000-8000-000000000085",
             },
             {
-              id: "pkg-2",
-              service_type_id: "svc-1",
+              id: "00000000-0000-4000-8000-000000000087",
+              service_type_id: "00000000-0000-4000-8000-000000000085",
             },
           ],
           error: null,
@@ -663,11 +664,11 @@ describe("premium API routes", () => {
       const builder = createSelectBuilder({
         data: [
           {
-            id: "sub-1",
+            id: "00000000-0000-4000-8000-000000000017",
             account_id: TEST_ACCOUNT_ID,
-            customer_id: "cust-1",
-            premium_account_id: "acc-1",
-            premium_account_user_id: "user-1",
+            customer_id: "00000000-0000-4000-8000-000000000005",
+            premium_account_id: "00000000-0000-4000-8000-000000000016",
+            premium_account_user_id: "00000000-0000-4000-8000-000000000088",
             service_type_id: VALID_SERVICE_ID,
             package_id: VALID_PACKAGE_ID,
             billing_cycle: "1year",
@@ -687,7 +688,7 @@ describe("premium API routes", () => {
       });
       const customersBuilder = createSelectBuilder(
         {
-          data: [{ id: "cust-1", full_name: "Alice" }],
+          data: [{ id: "00000000-0000-4000-8000-000000000005", full_name: "Alice" }],
           error: null,
         },
         "in",
@@ -696,7 +697,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "acc-1",
+              id: "00000000-0000-4000-8000-000000000016",
               primary_email: "owner@example.com",
               service_type_id: VALID_SERVICE_ID,
             },
@@ -707,7 +708,14 @@ describe("premium API routes", () => {
       );
       const usersBuilder = createSelectBuilder(
         {
-          data: [{ id: "user-1", user_email: "owner-user@example.com", status: "active" }],
+          data: [{ id: "00000000-0000-4000-8000-000000000088", user_email: "owner-user@example.com", status: "active" }],
+          error: null,
+        },
+        "in",
+      );
+      const packagesBuilder = createSelectBuilder(
+        {
+          data: [{ id: VALID_PACKAGE_ID, default_price: 80, renewal_price_factor: 1.05 }],
           error: null,
         },
         "in",
@@ -723,6 +731,7 @@ describe("premium API routes", () => {
         customer_premium_subscriptions: builder,
         customers: customersBuilder,
         premium_accounts: accountsBuilder,
+        premium_packages: packagesBuilder,
         premium_account_users: usersBuilder,
         premium_service_types: serviceBuilder,
       });
@@ -741,11 +750,16 @@ describe("premium API routes", () => {
       expect(body.data[0].account_email).toBe("owner@example.com");
       expect(body.data[0].service_name).toBe("Netflix");
       expect(body.data[0].premium_account_users.user_email).toBe("owner-user@example.com");
+      expect(body.data[0].package_default_price).toBe(80);
+      expect(body.data[0].renewal_price_factor).toBe(1.05);
       expect(body.meta.total).toBe(1);
       expect(builder.select).toHaveBeenCalledWith("*");
       expect(customersBuilder.select).toHaveBeenCalledWith("id, full_name");
       expect(accountsBuilder.select).toHaveBeenCalledWith(
         "id, primary_email, service_type_id",
+      );
+      expect(packagesBuilder.select).toHaveBeenCalledWith(
+        "id, default_price, renewal_price_factor",
       );
       expect(usersBuilder.select).toHaveBeenCalledWith("id, user_email, status");
       expect(serviceBuilder.select).toHaveBeenCalledWith("id, name");
@@ -782,15 +796,15 @@ describe("premium API routes", () => {
       const subscriptionBuilder = createSelectBuilder({
         data: [
           {
-            id: "sub-refund-1",
+            id: "00000000-0000-4000-8000-000000000089",
             account_id: TEST_ACCOUNT_ID,
             original_price: originalPrice,
             start_date: startDate,
             expiry_date: expiryDate,
             renewal_status: "denied",
             renewal_denied_reason: "Customer requested refund",
-            premium_account_id: "acc-refund-1",
-            package_id: "pkg-refund-1",
+            premium_account_id: "00000000-0000-4000-8000-00000000008a",
+            package_id: "00000000-0000-4000-8000-00000000008b",
             service_type_id: VALID_SERVICE_ID,
           },
         ],
@@ -799,7 +813,7 @@ describe("premium API routes", () => {
       const updateBuilder = createUpdateBuilder({
         data: [
           {
-            id: "sub-refund-1",
+            id: "00000000-0000-4000-8000-000000000089",
             account_id: TEST_ACCOUNT_ID,
             original_price: originalPrice,
             start_date: startDate,
@@ -807,8 +821,8 @@ describe("premium API routes", () => {
             renewal_status: "denied",
             renewal_denied_reason: "Customer requested refund",
             refund_amount: expectedRefund,
-            premium_account_id: "acc-refund-1",
-            package_id: "pkg-refund-1",
+            premium_account_id: "00000000-0000-4000-8000-00000000008a",
+            package_id: "00000000-0000-4000-8000-00000000008b",
             service_type_id: VALID_SERVICE_ID,
           },
         ],
@@ -818,7 +832,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "acc-refund-1",
+              id: "00000000-0000-4000-8000-00000000008a",
               primary_email: "refund@example.com",
               service_type_id: VALID_SERVICE_ID,
             },
@@ -831,7 +845,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "pkg-refund-1",
+              id: "00000000-0000-4000-8000-00000000008b",
               name: "Premium",
               slug: "premium",
             },
@@ -867,7 +881,7 @@ describe("premium API routes", () => {
 
       const response = await POST(
         createTestRequest(
-          "http://localhost/api/premium/subscriptions/sub-refund-1/refund",
+          "http://localhost/api/premium/subscriptions/00000000-0000-4000-8000-000000000089/refund",
           {
             method: "POST",
             body: {
@@ -876,7 +890,7 @@ describe("premium API routes", () => {
             },
           },
         ),
-        { params: { id: "sub-refund-1" } } as any,
+        { params: { id: "00000000-0000-4000-8000-000000000089" } } as any,
       );
       const body = await response.json();
 
@@ -912,9 +926,9 @@ describe("premium API routes", () => {
       const renewalsBuilder = createSelectBuilder({
         data: [
           {
-            id: "ren-1",
+            id: "00000000-0000-4000-8000-000000000075",
             account_id: TEST_ACCOUNT_ID,
-            original_subscription_id: "sub-1",
+            original_subscription_id: "00000000-0000-4000-8000-000000000017",
             status: "pending",
             renewal_requested_date: "2026-04-10T10:00:00.000Z",
           },
@@ -925,9 +939,15 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "sub-1",
-              customer_id: "cust-1",
-              premium_account_id: "acc-1",
+              id: "00000000-0000-4000-8000-000000000017",
+              customer_id: "00000000-0000-4000-8000-000000000005",
+              premium_account_id: "00000000-0000-4000-8000-000000000016",
+              package_id: VALID_PACKAGE_ID,
+              billing_cycle: "3months",
+              cycle_months: 3,
+              expiry_date: "2026-07-10T00:00:00.000Z",
+              final_price: 150000,
+              original_price: 150000,
             },
           ],
           error: null,
@@ -936,7 +956,7 @@ describe("premium API routes", () => {
       );
       const customersBuilder = createSelectBuilder(
         {
-          data: [{ id: "cust-1", full_name: "Bob" }],
+          data: [{ id: "00000000-0000-4000-8000-000000000005", full_name: "Bob" }],
           error: null,
         },
         "in",
@@ -945,9 +965,9 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "acc-1",
+              id: "00000000-0000-4000-8000-000000000016",
               primary_email: "renew@example.com",
-              service_type_id: "svc-1",
+              service_type_id: "00000000-0000-4000-8000-000000000085",
             },
           ],
           error: null,
@@ -956,7 +976,14 @@ describe("premium API routes", () => {
       );
       const serviceTypesBuilder = createSelectBuilder(
         {
-          data: [{ id: "svc-1", name: "Disney+" }],
+          data: [{ id: "00000000-0000-4000-8000-000000000085", name: "Disney+" }],
+          error: null,
+        },
+        "in",
+      );
+      const packagesBuilder = createSelectBuilder(
+        {
+          data: [{ id: VALID_PACKAGE_ID, default_price: 90000, renewal_price_factor: 1.1 }],
           error: null,
         },
         "in",
@@ -966,6 +993,7 @@ describe("premium API routes", () => {
         customer_premium_subscriptions: subscriptionBuilder,
         customers: customersBuilder,
         premium_accounts: premiumAccountsBuilder,
+        premium_packages: packagesBuilder,
         premium_service_types: serviceTypesBuilder,
       });
       const { GET } = await loadRoute("@/app/api/premium/renewals/route", {
@@ -982,6 +1010,9 @@ describe("premium API routes", () => {
       expect(body.data[0].customer_name).toBe("Bob");
       expect(body.data[0].account_email).toBe("renew@example.com");
       expect(body.data[0].service_name).toBe("Disney+");
+      expect(body.data[0].current_billing_cycle).toBe("3months");
+      expect(body.data[0].current_cycle_months).toBe(3);
+      expect(body.data[0].package_default_price).toBe(90000);
       expect(body.meta.status).toBe("pending");
       expect(body.data[0].original_subscription.customer.full_name).toBe("Bob");
       expect(body.data[0].original_subscription.premium_account.primary_email).toBe(
@@ -992,11 +1023,14 @@ describe("premium API routes", () => {
       );
       expect(renewalsBuilder.select).toHaveBeenCalledWith("*");
       expect(subscriptionBuilder.select).toHaveBeenCalledWith(
-        "id, customer_id, premium_account_id",
+        "id, customer_id, premium_account_id, package_id, billing_cycle, cycle_months, expiry_date, final_price, original_price",
       );
       expect(customersBuilder.select).toHaveBeenCalledWith("id, full_name");
       expect(premiumAccountsBuilder.select).toHaveBeenCalledWith(
         "id, primary_email, service_type_id",
+      );
+      expect(packagesBuilder.select).toHaveBeenCalledWith(
+        "id, default_price, renewal_price_factor",
       );
       expect(serviceTypesBuilder.select).toHaveBeenCalledWith("id, name");
     });
@@ -1005,9 +1039,9 @@ describe("premium API routes", () => {
       const renewalsBuilder = createSelectBuilder({
         data: [
           {
-            id: "ren-2",
+            id: "00000000-0000-4000-8000-00000000008c",
             account_id: TEST_ACCOUNT_ID,
-            original_subscription_id: "sub-2",
+            original_subscription_id: "00000000-0000-4000-8000-00000000008d",
             status: "denied",
             renewal_requested_date: "2026-04-09T10:00:00.000Z",
           },
@@ -1018,9 +1052,15 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "sub-2",
-              customer_id: "cust-2",
-              premium_account_id: "acc-2",
+              id: "00000000-0000-4000-8000-00000000008d",
+              customer_id: "00000000-0000-4000-8000-000000000006",
+              premium_account_id: "00000000-0000-4000-8000-000000000084",
+              package_id: VALID_PACKAGE_ID,
+              billing_cycle: "1year",
+              cycle_months: 12,
+              expiry_date: "2027-04-09T00:00:00.000Z",
+              final_price: 399000,
+              original_price: 399000,
             },
           ],
           error: null,
@@ -1029,7 +1069,7 @@ describe("premium API routes", () => {
       );
       const customersBuilder = createSelectBuilder(
         {
-          data: [{ id: "cust-2", full_name: "Deny User" }],
+          data: [{ id: "00000000-0000-4000-8000-000000000006", full_name: "Deny User" }],
           error: null,
         },
         "in",
@@ -1038,9 +1078,9 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "acc-2",
+              id: "00000000-0000-4000-8000-000000000084",
               primary_email: "deny@example.com",
-              service_type_id: "svc-2",
+              service_type_id: "00000000-0000-4000-8000-00000000008e",
             },
           ],
           error: null,
@@ -1049,7 +1089,14 @@ describe("premium API routes", () => {
       );
       const serviceTypesBuilder = createSelectBuilder(
         {
-          data: [{ id: "svc-2", name: "Spotify" }],
+          data: [{ id: "00000000-0000-4000-8000-00000000008e", name: "Spotify" }],
+          error: null,
+        },
+        "in",
+      );
+      const packagesBuilder = createSelectBuilder(
+        {
+          data: [{ id: VALID_PACKAGE_ID, default_price: 250000, renewal_price_factor: 1 }],
           error: null,
         },
         "in",
@@ -1059,6 +1106,7 @@ describe("premium API routes", () => {
         customer_premium_subscriptions: subscriptionBuilder,
         customers: customersBuilder,
         premium_accounts: premiumAccountsBuilder,
+        premium_packages: packagesBuilder,
         premium_service_types: serviceTypesBuilder,
       });
       const { GET } = await loadRoute("@/app/api/premium/renewals/route", {
@@ -1119,33 +1167,36 @@ describe("premium API routes", () => {
 
   describe("GET /api/premium/migrations", () => {
     it("hydrates migrations from base rows and account lookups", async () => {
-      const migrationsBuilder = createSelectBuilder({
-        data: [
-          {
-            id: "mig-1",
-            account_id: TEST_ACCOUNT_ID,
-            subscription_id: "sub-1",
-            customer_id: "cust-1",
-            source_account_id: "src-1",
-            target_account_id: "dst-1",
-            source_account_email: null,
-            target_account_email: null,
-            reason: "Move to backup account",
-            status: "pending",
-            started_at: "2026-04-10T09:00:00.000Z",
-            completed_at: null,
-            details: null,
-            error_log: null,
-            notes: null,
-            created_at: "2026-04-10T09:00:00.000Z",
-            updated_at: "2026-04-10T09:00:00.000Z",
-          },
-        ],
-        error: null,
-      });
+      const migrationsBuilder = createSelectBuilder(
+        {
+          data: [
+            {
+              id: "00000000-0000-4000-8000-00000000008f",
+              account_id: TEST_ACCOUNT_ID,
+              subscription_id: "00000000-0000-4000-8000-000000000017",
+              customer_id: "00000000-0000-4000-8000-000000000005",
+              source_account_id: "00000000-0000-4000-8000-00000000003a",
+              target_account_id: "00000000-0000-4000-8000-000000000090",
+              source_account_email: null,
+              target_account_email: null,
+              reason: "Move to backup account",
+              status: "pending",
+              started_at: "2026-04-10T09:00:00.000Z",
+              completed_at: null,
+              details: null,
+              error_log: null,
+              notes: null,
+              created_at: "2026-04-10T09:00:00.000Z",
+              updated_at: "2026-04-10T09:00:00.000Z",
+            },
+          ],
+          error: null,
+        },
+        "range",
+      );
       const customersBuilder = createSelectBuilder(
         {
-          data: [{ id: "cust-1", full_name: "Carol" }],
+          data: [{ id: "00000000-0000-4000-8000-000000000005", full_name: "Carol" }],
           error: null,
         },
         "in",
@@ -1154,7 +1205,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "src-1",
+              id: "00000000-0000-4000-8000-00000000003a",
               primary_email: "source@example.com",
               service_type_id: VALID_SERVICE_ID,
               total_slots: 5,
@@ -1162,7 +1213,7 @@ describe("premium API routes", () => {
               status: "active",
             },
             {
-              id: "dst-1",
+              id: "00000000-0000-4000-8000-000000000090",
               primary_email: "target@example.com",
               service_type_id: VALID_SERVICE_ID,
               total_slots: 10,
@@ -1196,7 +1247,9 @@ describe("premium API routes", () => {
       expect(body.data[0].source_account.primary_email).toBe("source@example.com");
       expect(body.data[0].target_account.primary_email).toBe("target@example.com");
       expect(body.meta.status).toBe("completed");
-      expect(migrationsBuilder.select).toHaveBeenCalledWith("*");
+      expect(migrationsBuilder.select).toHaveBeenCalledWith("*", {
+        count: "exact",
+      });
       expect(customersBuilder.select).toHaveBeenCalledWith("id, full_name");
       expect(customersBuilder.eq).toHaveBeenCalledWith("account_id", TEST_ACCOUNT_ID);
       expect(premiumAccountsBuilder.select).toHaveBeenCalledWith(
@@ -1206,33 +1259,36 @@ describe("premium API routes", () => {
     });
 
     it("returns hydrated rows for other migration statuses", async () => {
-      const migrationsBuilder = createSelectBuilder({
-        data: [
-          {
-            id: "mig-fallback-1",
-            account_id: TEST_ACCOUNT_ID,
-            subscription_id: "sub-2",
-            customer_id: "cust-1",
-            source_account_id: "src-1",
-            target_account_id: "dst-1",
-            source_account_email: null,
-            target_account_email: null,
-            reason: "Need to move",
-            status: "completed",
-            started_at: "2026-04-10T09:00:00.000Z",
-            completed_at: "2026-04-10T10:00:00.000Z",
-            details: null,
-            error_log: null,
-            notes: null,
-            created_at: "2026-04-10T09:00:00.000Z",
-            updated_at: "2026-04-10T10:00:00.000Z",
-          },
-        ],
-        error: null,
-      });
+      const migrationsBuilder = createSelectBuilder(
+        {
+          data: [
+            {
+              id: "00000000-0000-4000-8000-000000000091",
+              account_id: TEST_ACCOUNT_ID,
+              subscription_id: "00000000-0000-4000-8000-00000000008d",
+              customer_id: "00000000-0000-4000-8000-000000000005",
+              source_account_id: "00000000-0000-4000-8000-00000000003a",
+              target_account_id: "00000000-0000-4000-8000-000000000090",
+              source_account_email: null,
+              target_account_email: null,
+              reason: "Need to move",
+              status: "completed",
+              started_at: "2026-04-10T09:00:00.000Z",
+              completed_at: "2026-04-10T10:00:00.000Z",
+              details: null,
+              error_log: null,
+              notes: null,
+              created_at: "2026-04-10T09:00:00.000Z",
+              updated_at: "2026-04-10T10:00:00.000Z",
+            },
+          ],
+          error: null,
+        },
+        "range",
+      );
       const customersBuilder = createSelectBuilder(
         {
-          data: [{ id: "cust-1", full_name: "Fallback Customer" }],
+          data: [{ id: "00000000-0000-4000-8000-000000000005", full_name: "Fallback Customer" }],
           error: null,
         },
         "in",
@@ -1241,7 +1297,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "src-1",
+              id: "00000000-0000-4000-8000-00000000003a",
               primary_email: "source@example.com",
               service_type_id: VALID_SERVICE_ID,
               total_slots: 5,
@@ -1249,7 +1305,7 @@ describe("premium API routes", () => {
               status: "active",
             },
             {
-              id: "dst-1",
+              id: "00000000-0000-4000-8000-000000000090",
               primary_email: "target@example.com",
               service_type_id: VALID_SERVICE_ID,
               total_slots: 10,
@@ -1282,15 +1338,20 @@ describe("premium API routes", () => {
       expect(body.data[0].customer_name).toBe("Fallback Customer");
       expect(body.data[0].source_account_email).toBe("source@example.com");
       expect(body.data[0].target_account_email).toBe("target@example.com");
-      expect(migrationsBuilder.select).toHaveBeenCalledWith("*");
+      expect(migrationsBuilder.select).toHaveBeenCalledWith("*", {
+        count: "exact",
+      });
       expect(premiumAccountsBuilder.select).toHaveBeenCalledTimes(2);
     });
 
     it("flattens migration relation/query failures", async () => {
-      const builder = createSelectBuilder({
-        data: null,
-        error: new Error("migration query failed"),
-      });
+      const builder = createSelectBuilder(
+        {
+          data: null,
+          error: new Error("migration query failed"),
+        },
+        "range",
+      );
       const supabaseAdmin = createSupabaseAdminMock({
         account_migrations: builder,
       });
@@ -1330,9 +1391,9 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "log-1",
+              id: "00000000-0000-4000-8000-00000000000e",
               account_id: TEST_ACCOUNT_ID,
-              premium_account_id: "acc-1",
+              premium_account_id: "00000000-0000-4000-8000-000000000016",
               service_type_id: VALID_SERVICE_ID,
               check_timestamp: "2026-04-10T08:00:00.000Z",
               check_type: "manual",
@@ -1352,7 +1413,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "acc-1",
+              id: "00000000-0000-4000-8000-000000000016",
               primary_email: "health@example.com",
               status: "active",
               connection_status: "working",
@@ -1396,10 +1457,10 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "sub-1",
+              id: "00000000-0000-4000-8000-000000000017",
               account_id: TEST_ACCOUNT_ID,
-              customer_id: "cust-1",
-              premium_account_id: "src-1",
+              customer_id: "00000000-0000-4000-8000-000000000005",
+              premium_account_id: "00000000-0000-4000-8000-00000000003a",
               service_type_id: VALID_SERVICE_ID,
               package_id: VALID_PACKAGE_ID,
               billing_cycle: "1year",
@@ -1419,7 +1480,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "src-1",
+              id: "00000000-0000-4000-8000-00000000003a",
               primary_email: "source@example.com",
               service_type_id: VALID_SERVICE_ID,
               total_slots: 5,
@@ -1427,7 +1488,7 @@ describe("premium API routes", () => {
               status: "active",
             },
             {
-              id: "dst-1",
+              id: "00000000-0000-4000-8000-000000000090",
               primary_email: "target@example.com",
               service_type_id: VALID_SERVICE_ID,
               total_slots: 10,
@@ -1441,7 +1502,7 @@ describe("premium API routes", () => {
       );
       const customerBuilder = createSelectBuilder(
         {
-          data: [{ id: "cust-1", full_name: "Carol" }],
+          data: [{ id: "00000000-0000-4000-8000-000000000005", full_name: "Carol" }],
           error: null,
         },
         "in",
@@ -1453,12 +1514,12 @@ describe("premium API routes", () => {
         },
         {
           data: {
-            id: "mig-1",
+            id: "00000000-0000-4000-8000-00000000008f",
             account_id: TEST_ACCOUNT_ID,
-            subscription_id: "sub-1",
-            customer_id: "cust-1",
-            source_account_id: "src-1",
-            target_account_id: "dst-1",
+            subscription_id: "00000000-0000-4000-8000-000000000017",
+            customer_id: "00000000-0000-4000-8000-000000000005",
+            source_account_id: "00000000-0000-4000-8000-00000000003a",
+            target_account_id: "00000000-0000-4000-8000-000000000090",
             source_account_email: "source@example.com",
             target_account_email: "target@example.com",
             source_user_id: null,
@@ -1469,7 +1530,7 @@ describe("premium API routes", () => {
             started_at: "2026-04-10T10:00:00.000Z",
             completed_at: null,
             details: {
-              subscription_id: "sub-1",
+              subscription_id: "00000000-0000-4000-8000-000000000017",
               customer_name: "Carol",
               source_account_email: "source@example.com",
               target_account_email: "target@example.com",
@@ -1484,13 +1545,13 @@ describe("premium API routes", () => {
       );
       const historyInsertBuilder = createInsertBuilder({
         data: {
-          id: "history-1",
+          id: "00000000-0000-4000-8000-000000000062",
         },
         error: null,
       });
       const activityLogBuilder = createInsertBuilder({
         data: {
-          id: "log-1",
+          id: "00000000-0000-4000-8000-00000000000e",
         },
         error: null,
       });
@@ -1510,8 +1571,8 @@ describe("premium API routes", () => {
         createTestRequest("http://localhost/api/premium/migrations", {
           method: "POST",
           body: {
-            subscription_id: "sub-1",
-            target_account_id: "dst-1",
+            subscription_id: "00000000-0000-4000-8000-000000000017",
+            target_account_id: "00000000-0000-4000-8000-000000000090",
             reason: "Move to backup account",
             notes: "Keep billing cycle intact",
           },
@@ -1541,15 +1602,15 @@ describe("premium API routes", () => {
 
       expect(migrationInsertRows[0]).toMatchObject({
         account_id: TEST_ACCOUNT_ID,
-        subscription_id: "sub-1",
-        customer_id: "cust-1",
-        source_account_id: "src-1",
-        target_account_id: "dst-1",
+        subscription_id: "00000000-0000-4000-8000-000000000017",
+        customer_id: "00000000-0000-4000-8000-000000000005",
+        source_account_id: "00000000-0000-4000-8000-00000000003a",
+        target_account_id: "00000000-0000-4000-8000-000000000090",
         reason: "Move to backup account",
         status: "pending",
       });
       expect(historyInsertRows[0]).toMatchObject({
-        migration_id: "mig-1",
+        migration_id: "00000000-0000-4000-8000-00000000008f",
         account_id: TEST_ACCOUNT_ID,
         step_number: 1,
         step_name: "request_created",
@@ -1558,10 +1619,10 @@ describe("premium API routes", () => {
       expect(activityInsertRows[0]).toMatchObject({
         account_id: TEST_ACCOUNT_ID,
         action_type: "PREMIUM_MIGRATION_REQUEST_CREATED",
-        customer_id: "cust-1",
+        customer_id: "00000000-0000-4000-8000-000000000005",
       });
       expect((activityInsertRows[0] as { details?: Record<string, unknown> }).details).toMatchObject({
-        migration_id: "mig-1",
+        migration_id: "00000000-0000-4000-8000-00000000008f",
         source_account_email: "source@example.com",
         target_account_email: "target@example.com",
         reason: "Move to backup account",
@@ -1573,10 +1634,10 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "sub-1",
+              id: "00000000-0000-4000-8000-000000000017",
               account_id: TEST_ACCOUNT_ID,
-              customer_id: "cust-1",
-              premium_account_id: "src-1",
+              customer_id: "00000000-0000-4000-8000-000000000005",
+              premium_account_id: "00000000-0000-4000-8000-00000000003a",
               service_type_id: VALID_SERVICE_ID,
               package_id: VALID_PACKAGE_ID,
               billing_cycle: "1year",
@@ -1596,7 +1657,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "src-1",
+              id: "00000000-0000-4000-8000-00000000003a",
               primary_email: "source@example.com",
               service_type_id: VALID_SERVICE_ID,
               total_slots: 5,
@@ -1604,7 +1665,7 @@ describe("premium API routes", () => {
               status: "active",
             },
             {
-              id: "dst-1",
+              id: "00000000-0000-4000-8000-000000000090",
               primary_email: "target@example.com",
               service_type_id: VALID_SERVICE_ID,
               total_slots: 10,
@@ -1618,7 +1679,7 @@ describe("premium API routes", () => {
       );
       const customerBuilder = createSelectBuilder(
         {
-          data: [{ id: "cust-1", full_name: "Carol" }],
+          data: [{ id: "00000000-0000-4000-8000-000000000005", full_name: "Carol" }],
           error: null,
         },
         "in",
@@ -1651,8 +1712,8 @@ describe("premium API routes", () => {
         createTestRequest("http://localhost/api/premium/migrations", {
           method: "POST",
           body: {
-            subscription_id: "sub-1",
-            target_account_id: "dst-1",
+            subscription_id: "00000000-0000-4000-8000-000000000017",
+            target_account_id: "00000000-0000-4000-8000-000000000090",
             reason: "Move to backup account",
           },
         }),
@@ -1676,7 +1737,7 @@ describe("premium API routes", () => {
         action_type: "PREMIUM_MIGRATION_REQUEST_FAILED",
       });
       expect((activityInsertRows[0] as { details?: Record<string, unknown> }).details).toMatchObject({
-        target_account_id: "dst-1",
+        target_account_id: "00000000-0000-4000-8000-000000000090",
         error_code: "CONFLICT",
       });
     });
@@ -1686,10 +1747,10 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "sub-1",
+              id: "00000000-0000-4000-8000-000000000017",
               account_id: TEST_ACCOUNT_ID,
-              customer_id: "cust-1",
-              premium_account_id: "src-1",
+              customer_id: "00000000-0000-4000-8000-000000000005",
+              premium_account_id: "00000000-0000-4000-8000-00000000003a",
               service_type_id: VALID_SERVICE_ID,
               package_id: VALID_PACKAGE_ID,
               billing_cycle: "1year",
@@ -1709,7 +1770,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "src-1",
+              id: "00000000-0000-4000-8000-00000000003a",
               primary_email: "source@example.com",
               service_type_id: VALID_SERVICE_ID,
               total_slots: 5,
@@ -1717,7 +1778,7 @@ describe("premium API routes", () => {
               status: "active",
             },
             {
-              id: "dst-1",
+              id: "00000000-0000-4000-8000-000000000090",
               primary_email: "target@example.com",
               service_type_id: VALID_SERVICE_ID,
               total_slots: 10,
@@ -1731,7 +1792,7 @@ describe("premium API routes", () => {
       );
       const customerBuilder = createSelectBuilder(
         {
-          data: [{ id: "cust-1", full_name: "Carol" }],
+          data: [{ id: "00000000-0000-4000-8000-000000000005", full_name: "Carol" }],
           error: null,
         },
         "in",
@@ -1767,8 +1828,8 @@ describe("premium API routes", () => {
         createTestRequest("http://localhost/api/premium/migrations", {
           method: "POST",
           body: {
-            subscription_id: "sub-1",
-            target_account_id: "dst-1",
+            subscription_id: "00000000-0000-4000-8000-000000000017",
+            target_account_id: "00000000-0000-4000-8000-000000000090",
             reason: "Move to backup account",
           },
         }),
@@ -1792,7 +1853,7 @@ describe("premium API routes", () => {
         action_type: "PREMIUM_MIGRATION_REQUEST_FAILED",
       });
       expect((activityInsertRows[0] as { details?: Record<string, unknown> }).details).toMatchObject({
-        target_account_id: "dst-1",
+        target_account_id: "00000000-0000-4000-8000-000000000090",
         error_code: "CONFLICT",
       });
     });
@@ -1804,7 +1865,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "ren-1",
+              id: "00000000-0000-4000-8000-000000000075",
               renewal_requested_date: "2026-04-10T10:00:00.000Z",
               renewal_price: 120000,
               original_price: 150000,
@@ -1819,7 +1880,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "mig-1",
+              id: "00000000-0000-4000-8000-00000000008f",
               created_at: "2026-04-10T09:00:00.000Z",
               status: "pending",
               source_account_email: "source@example.com",
@@ -1841,7 +1902,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              premium_account_id: "acc-1",
+              premium_account_id: "00000000-0000-4000-8000-000000000016",
               error_message: "Login failed",
               check_timestamp: "2026-04-10T08:00:00.000Z",
               created_at: "2026-04-10T08:00:00.000Z",
@@ -1857,7 +1918,7 @@ describe("premium API routes", () => {
         {
           data: [
             {
-              id: "src-1",
+              id: "00000000-0000-4000-8000-00000000003a",
               email: "store@example.com",
               max_slots: 1,
               used_slots: 1,

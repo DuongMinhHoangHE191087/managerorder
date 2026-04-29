@@ -45,14 +45,22 @@ async function listProviderBaseRows(accountId: string): Promise<ProviderTableRow
   return (data ?? []) as unknown as ProviderTableRow[];
 }
 
-async function getProviderBaseRow(id: string, accountId: string): Promise<ProviderTableRow> {
-  const { data, error } = await supabase
+async function getProviderBaseRow(
+  id: string,
+  accountId: string,
+  includeDeleted = false,
+): Promise<ProviderTableRow> {
+  let query = supabase
     .from('providers')
     .select('id, account_id, name, contacts, tier, reliability_score, notes, deleted_at, created_at, updated_at')
     .eq('id', id)
-    .eq('account_id', accountId)
-    .is('deleted_at', null)
-    .single();
+    .eq('account_id', accountId);
+
+  if (!includeDeleted) {
+    query = query.is('deleted_at', null);
+  }
+
+  const { data, error } = await query.single();
 
   if (error) throw new Error(error.message);
   if (!data) throw new Error('Provider not found');
@@ -124,8 +132,12 @@ export async function listProviders(accountId: string): Promise<ProviderRow[]> {
   );
 }
 
-export async function getProviderById(id: string, accountId: string): Promise<ProviderRow> {
-  const provider = await getProviderBaseRow(id, accountId);
+export async function getProviderById(
+  id: string,
+  accountId: string,
+  options: { includeDeleted?: boolean } = {},
+): Promise<ProviderRow> {
+  const provider = await getProviderBaseRow(id, accountId, options.includeDeleted ?? false);
   const stats = await getProviderStats(accountId, [id]);
   return withStats(provider, stats.get(id));
 }

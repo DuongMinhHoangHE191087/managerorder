@@ -5,6 +5,10 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { formatDateCustom } from '@/lib/utils';
+import {
+  detectDeviceType as detectShortLinkDeviceType,
+  extractVisitorIp,
+} from '@/domains/short-links/services/visitor';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -24,33 +28,14 @@ interface FraudAlert {
 
 // ─── Device Detection ───────────────────────────────────────
 
-const BOT_PATTERNS = /bot|spider|crawler|curl|wget|python|httpie|postman|insomnia|zalo|facebookexternalhit|facebot|telegrambot|twitterbot|discordbot|linkedinbot|whatsapp|preview|slurp|ia_archiver/i;
-const MOBILE_PATTERNS = /mobile|android|iphone|ipad|ipod|opera mini|iemobile/i;
-const TABLET_PATTERNS = /tablet|ipad|nexus 7|nexus 10|kindle/i;
-
 export function detectDeviceType(ua: string | null): string {
-  if (!ua) return 'unknown';
-  if (BOT_PATTERNS.test(ua)) return 'bot';
-  // Check tablet first because mobile patterns often include 'ipad' or 'android' generically
-  if (TABLET_PATTERNS.test(ua)) return 'tablet';
-  if (MOBILE_PATTERNS.test(ua)) return 'mobile';
-  return 'desktop';
+  return detectShortLinkDeviceType(ua);
 }
 
 // ─── IP Extraction ──────────────────────────────────────────
 
 export function extractIP(headers: Headers): string {
-  // Priority: CF-Connecting-IP > X-Real-IP > X-Forwarded-For > fallback
-  const cfIp = headers.get('cf-connecting-ip');
-  if (cfIp) return cfIp.split(',')[0].trim();
-
-  const realIp = headers.get('x-real-ip');
-  if (realIp) return realIp.trim();
-
-  const forwarded = headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0].trim();
-
-  return '0.0.0.0';
+  return extractVisitorIp(headers).ipAddress;
 }
 
 // ─── Click Logger (Async, non-blocking) ─────────────────────
@@ -356,6 +341,7 @@ export async function getClickAnalytics(linkId: string) {
 
   const allClicks = clicks ?? [];
   const redirectClicks = allClicks.filter((click) => (click.event_type ?? 'redirect_click') === 'redirect_click');
+  const eventTypes: Record<string, number> = {};
 
   // 3. Build rich stats
   const uniqueIPs = new Set(redirectClicks.map(c => c.ip_address));
@@ -373,6 +359,11 @@ export async function getClickAnalytics(linkId: string) {
   const countries: Record<string, number> = {};
   const cities: Record<string, number> = {};
   const ipVersions: Record<string, number> = {};
+
+  for (const c of allClicks) {
+    const eventType = c.event_type ?? 'redirect_click';
+    eventTypes[eventType] = (eventTypes[eventType] ?? 0) + 1;
+  }
 
   for (const c of redirectClicks) {
     // Device
@@ -418,7 +409,7 @@ export async function getClickAnalytics(linkId: string) {
     const hourStart = new Date(now - i * 3600_000);
     const hourEnd = new Date(now - (i - 1) * 3600_000);
     const label = formatDateCustom(hourStart, { timeZone: 'Asia/Ho_Chi_Minh' }, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-    const count = allClicks.filter(c => {
+    const count = redirectClicks.filter(c => {
       const t = new Date(c.clicked_at).getTime();
       return t >= hourStart.getTime() && t < hourEnd.getTime();
     }).length;
@@ -432,17 +423,20 @@ export async function getClickAnalytics(linkId: string) {
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(dayStart.getTime() + 86400_000);
     const label = formatDateCustom(dayStart, { timeZone: 'Asia/Ho_Chi_Minh' }, { day: '2-digit', month: '2-digit' });
-    const count = allClicks.filter(c => {
+    const count = redirectClicks.filter(c => {
       const t = new Date(c.clicked_at).getTime();
       return t >= dayStart.getTime() && t < dayEnd.getTime();
     }).length;
     dailyTimeline.push({ day: label, count });
   }
 
+  const totalClickCount =
+    totalRedirectClicks ?? (redirectCountError ? totalAllTime ?? redirectClicks.length : redirectClicks.length);
+
   return {
     clicks: allClicks,
     stats: {
-      totalClicks: totalRedirectClicks ?? (redirectCountError ? totalAllTime : redirectClicks.length),
+      totalClicks: totalClickCount,
       uniqueIPs: uniqueIPs.size,
       suspiciousCount: suspicious,
       devices,
@@ -452,6 +446,11 @@ export async function getClickAnalytics(linkId: string) {
       countries,
       cities,
       ipVersions,
+      eventTypes,
+      realUserClicks: totalClickCount,
+      botPreviewCount: eventTypes.bot_preview ?? 0,
+      landingViewCount: eventTypes.landing_view ?? 0,
+      blockedCount: eventTypes.blocked ?? 0,
       hourlyTimeline,
       dailyTimeline,
     },

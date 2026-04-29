@@ -11,7 +11,8 @@ import {
 export const GET = withErrorHandler(
   withAccount<{ id: string }>(async (_request, { accountId, params }) => {
     const { id } = await params;
-    const data = await getCustomerForAccount(id, accountId);
+    const includeDeleted = new URL(_request.url).searchParams.get("include_deleted") === "1";
+    const data = await getCustomerForAccount(id, accountId, { includeDeleted });
     if (!data) {
       return NextResponse.json({ error: "Customer not found" }, { status: 404 });
     }

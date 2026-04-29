@@ -1,20 +1,28 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Search, CheckCircle, PackageSearch, CircleDollarSign, Pencil, Trash2, Eye, Power } from "lucide-react";
 import { appToast } from "@/shared/lib/toast";
 
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { PageContainer, PageHeader, StatsGrid, SurfaceCard } from "@/shared/ui/page-layout";
 import { formatMoney } from "@/lib/utils";
-import { Modal } from "@/shared/ui/modal";
 import { Button } from "@/shared/ui/button";
 import { Select } from "@/shared/ui/select";
 import { ActionMenu } from "@/shared/ui/action-menu";
+import { CreateActionFooter, CreateFlowDialog } from "@/shared/ui/create-flow-shell";
 import { vi } from "@/shared/messages/vi";
 import type { ProductService } from "@/lib/domain/types";
-import { useProducts, useDeleteProduct, useUpdateProduct } from "@/widgets/pages/products/hooks/use-products";
+import {
+  useDeleteProduct,
+  useProductDetail,
+  useProducts,
+  useUpdateProduct,
+} from "@/widgets/pages/products/hooks/use-products";
+import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
+import { hasSearchTokens, matchesSearchQuery } from "@/shared/lib/filtering/search";
 
 // ── Lazy-loaded modals ─────────────────────────────────────────────────────
 const ProductCreateModal = dynamic(() => import("@/widgets/pages/products/components/product-create-modal").then(m => ({ default: m.ProductCreateModal })), { ssr: false });
@@ -22,9 +30,16 @@ const ProductEditModal = dynamic(() => import("@/widgets/pages/products/componen
 
 export default function ProductsPage() {
   const productText = vi.products.page;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const trashMode = searchParams.get("trash") === "1";
+  const viewingProductId = searchParams.get("view");
   const { data: products = [], isLoading, isError } = useProducts();
   const { mutateAsync: deleteProduct } = useDeleteProduct();
   const { mutateAsync: updateProduct } = useUpdateProduct();
+  const { data: routedProduct } = useProductDetail(viewingProductId, trashMode);
+  const restoreItems = useRestoreItems();
+  const purgeItems = usePurgeItems();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductService | null>(null);
@@ -33,17 +48,25 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [modeFilter, setModeFilter] = useState("");
 
+  const activeViewingProduct = viewingProductId ? routedProduct ?? null : viewingProduct;
+
+  useEffect(() => {
+    if (viewingProductId && routedProduct) {
+      setViewingProduct(routedProduct);
+    }
+  }, [routedProduct, viewingProductId]);
+
   const filteredProducts = useMemo(() => products.filter(p => {
     if (modeFilter && p.mode !== modeFilter) return false;
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    // Search across multiple fields: name, mode, durationType, prices
-    return (
-      p.name.toLowerCase().includes(q) ||
-      p.mode.toLowerCase().includes(q) ||
-      (p.durationType && p.durationType.toLowerCase().includes(q)) ||
-      String(p.sellPriceVnd).includes(q) ||
-      String(p.buyPriceVnd).includes(q)
+    if (!hasSearchTokens(searchQuery)) return true;
+    return matchesSearchQuery(
+      searchQuery,
+      p.name,
+      p.mode,
+      p.durationType,
+      p.sellPriceVnd,
+      p.buyPriceVnd,
+      p.durationValue,
     );
   }), [products, modeFilter, searchQuery]);
 
@@ -73,6 +96,33 @@ export default function ProductsPage() {
     } catch {
       appToast.error(productText.toggleActiveError);
     }
+  }
+
+  function handleCloseViewingProduct() {
+    if (viewingProductId) {
+      router.replace("/products");
+    }
+    setViewingProduct(null);
+  }
+
+  async function handleRestoreViewingProduct() {
+    if (!activeViewingProduct) {
+      return;
+    }
+
+    await restoreItems.mutateAsync({ type: "products", ids: [activeViewingProduct.id] });
+    setViewingProduct(null);
+    router.replace("/products");
+  }
+
+  async function handlePurgeViewingProduct() {
+    if (!activeViewingProduct) {
+      return;
+    }
+
+    await purgeItems.mutateAsync({ type: "products", ids: [activeViewingProduct.id] });
+    setViewingProduct(null);
+    router.push("/trash?type=products");
   }
 
   return (
@@ -136,11 +186,13 @@ export default function ProductsPage() {
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
+                  data-testid="products-search"
                 />
               </div>
               <Select
                 value={modeFilter}
                 onChange={(e) => setModeFilter(e.target.value)}
+                data-testid="products-mode-filter"
                 className="h-11 !w-auto min-w-[11rem] rounded-xl text-[13px] font-bold"
               >
                 <option value="">{productText.allTypes}</option>
@@ -176,7 +228,7 @@ export default function ProductsPage() {
                 <PackageSearch className="size-12 text-[var(--fg-muted)] opacity-50 mb-3" />
                 <h3 className="text-[15px] font-bold text-[var(--fg-base)]">{productText.emptyTitle}</h3>
                 <p className="text-[13px] text-[var(--fg-muted)] mt-1">
-                  {searchQuery || modeFilter ? productText.emptyDescriptionWithFilter : productText.emptyDescriptionDefault}
+                  {hasSearchTokens(searchQuery) || modeFilter ? productText.emptyDescriptionWithFilter : productText.emptyDescriptionDefault}
                 </p>
               </div>
             ) : (
@@ -198,6 +250,8 @@ export default function ProductsPage() {
                   <div 
                     key={product.id} 
                     onClick={() => setViewingProduct(product)}
+                    data-testid="product-row"
+                    data-product-id={product.id}
                     className="group flex flex-col lg:grid lg:grid-cols-[minmax(0,3.5fr)_minmax(0,2fr)_minmax(0,3fr)_140px_100px] gap-4 items-center p-5 bg-[var(--surface-light)] border border-[var(--border-soft)] rounded-2xl hover:border-[var(--accent)]/50 hover:shadow-md transition-all cursor-pointer relative"
                   >
                     {/* name & Icon */}
@@ -301,50 +355,120 @@ export default function ProductsPage() {
       )}
 
       {/* ===== VIEW DETAIL MODAL ===== */}
-      <Modal isOpen={!!viewingProduct} onClose={() => setViewingProduct(null)} title={productText.detailModal.title} size="md">
-        {viewingProduct && (
+      <CreateFlowDialog
+        isOpen={!!activeViewingProduct}
+        onClose={handleCloseViewingProduct}
+        title={productText.detailModal.title}
+        description="Giữ detail ngắn gọn nhưng đủ để kiểm tra mode vận hành, giá bán, giá vốn và biên lợi nhuận."
+        size="lg"
+        footer={
+          trashMode && activeViewingProduct ? (
+            <div className="grid w-full gap-3 sm:grid-cols-3">
+              <Button variant="secondary" onClick={handleCloseViewingProduct}>
+                Đóng
+              </Button>
+              <Button
+                variant="primary"
+                isLoading={restoreItems.isPending}
+                onClick={() => void handleRestoreViewingProduct()}
+              >
+                Khôi phục
+              </Button>
+              <Button
+                variant="danger"
+                isLoading={purgeItems.isPending}
+                onClick={() => void handlePurgeViewingProduct()}
+              >
+                Xóa vĩnh viễn
+              </Button>
+            </div>
+          ) : (
+            <CreateActionFooter
+              primaryLabel="Đóng chi tiết"
+              onPrimary={handleCloseViewingProduct}
+            />
+          )
+        }
+      >
+        {activeViewingProduct && (
           <div className="space-y-5">
-            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-[var(--accent)]/5 to-transparent rounded-xl border border-[var(--accent)]/20">
-              <div className="size-14 bg-[var(--accent)]/10 rounded-2xl flex items-center justify-center text-[var(--accent)]">
+            {trashMode ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[13px] font-medium text-amber-700">
+                Sản phẩm này đang nằm trong thùng rác. Bạn có thể khôi phục hoặc xóa vĩnh viễn từ chính màn này.
+              </div>
+            ) : null}
+            <div className="flex items-center gap-4 rounded-xl border border-[var(--accent)]/20 bg-gradient-to-r from-[var(--accent)]/5 to-transparent p-4">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
                 <span className="material-symbols-outlined text-[28px]">diamond</span>
               </div>
               <div>
-                <h3 className="text-[18px] font-black text-[var(--fg-base)] tracking-tight">{viewingProduct.name}</h3>
-                <p className="text-[13px] text-[var(--fg-muted)] font-medium capitalize">{productText.detailModal.typeLabel} {viewingProduct.mode} • {viewingProduct.durationValue} {viewingProduct.durationType === "months" ? productText.durationUnits.months.toLowerCase() : viewingProduct.durationType === "years" ? productText.durationUnits.years.toLowerCase() : productText.durationUnits.days.toLowerCase()}</p>
+                <h3 className="text-[18px] font-black tracking-tight text-[var(--fg-base)]">{activeViewingProduct.name}</h3>
+                <p className="text-[13px] font-medium capitalize text-[var(--fg-muted)]">
+                  {productText.detailModal.typeLabel} {activeViewingProduct.mode} • {activeViewingProduct.durationValue}{" "}
+                  {activeViewingProduct.durationType === "months"
+                    ? productText.durationUnits.months.toLowerCase()
+                    : activeViewingProduct.durationType === "years"
+                      ? productText.durationUnits.years.toLowerCase()
+                      : productText.durationUnits.days.toLowerCase()}
+                </p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-[var(--surface-light)] border border-[var(--border-soft)]">
-                <p className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-1">{productText.detailModal.buyPrice}</p>
-                <p className="text-lg font-black text-[var(--fg-base)]">{formatMoney(viewingProduct.buyPriceVnd)}</p>
+              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                  {productText.detailModal.buyPrice}
+                </p>
+                <p className="text-lg font-black text-[var(--fg-base)]">{formatMoney(activeViewingProduct.buyPriceVnd)}</p>
               </div>
-              <div className="p-4 rounded-xl bg-[var(--surface-light)] border border-[var(--border-soft)]">
-                <p className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-1">{productText.detailModal.sellPrice}</p>
-                <p className="text-lg font-black text-[var(--accent)]">{formatMoney(viewingProduct.sellPriceVnd)}</p>
+              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                  {productText.detailModal.sellPrice}
+                </p>
+                <p className="text-lg font-black text-[var(--accent)]">{formatMoney(activeViewingProduct.sellPriceVnd)}</p>
               </div>
             </div>
-            <div className="p-4 rounded-xl bg-[var(--accent)]/5 border border-[var(--accent)]/20">
-              <p className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-1">{productText.detailModal.profit}</p>
+            <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                {productText.detailModal.profit}
+              </p>
               <p className="text-2xl font-black text-[var(--accent)]">
-                {formatMoney(viewingProduct.sellPriceVnd - viewingProduct.buyPriceVnd)}
-                <span className="text-sm ml-2 font-bold opacity-70">
-                  ({viewingProduct.sellPriceVnd > 0 ? Math.round(((viewingProduct.sellPriceVnd - viewingProduct.buyPriceVnd) / viewingProduct.sellPriceVnd) * 100) : 0}%)
+                {formatMoney(activeViewingProduct.sellPriceVnd - activeViewingProduct.buyPriceVnd)}
+                <span className="ml-2 text-sm font-bold opacity-70">
+                  (
+                  {activeViewingProduct.sellPriceVnd > 0
+                    ? Math.round(
+                        ((activeViewingProduct.sellPriceVnd - activeViewingProduct.buyPriceVnd) / activeViewingProduct.sellPriceVnd) * 100,
+                      )
+                    : 0}
+                  %)
                 </span>
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${viewingProduct.isActive ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "bg-[var(--danger)]/10 text-[var(--danger)]"}`}>
-                <span className={`size-2 rounded-full ${viewingProduct.isActive ? "bg-[var(--accent)]" : "bg-[var(--danger)]"}`}></span>
-                {viewingProduct.isActive ? productText.detailModal.active : productText.detailModal.inactive}
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider ${
+                  activeViewingProduct.isActive
+                    ? "bg-[var(--accent)]/10 text-[var(--accent)]"
+                    : "bg-[var(--danger)]/10 text-[var(--danger)]"
+                }`}
+              >
+                <span className={`size-2 rounded-full ${activeViewingProduct.isActive ? "bg-[var(--accent)]" : "bg-[var(--danger)]"}`} />
+                {activeViewingProduct.isActive ? productText.detailModal.active : productText.detailModal.inactive}
               </span>
-              <span className="text-[11px] text-[var(--fg-muted)] font-medium">{productText.detailModal.idLabel} {viewingProduct.id}</span>
+              <span className="text-[11px] font-medium text-[var(--fg-muted)]">
+                {productText.detailModal.idLabel} {activeViewingProduct.id}
+              </span>
             </div>
           </div>
         )}
-      </Modal>
+      </CreateFlowDialog>
 
       {/* ===== DELETE CONFIRMATION ===== */}
-      <Modal isOpen={!!deletingProduct} onClose={() => setDeletingProduct(null)} title={productText.deleteModal.title} size="sm"
+      <CreateFlowDialog
+        isOpen={!!deletingProduct}
+        onClose={() => setDeletingProduct(null)}
+        title={productText.deleteModal.title}
+        size="md"
         footer={
           <div className="flex justify-end gap-3">
             <Button variant="secondary" onClick={() => setDeletingProduct(null)}>{productText.deleteModal.cancel}</Button>
@@ -361,7 +485,7 @@ export default function ProductsPage() {
             {productText.deleteModal.warning(deletingProduct?.name ?? "")}
           </p>
         </div>
-      </Modal>
+      </CreateFlowDialog>
 
 
     </AppLayout>

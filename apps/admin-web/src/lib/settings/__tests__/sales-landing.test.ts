@@ -18,6 +18,8 @@ describe("sales landing settings", () => {
     expect(normalized.offers[0].label).toBe("Custom");
     expect(normalized.offers[0].href).toBe("https://example.com");
     expect(normalized.offers[1].label).toBe(DEFAULT_SALES_LANDING_CONFIG.offers[1].label);
+    expect(normalized.shortLinkFailureDefaults.defaultTemplateKey).toBe("customer_offer_wall");
+    expect(normalized.shortLinkFailureDefaults.customerOfferCtaHref).toBe("https://duongminhhoang.store");
   });
 
   it("builds renderable offers with default styles and custom href", () => {
@@ -62,6 +64,21 @@ describe("sales landing settings", () => {
     expect(config.offers[0].label).toBe("Netflix 1 tháng");
     expect(config.offers[0].price).toBe("88k/tháng");
     expect(config.offers[0].href).toBe("https://example.com/netflix");
+    expect(config.shortLinkFailureDefaults.defaultTemplateKey).toBe("customer_offer_wall");
+  });
+
+  it("normalizes short-link failure defaults", () => {
+    const normalized = normalizeSalesLandingConfig({
+      shortLinkFailureDefaults: {
+        defaultTemplateKey: "seller_unlock_request",
+        customerOfferCtaHref: "not-a-url",
+        sellerUnlockMessage: "Hỏi người bán để mở lại",
+      },
+    });
+
+    expect(normalized.shortLinkFailureDefaults.defaultTemplateKey).toBe("seller_unlock_request");
+    expect(normalized.shortLinkFailureDefaults.customerOfferCtaHref).toBe("https://duongminhhoang.store");
+    expect(normalized.shortLinkFailureDefaults.sellerUnlockMessage).toBe("Hỏi người bán để mở lại");
   });
 
   it("formats marketing price labels", () => {

@@ -69,7 +69,7 @@ describe("POST /api/orders/check-duplicate", () => {
     const ordersQuery = createOrdersQuery({
       data: [
         {
-          id: "order-1",
+          id: "00000000-0000-4000-8000-00000000005b",
           order_code: "ORD-001",
           status: "pending_payment",
           product_name_snapshot: "Netflix Premium",
@@ -83,7 +83,7 @@ describe("POST /api/orders/check-duplicate", () => {
     const orderItemsQuery = createOrderItemsQuery({
       data: [
         {
-          order_id: "order-1",
+          order_id: "00000000-0000-4000-8000-00000000005b",
           product_id: "product-netflix",
         },
       ],
@@ -103,7 +103,7 @@ describe("POST /api/orders/check-duplicate", () => {
       createTestRequest("http://localhost/api/orders/check-duplicate", {
         method: "POST",
         body: {
-          customer_id: "customer-1",
+          customer_id: "00000000-0000-4000-8000-00000000005c",
           product_ids: ["product-netflix", "product-youtube"],
           date: "2026-04-22T10:00:00.000Z",
         },
@@ -112,16 +112,16 @@ describe("POST /api/orders/check-duplicate", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(ordersQuery.eq).toHaveBeenNthCalledWith(1, "customer_id", "customer-1");
+    expect(ordersQuery.eq).toHaveBeenNthCalledWith(1, "customer_id", "00000000-0000-4000-8000-00000000005c");
     expect(ordersQuery.eq).toHaveBeenNthCalledWith(2, "account_id", TEST_ACCOUNT_ID);
-    expect(orderItemsQuery.in).toHaveBeenCalledWith("order_id", ["order-1"]);
+    expect(orderItemsQuery.in).toHaveBeenCalledWith("order_id", ["00000000-0000-4000-8000-00000000005b"]);
 
     expect(await response.json()).toEqual(
       expect.objectContaining({
         isDuplicate: true,
         existingOrders: [
           expect.objectContaining({
-            id: "order-1",
+            id: "00000000-0000-4000-8000-00000000005b",
             order_code: "ORD-001",
             product_name: "Netflix Premium",
             total_amount: 120000,
@@ -149,7 +149,7 @@ describe("POST /api/orders/check-duplicate", () => {
       createTestRequest("http://localhost/api/orders/check-duplicate", {
         method: "POST",
         body: {
-          customer_id: "customer-1",
+          customer_id: "00000000-0000-4000-8000-00000000005c",
           product_ids: ["product-netflix"],
         },
       }),

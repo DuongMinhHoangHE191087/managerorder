@@ -170,8 +170,9 @@ export async function listSourceAccountsForAccount(accountId: string): Promise<S
 export async function getSourceAccountForAccount(
   id: string,
   accountId: string,
+  options: { includeDeleted?: boolean } = {},
 ): Promise<SourceAccount | null> {
-  const row = await getSourceAccountByIdRepo(id, accountId);
+  const row = await getSourceAccountByIdRepo(id, accountId, options);
   return toDomainSourceAccount(row);
 }
 

@@ -40,20 +40,20 @@ import { POST, DELETE } from "@/app/api/inventory/allocate/route";
 
 // ── Test Data ───────────────────────────────────────────────
 const MOCK_SUGGESTION = {
-  orderId: "order-001",
+  orderId: "00000000-0000-4000-8000-00000000003f",
   isValid: true,
   warnings: [],
   items: [
     {
-      productId: "prod-1",
-      sourceAccountId: "sa-1",
+      productId: "00000000-0000-4000-8000-000000000039",
+      sourceAccountId: "00000000-0000-4000-8000-000000000040",
       quantity: 1,
     },
   ],
 };
 
 const MOCK_CONFIRM_RESULT = {
-  order: { id: "order-001", status: "provisioning" },
+  order: { id: "00000000-0000-4000-8000-00000000003f", status: "provisioning" },
   suggestion: MOCK_SUGGESTION,
   message: "Allocation confirmed",
 };
@@ -75,7 +75,7 @@ describe("POST /api/inventory/allocate — suggestion", () => {
     const res = await POST(
       createTestRequest("http://localhost/api/inventory/allocate", {
         method: "POST",
-        body: { orderId: "order-001" },
+        body: { orderId: "00000000-0000-4000-8000-00000000003f" },
       }),
       { params: {} } as any
     );
@@ -84,7 +84,7 @@ describe("POST /api/inventory/allocate — suggestion", () => {
     expect(res.status).toBe(200);
     expect(body.data.isValid).toBe(true);
     expect(body.message).toBe("Inventory co the cap phat");
-    expect(buildAllocationSuggestion).toHaveBeenCalledWith("order-001", TEST_ACCOUNT_ID);
+    expect(buildAllocationSuggestion).toHaveBeenCalledWith("00000000-0000-4000-8000-00000000003f", TEST_ACCOUNT_ID);
   });
 
   it("returns warning message when suggestion is not valid", async () => {
@@ -97,7 +97,7 @@ describe("POST /api/inventory/allocate — suggestion", () => {
     const res = await POST(
       createTestRequest("http://localhost/api/inventory/allocate", {
         method: "POST",
-        body: { orderId: "order-002" },
+        body: { orderId: "00000000-0000-4000-8000-000000000041" },
       }),
       { params: {} } as any
     );
@@ -138,7 +138,7 @@ describe("POST /api/inventory/allocate — suggestion", () => {
     await POST(
       createTestRequest("http://localhost/api/inventory/allocate", {
         method: "POST",
-        body: { orderId: "order-001" },
+        body: { orderId: "00000000-0000-4000-8000-00000000003f" },
       }),
       { params: {} } as any
     );
@@ -161,16 +161,16 @@ describe("POST /api/inventory/allocate — confirm", () => {
     const res = await POST(
       createTestRequest("http://localhost/api/inventory/allocate", {
         method: "POST",
-        body: { orderId: "order-001", confirm: true },
+        body: { orderId: "00000000-0000-4000-8000-00000000003f", confirm: true },
       }),
       { params: {} } as any
     );
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body.data.id).toBe("order-001");
+    expect(body.data.id).toBe("00000000-0000-4000-8000-00000000003f");
     expect(body.message).toBe("Allocation confirmed");
-    expect(confirmAllocation).toHaveBeenCalledWith("order-001", TEST_ACCOUNT_ID);
+    expect(confirmAllocation).toHaveBeenCalledWith("00000000-0000-4000-8000-00000000003f", TEST_ACCOUNT_ID);
     expect(buildAllocationSuggestion).not.toHaveBeenCalled();
   });
 
@@ -202,7 +202,7 @@ describe("DELETE /api/inventory/allocate", () => {
 
     const res = await DELETE(
       createTestRequest(
-        "http://localhost/api/inventory/allocate?orderId=order-001",
+        "http://localhost/api/inventory/allocate?orderId=00000000-0000-4000-8000-00000000003f",
         { method: "DELETE" }
       ),
       { params: {} } as any
@@ -214,7 +214,7 @@ describe("DELETE /api/inventory/allocate", () => {
     expect(body.data.deallocatedKeys).toBe(1);
     expect(body.message).toContain("2 slot");
     expect(body.message).toContain("1 key");
-    expect(deallocateOrder).toHaveBeenCalledWith("order-001", TEST_ACCOUNT_ID);
+    expect(deallocateOrder).toHaveBeenCalledWith("00000000-0000-4000-8000-00000000003f", TEST_ACCOUNT_ID);
   });
 
   it("rejects request without orderId — returns 400", async () => {

@@ -51,8 +51,8 @@ describe("providers.repo", () => {
     const providersChain = createQueryChain({
       data: [
         {
-          id: "pv-1",
-          account_id: "acc-1",
+          id: "00000000-0000-4000-8000-0000000000b8",
+          account_id: "00000000-0000-4000-8000-000000000016",
           name: "Provider A",
           contacts: [],
           tier: "regular",
@@ -63,8 +63,8 @@ describe("providers.repo", () => {
           updated_at: "2026-01-01T00:00:00Z",
         },
         {
-          id: "pv-2",
-          account_id: "acc-1",
+          id: "00000000-0000-4000-8000-00000000014a",
+          account_id: "00000000-0000-4000-8000-000000000016",
           name: "Provider B",
           contacts: [],
           tier: "vip",
@@ -80,9 +80,9 @@ describe("providers.repo", () => {
 
     const purchaseOrdersChain = createQueryChain({
       data: [
-        { provider_id: "pv-1", total_amount_vnd: 1000000 },
-        { provider_id: "pv-1", total_amount_vnd: 500000 },
-        { provider_id: "pv-2", total_amount_vnd: 250000 },
+        { provider_id: "00000000-0000-4000-8000-0000000000b8", total_amount_vnd: 1000000 },
+        { provider_id: "00000000-0000-4000-8000-0000000000b8", total_amount_vnd: 500000 },
+        { provider_id: "00000000-0000-4000-8000-00000000014a", total_amount_vnd: 250000 },
       ],
       error: null,
     });
@@ -93,20 +93,20 @@ describe("providers.repo", () => {
       throw new Error(`Unexpected table: ${table}`);
     });
 
-    const result = await listProviders("acc-1");
+    const result = await listProviders("00000000-0000-4000-8000-000000000016");
 
     expect(mockFrom).toHaveBeenCalledWith("providers");
     expect(mockFrom).toHaveBeenCalledWith("purchase_orders");
     expect(mockFrom).not.toHaveBeenCalledWith("provider_stats_view");
-    expect(purchaseOrdersChain.in).toHaveBeenCalledWith("provider_id", ["pv-1", "pv-2"]);
+    expect(purchaseOrdersChain.in).toHaveBeenCalledWith("provider_id", ["00000000-0000-4000-8000-0000000000b8", "00000000-0000-4000-8000-00000000014a"]);
     expect(result).toEqual([
       expect.objectContaining({
-        id: "pv-1",
+        id: "00000000-0000-4000-8000-0000000000b8",
         total_import_amount_vnd: 1500000,
         purchase_order_count: 2,
       }),
       expect.objectContaining({
-        id: "pv-2",
+        id: "00000000-0000-4000-8000-00000000014a",
         total_import_amount_vnd: 250000,
         purchase_order_count: 1,
       }),
@@ -116,8 +116,8 @@ describe("providers.repo", () => {
   it("returns a single provider with zeroed stats when no purchase orders exist", async () => {
     const providerChain = createQueryChain({
       data: {
-        id: "pv-9",
-        account_id: "acc-1",
+        id: "00000000-0000-4000-8000-000000000126",
+        account_id: "00000000-0000-4000-8000-000000000016",
         name: "Provider Z",
         contacts: [],
         tier: "regular",
@@ -141,15 +141,15 @@ describe("providers.repo", () => {
       throw new Error(`Unexpected table: ${table}`);
     });
 
-    const result = await getProviderById("pv-9", "acc-1");
+    const result = await getProviderById("00000000-0000-4000-8000-000000000126", "00000000-0000-4000-8000-000000000016");
 
     expect(result).toEqual(
       expect.objectContaining({
-        id: "pv-9",
+        id: "00000000-0000-4000-8000-000000000126",
         total_import_amount_vnd: 0,
         purchase_order_count: 0,
       }),
     );
-    expect(purchaseOrdersChain.in).toHaveBeenCalledWith("provider_id", ["pv-9"]);
+    expect(purchaseOrdersChain.in).toHaveBeenCalledWith("provider_id", ["00000000-0000-4000-8000-000000000126"]);
   });
 });

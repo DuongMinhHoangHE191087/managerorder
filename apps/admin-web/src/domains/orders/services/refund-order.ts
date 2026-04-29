@@ -3,6 +3,7 @@ import {
   ensureOrderRefundRequestAllowed,
   normalizeRefundCalculationInput,
 } from "@/lib/domain/sales-workflow-guards";
+import { resolveOrderDuration, toDurationDays } from "@/lib/domain/order-duration";
 import type { RefundMode } from "@/lib/domain/types";
 import { createActivityLog } from "@/lib/supabase/repositories/activity-logs.repo";
 import {
@@ -31,6 +32,7 @@ type RefundableOrderRow = {
   customer_id: string | null;
   created_at: string | null;
   product_id: string | null;
+  invoice_snapshot: Record<string, unknown> | null;
 };
 
 async function getRefundableOrder(
@@ -39,7 +41,7 @@ async function getRefundableOrder(
 ): Promise<RefundableOrderRow | null> {
   const { data, error } = await supabaseAdmin
     .from("orders")
-    .select("id, status, total_amount_vnd, total_paid, customer_id, created_at, product_id")
+    .select("id, status, total_amount_vnd, total_paid, customer_id, created_at, product_id, invoice_snapshot")
     .eq("id", orderId)
     .eq("account_id", accountId)
     .single();
@@ -91,14 +93,25 @@ export async function createOrderRefundRequestForAccount(
   const productInfo = order.product_id ? productMap.get(order.product_id) ?? null : null;
 
   let totalDays = input.total_days ?? 30;
-  if (!input.total_days && productInfo?.duration_value) {
-    const durationValue = productInfo.duration_value;
-    const durationType = productInfo.duration_type ?? "days";
-    totalDays = durationType === "months"
-      ? durationValue * 30
-      : durationType === "years"
-        ? durationValue * 365
-        : durationValue;
+  const invoiceSnapshot = order.invoice_snapshot ?? null;
+  const salesContext = invoiceSnapshot && typeof invoiceSnapshot === "object"
+    ? (invoiceSnapshot.sales_context as Record<string, unknown> | undefined)
+    : undefined;
+  const primaryDuration = salesContext && typeof salesContext === "object"
+    ? (salesContext.primary_duration as Record<string, unknown> | undefined)
+    : undefined;
+
+  if (!input.total_days && primaryDuration) {
+    totalDays = toDurationDays(resolveOrderDuration({
+      durationType: typeof primaryDuration.duration_type === "string" ? primaryDuration.duration_type : undefined,
+      durationValue: Number(primaryDuration.duration_value ?? 1),
+      bonusDurationValue: Number(primaryDuration.bonus_duration_value ?? 0),
+    }));
+  } else if (!input.total_days && productInfo?.duration_value) {
+    totalDays = toDurationDays(resolveOrderDuration({
+      durationType: productInfo.duration_type ?? "days",
+      durationValue: productInfo.duration_value,
+    }));
   }
 
   let consumedDays = input.consumed_days ?? 0;
@@ -141,11 +154,14 @@ export async function createOrderRefundRequestForAccount(
     action_type: "REFUND_REQUESTED",
     customer_id: order.customer_id,
     order_id: input.orderId,
+    created_by: input.userEmail,
     details: {
       refund_id: refund.id,
       mode: normalizedRefundInput.refundMode,
       consumed_ratio: refundCalc.consumedRatio,
       refundable_amount: refundCalc.refundableAmountVnd,
+      total_days: normalizedRefundInput.totalDays,
+      consumed_days: normalizedRefundInput.consumedDays,
       reason: input.reason ?? null,
     },
   });

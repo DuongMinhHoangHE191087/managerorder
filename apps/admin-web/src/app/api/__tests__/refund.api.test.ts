@@ -64,7 +64,7 @@ import { resolveUser } from "@/lib/api/rbac";
 import { GET, POST } from "@/app/api/orders/[id]/refunds/route";
 
 // ── Fixtures ─────────────────────────────────────────────────
-const ORDER_ID = "ord-refund-001";
+const ORDER_ID = "00000000-0000-4000-8000-00000000009e";
 
 function mockOrderQuery(overrides: Record<string, unknown> = {}) {
   supabaseSingleMock.mockResolvedValue({
@@ -73,7 +73,7 @@ function mockOrderQuery(overrides: Record<string, unknown> = {}) {
       status: "paid",
       total_amount_vnd: 200000,
       total_paid: 200000,
-      customer_id: "cust-001",
+      customer_id: "00000000-0000-4000-8000-000000000033",
       ...overrides,
     },
     error: null,
@@ -111,7 +111,7 @@ describe("GET /api/orders/[id]/refunds", () => {
       error: null,
     });
     vi.mocked(getRefundsByOrder).mockResolvedValue([
-      { id: "ref-001", refundable_amount_vnd: 100000, refund_mode: "pro_rata" },
+      { id: "00000000-0000-4000-8000-00000000009f", refundable_amount_vnd: 100000, refund_mode: "pro_rata" },
     ] as any);
 
     const res = await getRefunds(ORDER_ID);
@@ -142,7 +142,7 @@ describe("POST /api/orders/[id]/refunds — Refund Creation", () => {
       displayName: "Test Admin",
     } as any);
     vi.mocked(createRefundRequest).mockResolvedValue({
-      id: "ref-new-001",
+      id: "00000000-0000-4000-8000-0000000000a0",
       refundable_amount_vnd: 133333,
     } as any);
   });
@@ -167,7 +167,7 @@ describe("POST /api/orders/[id]/refunds — Refund Creation", () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.data.id).toBe("ref-new-001");
+      expect(body.data.id).toBe("00000000-0000-4000-8000-0000000000a0");
     });
 
     it("calls calculateRefund with correct params", async () => {
@@ -193,7 +193,7 @@ describe("POST /api/orders/[id]/refunds — Refund Creation", () => {
     });
 
     it("passes refund data to createRefundRequest", async () => {
-      mockOrderQuery({ total_paid: 200000, customer_id: "cust-002" });
+      mockOrderQuery({ total_paid: 200000, customer_id: "00000000-0000-4000-8000-0000000000a1" });
       vi.mocked(calculateRefund).mockReturnValue({
         refundableAmountVnd: 66666,
         consumedRatio: 0.6667,
@@ -210,7 +210,7 @@ describe("POST /api/orders/[id]/refunds — Refund Creation", () => {
       expect(createRefundRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           order_id: ORDER_ID,
-          customer_id: "cust-002",
+          customer_id: "00000000-0000-4000-8000-0000000000a1",
           paid_amount_vnd: 200000,
           consumed_days: 20,
           total_days: 30,

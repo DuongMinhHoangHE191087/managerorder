@@ -72,10 +72,11 @@ export function useOrderStats(options: Omit<UseOrdersOptions, 'page' | 'limit'> 
   });
 }
 
-export function useOrder(id: string) {
+export function useOrder(id: string, includeDeleted = false) {
   return useQuery({
-    queryKey: queryKeys.order(id),
-    queryFn: () => fetcher<unknown>(`/api/orders/${id}`),
+    queryKey: [...queryKeys.order(id), includeDeleted ? "trash" : "active"],
+    queryFn: () =>
+      fetcher<unknown>(`/api/orders/${id}${includeDeleted ? "?include_deleted=1" : ""}`),
     enabled: !!id,
     staleTime: 15_000,
     gcTime: 5 * 60_000,
@@ -191,7 +192,7 @@ export function useBatchDeleteOrders() {
   return useMutation({
     mutationFn: (ids: string[]) =>
       fetcher<unknown>("/api/orders/batch", {
-        method: "DELETE",
+        method: "POST",
         body: JSON.stringify({ ids }),
       }),
     onSuccess: () => {

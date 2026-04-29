@@ -14,7 +14,8 @@ import { NextResponse } from "next/server";
 export const GET = withErrorHandler(
   withAccount<{ id: string }>(async (_request, { accountId, params }) => {
     const { id } = await params;
-    const data = await getSourceAccountForAccount(id, accountId);
+    const includeDeleted = new URL(_request.url).searchParams.get("include_deleted") === "1";
+    const data = await getSourceAccountForAccount(id, accountId, { includeDeleted });
     if (!data) {
       return NextResponse.json({ error: "Source account not found" }, { status: 404 });
     }

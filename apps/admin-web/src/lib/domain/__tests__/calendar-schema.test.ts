@@ -34,7 +34,7 @@ describe("createCalendarEventSchema", () => {
       time: "14:30",
       type: "renewal",
       is_done: true,
-      customerIds: ["cust-1", "cust-2"],
+      customerIds: ["00000000-0000-4000-8000-000000000005", "00000000-0000-4000-8000-000000000006"],
       notes: "Important meeting notes",
       hasReminder: true,
     });
@@ -43,7 +43,7 @@ describe("createCalendarEventSchema", () => {
       expect(result.data.time).toBe("14:30");
       expect(result.data.type).toBe("renewal");
       expect(result.data.is_done).toBe(true);
-      expect(result.data.customerIds).toEqual(["cust-1", "cust-2"]);
+      expect(result.data.customerIds).toEqual(["00000000-0000-4000-8000-000000000005", "00000000-0000-4000-8000-000000000006"]);
       expect(result.data.notes).toBe("Important meeting notes");
       expect(result.data.hasReminder).toBe(true);
     }

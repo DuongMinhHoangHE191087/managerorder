@@ -15,6 +15,7 @@ import { appToast } from "@/shared/ui/app-toast";
 import { ScaleButton, StaggerContainer, StaggerItem } from "@/shared/ui/animations";
 import { RenewalCard, RenewalEmptyState } from "@/widgets/pages/calendar/components/renewal-card";
 import type { RenewalItem } from "@/shared/types/premium";
+import { hasSearchTokens, matchesSearchQuery } from "@/shared/lib/filtering/search";
 
 const text = vi.calendar.renewalPanel;
 
@@ -73,14 +74,16 @@ export const RenewalPanel = React.memo(function RenewalPanel({
       items = items.filter((item) => item.days_remaining > 0 && item.days_remaining <= 30);
     }
 
-    const query = renewalSearch.trim().toLowerCase();
-    if (query) {
+    if (hasSearchTokens(renewalSearch)) {
       items = items.filter(
         (item) =>
-          item.customer_name?.toLowerCase().includes(query) ||
-          item.customer_email?.toLowerCase().includes(query) ||
-          item.service_name?.toLowerCase().includes(query) ||
-          item.package_name?.toLowerCase().includes(query),
+          matchesSearchQuery(
+            renewalSearch,
+            item.customer_name,
+            item.customer_email,
+            item.service_name,
+            item.package_name,
+          ),
       );
     }
 

@@ -28,7 +28,8 @@ const DEALLOC_TARGET_STATUSES = new Set(['pending_payment', 'paid', 'refunded'])
  */
 export const GET = withErrorHandler(withAccount<{ id: string }>(async (_request, { accountId, params }) => {
   const { id } = await params;
-  const order = await getOrderWithItems(id, accountId);
+  const includeDeleted = new URL(_request.url).searchParams.get("include_deleted") === "1";
+  const order = await getOrderWithItems(id, accountId, { includeDeleted });
   if (!order) return NextResponse.json({ error: "Đơn hàng không tồn tại" }, { status: 404 });
   return NextResponse.json({ data: withFinancialSummary(order) });
 }));
@@ -120,34 +121,61 @@ export const PUT = withErrorHandler(withAccount<{ id: string }>(async (request, 
     items: body.items,
   });
 
-  if (result && oldStatus !== body.status && body.status) {
-    // Log to both audit trail and activity log in parallel
-    await Promise.all([
-      createOrderStatusHistory({
-        order_id: id,
-        old_status: oldStatus,
-        new_status: body.status,
-        changed_by: user.email,
-        change_reason: body.sales_note ?? null,
-        metadata: {
-          total_paid: body.total_paid ?? null,
-          payment_method: body.payment_method ?? null,
-        },
-      }),
+  if (result) {
+    const sideEffects: Array<Promise<unknown>> = [
       createActivityLog({
         account_id: accountId,
         action_type: 'ORDER_UPDATED',
         customer_id: result.customer_id,
         order_id: id,
+        created_by: user.displayName ?? user.email,
         details: {
-          old_status: oldStatus ?? null,
-          new_status: body.status ?? null,
-          total_paid: body.total_paid ?? null,
-          payment_method: legacyPaymentMethod ?? null,
-          payment_terms: normalizedPaymentTerms ?? null,
+          changed_fields: Object.keys(body),
+          before_snapshot: {
+            status: oldStatus ?? null,
+            total_paid: order.total_paid ?? null,
+            payment_terms: order.payment_terms ?? null,
+            payment_source_id: order.payment_source_id ?? null,
+            sales_channel_id: order.sales_channel_id ?? null,
+            expires_at: order.expires_at ?? null,
+            unit_price_vnd: order.unit_price_vnd ?? null,
+            cost_price_vnd: order.cost_price_vnd ?? null,
+            sales_note: order.sales_note ?? null,
+          },
+          after_snapshot: {
+            status: body.status ?? result.status ?? null,
+            total_paid: body.total_paid ?? result.total_paid ?? null,
+            payment_method: legacyPaymentMethod ?? result.payment_method ?? null,
+            payment_terms: normalizedPaymentTerms ?? result.payment_terms ?? null,
+            payment_source_id: body.payment_source_id ?? result.payment_source_id ?? null,
+            sales_channel_id: body.sales_channel_id ?? result.sales_channel_id ?? null,
+            expires_at: body.expires_at ?? result.expires_at ?? null,
+            unit_price_vnd: recalculated.unit_price_vnd ?? result.unit_price_vnd ?? null,
+            cost_price_vnd: recalculated.cost_price_vnd ?? result.cost_price_vnd ?? null,
+            sales_note: body.sales_note ?? result.sales_note ?? null,
+          },
+          item_updates: body.items ?? [],
         },
       }),
-    ]);
+    ];
+
+    if (oldStatus !== body.status && body.status) {
+      sideEffects.push(
+        createOrderStatusHistory({
+          order_id: id,
+          old_status: oldStatus,
+          new_status: body.status,
+          changed_by: user.email,
+          change_reason: body.sales_note ?? null,
+          metadata: {
+            total_paid: body.total_paid ?? null,
+            payment_method: body.payment_method ?? null,
+          },
+        }),
+      );
+    }
+
+    await Promise.all(sideEffects);
   }
 
   return NextResponse.json({ data: withFinancialSummary(result) });
@@ -162,9 +190,28 @@ export const DELETE = withErrorHandler(withAccount<{ id: string }>(async (_reque
   if (!hasPermission(user.role, "order:delete")) {
     return NextResponse.json({ error: "Bạn không có quyền xoá đơn hàng" }, { status: 403 });
   }
+  const order = await getOrderWithItems(id, accountId);
+  if (!order) {
+    return NextResponse.json({ error: "Đơn hàng không tồn tại" }, { status: 404 });
+  }
   // Deallocate before deleting to release any allocated slots/keys
   await deallocateOrder(id, accountId);
   await deleteOrder(id, accountId);
+  await createActivityLog({
+    account_id: accountId,
+    action_type: "ORDER_DELETED",
+    customer_id: order.customer_id,
+    order_id: id,
+    created_by: user.displayName ?? user.email,
+    details: {
+      before_snapshot: {
+        status: order.status,
+        total_amount_vnd: order.total_amount_vnd,
+        total_paid: order.total_paid,
+        expires_at: order.expires_at,
+      },
+    },
+  });
   return NextResponse.json({ success: true });
 }));
 

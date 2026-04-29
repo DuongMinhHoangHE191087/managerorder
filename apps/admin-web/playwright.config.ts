@@ -5,20 +5,26 @@ import path from "path";
 // Load .env.local for Supabase credentials
 dotenv.config({ path: path.resolve(__dirname, ".env.local") });
 
+const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
+const baseURL = process.env.BASE_URL || "http://127.0.0.1:3000";
+
 /**
  * Playwright Configuration — ManagerOrder E2E Tests
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: "html",
+  expect: {
+    timeout: 60_000,
+  },
 
   use: {
-    baseURL: process.env.BASE_URL || "http://localhost:3000",
+    baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -62,10 +68,16 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: skipWebServer
+    ? undefined
+    : {
+        command: "pnpm exec next dev --webpack -H 127.0.0.1 -p 3000",
+        url: baseURL,
+        reuseExistingServer: !process.env.CI,
+        env: {
+          ...process.env,
+          E2E_MOCK_SESSION: "1",
+        },
+        timeout: 300_000,
+      },
 });

@@ -26,7 +26,8 @@ export const GET = withErrorHandler(
   withAccount<{ id: string }>(async (_request: NextRequest, { accountId, params }) => {
     const { id } = await params;
     try {
-      const data = await getProviderForAccount(id, accountId);
+      const includeDeleted = new URL(_request.url).searchParams.get("include_deleted") === "1";
+      const data = await getProviderForAccount(id, accountId, { includeDeleted });
       return createSuccessResponse(data);
     } catch (error) {
       logProviderDetailRouteError("get", accountId, id, error);

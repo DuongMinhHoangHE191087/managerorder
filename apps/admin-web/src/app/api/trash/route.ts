@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAccount } from "@/lib/api/with-account";
 import { withErrorHandler } from "@/lib/api/with-error-handler";
-import { listDeletedItems, type TrashEntityType } from "@/lib/supabase/repositories/trash.repo";
+import {
+  countDeletedItems,
+  listDeletedItems,
+  type TrashEntityType,
+} from "@/lib/supabase/repositories/trash.repo";
 
 const VALID_TYPES: TrashEntityType[] = [
   "customers", "orders", "products", "providers", "source_accounts", "license_keys", "short_links",
@@ -22,11 +26,10 @@ export const GET = withErrorHandler(
     }
 
     // Return counts for all types (overview)
-    const counts: Record<string, number> = {};
-    for (const t of VALID_TYPES) {
-      const result = await listDeletedItems(accountId, t);
-      counts[t] = result.count;
-    }
+    const countEntries = await Promise.all(
+      VALID_TYPES.map(async (trashType) => [trashType, await countDeletedItems(accountId, trashType)] as const),
+    );
+    const counts = Object.fromEntries(countEntries);
     return NextResponse.json({ data: counts });
   })
 );

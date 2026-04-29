@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   Banknote,
@@ -17,14 +17,18 @@ import {
   Star,
   StickyNote,
   User,
+  RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { useProviderDetail, useProviderPurchaseOrders } from "@/widgets/pages/providers/hooks/use-provider-detail";
 import { appToast } from "@/shared/ui/app-toast";
 import { AppLayout } from "@/widgets/layout/app-layout";
-import { PageContainer } from "@/shared/ui/page-layout";
+import { EmptyState, PageContainer, PageHeader, StatsGrid, SurfaceCard } from "@/shared/ui/page-layout";
 import { formatDateCustom, formatDateLabel, formatMoney } from "@/lib/utils";
 import type { ProviderPurchaseOrder } from "@/shared/types/providers";
+import type { Provider } from "@/lib/domain/types";
 import { vi } from "@/shared/messages/vi";
+import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
 
 function DetailPanelSkeleton() {
   return (
@@ -101,13 +105,16 @@ function formatProviderStatus(status?: string) {
 export default function ProviderDetailPage() {
   const params = useParams();
   const providerId = params.providerId as string;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const trashMode = searchParams.get("trash") === "1";
 
   const {
     data: provider,
     isLoading: isProviderLoading,
     isError: isProviderError,
     error: providerError,
-  } = useProviderDetail(providerId);
+  } = useProviderDetail(providerId, trashMode);
   const {
     data: purchaseOrders = [],
     isLoading: isPOLoading,
@@ -117,6 +124,8 @@ export default function ProviderDetailPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCreatePOOpen, setIsCreatePOOpen] = useState(false);
   const [payingPO, setPayingPO] = useState<ProviderPurchaseOrder | null>(null);
+  const restoreItems = useRestoreItems();
+  const purgeItems = usePurgeItems();
 
   const stats = useMemo(() => {
     const totalPurchases = purchaseOrders.reduce((sum, order) => sum + order.total_amount, 0);
@@ -133,6 +142,16 @@ export default function ProviderDetailPage() {
       completedPOs,
     };
   }, [purchaseOrders]);
+
+  async function handleRestoreFromTrash() {
+    await restoreItems.mutateAsync({ type: "providers", ids: [providerId] });
+    router.replace(`/providers/${providerId}`);
+  }
+
+  async function handlePurgeFromTrash() {
+    await purgeItems.mutateAsync({ type: "providers", ids: [providerId] });
+    router.push("/trash?type=providers");
+  }
 
   if (isProviderLoading) {
     return (
@@ -188,43 +207,67 @@ export default function ProviderDetailPage() {
     ...contact,
     id: contact.id || `contact-${index}`,
   }));
+  const providerWithTimestamps = provider as Provider & { updatedAt?: string };
 
   return (
     <AppLayout>
       <PageContainer className="relative pb-16">
-        <div className="app-card flex flex-col gap-4 border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-5 py-5 shadow-[0_18px_44px_rgba(15,23,42,0.05)] md:flex-row md:items-end md:justify-between mt-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-[13px] font-bold text-[var(--accent)]">
+        <PageHeader
+          eyebrow={
+            <>
               <Link className="hover:underline" href="/providers">
                 {vi.providers.detail.breadcrumbRoot}
               </Link>
               <ChevronRight className="size-3" />
               <span className="truncate text-[var(--fg-muted)]">{provider.name}</span>
-            </div>
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-[var(--fg-base)]">
-              {vi.providers.detail.title}
-            </h1>
-            <p className="mt-1 text-[14px] font-medium text-[var(--fg-muted)]">
-              {vi.providers.detail.description}
-            </p>
+            </>
+          }
+          title={vi.providers.detail.title}
+          description={vi.providers.detail.description}
+          actions={
+            trashMode ? (
+              <>
+                <button
+                  onClick={() => void handleRestoreFromTrash()}
+                  className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
+                >
+                  <RefreshCw className="size-4" />
+                  Khôi phục
+                </button>
+                <button
+                  onClick={() => void handlePurgeFromTrash()}
+                  className="flex items-center gap-2 rounded-[1rem] border border-[var(--danger)]/30 bg-white px-4 py-2.5 text-[13px] font-bold text-[var(--danger)] shadow-sm transition-colors hover:bg-[var(--danger)]/10"
+                >
+                  <Trash2 className="size-4" />
+                  Xóa vĩnh viễn
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setIsEditOpen(true)}
+                  className="flex items-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] px-4 py-2.5 text-[13px] font-bold text-[var(--fg-base)] shadow-sm transition-colors hover:border-[var(--accent)]/30 hover:bg-white"
+                >
+                  <Edit className="size-4" />
+                  {vi.providers.detail.edit}
+                </button>
+                <button
+                  onClick={() => setIsCreatePOOpen(true)}
+                  className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
+                >
+                  <Plus className="size-4" />
+                  {vi.providers.detail.createPurchaseOrder}
+                </button>
+              </>
+            )
+          }
+        />
+
+        {trashMode ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[13px] font-medium text-amber-700">
+            Nhà cung cấp này đang ở thùng rác. Bạn có thể khôi phục hoặc xóa vĩnh viễn ngay trên màn chi tiết này.
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setIsEditOpen(true)}
-              className="flex items-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] px-4 py-2.5 text-[13px] font-bold text-[var(--fg-base)] shadow-sm transition-colors hover:border-[var(--accent)]/30 hover:bg-white"
-            >
-              <Edit className="size-4" />
-              {vi.providers.detail.edit}
-            </button>
-            <button
-              onClick={() => setIsCreatePOOpen(true)}
-              className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
-            >
-              <Plus className="size-4" />
-              {vi.providers.detail.createPurchaseOrder}
-            </button>
-          </div>
-        </div>
+        ) : null}
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
           <div className="space-y-5">
@@ -250,9 +293,11 @@ export default function ProviderDetailPage() {
 
               <div className="space-y-3 p-5">
                 {contacts.length === 0 ? (
-                  <div className="rounded-[1rem] border border-dashed border-[var(--border-soft)] bg-[var(--surface-light)]/60 px-4 py-5 text-center">
-                    <p className="text-[13px] italic text-[var(--fg-muted)]">{vi.providers.detail.contacts.empty}</p>
-                  </div>
+                  <EmptyState
+                    icon={<User className="size-5" />}
+                    title={vi.providers.detail.contacts.empty}
+                    description="Nhà cung cấp này chưa có liên hệ nào được gắn."
+                  />
                 ) : (
                   contacts.map((contact) => (
                     <div
@@ -287,27 +332,27 @@ export default function ProviderDetailPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="app-card border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] p-4 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+            <StatsGrid className="grid-cols-2 gap-3 xl:grid-cols-2">
+              <SurfaceCard className="p-4">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{vi.providers.detail.cards.purchaseOrders}</p>
                 <p className="mt-1 text-2xl font-black text-[var(--fg-base)]">{purchaseOrders.length}</p>
                 <p className="mt-0.5 text-[10px] font-bold text-emerald-500">{stats.completedPOs} {vi.providers.detail.cards.completedSuffix}</p>
-              </div>
-              <div className="app-card border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] p-4 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+              </SurfaceCard>
+              <SurfaceCard className="p-4">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{vi.providers.detail.cards.totalPurchases}</p>
                 <p className="mt-1 text-xl font-black text-[var(--accent)]">{formatMoney(stats.totalPurchases)}</p>
-              </div>
-              <div className="app-card border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] p-4 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+              </SurfaceCard>
+              <SurfaceCard className="p-4">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{vi.providers.detail.cards.totalPaid}</p>
                 <p className="mt-1 text-xl font-black text-emerald-500">{formatMoney(stats.totalPaid)}</p>
-              </div>
-              <div className={`app-card border p-4 shadow-[0_16px_38px_rgba(15,23,42,0.05)] ${stats.totalDebt > 0 ? "border-red-200 bg-red-50/70" : "border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)]"}`}>
+              </SurfaceCard>
+              <SurfaceCard className={`p-4 ${stats.totalDebt > 0 ? "border-red-200 bg-red-50/70" : ""}`}>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{vi.providers.detail.cards.totalDebt}</p>
                 <p className={`mt-1 text-xl font-black ${stats.totalDebt > 0 ? "text-red-500" : "text-emerald-500"}`}>
                   {stats.totalDebt > 0 ? formatMoney(stats.totalDebt) : "0đ"}
                 </p>
-              </div>
-            </div>
+              </SurfaceCard>
+            </StatsGrid>
 
             <div className="app-card border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] p-4 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
               <div className="mb-2 flex items-center justify-between">
@@ -339,7 +384,10 @@ export default function ProviderDetailPage() {
                 {vi.providers.detail.summary.joined} <span className="font-bold">{formatDateLabel(provider.createdAt)}</span>
               </p>
               <p className="text-[13px] text-[var(--fg-base)]">
-                {vi.providers.detail.summary.updated} <span className="font-bold">{formatDateCustom(provider.createdAt)}</span>
+                {vi.providers.detail.summary.updated}{" "}
+                <span className="font-bold">
+                  {providerWithTimestamps.updatedAt ? formatDateCustom(providerWithTimestamps.updatedAt) : formatDateLabel(provider.createdAt)}
+                </span>
               </p>
             </div>
 

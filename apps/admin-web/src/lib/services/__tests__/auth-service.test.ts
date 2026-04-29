@@ -35,7 +35,7 @@ describe("AuthService", () => {
         passwordHash: "$hashed$abc",
         firstName: "Test",
         lastName: "User",
-        accountId: "acc-1",
+        accountId: "00000000-0000-4000-8000-000000000016",
         role: "admin",
         status: "active",
         createdAt: new Date(),
@@ -88,7 +88,7 @@ describe("AuthService", () => {
 
     it("throws ConflictError when email already exists", async () => {
       vi.spyOn(AuthRepository.prototype, "findAccountByEmail").mockResolvedValue({
-        account_id: "acc-1", email: "dup@x.com",
+        account_id: "00000000-0000-4000-8000-000000000016", email: "dup@x.com",
       });
 
       await expect(
@@ -103,13 +103,13 @@ describe("AuthService", () => {
     it("returns new tokens for valid refresh token", async () => {
       vi.mocked(verifyToken).mockReturnValue({
         sub: "u1",
-        accountId: "acc-1",
+        accountId: "00000000-0000-4000-8000-000000000016",
         role: "admin",
         email: "x@x.com",
       });
       vi.spyOn(AuthRepository.prototype, "findUserById").mockResolvedValue({
         id: "u1", email: "x@x.com", passwordHash: "$hashed$", firstName: "A",
-        lastName: "B", accountId: "acc-1", role: "admin", status: "active",
+        lastName: "B", accountId: "00000000-0000-4000-8000-000000000016", role: "admin", status: "active",
         createdAt: new Date(),
       });
 
@@ -125,7 +125,7 @@ describe("AuthService", () => {
 
     it("throws AuthenticationError when user is no longer active", async () => {
       vi.mocked(verifyToken).mockReturnValue({
-        sub: "u-gone", accountId: "acc-1", role: "admin", email: "x@x.com",
+        sub: "u-gone", accountId: "00000000-0000-4000-8000-000000000016", role: "admin", email: "x@x.com",
       });
       vi.spyOn(AuthRepository.prototype, "findUserById").mockResolvedValue(null);
       await expect(service.refreshTokens("valid-refresh")).rejects.toThrow(AuthenticationError);

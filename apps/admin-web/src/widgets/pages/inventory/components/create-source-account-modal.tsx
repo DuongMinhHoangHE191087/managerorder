@@ -1,25 +1,28 @@
 "use client";
 
-import { Server, Mail, Lock, ShieldAlert, Package, Users, Calendar, DollarSign } from "lucide-react";
-import { appToast } from "@/shared/ui/app-toast";
-import { memo, useCallback, useState, useEffect, type ChangeEvent } from "react";
+import { memo, useCallback, useEffect, useState, type FormEvent } from "react";
 import dynamic from "next/dynamic";
+import { Calendar, Lock, Mail, ShieldAlert, Users } from "lucide-react";
 
-import { Modal } from "@/shared/ui/modal";
-import { Button } from "@/shared/ui/button";
+import { appToast } from "@/shared/ui/app-toast";
+import {
+  AdvancedOptionsDisclosure,
+  CreateActionFooter,
+  CreateFlowDialog,
+  CreateFormSection,
+} from "@/shared/ui/create-flow-shell";
 import { Input } from "@/shared/ui/input";
-import { DynamicCredentialList } from "@/widgets/pages/inventory/components/dynamic-credential-list";
-import type { DuolingoAutoFillResult } from "@/widgets/pages/inventory/components/dynamic-credential-list";
+import { DynamicCredentialList, type DuolingoAutoFillResult } from "@/widgets/pages/inventory/components/dynamic-credential-list";
 import { ProviderCombobox, ProductMultiCombobox } from "@/widgets/pages/inventory/components/comboboxes";
-import type { SourceAccount, WarehouseCredential, Provider, ProductService } from "@/lib/domain/types";
 import { useSourceAccountDecrypt } from "@/widgets/pages/inventory/hooks/use-source-accounts";
+import type { ProductService, Provider, SourceAccount, WarehouseCredential } from "@/lib/domain/types";
 
 const CustomerCreateModalLazy = dynamic(
   () =>
     import("@/widgets/pages/customers/components/customer-create-modal").then((mod) => ({
       default: mod.CustomerCreateModal,
     })),
-  { ssr: false }
+  { ssr: false },
 );
 
 const ProductCreateModalLazy = dynamic(
@@ -27,12 +30,12 @@ const ProductCreateModalLazy = dynamic(
     import("@/widgets/pages/products/components/product-create-modal").then((mod) => ({
       default: mod.ProductCreateModal,
     })),
-  { ssr: false }
+  { ssr: false },
 );
 
 const ACCOUNT_FORM_STYLE = `input:checked + div { border-color: var(--accent); background-color: rgba(85,202,2,0.05); } input:checked + div .check-icon { opacity: 1; transform: scale(1); }`;
 
-const AccountIdentitySection = memo(function AccountIdentitySection({
+function AccountIdentitySection({
   providers,
   selectedProviderId,
   onProviderChange,
@@ -54,30 +57,32 @@ const AccountIdentitySection = memo(function AccountIdentitySection({
   isEdit?: boolean;
 }) {
   return (
-    <div className="space-y-4">
-      <h3 className="mb-4 flex items-center gap-2 border-b border-[var(--border-soft)] pb-2 text-[13px] font-bold text-[var(--fg-base)]">
-        <Server className="size-4 text-[var(--accent)]" />
-        Thông tin tài khoản
-      </h3>
+    <CreateFormSection
+      title="Thông tin tài khoản"
+      description="Giữ form gọn ở những trường nhập thật sự cần thiết để thao tác nhanh và ít nhầm hơn."
+    >
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="space-y-1.5 lg:col-span-2">
-          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Email đăng nhập *</label>
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+            Email đăng nhập *
+          </label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
             <Input
               name="email"
               type="email"
               value={emailValue}
-              onChange={(e) => onEmailChange(e.target.value)}
+              onChange={(event) => onEmailChange(event.target.value)}
               className="pl-9"
               placeholder="admin@example.com"
               required
             />
           </div>
         </div>
+
         <div className="space-y-1.5 lg:col-span-2">
           <label className="mb-1 flex justify-between text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-            <span>{isEdit ? "Mật khẩu mới (Tùy chọn)" : "Mật khẩu"}</span>
+            <span>{isEdit ? "Mật khẩu mới (tùy chọn)" : "Mật khẩu"}</span>
             <span className="flex items-center gap-1 text-[9px] normal-case text-[var(--warning)]">
               <ShieldAlert className="size-3" />
               {isEdit ? "Bỏ trống nếu không đổi" : "Sẽ được mã hóa"}
@@ -90,25 +95,32 @@ const AccountIdentitySection = memo(function AccountIdentitySection({
               type="text"
               className="pl-9 font-mono"
               placeholder="••••••••"
-              {...(onPasswordChange
-                ? { value: passwordValue ?? "", onChange: (e: ChangeEvent<HTMLInputElement>) => onPasswordChange(e.target.value) }
-                : {})}
+              value={passwordValue ?? ""}
+              onChange={(event) => onPasswordChange?.(event.target.value)}
             />
           </div>
         </div>
+
         <div className="space-y-1.5 lg:col-span-2">
-          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Nguồn cung cấp (Provider) *</label>
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+            Nguồn cung cấp (Provider) *
+          </label>
           <div className="relative">
             <input type="hidden" name="provider" value={selectedProviderId} />
-            <ProviderCombobox providers={providers} value={selectedProviderId} onChange={onProviderChange} onCreateNew={onCreateProvider} />
+            <ProviderCombobox
+              providers={providers}
+              value={selectedProviderId}
+              onChange={onProviderChange}
+              onCreateNew={onCreateProvider}
+            />
           </div>
         </div>
       </div>
-    </div>
+    </CreateFormSection>
   );
-});
+}
 
-const AccountAllocationSection = memo(function AccountAllocationSection({
+function AccountAllocationSection({
   products,
   selectedProductIds,
   onProductsChange,
@@ -128,19 +140,28 @@ const AccountAllocationSection = memo(function AccountAllocationSection({
   onExpiresAtChange: (value: string) => void;
 }) {
   return (
-    <div className="space-y-4">
-      <h3 className="mb-4 mt-6 flex items-center gap-2 border-b border-[var(--border-soft)] pb-2 text-[13px] font-bold text-[var(--fg-base)]">
-        <Package className="size-4 text-[#ff9500]" />
-        Cấu hình cấp phát
-      </h3>
-      <div className="grid grid-cols-1 gap-4">
+    <CreateFormSection
+      title="Cấu hình cấp phát"
+      description="Giữ các trường về sản phẩm, slot và hạn dùng trong cùng một vùng để đọc và rà nhanh hơn."
+    >
+      <div className="grid gap-4">
         <div className="space-y-1.5">
-          <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Sản phẩm khả dụng *</label>
-          <ProductMultiCombobox products={products} value={selectedProductIds} onChange={onProductsChange} onCreateNew={onCreateProduct} />
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+            Sản phẩm khả dụng *
+          </label>
+          <ProductMultiCombobox
+            products={products}
+            value={selectedProductIds}
+            onChange={onProductsChange}
+            onCreateNew={onCreateProduct}
+          />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Sức chứa (Tổng slots) *</label>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+              Sức chứa (tổng slots) *
+            </label>
             <div className="relative">
               <Users className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
               <Input
@@ -149,13 +170,16 @@ const AccountAllocationSection = memo(function AccountAllocationSection({
                 min="1"
                 className="pl-9 font-mono"
                 value={maxSlots}
-                onChange={(e) => onMaxSlotsChange(Number(e.target.value) || 1)}
+                onChange={(event) => onMaxSlotsChange(Number(event.target.value) || 1)}
                 required
               />
             </div>
           </div>
+
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Ngày hết hạn *</label>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+              Ngày hết hạn *
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
               <Input
@@ -163,18 +187,18 @@ const AccountAllocationSection = memo(function AccountAllocationSection({
                 type="date"
                 className="pl-9"
                 value={expiresAt}
-                onChange={(e) => onExpiresAtChange(e.target.value)}
+                onChange={(event) => onExpiresAtChange(event.target.value)}
                 required
               />
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </CreateFormSection>
   );
-});
+}
 
-const AccountCredentialsSection = memo(function AccountCredentialsSection({
+function AccountCredentialsSection({
   credentials,
   onCredentialsChange,
   emailValue,
@@ -192,20 +216,23 @@ const AccountCredentialsSection = memo(function AccountCredentialsSection({
   onAutoFillResult?: (result: DuolingoAutoFillResult) => void;
 }) {
   return (
-    <div className="pt-2">
+    <CreateFormSection
+      title="Dữ liệu đăng nhập"
+      description="Danh sách credential được giữ riêng để dễ tái sử dụng và giảm lỗi khi cần đối soát."
+    >
       <DynamicCredentialList
         credentials={credentials}
         onChange={onCredentialsChange}
         baseUsername={emailValue}
         basePassword={passwordValue}
-        suggestDuolingo={selectedProductIds.some((pid) => productMap.get(pid)?.toLowerCase().includes("duolingo"))}
+        suggestDuolingo={selectedProductIds.some((productId) => productMap.get(productId)?.toLowerCase().includes("duolingo"))}
         onAutoFillResult={onAutoFillResult}
       />
-    </div>
+    </CreateFormSection>
   );
-});
+}
 
-const AccountCostSection = memo(function AccountCostSection({
+function AccountCostFields({
   costDefaults,
 }: {
   costDefaults?: {
@@ -215,30 +242,45 @@ const AccountCostSection = memo(function AccountCostSection({
   };
 }) {
   return (
-    <div className="space-y-4">
-      <h3 className="mb-4 mt-6 flex items-center gap-2 border-b border-[var(--border-soft)] pb-2 text-[13px] font-bold text-[var(--fg-base)]">
-        <DollarSign className="size-4 text-emerald-500" />
-        Chi phí mua hàng (Tùy chọn)
-      </h3>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="space-y-1.5">
-          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Giá mua (VND)</label>
-          <Input name="purchaseCostVnd" type="number" min="0" className="font-mono" placeholder="0" defaultValue={costDefaults?.purchaseCostVnd ?? ""} />
-        </div>
-        <div className="space-y-1.5">
-          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Ngày mua</label>
-          <Input name="purchaseDate" type="date" defaultValue={costDefaults?.purchaseDate?.substring(0, 10) ?? ""} />
-        </div>
-        <div className="space-y-1.5">
-          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Nguồn mua</label>
-          <Input name="purchaseSource" type="text" placeholder="VD: Shopee, Tiki, Nhà cung cấp A" defaultValue={costDefaults?.purchaseSource ?? ""} />
-        </div>
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <div className="space-y-1.5">
+        <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+          Giá mua (VND)
+        </label>
+        <Input
+          name="purchaseCostVnd"
+          type="number"
+          min="0"
+          className="font-mono"
+          placeholder="0"
+          defaultValue={costDefaults?.purchaseCostVnd ?? ""}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+          Ngày mua
+        </label>
+        <Input
+          name="purchaseDate"
+          type="date"
+          defaultValue={costDefaults?.purchaseDate?.substring(0, 10) ?? ""}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+          Nguồn mua
+        </label>
+        <Input
+          name="purchaseSource"
+          type="text"
+          placeholder="VD: Shopee, Tiki, nhà cung cấp A"
+          defaultValue={costDefaults?.purchaseSource ?? ""}
+        />
       </div>
     </div>
   );
-});
+}
 
-/* ─── Shared form fields for create & edit ─────────────────────────────── */
 interface AccountFormFieldsProps {
   providers: Provider[];
   products: ProductService[];
@@ -256,14 +298,11 @@ interface AccountFormFieldsProps {
   passwordValue?: string;
   onPasswordChange?: (v: string) => void;
   onAutoFillResult?: (result: DuolingoAutoFillResult) => void;
-  // Controlled maxSlots & expiresAt
   maxSlots: number;
   onMaxSlotsChange: (v: number) => void;
   expiresAt: string;
   onExpiresAtChange: (v: string) => void;
-  /** Is edit mode? */
   isEdit?: boolean;
-  /** Cost defaults for edit mode */
   costDefaults?: {
     purchaseCostVnd?: number;
     purchaseDate?: string;
@@ -298,42 +337,45 @@ const AccountFormFields = memo(function AccountFormFields({
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: ACCOUNT_FORM_STYLE }} />
-      <AccountIdentitySection
-        providers={providers}
-        selectedProviderId={selectedProviderId}
-        onProviderChange={onProviderChange}
-        onCreateProvider={onCreateProvider}
-        emailValue={emailValue}
-        onEmailChange={onEmailChange}
-        passwordValue={passwordValue}
-        onPasswordChange={onPasswordChange}
-        isEdit={isEdit}
-      />
-      <AccountAllocationSection
-        products={products}
-        selectedProductIds={selectedProductIds}
-        onProductsChange={onProductsChange}
-        onCreateProduct={onCreateProduct}
-        maxSlots={maxSlots}
-        onMaxSlotsChange={onMaxSlotsChange}
-        expiresAt={expiresAt}
-        onExpiresAtChange={onExpiresAtChange}
-      />
-      <AccountCredentialsSection
-        credentials={credentials}
-        onCredentialsChange={onCredentialsChange}
-        emailValue={emailValue}
-        passwordValue={passwordValue}
-        productMap={productMap}
-        selectedProductIds={selectedProductIds}
-        onAutoFillResult={onAutoFillResult}
-      />
-      <AccountCostSection costDefaults={costDefaults} />
+      <div className="grid gap-5">
+        <AccountIdentitySection
+          providers={providers}
+          selectedProviderId={selectedProviderId}
+          onProviderChange={onProviderChange}
+          onCreateProvider={onCreateProvider}
+          emailValue={emailValue}
+          onEmailChange={onEmailChange}
+          passwordValue={passwordValue}
+          onPasswordChange={onPasswordChange}
+          isEdit={isEdit}
+        />
+        <AccountAllocationSection
+          products={products}
+          selectedProductIds={selectedProductIds}
+          onProductsChange={onProductsChange}
+          onCreateProduct={onCreateProduct}
+          maxSlots={maxSlots}
+          onMaxSlotsChange={onMaxSlotsChange}
+          expiresAt={expiresAt}
+          onExpiresAtChange={onExpiresAtChange}
+        />
+        <AccountCredentialsSection
+          credentials={credentials}
+          onCredentialsChange={onCredentialsChange}
+          emailValue={emailValue}
+          passwordValue={passwordValue}
+          productMap={productMap}
+          selectedProductIds={selectedProductIds}
+          onAutoFillResult={onAutoFillResult}
+        />
+        <AdvancedOptionsDisclosure title="Tùy chọn nâng cao">
+          <AccountCostFields costDefaults={costDefaults} />
+        </AdvancedOptionsDisclosure>
+      </div>
     </>
   );
 });
 
-/* ─── CREATE MODAL ─────────────────────────────────────────────────────── */
 interface CreateSourceAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -365,8 +407,9 @@ export function CreateSourceAccountModal({ isOpen, onClose, providers, products,
   const [expiresAt, setExpiresAt] = useState(DEFAULT_EXPIRY);
   const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     onClose();
     setSelectedProviderId("");
     setSelectedProductIds([]);
@@ -375,33 +418,25 @@ export function CreateSourceAccountModal({ isOpen, onClose, providers, products,
     setPassword("");
     setMaxSlots(5);
     setExpiresAt(DEFAULT_EXPIRY);
-  };
+    setSaving(false);
+  }, [onClose]);
 
   const handleAutoFill = useCallback((result: DuolingoAutoFillResult) => {
-    // Auto-fill maxSlots from family plan
     if (result.subscription?.maxFamilyMembers) {
       setMaxSlots(result.subscription.maxFamilyMembers);
     }
-    // Auto-fill expiresAt from subscription
     if (result.subscription?.expiresAt) {
       try {
-        const expDate = new Date(result.subscription.expiresAt).toISOString().slice(0, 10);
-        setExpiresAt(expDate);
-      } catch { /* ignore invalid date */ }
+        setExpiresAt(new Date(result.subscription.expiresAt).toISOString().slice(0, 10));
+      } catch {
+        // ignore invalid date payloads from lookups
+      }
     }
   }, []);
 
-  const handleOpenProviderModal = useCallback(() => {
-    setIsProviderModalOpen(true);
-  }, []);
-
-  const handleOpenProductModal = useCallback(() => {
-    setIsProductModalOpen(true);
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+  const handleSubmit = useCallback(async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const fd = new FormData(event.currentTarget);
     const rawPassword = (fd.get("password") as string)?.trim() || undefined;
     const body = {
       email: fd.get("email") as string,
@@ -417,30 +452,45 @@ export function CreateSourceAccountModal({ isOpen, onClose, providers, products,
     };
 
     if (!body.email || !body.provider) {
-      appToast.error("Email và nhà cung cấp là bắt buộc");
+      appToast.error("Email và nhà cung cấp là bắt buộc.");
       return;
     }
 
+    setSaving(true);
     try {
       await onSubmit(body);
       handleClose();
-      appToast.success("Tạo tài khoản nguồn thành công!");
+      appToast.success("Tạo tài khoản nguồn thành công.");
     } catch {
-      appToast.error("Lỗi tạo tài khoản nguồn");
+      appToast.error("Không thể tạo tài khoản nguồn.");
+    } finally {
+      setSaving(false);
     }
-  };
+  }, [credentials, expiresAt, handleClose, maxSlots, onSubmit]);
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={handleClose} title="Thêm Tài Khoản Nguồn" size="2xl"
+      <CreateFlowDialog
+        isOpen={isOpen}
+        onClose={handleClose}
+        title="Thêm tài khoản nguồn"
+        description="Giữ layout nhập liệu rộng và gọn, tối ưu cho thao tác nhanh trên màn hình lớn lẫn mobile."
+        size="2xl"
         footer={
-          <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="secondary" onClick={handleClose} className="w-full sm:w-auto">Hủy</Button>
-            <Button variant="primary" type="submit" form="create-account-form" className="w-full sm:w-auto">Tạo Tài Khoản</Button>
-          </div>
+          <CreateActionFooter
+            primaryLabel="Tạo tài khoản"
+            onPrimary={() => {
+              const form = document.getElementById("create-account-form") as HTMLFormElement | null;
+              form?.requestSubmit();
+            }}
+            onCancel={handleClose}
+            cancelLabel="Hủy"
+            pending={saving}
+            disabled={saving}
+          />
         }
       >
-        <form id="create-account-form" onSubmit={handleSubmit} className="space-y-8">
+        <form id="create-account-form" onSubmit={handleSubmit} className="grid gap-5">
           <AccountFormFields
             providers={providers}
             products={products}
@@ -448,8 +498,8 @@ export function CreateSourceAccountModal({ isOpen, onClose, providers, products,
             selectedProductIds={selectedProductIds}
             onProviderChange={setSelectedProviderId}
             onProductsChange={setSelectedProductIds}
-            onCreateProvider={handleOpenProviderModal}
-            onCreateProduct={handleOpenProductModal}
+            onCreateProvider={() => setIsProviderModalOpen(true)}
+            onCreateProduct={() => setIsProductModalOpen(true)}
             productMap={productMap}
             credentials={credentials}
             onCredentialsChange={setCredentials}
@@ -464,7 +514,7 @@ export function CreateSourceAccountModal({ isOpen, onClose, providers, products,
             onAutoFillResult={handleAutoFill}
           />
         </form>
-      </Modal>
+      </CreateFlowDialog>
 
       {isProviderModalOpen && (
         <CustomerCreateModalLazy
@@ -474,14 +524,15 @@ export function CreateSourceAccountModal({ isOpen, onClose, providers, products,
           onSuccess={(newProvider) => setSelectedProviderId(newProvider.id)}
         />
       )}
+
       {isProductModalOpen && (
         <ProductCreateModalLazy
           isOpen={isProductModalOpen}
           onClose={() => setIsProductModalOpen(false)}
           onSuccess={(newProduct) => {
-            if (!selectedProductIds.includes(newProduct.id)) {
-              setSelectedProductIds(prev => [...prev, newProduct.id]);
-            }
+            setSelectedProductIds((current) =>
+              current.includes(newProduct.id) ? current : [...current, newProduct.id],
+            );
           }}
         />
       )}
@@ -489,7 +540,6 @@ export function CreateSourceAccountModal({ isOpen, onClose, providers, products,
   );
 }
 
-/* ─── EDIT MODAL ───────────────────────────────────────────────────────── */
 interface EditSourceAccountModalProps {
   account: SourceAccount | null;
   onClose: () => void;
@@ -521,21 +571,20 @@ export function EditSourceAccountModal({ account, onClose, providers, products, 
   const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [initialized, setInitialized] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
   const decryptQuery = useSourceAccountDecrypt(account?.id ?? "", !!account);
 
-  // Sync state when account changes; decrypted secrets hydrate from shared query
   useEffect(() => {
     if (account && initialized !== account.id) {
-      Promise.resolve().then(() => {
-        setSelectedProviderId(account.provider);
-        setSelectedProductIds(account.productIds);
-        setInitialized(account.id);
-        setCredentials(account.credentials ?? []);
-        setEmail(account.email);
-        setPassword("");
-        setMaxSlots(account.maxSlots);
-        setExpiresAt(account.expiresAt?.substring(0, 10) ?? "");
-      });
+      setSelectedProviderId(account.provider);
+      setSelectedProductIds(account.productIds);
+      setInitialized(account.id);
+      setCredentials(account.credentials ?? []);
+      setEmail(account.email);
+      setPassword("");
+      setMaxSlots(account.maxSlots);
+      setExpiresAt(account.expiresAt?.substring(0, 10) ?? "");
     }
   }, [account, initialized]);
 
@@ -552,10 +601,11 @@ export function EditSourceAccountModal({ account, onClose, providers, products, 
     }
   }, [account, decryptQuery.data]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     onClose();
     setInitialized(null);
-  };
+    setSaving(false);
+  }, [onClose]);
 
   const handleAutoFill = useCallback((result: DuolingoAutoFillResult) => {
     if (result.subscription?.maxFamilyMembers) {
@@ -563,24 +613,20 @@ export function EditSourceAccountModal({ account, onClose, providers, products, 
     }
     if (result.subscription?.expiresAt) {
       try {
-        const expDate = new Date(result.subscription.expiresAt).toISOString().slice(0, 10);
-        setExpiresAt(expDate);
-      } catch { /* ignore */ }
+        setExpiresAt(new Date(result.subscription.expiresAt).toISOString().slice(0, 10));
+      } catch {
+        // ignore invalid date payloads from lookups
+      }
     }
   }, []);
 
-  const handleOpenProviderModal = useCallback(() => {
-    setIsProviderModalOpen(true);
-  }, []);
+  const handleSubmit = useCallback(async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!account) {
+      return;
+    }
 
-  const handleOpenProductModal = useCallback(() => {
-    setIsProductModalOpen(true);
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!account) return;
-    const fd = new FormData(e.currentTarget);
+    const fd = new FormData(event.currentTarget);
     const rawPassword = (fd.get("password") as string)?.trim() || undefined;
     const body = {
       id: account.id,
@@ -597,31 +643,46 @@ export function EditSourceAccountModal({ account, onClose, providers, products, 
     };
 
     if (!body.email || !body.provider) {
-      appToast.error("Email và nhà cung cấp là bắt buộc");
+      appToast.error("Email và nhà cung cấp là bắt buộc.");
       return;
     }
 
+    setSaving(true);
     try {
       await onSubmit(body);
       handleClose();
-      appToast.success("Cập nhật tài khoản nguồn thành công!");
+      appToast.success("Cập nhật tài khoản nguồn thành công.");
     } catch {
-      appToast.error("Lỗi cập nhật tài khoản nguồn");
+      appToast.error("Không thể cập nhật tài khoản nguồn.");
+    } finally {
+      setSaving(false);
     }
-  };
+  }, [account, credentials, expiresAt, handleClose, maxSlots, onSubmit]);
 
   return (
     <>
-      <Modal isOpen={!!account} onClose={handleClose} title="Sửa Thông Tin Tài Khoản Nguồn" size="2xl"
+      <CreateFlowDialog
+        isOpen={!!account}
+        onClose={handleClose}
+        title="Sửa thông tin tài khoản nguồn"
+        description="Nhập nhanh phần cần đổi, còn các phần nâng cao sẽ được giữ gọn ở dưới để giảm rối mắt."
+        size="2xl"
         footer={
-          <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="secondary" onClick={handleClose} className="w-full sm:w-auto">Hủy</Button>
-            <Button variant="primary" type="submit" form="edit-account-form" className="w-full sm:w-auto">Lưu Thay Đổi</Button>
-          </div>
+          <CreateActionFooter
+            primaryLabel="Lưu thay đổi"
+            onPrimary={() => {
+              const form = document.getElementById("edit-account-form") as HTMLFormElement | null;
+              form?.requestSubmit();
+            }}
+            onCancel={handleClose}
+            cancelLabel="Hủy"
+            pending={saving}
+            disabled={saving}
+          />
         }
       >
-        {account && (
-          <form id="edit-account-form" onSubmit={handleSubmit} className="space-y-8">
+        {account ? (
+          <form id="edit-account-form" onSubmit={handleSubmit} className="grid gap-5">
             <AccountFormFields
               providers={providers}
               products={products}
@@ -629,8 +690,8 @@ export function EditSourceAccountModal({ account, onClose, providers, products, 
               selectedProductIds={selectedProductIds}
               onProviderChange={setSelectedProviderId}
               onProductsChange={setSelectedProductIds}
-              onCreateProvider={handleOpenProviderModal}
-              onCreateProduct={handleOpenProductModal}
+              onCreateProvider={() => setIsProviderModalOpen(true)}
+              onCreateProduct={() => setIsProductModalOpen(true)}
               productMap={productMap}
               credentials={credentials}
               onCredentialsChange={setCredentials}
@@ -644,11 +705,15 @@ export function EditSourceAccountModal({ account, onClose, providers, products, 
               onExpiresAtChange={setExpiresAt}
               onAutoFillResult={handleAutoFill}
               isEdit
-              costDefaults={{ purchaseCostVnd: account.purchaseCostVnd, purchaseDate: account.purchaseDate, purchaseSource: account.purchaseSource }}
+              costDefaults={{
+                purchaseCostVnd: account.purchaseCostVnd,
+                purchaseDate: account.purchaseDate,
+                purchaseSource: account.purchaseSource,
+              }}
             />
           </form>
-        )}
-      </Modal>
+        ) : null}
+      </CreateFlowDialog>
 
       {isProviderModalOpen && (
         <CustomerCreateModalLazy
@@ -658,14 +723,15 @@ export function EditSourceAccountModal({ account, onClose, providers, products, 
           onSuccess={(newProvider) => setSelectedProviderId(newProvider.id)}
         />
       )}
+
       {isProductModalOpen && (
         <ProductCreateModalLazy
           isOpen={isProductModalOpen}
           onClose={() => setIsProductModalOpen(false)}
           onSuccess={(newProduct) => {
-            if (!selectedProductIds.includes(newProduct.id)) {
-              setSelectedProductIds(prev => [...prev, newProduct.id]);
-            }
+            setSelectedProductIds((current) =>
+              current.includes(newProduct.id) ? current : [...current, newProduct.id],
+            );
           }}
         />
       )}

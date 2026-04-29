@@ -61,14 +61,18 @@ describe('calculateExpiryDate', () => {
   it('returns ISO date format (YYYY-MM-DD)', () => {
     expect(calculateExpiryDate('2026-06-01', '1month')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
+
+  it('throws for invalid start date strings', () => {
+    expect(() => calculateExpiryDate('invalid-date', '1month')).toThrow();
+  });
 });
 
 // ── validateSubscriptionData ───────────────────────────────────
 describe('validateSubscriptionData', () => {
   const validData = {
-    premium_account_id: 'acc-1',
-    service_type_id: 'svc-1',
-    package_id: 'pkg-1',
+    premium_account_id: '00000000-0000-4000-8000-000000000016',
+    service_type_id: '00000000-0000-4000-8000-000000000085',
+    package_id: '00000000-0000-4000-8000-000000000086',
     billing_cycle: '1month',
     start_date: '2026-01-01',
     expiry_date: '2026-02-01',
@@ -130,6 +134,18 @@ describe('validateSubscriptionData', () => {
     });
     expect(result.isValid).toBe(false);
     expect(result.errors?.expiry_date).toBeDefined();
+  });
+
+  it('rejects invalid date strings before comparing the period', () => {
+    const result = validateSubscriptionData({
+      ...validData,
+      start_date: 'not-a-date',
+      expiry_date: 'still-not-a-date',
+    });
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors?.start_date).toEqual(['Start date is invalid']);
+    expect(result.errors?.expiry_date).toEqual(['Expiry date is invalid']);
   });
 
   it('rejects original_price <= 0', () => {

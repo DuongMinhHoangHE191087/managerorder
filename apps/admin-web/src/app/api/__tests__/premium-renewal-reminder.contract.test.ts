@@ -4,12 +4,12 @@ import { TEST_ACCOUNT_ID, createTestRequest } from "./helpers/setup";
 type RouteModule = typeof import("@/app/api/cron/premium-renewal-reminder/route");
 
 const eligibleSubscription = {
-  id: "subscription-1",
+  id: "00000000-0000-4000-8000-000000000078",
   account_id: TEST_ACCOUNT_ID,
-  customer_id: "customer-1",
-  premium_account_id: "premium-account-1",
-  service_type_id: "service-type-1",
-  package_id: "package-1",
+  customer_id: "00000000-0000-4000-8000-00000000005c",
+  premium_account_id: "00000000-0000-4000-8000-000000000079",
+  service_type_id: "00000000-0000-4000-8000-00000000007a",
+  package_id: "00000000-0000-4000-8000-00000000007b",
   expiry_date: "2026-04-29T00:00:00+07:00",
   start_date: "2026-03-29T00:00:00+07:00",
   original_price: 120000,
@@ -52,16 +52,16 @@ function createReminderLogsTable(selectPayloads: unknown[]) {
 
 function createRelationLookup(table: string) {
   if (table === "customers") {
-    return new Map([["customer-1", { id: "customer-1", full_name: "Nguyen Van A" }]]);
+    return new Map([["00000000-0000-4000-8000-00000000005c", { id: "00000000-0000-4000-8000-00000000005c", full_name: "Nguyen Van A" }]]);
   }
   if (table === "premium_accounts") {
-    return new Map([["premium-account-1", { id: "premium-account-1", primary_email: "netflix@slot.local" }]]);
+    return new Map([["00000000-0000-4000-8000-000000000079", { id: "00000000-0000-4000-8000-000000000079", primary_email: "netflix@slot.local" }]]);
   }
   if (table === "premium_packages") {
-    return new Map([["package-1", { id: "package-1", name: "Goi 4 slot" }]]);
+    return new Map([["00000000-0000-4000-8000-00000000007b", { id: "00000000-0000-4000-8000-00000000007b", name: "Goi 4 slot" }]]);
   }
   if (table === "premium_service_types") {
-    return new Map([["service-type-1", { id: "service-type-1", name: "Netflix" }]]);
+    return new Map([["00000000-0000-4000-8000-00000000007a", { id: "00000000-0000-4000-8000-00000000007a", name: "Netflix" }]]);
   }
   return new Map();
 }
@@ -114,7 +114,7 @@ async function loadRoute(options?: {
   );
   const listCustomerZaloReminderTargets = vi
     .fn()
-    .mockResolvedValue(options?.zaloTargets ?? [{ chatId: "zalo-chat-1" }]);
+    .mockResolvedValue(options?.zaloTargets ?? [{ chatId: "00000000-0000-4000-8000-0000000003ec-00000000007c" }]);
   const sendTelegramMessage = vi.fn().mockResolvedValue(true);
   const sendZaloTextMessage = vi.fn().mockResolvedValue(true);
   const loadRowsByIds = vi
@@ -244,9 +244,9 @@ describe("GET /api/cron/premium-renewal-reminder", () => {
     });
     expect(mocks.getReminderConfig).toHaveBeenCalledWith(TEST_ACCOUNT_ID);
     expect(mocks.sendTelegramMessage).toHaveBeenCalledTimes(1);
-    expect(mocks.listCustomerZaloReminderTargets).toHaveBeenCalledWith(TEST_ACCOUNT_ID, "customer-1");
+    expect(mocks.listCustomerZaloReminderTargets).toHaveBeenCalledWith(TEST_ACCOUNT_ID, "00000000-0000-4000-8000-00000000005c");
     expect(mocks.sendZaloTextMessage).toHaveBeenCalledWith(
-      "zalo-chat-1",
+      "00000000-0000-4000-8000-0000000003ec-00000000007c",
       expect.stringContaining("Nguyen Van A"),
     );
     expect(mocks.reminderLogInsert).toHaveBeenCalledTimes(2);

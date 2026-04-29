@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { appToast } from "@/shared/ui/app-toast";
+import { queryKeys } from "@/shared/lib/react-query/query-keys";
 
 // Types matching trash.repo.ts
 type TrashEntityType = "customers" | "orders" | "products" | "providers" | "source_accounts" | "license_keys" | "short_links";
@@ -51,11 +52,11 @@ export function useRestoreItems() {
     onSuccess: (data, vars) => {
       appToast.success(data.message || `Đã khôi phục ${vars.ids.length} mục`);
       qc.invalidateQueries({ queryKey: ["trash"] });
-      qc.invalidateQueries({ queryKey: [vars.type] });
-      // Also invalidate the main entity list
-      qc.invalidateQueries({ queryKey: ["customers"] });
-      qc.invalidateQueries({ queryKey: ["orders"] });
-      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: queryKeys.customers });
+      qc.invalidateQueries({ queryKey: queryKeys.orders });
+      qc.invalidateQueries({ queryKey: queryKeys.products });
+      qc.invalidateQueries({ queryKey: queryKeys.providers });
+      qc.invalidateQueries({ queryKey: queryKeys.sourceAccounts });
     },
     onError: (err: Error) => appToast.error(err.message),
   });

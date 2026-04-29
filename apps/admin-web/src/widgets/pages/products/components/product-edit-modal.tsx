@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
-import { Modal } from "@/shared/ui/modal";
-import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
-import { ChoiceCard, ChoiceGrid, FieldLabel, FormSection } from "@/shared/ui/form-primitives";
+import { ChoiceCard, ChoiceGrid, FieldLabel } from "@/shared/ui/form-primitives";
+import {
+  AdvancedOptionsDisclosure,
+  CreateActionFooter,
+  CreateFlowDialog,
+  CreateFormSection,
+} from "@/shared/ui/create-flow-shell";
 import type { ProductService } from "@/lib/domain/types";
 import { useUpdateProduct } from "@/widgets/pages/products/hooks/use-products";
 import { PRODUCT_MODE_OPTIONS, MarginPreview } from "./product-shared";
@@ -89,34 +92,27 @@ export function ProductEditModal({
   }
 
   return (
-    <Modal
+    <CreateFlowDialog
       isOpen={isOpen}
       onClose={handleClose}
       title="Cập nhật sản phẩm"
-      size="md"
+      description="Giữ cùng nhịp với form tạo mới để sửa giá, thời hạn và trạng thái sản phẩm mà không phải đổi cách nhập liệu."
+      size="lg"
       footer={
-        <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
-          <Button type="button" variant="secondary" onClick={handleClose} className="w-full sm:w-auto">
-            Hủy
-          </Button>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleSave}
-            disabled={saving || !name.trim() || !sellPrice}
-            className="w-full sm:w-auto"
-          >
-            {saving && <Loader2 className="size-4 animate-spin" />}
-            {saving ? "Đang lưu..." : "Lưu thay đổi"}
-          </Button>
-        </div>
+        <CreateActionFooter
+          primaryLabel="Lưu thay đổi"
+          onPrimary={() => void handleSave()}
+          onCancel={handleClose}
+          pending={saving}
+          disabled={!name.trim() || !sellPrice}
+        />
       }
     >
-      <div className="space-y-4">
-        <FormSection
-          title="Thông tin chính"
-          description="Điều chỉnh tên, loại và cấu hình giá."
-        >
+      <CreateFormSection
+        title="Thông tin chính"
+        description="Giữ form sửa gọn và đủ sâu để cập nhật nhanh giá, mode vận hành và thời hạn."
+      >
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(240px,0.8fr)]">
           <div className="space-y-3">
             <FieldLabel required>Tên sản phẩm</FieldLabel>
             <Input
@@ -127,91 +123,92 @@ export function ProductEditModal({
           </div>
 
           <div className="space-y-3">
-            <FieldLabel>Loại sản phẩm</FieldLabel>
-            <ChoiceGrid className="grid-cols-1 sm:grid-cols-3">
-              {PRODUCT_MODE_OPTIONS.map((option) => (
-                <ChoiceCard
-                  key={option.value}
-                  selected={mode === option.value}
-                  title={option.label}
-                  description={option.desc}
-                  onClick={() => setMode(option.value as "slot" | "key" | "hybrid")}
-                />
-              ))}
-            </ChoiceGrid>
+            <FieldLabel required>Giá bán (VNĐ)</FieldLabel>
+            <Input
+              type="number"
+              min={0}
+              value={sellPrice}
+              onChange={(event) => setSellPrice(event.target.value)}
+              className="font-mono"
+            />
           </div>
+        </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-3">
-              <FieldLabel>Thời hạn</FieldLabel>
-              <div className="grid grid-cols-3 gap-2">
-                <Input
-                  type="number"
-                  min={1}
-                  value={durationValue}
-                  onChange={(event) => setDurationValue(Number(event.target.value))}
-                  className="col-span-1 font-semibold"
-                />
-                <Select
-                  value={durationType}
-                  onChange={(event) => setDurationType(event.target.value as "days" | "months" | "years")}
-                  className="col-span-2"
-                >
-                  <option value="days">Ngày</option>
-                  <option value="months">Tháng</option>
-                  <option value="years">Năm</option>
-                </Select>
-              </div>
-            </div>
+        <div className="space-y-3">
+          <FieldLabel>Loại sản phẩm</FieldLabel>
+          <ChoiceGrid className="grid-cols-1 sm:grid-cols-3">
+            {PRODUCT_MODE_OPTIONS.map((option) => (
+              <ChoiceCard
+                key={option.value}
+                selected={mode === option.value}
+                title={option.label}
+                description={option.desc}
+                onClick={() => setMode(option.value as "slot" | "key" | "hybrid")}
+              />
+            ))}
+          </ChoiceGrid>
+        </div>
 
-            <div className="space-y-3">
-              <FieldLabel>Biên lợi nhuận</FieldLabel>
-              <MarginPreview buyPrice={buyPrice} sellPrice={sellPrice} />
-            </div>
-          </div>
+        <div className="space-y-3">
+          <FieldLabel>Trạng thái</FieldLabel>
+          <ChoiceGrid className="grid-cols-1 sm:grid-cols-2">
+            <ChoiceCard
+              selected={isActive}
+              title="Đang bán"
+              description="Hiển thị trên luồng bán hàng"
+              onClick={() => setIsActive(true)}
+            />
+            <ChoiceCard
+              selected={!isActive}
+              title="Ngừng bán"
+              description="Ẩn khỏi lựa chọn mới"
+              onClick={() => setIsActive(false)}
+            />
+          </ChoiceGrid>
+        </div>
+      </CreateFormSection>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-3">
-              <FieldLabel>Giá nhập (VNĐ)</FieldLabel>
+      <AdvancedOptionsDisclosure title="Thời hạn, giá nhập & biên lợi nhuận">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-3">
+            <FieldLabel>Thời hạn</FieldLabel>
+            <div className="grid grid-cols-3 gap-2">
               <Input
                 type="number"
-                min={0}
-                value={buyPrice}
-                onChange={(event) => setBuyPrice(event.target.value)}
-                className="font-mono"
+                min={1}
+                value={durationValue}
+                onChange={(event) => setDurationValue(Number(event.target.value))}
+                className="col-span-1 font-semibold"
               />
-            </div>
-            <div className="space-y-3">
-              <FieldLabel required>Giá bán (VNĐ)</FieldLabel>
-              <Input
-                type="number"
-                min={0}
-                value={sellPrice}
-                onChange={(event) => setSellPrice(event.target.value)}
-                className="font-mono"
-              />
+              <Select
+                value={durationType}
+                onChange={(event) => setDurationType(event.target.value as "days" | "months" | "years")}
+                className="col-span-2"
+              >
+                <option value="days">Ngày</option>
+                <option value="months">Tháng</option>
+                <option value="years">Năm</option>
+              </Select>
             </div>
           </div>
 
           <div className="space-y-3">
-            <FieldLabel>Trạng thái</FieldLabel>
-            <ChoiceGrid className="grid-cols-1 sm:grid-cols-2">
-              <ChoiceCard
-                selected={isActive}
-                title="Đang bán"
-                description="Hiển thị trên luồng bán hàng"
-                onClick={() => setIsActive(true)}
-              />
-              <ChoiceCard
-                selected={!isActive}
-                title="Ngừng bán"
-                description="Ẩn khỏi lựa chọn mới"
-                onClick={() => setIsActive(false)}
-              />
-            </ChoiceGrid>
+            <FieldLabel>Giá nhập (VNĐ)</FieldLabel>
+            <Input
+              type="number"
+              min={0}
+              value={buyPrice}
+              onChange={(event) => setBuyPrice(event.target.value)}
+              className="font-mono"
+            />
           </div>
-        </FormSection>
-      </div>
-    </Modal>
+        </div>
+
+        <div className="space-y-3">
+          <FieldLabel>Biên lợi nhuận</FieldLabel>
+          <MarginPreview buyPrice={buyPrice} sellPrice={sellPrice} />
+        </div>
+      </AdvancedOptionsDisclosure>
+    </CreateFlowDialog>
   );
 }

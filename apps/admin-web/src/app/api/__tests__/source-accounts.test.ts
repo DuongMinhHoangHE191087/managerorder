@@ -94,23 +94,23 @@ describe("POST /api/source-accounts", () => {
 describe("GET /api/source-accounts/:id/decrypt", () => {
   it("returns normalized decrypted secrets", async () => {
     mockGetDecryptedSourceAccountSecretsForAccount.mockResolvedValue({
-      id: "sa-1",
+      id: "00000000-0000-4000-8000-000000000040",
       email: "storage@example.com",
       password: "plain-password",
       credentials: [
-        { id: "sa-1-cred-1", type: "2fa", value: "123456", label: "OTP" },
+        { id: "00000000-0000-4000-8000-0000000000b0", type: "2fa", value: "123456", label: "OTP" },
       ],
     });
 
     const res = await GET_DECRYPT(
-      createTestRequest("http://localhost/api/source-accounts/sa-1/decrypt"),
-      { params: Promise.resolve({ id: "sa-1" }) } as any,
+      createTestRequest("http://localhost/api/source-accounts/00000000-0000-4000-8000-000000000040/decrypt"),
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-000000000040" }) } as any,
     );
     const body = await res.json();
 
     expect(res.status).toBe(200);
     expect(body.data.password).toBe("plain-password");
-    expect(body.data.credentials[0].id).toBe("sa-1-cred-1");
+    expect(body.data.credentials[0].id).toBe("00000000-0000-4000-8000-0000000000b0");
   });
 });
 
@@ -118,13 +118,13 @@ describe("GET /api/source-accounts/smart-match", () => {
   it("returns smart match suggestions", async () => {
     mockScanSmartMatchesForAccount.mockResolvedValue([
       {
-        sourceAccountId: "sa-1",
+        sourceAccountId: "00000000-0000-4000-8000-000000000040",
         sourceAccountEmail: "storage@example.com",
-        orderItemId: "item-1",
+        orderItemId: "00000000-0000-4000-8000-000000000058",
         orderItemQuantity: 1,
         productNameSnapshot: "Netflix",
         customerName: "Customer A",
-        orderId: "order-1",
+        orderId: "00000000-0000-4000-8000-00000000005b",
         matchedField: "reserved_nick",
         matchedValue: "nick-a",
         confidence: 100,
@@ -146,27 +146,27 @@ describe("GET /api/source-accounts/:id/connections/search", () => {
   it("returns search results for a query", async () => {
     mockSearchUnconnectedSourceAccountsForAccount.mockResolvedValue([
       {
-        id: "item-1",
-        product_id: "prod-1",
+        id: "00000000-0000-4000-8000-000000000058",
+        product_id: "00000000-0000-4000-8000-000000000039",
         product_name_snapshot: "Netflix",
         quantity: 1,
         notes: "reserved nick",
         customer_nick_used: "nick-a",
         assigned_source_account_id: null,
-        order_id: "order-1",
+        order_id: "00000000-0000-4000-8000-00000000005b",
       },
     ]);
 
     const res = await GET_CONNECTION_SEARCH(
-      createTestRequest("http://localhost/api/source-accounts/sa-1/connections/search?q=nick"),
-      { params: Promise.resolve({ id: "sa-1" }) } as any,
+      createTestRequest("http://localhost/api/source-accounts/00000000-0000-4000-8000-000000000040/connections/search?q=nick"),
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-000000000040" }) } as any,
     );
     const body = await res.json();
 
     expect(res.status).toBe(200);
     expect(body.data).toHaveLength(1);
     expect(mockSearchUnconnectedSourceAccountsForAccount).toHaveBeenCalledWith(
-      "sa-1",
+      "00000000-0000-4000-8000-000000000040",
       expect.any(String),
       "nick",
     );

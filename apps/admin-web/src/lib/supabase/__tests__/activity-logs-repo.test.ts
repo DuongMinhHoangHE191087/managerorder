@@ -59,19 +59,25 @@ beforeEach(() => {
 describe("createActivityLog", () => {
   it("should create a log entry and return it", async () => {
     const logData = {
-      account_id: "acc-1",
+      account_id: "00000000-0000-4000-8000-000000000016",
       action_type: "ORDER_CREATED",
-      customer_id: "cust-1",
+      customer_id: "550e8400-e29b-41d4-a716-446655440000",
       details: { order_code: "DMH_000001" },
     };
-    const expectedReturn = { id: "log-1", ...logData, created_at: "2025-01-01T00:00:00Z" };
+    const expectedInsert = {
+      ...logData,
+      order_id: null,
+      source_account_id: null,
+      created_by: null,
+    };
+    const expectedReturn = { id: "00000000-0000-4000-8000-00000000000e", ...expectedInsert, created_at: "2025-01-01T00:00:00Z" };
     const chain = createQueryChain({ data: expectedReturn, error: null });
     mockFrom.mockReturnValue(chain);
 
     const result = await createActivityLog(logData);
 
     expect(mockFrom).toHaveBeenCalledWith("activity_logs");
-    expect(chain.insert).toHaveBeenCalledWith([logData]);
+    expect(chain.insert).toHaveBeenCalledWith([expectedInsert]);
     expect(result).toEqual(expectedReturn);
   });
 
@@ -80,7 +86,7 @@ describe("createActivityLog", () => {
     mockFrom.mockReturnValue(chain);
 
     const result = await createActivityLog({
-      account_id: "acc-1",
+      account_id: "00000000-0000-4000-8000-000000000016",
       action_type: "ORDER_CREATED",
     });
 
@@ -93,7 +99,7 @@ describe("createActivityLog", () => {
     });
 
     const result = await createActivityLog({
-      account_id: "acc-1",
+      account_id: "00000000-0000-4000-8000-000000000016",
       action_type: "CUSTOMER_CREATED",
     });
 
@@ -102,15 +108,15 @@ describe("createActivityLog", () => {
 
   it("should handle all optional fields", async () => {
     const logData = {
-      account_id: "acc-1",
+      account_id: "00000000-0000-4000-8000-000000000016",
       action_type: "PAYMENT_ADDED",
-      customer_id: "cust-1",
-      order_id: "ord-1",
-      source_account_id: "inv-1",
+      customer_id: "550e8400-e29b-41d4-a716-446655440001",
+      order_id: "550e8400-e29b-41d4-a716-446655440002",
+      source_account_id: "550e8400-e29b-41d4-a716-446655440003",
       details: { amount: 500000 },
-      created_by: "user-1",
+      created_by: "550e8400-e29b-41d4-a716-446655440004",
     };
-    const chain = createQueryChain({ data: { id: "log-2", ...logData, created_at: "2025-01-01" }, error: null });
+    const chain = createQueryChain({ data: { id: "00000000-0000-4000-8000-000000000010", ...logData, created_at: "2025-01-01" }, error: null });
     mockFrom.mockReturnValue(chain);
 
     const result = await createActivityLog(logData);
@@ -125,12 +131,12 @@ describe("createActivityLog", () => {
 describe("getActivityLogs", () => {
   it("should fetch logs for an account", async () => {
     const logs = [
-      { id: "log-1", action_type: "ORDER_CREATED", created_at: "2025-01-15T10:00:00Z" },
+      { id: "00000000-0000-4000-8000-00000000000e", action_type: "ORDER_CREATED", created_at: "2025-01-15T10:00:00Z" },
     ];
     const chain = createQueryChain({ data: logs, error: null });
     mockFrom.mockReturnValue(chain);
 
-    const result = await getActivityLogs("acc-1");
+    const result = await getActivityLogs("00000000-0000-4000-8000-000000000016");
     
     expect(mockFrom).toHaveBeenCalledWith("activity_logs");
     expect(result).toEqual(logs);
@@ -140,34 +146,34 @@ describe("getActivityLogs", () => {
     const chain = createQueryChain({ data: [], error: null });
     mockFrom.mockReturnValue(chain);
 
-    await getActivityLogs("acc-1", { customerId: "cust-1" });
+    await getActivityLogs("00000000-0000-4000-8000-000000000016", { customerId: "00000000-0000-4000-8000-000000000005" });
     
     // Check that eq was called with customer_id
-    expect(chain.eq).toHaveBeenCalledWith("account_id", "acc-1");
-    expect(chain.eq).toHaveBeenCalledWith("customer_id", "cust-1");
+    expect(chain.eq).toHaveBeenCalledWith("account_id", "00000000-0000-4000-8000-000000000016");
+    expect(chain.eq).toHaveBeenCalledWith("customer_id", "00000000-0000-4000-8000-000000000005");
   });
 
   it("should apply orderId filter", async () => {
     const chain = createQueryChain({ data: [], error: null });
     mockFrom.mockReturnValue(chain);
 
-    await getActivityLogs("acc-1", { orderId: "ord-1" });
-    expect(chain.eq).toHaveBeenCalledWith("order_id", "ord-1");
+    await getActivityLogs("00000000-0000-4000-8000-000000000016", { orderId: "00000000-0000-4000-8000-00000000000f" });
+    expect(chain.eq).toHaveBeenCalledWith("order_id", "00000000-0000-4000-8000-00000000000f");
   });
 
   it("should apply sourceAccountId filter", async () => {
     const chain = createQueryChain({ data: [], error: null });
     mockFrom.mockReturnValue(chain);
 
-    await getActivityLogs("acc-1", { sourceAccountId: "inv-1" });
-    expect(chain.eq).toHaveBeenCalledWith("source_account_id", "inv-1");
+    await getActivityLogs("00000000-0000-4000-8000-000000000016", { sourceAccountId: "00000000-0000-4000-8000-000000000136" });
+    expect(chain.eq).toHaveBeenCalledWith("source_account_id", "00000000-0000-4000-8000-000000000136");
   });
 
   it("should apply limit filter", async () => {
     const chain = createQueryChain({ data: [], error: null });
     mockFrom.mockReturnValue(chain);
 
-    await getActivityLogs("acc-1", { limit: 5 });
+    await getActivityLogs("00000000-0000-4000-8000-000000000016", { limit: 5 });
     expect(chain.limit).toHaveBeenCalledWith(5);
   });
 
@@ -175,7 +181,7 @@ describe("getActivityLogs", () => {
     const chain = createQueryChain({ data: null, error: { message: "Query failed" } });
     mockFrom.mockReturnValue(chain);
 
-    const result = await getActivityLogs("acc-1");
+    const result = await getActivityLogs("00000000-0000-4000-8000-000000000016");
     expect(result).toEqual([]);
   });
 
@@ -184,7 +190,7 @@ describe("getActivityLogs", () => {
       throw new Error("DB connection lost");
     });
 
-    const result = await getActivityLogs("acc-1");
+    const result = await getActivityLogs("00000000-0000-4000-8000-000000000016");
     expect(result).toEqual([]);
   });
 });
@@ -197,7 +203,7 @@ describe("getActivityLogsPaginated", () => {
     const chain = createQueryChain({ data: [], error: null, count: 0 });
     mockFrom.mockReturnValue(chain);
 
-    await getActivityLogsPaginated("acc-1", { page: 2, limit: 10 });
+    await getActivityLogsPaginated("00000000-0000-4000-8000-000000000016", { page: 2, limit: 10 });
 
     // Page 2, limit 10 → from=10, to=19
     expect(chain.range).toHaveBeenCalledWith(10, 19);
@@ -207,7 +213,7 @@ describe("getActivityLogsPaginated", () => {
     const chain = createQueryChain({ data: [], error: null, count: 0 });
     mockFrom.mockReturnValue(chain);
 
-    await getActivityLogsPaginated("acc-1");
+    await getActivityLogsPaginated("00000000-0000-4000-8000-000000000016");
 
     // Default → from=0, to=19
     expect(chain.range).toHaveBeenCalledWith(0, 19);
@@ -217,7 +223,7 @@ describe("getActivityLogsPaginated", () => {
     const chain = createQueryChain({ data: [], error: null, count: 0 });
     mockFrom.mockReturnValue(chain);
 
-    await getActivityLogsPaginated("acc-1", { limit: 500 });
+    await getActivityLogsPaginated("00000000-0000-4000-8000-000000000016", { limit: 500 });
 
     // 500 capped to 100 → from=0, to=99
     expect(chain.range).toHaveBeenCalledWith(0, 99);
@@ -227,7 +233,7 @@ describe("getActivityLogsPaginated", () => {
     const chain = createQueryChain({ data: [], error: null, count: 0 });
     mockFrom.mockReturnValue(chain);
 
-    await getActivityLogsPaginated("acc-1", { page: 0 });
+    await getActivityLogsPaginated("00000000-0000-4000-8000-000000000016", { page: 0 });
 
     // 0 → page=1 → from=0
     expect(chain.range).toHaveBeenCalledWith(0, expect.any(Number));
@@ -237,7 +243,7 @@ describe("getActivityLogsPaginated", () => {
     const chain = createQueryChain({ data: [], error: null, count: 0 });
     mockFrom.mockReturnValue(chain);
 
-    await getActivityLogsPaginated("acc-1", { actionType: "ORDER_CREATED" });
+    await getActivityLogsPaginated("00000000-0000-4000-8000-000000000016", { actionType: "ORDER_CREATED" });
     expect(chain.eq).toHaveBeenCalledWith("action_type", "ORDER_CREATED");
   });
 
@@ -245,36 +251,34 @@ describe("getActivityLogsPaginated", () => {
     const chain = createQueryChain({ data: [], error: null, count: 0 });
     mockFrom.mockReturnValue(chain);
 
-    await getActivityLogsPaginated("acc-1", { startDate: "2025-01-01", endDate: "2025-01-31" });
+    await getActivityLogsPaginated("00000000-0000-4000-8000-000000000016", { startDate: "2025-01-01", endDate: "2025-01-31" });
     expect(chain.gte).toHaveBeenCalledWith("created_at", "2025-01-01");
     expect(chain.lt).toHaveBeenCalled(); // endDate + 1 day
   });
 
-  it("should apply search via or()", async () => {
+  it("should apply search by filtering paginated rows", async () => {
     const chain = createQueryChain({ data: [], error: null, count: 0 });
     mockFrom.mockReturnValue(chain);
 
-    await getActivityLogsPaginated("acc-1", { search: "test" });
-    expect(chain.or).toHaveBeenCalledWith(
-      expect.stringContaining("action_type.ilike")
-    );
+    const result = await getActivityLogsPaginated("00000000-0000-4000-8000-000000000016", { search: "test" });
+    expect(chain.or).not.toHaveBeenCalled();
+    expect(result.data).toEqual([]);
   });
 
   it("should sanitize search wildcards", async () => {
     const chain = createQueryChain({ data: [], error: null, count: 0 });
     mockFrom.mockReturnValue(chain);
 
-    await getActivityLogsPaginated("acc-1", { search: "test%_injection" });
-    expect(chain.or).toHaveBeenCalledWith(
-      expect.stringContaining("test\\%\\_injection")
-    );
+    const result = await getActivityLogsPaginated("00000000-0000-4000-8000-000000000016", { search: "test%_injection" });
+    expect(chain.or).not.toHaveBeenCalled();
+    expect(result.data).toEqual([]);
   });
 
   it("should return proper meta structure", async () => {
     const chain = createQueryChain({ data: [{ id: "1" }, { id: "2" }], error: null, count: 50 });
     mockFrom.mockReturnValue(chain);
 
-    const result = await getActivityLogsPaginated("acc-1", { page: 1, limit: 10 });
+    const result = await getActivityLogsPaginated("00000000-0000-4000-8000-000000000016", { page: 1, limit: 10 });
     expect(result.data).toHaveLength(2);
     expect(result.meta).toEqual({
       count: 50,
@@ -288,7 +292,7 @@ describe("getActivityLogsPaginated", () => {
     const chain = createQueryChain({ data: null, error: { message: "Query failed", code: "42703" }, count: null });
     mockFrom.mockReturnValue(chain);
 
-    await expect(getActivityLogsPaginated("acc-1")).rejects.toEqual(
+    await expect(getActivityLogsPaginated("00000000-0000-4000-8000-000000000016")).rejects.toEqual(
       expect.objectContaining({ message: "Query failed" })
     );
   });

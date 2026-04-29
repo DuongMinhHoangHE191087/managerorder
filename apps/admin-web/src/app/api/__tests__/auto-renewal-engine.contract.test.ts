@@ -82,17 +82,17 @@ describe("GET /api/cron/auto-renewal-engine", () => {
       },
       created: [
         {
-          accountId: "acc-1",
-          subscriptionId: "sub-1",
-          renewalId: "renew-1",
-          customerId: "cust-1",
+          accountId: "00000000-0000-4000-8000-000000000016",
+          subscriptionId: "00000000-0000-4000-8000-000000000017",
+          renewalId: "00000000-0000-4000-8000-000000000018",
+          customerId: "00000000-0000-4000-8000-000000000005",
           customerName: "Nguyen Van A",
           daysRemaining: 4,
         },
       ],
       accountSummaries: [
         {
-          accountId: "acc-1",
+          accountId: "00000000-0000-4000-8000-000000000016",
           scannedCount: 3,
           eligibleCount: 1,
           createdCount: 1,
@@ -103,10 +103,10 @@ describe("GET /api/cron/auto-renewal-engine", () => {
           },
           created: [
             {
-              accountId: "acc-1",
-              subscriptionId: "sub-1",
-              renewalId: "renew-1",
-              customerId: "cust-1",
+              accountId: "00000000-0000-4000-8000-000000000016",
+              subscriptionId: "00000000-0000-4000-8000-000000000017",
+              renewalId: "00000000-0000-4000-8000-000000000018",
+              customerId: "00000000-0000-4000-8000-000000000005",
               customerName: "Nguyen Van A",
               daysRemaining: 4,
             },
@@ -136,7 +136,7 @@ describe("GET /api/cron/auto-renewal-engine", () => {
       minReliabilityScore: 80,
     });
     expect(mocks.recordAutoRenewalEngineRun).toHaveBeenCalledWith({
-      accountId: "acc-1",
+      accountId: "00000000-0000-4000-8000-000000000016",
       createdBy: null,
       mode: "cron",
       snapshot: report.accountSummaries[0],

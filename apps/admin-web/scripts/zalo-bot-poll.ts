@@ -1,14 +1,14 @@
 import { loadLocalEnv } from "./load-local-env";
-import {
-  canStartZaloBot,
-  createZaloRuntime,
-  describeZaloRuntime,
-  resolveZaloRuntimeConfig,
-} from "../src/integrations/zalo";
 
 loadLocalEnv();
 
 async function main(): Promise<void> {
+  const {
+    canStartZaloBot,
+    createZaloRuntime,
+    describeZaloRuntime,
+    resolveZaloRuntimeConfig,
+  } = await import("../src/integrations/zalo");
   const config = resolveZaloRuntimeConfig(process.env);
   for (const warning of config.warnings) {
     console.warn(`[Zalo] ${warning}`);

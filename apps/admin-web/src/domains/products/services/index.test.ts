@@ -50,7 +50,7 @@ describe("product service", () => {
       is_active: true,
     });
 
-    const result = await createProductForAccount("acc-1", {
+    const result = await createProductForAccount("00000000-0000-4000-8000-000000000016", {
       name: "Netflix Premium",
       mode: "slot",
       buyPriceVnd: 50000,
@@ -74,7 +74,7 @@ describe("product service", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockCreateActivityLog).toHaveBeenCalledWith(
       expect.objectContaining({
-        account_id: "acc-1",
+        account_id: "00000000-0000-4000-8000-000000000016",
         action_type: "PRODUCT_CREATED",
       }),
     );
@@ -82,13 +82,13 @@ describe("product service", () => {
 
   it("blocks price changes when pending orders still exist", async () => {
     mockGetProductById.mockResolvedValue({
-      id: "p-1",
+      id: "00000000-0000-4000-8000-0000000003ed",
       sell_price_vnd: 100000,
     });
     mockPendingOrderIn.mockResolvedValue({ count: 2 });
 
     await expect(
-      updateProductForAccount("p-1", "acc-1", {
+      updateProductForAccount("00000000-0000-4000-8000-0000000003ed", "00000000-0000-4000-8000-000000000016", {
         sellPriceVnd: 200000,
       }),
     ).rejects.toThrow("Không thể thay đổi giá khi còn đơn hàng chưa thanh toán");

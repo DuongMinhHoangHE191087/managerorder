@@ -54,10 +54,10 @@ describe("provider-product-prices.repo", () => {
       {
         data: [
           {
-            id: "pp-1",
+            id: "00000000-0000-4000-8000-000000000123",
             account_id: TEST_ACCOUNT_ID,
-            provider_id: "prov-1",
-            product_id: "prod-1",
+            provider_id: "00000000-0000-4000-8000-000000000095",
+            product_id: "00000000-0000-4000-8000-000000000039",
             cost_vnd: 12345,
             updated_at: "2026-04-10T00:00:00.000Z",
           },
@@ -71,7 +71,7 @@ describe("provider-product-prices.repo", () => {
       {
         data: [
           {
-            id: "prov-1",
+            id: "00000000-0000-4000-8000-000000000095",
             name: "Provider One",
           },
         ],
@@ -86,11 +86,11 @@ describe("provider-product-prices.repo", () => {
     });
 
     const { getProviderPricesForProduct } = await loadRepo(supabaseAdmin);
-    const rows = await getProviderPricesForProduct(TEST_ACCOUNT_ID, "prod-1");
+    const rows = await getProviderPricesForProduct(TEST_ACCOUNT_ID, "00000000-0000-4000-8000-000000000039");
 
     expect(rows).toEqual([
       expect.objectContaining({
-        provider_id: "prov-1",
+        provider_id: "00000000-0000-4000-8000-000000000095",
         provider_name: "Provider One",
       }),
     ]);

@@ -1,82 +1,87 @@
-/**
- * Auth Setup — Playwright Global Setup
- *
- * Logs in via Supabase email/password and saves session cookies
- * to storageState for all test projects to share.
- *
- * Requires env vars:
- *   SUPABASE_TEST_EMAIL
- *   SUPABASE_TEST_PASSWORD
- *   NEXT_PUBLIC_SUPABASE_URL
- *   NEXT_PUBLIC_SUPABASE_ANON_KEY
- */
 import { test as setup, expect } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
+import jwt from "jsonwebtoken";
 
 const AUTH_FILE = "e2e/.auth/user.json";
+const DEFAULT_MOCK_ACCOUNT_ID = "00000000-0000-4000-8000-000000000001";
+const DEFAULT_MOCK_USER_ID = "00000000-0000-4000-8000-000000000002";
+const DEFAULT_MOCK_EMAIL = "e2e-mock@managerorder.local";
+const DEFAULT_MOCK_ROLE = "admin_owner";
+
+function getCookieDomain() {
+  const rawBaseUrl = process.env.BASE_URL || "http://127.0.0.1:3000";
+  return new URL(rawBaseUrl).hostname;
+}
+
+function issueLocalMockSession() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("[E2E auth.setup] JWT_SECRET is required to create local mock session");
+  }
+
+  const accountId = process.env.E2E_MOCK_ACCOUNT_ID || DEFAULT_MOCK_ACCOUNT_ID;
+  const payload = {
+    sub: DEFAULT_MOCK_USER_ID,
+    accountId,
+    role: DEFAULT_MOCK_ROLE,
+    email: DEFAULT_MOCK_EMAIL,
+  };
+
+  const accessToken = jwt.sign(payload, secret, { algorithm: "HS256", expiresIn: "24h" });
+  const refreshToken = jwt.sign(payload, secret, { algorithm: "HS256", expiresIn: "7d" });
+
+  return { accessToken, refreshToken, accountId };
+}
 
 setup("authenticate", async ({ page }) => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const email = process.env.SUPABASE_TEST_EMAIL!;
-  const password = process.env.SUPABASE_TEST_PASSWORD!;
+  setup.setTimeout(180_000);
 
-  if (!email || !password) {
-    console.warn(
-      "⚠️  SUPABASE_TEST_EMAIL / SUPABASE_TEST_PASSWORD not set — skipping auth setup"
-    );
-    // Save empty state so tests still run (unauthenticated)
+  const accountId = process.env.E2E_MOCK_ACCOUNT_ID || DEFAULT_MOCK_ACCOUNT_ID;
+  const mockSessionResponse = await page.request
+    .post("/api/auth/session/mock", {
+      data: process.env.E2E_MOCK_ACCOUNT_ID ? { accountId } : {},
+      timeout: 30_000,
+    })
+    .catch(() => null);
+
+  if (mockSessionResponse?.ok()) {
     await page.context().storageState({ path: AUTH_FILE });
     return;
   }
 
-  // Sign in via Supabase SDK
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    throw new Error(`Auth setup failed: ${error.message}`);
+  if (process.env.E2E_ALLOW_LOCAL_MOCK_FALLBACK !== "1") {
+    const status = mockSessionResponse ? mockSessionResponse.status() : "request failed";
+    throw new Error(
+      `[E2E auth.setup] Mock session endpoint failed (${status}). ` +
+        "Fix /api/auth/session/mock or set E2E_MOCK_ACCOUNT_ID to an existing account."
+    );
   }
 
-  expect(data.session).toBeTruthy();
-
-  const { access_token, refresh_token } = data.session!;
-
-  // Navigate to app and inject Supabase auth cookies
-  await page.goto("/");
-
-  // Set Supabase auth cookies matching @supabase/ssr cookie format
-  const cookieBase = `sb-${new URL(supabaseUrl).hostname.split(".")[0]}-auth-token`;
+  const mockSession = issueLocalMockSession();
+  expect(mockSession.accountId).toBeTruthy();
+  const cookieDomain = getCookieDomain();
 
   await page.context().addCookies([
     {
-      name: cookieBase,
-      value: JSON.stringify({
-        access_token,
-        refresh_token,
-        expires_at: data.session!.expires_at,
-        token_type: "bearer",
-        user: data.user,
-      }),
-      domain: "localhost",
+      name: "access_token",
+      value: mockSession.accessToken,
+      domain: cookieDomain,
       path: "/",
-      httpOnly: false,
+      expires: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
+      httpOnly: true,
+      secure: false,
+      sameSite: "Lax",
+    },
+    {
+      name: "refresh_token",
+      value: mockSession.refreshToken,
+      domain: cookieDomain,
+      path: "/",
+      expires: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
+      httpOnly: true,
       secure: false,
       sameSite: "Lax",
     },
   ]);
 
-  // Reload to pick up the session
-  await page.goto("/");
-
-  // Verify we are authenticated (should not redirect to login)
-  await page.waitForURL((url) => !url.pathname.includes("/login"), {
-    timeout: 10_000,
-  });
-
-  // Save authenticated state
   await page.context().storageState({ path: AUTH_FILE });
 });

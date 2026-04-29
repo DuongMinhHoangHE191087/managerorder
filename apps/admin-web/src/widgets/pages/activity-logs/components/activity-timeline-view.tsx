@@ -14,9 +14,15 @@ import {
   Trash2,
   User,
 } from "lucide-react";
+import { memo } from "react";
 import { formatDateLabel, formatMoney } from "@/lib/utils";
 import type { ViewActivityLog } from "@/shared/types/activity-logs";
 import { vi } from "@/shared/messages/vi";
+import {
+  formatActivityPrimitive,
+  humanizeActivityDetailKey,
+  parseActivityDetailValue,
+} from "@/widgets/pages/activity-logs/lib/details";
 
 interface ActivityTimelineViewProps {
   logs: ViewActivityLog[];
@@ -35,14 +41,24 @@ function getActionConfig(actionType: string) {
   switch (actionType) {
     case "CUSTOMER_CREATED":
       return { icon: User, color: "text-emerald-400", bg: "bg-emerald-500/20", label: vi.activityLogs.actionLabels.CUSTOMER_CREATED };
+    case "CUSTOMER_UPDATED":
+      return { icon: Edit3, color: "text-blue-400", bg: "bg-blue-500/20", label: vi.activityLogs.actionLabels.CUSTOMER_UPDATED };
+    case "CUSTOMER_DELETED":
+      return { icon: Trash2, color: "text-red-400", bg: "bg-red-500/20", label: vi.activityLogs.actionLabels.CUSTOMER_DELETED };
     case "ORDER_CREATED":
       return { icon: Plus, color: "text-indigo-400", bg: "bg-indigo-500/20", label: vi.activityLogs.actionLabels.ORDER_CREATED };
     case "ORDER_UPDATED":
       return { icon: RefreshCw, color: "text-blue-400", bg: "bg-blue-500/20", label: vi.activityLogs.actionLabels.ORDER_UPDATED };
+    case "ORDER_RENEWED":
+      return { icon: RefreshCw, color: "text-emerald-400", bg: "bg-emerald-500/20", label: "Gia hạn đơn hàng" };
+    case "ORDER_CANCELLED":
+      return { icon: AlertTriangle, color: "text-amber-400", bg: "bg-amber-500/20", label: vi.activityLogs.actionLabels.ORDER_CANCELLED };
     case "ORDER_DELETED":
       return { icon: Trash2, color: "text-red-400", bg: "bg-red-500/20", label: vi.activityLogs.actionLabels.ORDER_DELETED };
     case "PAYMENT_ADDED":
       return { icon: CreditCard, color: "text-emerald-400", bg: "bg-emerald-500/20", label: vi.activityLogs.actionLabels.PAYMENT_ADDED };
+    case "REFUND_REQUESTED":
+      return { icon: AlertTriangle, color: "text-amber-400", bg: "bg-amber-500/20", label: "Yêu cầu hoàn tiền" };
     case "INVENTORY_ASSIGNED":
       return { icon: Package, color: "text-purple-400", bg: "bg-purple-500/20", label: vi.activityLogs.actionLabels.INVENTORY_ASSIGNED };
     case "ALLOCATION_CONFIRMED":
@@ -53,8 +69,28 @@ function getActionConfig(actionType: string) {
       return { icon: Plus, color: "text-violet-400", bg: "bg-violet-500/20", label: vi.activityLogs.badges.create };
     case "RESERVED_NICK_REMOVED":
       return { icon: Trash2, color: "text-rose-400", bg: "bg-rose-500/20", label: vi.activityLogs.badges.delete };
+    case "PRODUCT_CREATED":
+      return { icon: Plus, color: "text-cyan-400", bg: "bg-cyan-500/20", label: vi.activityLogs.actionLabels.PRODUCT_CREATED };
     case "INVENTORY_KEY_CREATED":
       return { icon: Edit3, color: "text-cyan-400", bg: "bg-cyan-500/20", label: vi.activityLogs.actionLabels.PRODUCT_CREATED };
+    case "PRODUCT_UPDATED":
+      return { icon: Edit3, color: "text-sky-400", bg: "bg-sky-500/20", label: vi.activityLogs.actionLabels.PRODUCT_UPDATED };
+    case "PRODUCT_DELETED":
+      return { icon: Trash2, color: "text-rose-400", bg: "bg-rose-500/20", label: vi.activityLogs.actionLabels.PRODUCT_DELETED };
+    case "CALENDAR_EVENT_CREATED":
+      return { icon: Plus, color: "text-indigo-400", bg: "bg-indigo-500/20", label: vi.activityLogs.actionLabels.CALENDAR_EVENT_CREATED };
+    case "CALENDAR_EVENT_UPDATED":
+      return { icon: RefreshCw, color: "text-blue-400", bg: "bg-blue-500/20", label: vi.activityLogs.actionLabels.CALENDAR_EVENT_UPDATED };
+    case "CALENDAR_EVENT_DELETED":
+      return { icon: Trash2, color: "text-red-400", bg: "bg-red-500/20", label: vi.activityLogs.actionLabels.CALENDAR_EVENT_DELETED };
+    case "PAYMENT_SOURCE_CREATED":
+      return { icon: Plus, color: "text-emerald-400", bg: "bg-emerald-500/20", label: vi.activityLogs.actionLabels.PAYMENT_SOURCE_CREATED };
+    case "PAYMENT_SOURCE_UPDATED":
+      return { icon: RefreshCw, color: "text-blue-400", bg: "bg-blue-500/20", label: vi.activityLogs.actionLabels.PAYMENT_SOURCE_UPDATED };
+    case "PAYMENT_SOURCE_DELETED":
+      return { icon: Trash2, color: "text-red-400", bg: "bg-red-500/20", label: vi.activityLogs.actionLabels.PAYMENT_SOURCE_DELETED };
+    case "SYSTEM_SETTINGS_UPDATED":
+      return { icon: RefreshCw, color: "text-slate-300", bg: "bg-slate-500/20", label: vi.activityLogs.actionLabels.SYSTEM_SETTINGS_UPDATED };
     case "SLOTS_RECALCULATED":
       return { icon: RefreshCw, color: "text-blue-400", bg: "bg-blue-500/20", label: vi.activityLogs.badges.process };
     case "WARRANTY_REASSIGNED":
@@ -68,6 +104,56 @@ function getActionConfig(actionType: string) {
     default:
       return { icon: Clock, color: "text-slate-400", bg: "bg-slate-500/20", label: actionType };
   }
+}
+
+function renderDetailValue(key: string, value: unknown, labelMap: Record<string, string>, depth = 0) {
+  const parsedValue = parseActivityDetailValue(value);
+
+  if (Array.isArray(parsedValue)) {
+    if (parsedValue.length === 0) {
+      return <span className="text-slate-500">—</span>;
+    }
+
+    return (
+      <div className="space-y-2">
+        {parsedValue.map((item, index) => (
+          <div key={`${key}-${index}`} className="rounded-lg border border-slate-800 bg-slate-950/40 p-2">
+            {typeof item === "object" && item !== null ? (
+              <ul className="space-y-1">
+                {Object.entries(item).map(([childKey, childValue]) => (
+                  <li key={childKey} className="flex items-start justify-between gap-3 text-[11px]">
+                    <span className="text-slate-500">{humanizeActivityDetailKey(childKey, labelMap)}:</span>
+                    <span className="text-right text-slate-200 break-all">
+                      {renderDetailValue(childKey, childValue, labelMap, depth + 1)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-slate-200">{formatActivityPrimitive(key, item)}</span>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (parsedValue && typeof parsedValue === "object") {
+    return (
+      <ul className={`space-y-1 ${depth > 0 ? "rounded-lg border border-slate-800 bg-slate-950/40 p-2" : ""}`}>
+        {Object.entries(parsedValue).map(([childKey, childValue]) => (
+          <li key={childKey} className="flex items-start justify-between gap-3 text-[11px]">
+            <span className="text-slate-500">{humanizeActivityDetailKey(childKey, labelMap)}:</span>
+            <span className="text-right text-slate-200 break-all">
+              {renderDetailValue(childKey, childValue, labelMap, depth + 1)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  return <span>{formatActivityPrimitive(key, parsedValue)}</span>;
 }
 
 function renderLogDetails(log: ViewActivityLog) {
@@ -182,17 +268,12 @@ function renderLogDetails(log: ViewActivityLog) {
     <div className="mt-2 text-sm text-slate-300 bg-[#0B1120]/50 p-3 rounded-lg border border-slate-800/80">
       <ul className="space-y-1">
         {Object.entries(log.details).map(([key, value]) => {
-          let displayValue = "—";
-          if (value !== null && value !== undefined) {
-            displayValue = typeof value === "object" ? JSON.stringify(value) : String(value);
-          }
-
-          const label = labelMap[key] || key.replace(/_/g, " ");
+          const label = humanizeActivityDetailKey(key, labelMap);
 
           return (
             <li key={key} className="flex justify-between items-start gap-4">
               <span className="text-slate-500 capitalize whitespace-nowrap">{label}:</span>
-              <span className="text-slate-300 text-right break-words break-all">{displayValue}</span>
+              <span className="text-slate-300 text-right break-words break-all">{renderDetailValue(key, value, labelMap)}</span>
             </li>
           );
         })}
@@ -200,6 +281,63 @@ function renderLogDetails(log: ViewActivityLog) {
     </div>
   );
 }
+
+type ActivityTimelineEntryProps = {
+  log: ViewActivityLog;
+  customerId?: string;
+  orderId?: string;
+  sourceAccountId?: string;
+};
+
+const ActivityTimelineEntry = memo(function ActivityTimelineEntry({
+  log,
+  customerId,
+  orderId,
+  sourceAccountId,
+}: ActivityTimelineEntryProps) {
+  const config = getActionConfig(log.action_type);
+  const Icon = config.icon;
+
+  return (
+    <div className="relative flex gap-4 pr-2">
+      <div className={'mt-0.5 flex-none w-5 h-5 rounded-full flex items-center justify-center ring-4 ring-[#0B1120] ' + config.bg + ' z-10 -ml-[11px]'}>
+        <Icon className={'w-3 h-3 ' + config.color} />
+      </div>
+
+      <div className="flex-1 bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 shadow-sm hover:border-slate-600/50 transition-colors">
+        <div className="flex justify-between items-start mb-1">
+          <span className="font-medium text-slate-200 text-sm">{config.label}</span>
+          <span className="text-xs text-slate-500">{formatDateLabel(log.created_at)}</span>
+        </div>
+
+        <div className="flex gap-2 mb-2 text-xs text-slate-400 flex-wrap">
+          {log.created_by ? (
+            <span className="bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded-md truncate max-w-[220px]">
+              Người thao tác: {log.created_by}
+            </span>
+          ) : null}
+          {!customerId && log.customers ? (
+            <span className="bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded-md truncate max-w-[200px]">
+              Khách: {log.customers.full_name}
+            </span>
+          ) : null}
+          {!orderId && log.orders ? (
+            <span className="bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded-md">
+              Đơn: #{log.orders.id.split("-")[0]}
+            </span>
+          ) : null}
+          {!sourceAccountId && log.source_accounts ? (
+            <span className="bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded-md truncate max-w-[200px]">
+              Kho: {log.source_accounts.email}
+            </span>
+          ) : null}
+        </div>
+
+        {renderLogDetails(log)}
+      </div>
+    </div>
+  );
+});
 
 export function ActivityTimelineView({
   logs,
@@ -240,47 +378,15 @@ export function ActivityTimelineView({
   return (
     <div className="flex flex-col gap-4">
       <div className="relative pl-4 space-y-6 before:absolute before:inset-y-0 before:left-6 before:w-px before:bg-slate-700">
-        {logs.map((log) => {
-          const config = getActionConfig(log.action_type);
-          const Icon = config.icon;
-
-          return (
-            <div key={log.id} className="relative flex gap-4 pr-2">
-              <div
-                className={`mt-0.5 flex-none w-5 h-5 rounded-full flex items-center justify-center ring-4 ring-[#0B1120] ${config.bg} z-10 -ml-[11px]`}
-              >
-                <Icon className={`w-3 h-3 ${config.color}`} />
-              </div>
-
-              <div className="flex-1 bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 shadow-sm hover:border-slate-600/50 transition-colors">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="font-medium text-slate-200 text-sm">{config.label}</span>
-                  <span className="text-xs text-slate-500">{formatDateLabel(log.created_at)}</span>
-                </div>
-
-                <div className="flex gap-2 mb-2 text-xs text-slate-400 flex-wrap">
-                  {!customerId && log.customers ? (
-                    <span className="bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded-md truncate max-w-[200px]">
-                      Khách: {log.customers.full_name}
-                    </span>
-                  ) : null}
-                  {!orderId && log.orders ? (
-                    <span className="bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded-md">
-                      Đơn: #{log.orders.id.split("-")[0]}
-                    </span>
-                  ) : null}
-                  {!sourceAccountId && log.source_accounts ? (
-                    <span className="bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded-md truncate max-w-[200px]">
-                      Kho: {log.source_accounts.email}
-                    </span>
-                  ) : null}
-                </div>
-
-                {renderLogDetails(log)}
-              </div>
-            </div>
-          );
-        })}
+        {logs.map((log) => (
+          <ActivityTimelineEntry
+            key={log.id}
+            log={log}
+            customerId={customerId}
+            orderId={orderId}
+            sourceAccountId={sourceAccountId}
+          />
+        ))}
       </div>
 
       {hasNextPage && onLoadMore ? (

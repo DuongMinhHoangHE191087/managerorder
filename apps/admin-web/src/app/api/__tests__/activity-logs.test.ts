@@ -80,8 +80,8 @@ describe("GET /api/activity-logs — Pagination", () => {
 
   it("should return logs with data", async () => {
     const logs = [
-      { id: "log-1", action_type: "ORDER_CREATED", created_at: "2025-01-15T10:00:00Z", customers: null, orders: { id: "ord-1", status: "pending" }, inventory_accounts: null },
-      { id: "log-2", action_type: "CUSTOMER_CREATED", created_at: "2025-01-15T09:00:00Z", customers: { full_name: "Test" }, orders: null, inventory_accounts: null },
+      { id: "00000000-0000-4000-8000-00000000000e", action_type: "ORDER_CREATED", created_at: "2025-01-15T10:00:00Z", customers: null, orders: { id: "00000000-0000-4000-8000-00000000000f", status: "pending" }, inventory_accounts: null },
+      { id: "00000000-0000-4000-8000-000000000010", action_type: "CUSTOMER_CREATED", created_at: "2025-01-15T09:00:00Z", customers: { full_name: "Test" }, orders: null, inventory_accounts: null },
     ];
     mockGetActivityLogsPaginated.mockResolvedValue({
       data: logs,
@@ -127,34 +127,34 @@ describe("GET /api/activity-logs — Filters", () => {
 
   it("should pass customerId filter", async () => {
     mockGetActivityLogsPaginated.mockResolvedValue(emptyResponse);
-    const req = createTestRequest("http://localhost:3000/api/activity-logs?customerId=cust-123");
+    const req = createTestRequest("http://localhost:3000/api/activity-logs?customerId=00000000-0000-4000-8000-000000000011");
     await GET(req, { params: {} } as any);
 
     expect(mockGetActivityLogsPaginated).toHaveBeenCalledWith(
       TEST_ACCOUNT_ID,
-      expect.objectContaining({ customerId: "cust-123" })
+      expect.objectContaining({ customerId: "00000000-0000-4000-8000-000000000011" })
     );
   });
 
   it("should pass orderId filter", async () => {
     mockGetActivityLogsPaginated.mockResolvedValue(emptyResponse);
-    const req = createTestRequest("http://localhost:3000/api/activity-logs?orderId=ord-456");
+    const req = createTestRequest("http://localhost:3000/api/activity-logs?orderId=00000000-0000-4000-8000-000000000012");
     await GET(req, { params: {} } as any);
 
     expect(mockGetActivityLogsPaginated).toHaveBeenCalledWith(
       TEST_ACCOUNT_ID,
-      expect.objectContaining({ orderId: "ord-456" })
+      expect.objectContaining({ orderId: "00000000-0000-4000-8000-000000000012" })
     );
   });
 
   it("should pass sourceAccountId filter", async () => {
     mockGetActivityLogsPaginated.mockResolvedValue(emptyResponse);
-    const req = createTestRequest("http://localhost:3000/api/activity-logs?sourceAccountId=inv-789");
+    const req = createTestRequest("http://localhost:3000/api/activity-logs?sourceAccountId=00000000-0000-4000-8000-000000000013");
     await GET(req, { params: {} } as any);
 
     expect(mockGetActivityLogsPaginated).toHaveBeenCalledWith(
       TEST_ACCOUNT_ID,
-      expect.objectContaining({ sourceAccountId: "inv-789" })
+      expect.objectContaining({ sourceAccountId: "00000000-0000-4000-8000-000000000013" })
     );
   });
 

@@ -80,7 +80,7 @@ describe("mapTierToDbType", () => {
    ============================================================ */
 describe("mapToCustomer", () => {
   const fullRow = {
-    id: "cust-1",
+    id: "00000000-0000-4000-8000-000000000005",
     full_name: "Nguyễn Văn A",
     type: "wholesale",
     contacts: [
@@ -88,7 +88,7 @@ describe("mapToCustomer", () => {
       { id: "c2", channel: "email", value: "a@b.com", is_primary: false },
     ],
     customer_tags: [
-      { id: "tag-1", name: "VIP", color: "#ff0000" },
+      { id: "00000000-0000-4000-8000-000000000030", name: "VIP", color: "#ff0000" },
     ],
     nicks_registry: [{ platform: "shopee", nick: "shopA" }],
     debt_amount_vnd: 500000,
@@ -106,7 +106,7 @@ describe("mapToCustomer", () => {
 
   it("should map all basic fields", () => {
     const result = mapToCustomer(fullRow);
-    expect(result.id).toBe("cust-1");
+    expect(result.id).toBe("00000000-0000-4000-8000-000000000005");
     expect(result.name).toBe("Nguyễn Văn A");
     expect(result.tier).toBe("vip"); // wholesale → vip
     expect(result.customerType).toBe("wholesale");
@@ -132,7 +132,7 @@ describe("mapToCustomer", () => {
   it("should map tags", () => {
     const result = mapToCustomer(fullRow);
     expect(result.tags).toEqual([
-      { id: "tag-1", name: "VIP", color: "#ff0000" },
+      { id: "00000000-0000-4000-8000-000000000030", name: "VIP", color: "#ff0000" },
     ]);
   });
 

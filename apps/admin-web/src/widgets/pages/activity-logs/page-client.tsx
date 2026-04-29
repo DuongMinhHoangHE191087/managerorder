@@ -1,31 +1,108 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import type { MouseEvent, ReactElement } from "react";
+import { useEffect, useMemo, useState, type MouseEvent, type ReactElement } from "react";
 import dynamic from "next/dynamic";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useActivityLogs } from "@/widgets/pages/activity-logs/hooks/use-activity-logs";
+import {
+  Activity,
+  Clock,
+  Database,
+  Edit3,
+  PlayCircle,
+  PlusCircle,
+  RefreshCw,
+  Search,
+  Server,
+  Trash2,
+  User,
+} from "lucide-react";
 import { AppLayout } from "@/widgets/layout/app-layout";
-import { PageContainer } from "@/shared/ui/page-layout";
-import { Activity, Clock, Database, PlayCircle, PlusCircle, Trash2, Edit3, User, Server, Search } from "lucide-react";
-import { useContextMenu } from "@/shared/ui/context-menu";
+import { useActivityLogs } from "@/widgets/pages/activity-logs/hooks/use-activity-logs";
+import { appToast } from "@/shared/ui/app-toast";
+import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
+import { Select } from "@/shared/ui/select";
+import {
+  FiltersBar,
+  PageContainer,
+  PageHeader,
+  SectionHeader,
+  StatsGrid,
+  SurfaceCard,
+} from "@/shared/ui/page-layout";
+import { useContextMenu } from "@/shared/ui/context-menu";
 import { formatDateLabel, formatMoney } from "@/lib/utils";
 import { vi } from "@/shared/messages/vi";
+import { hasSearchTokens } from "@/shared/lib/filtering/search";
+import {
+  formatActivityPrimitive,
+  humanizeActivityDetailKey,
+  parseActivityDetailValue,
+} from "@/widgets/pages/activity-logs/lib/details";
 
-// Helper to translate and style action types
 function getActionBadge(type?: string | null) {
-  if (!type) return { label: vi.common.notAvailable, color: "bg-gray-100 text-gray-700 border-gray-200", icon: <Activity className="size-3.5 mr-1" /> };
-  const t = type.toUpperCase();
-  if (t.includes("CREATE")) return { label: vi.activityLogs.badges.create, color: "bg-green-100 text-green-700 border-green-200", icon: <PlusCircle className="size-3.5 mr-1" /> };
-  if (t.includes("UPDATE")) return { label: vi.activityLogs.badges.update, color: "bg-blue-100 text-blue-700 border-blue-200", icon: <Edit3 className="size-3.5 mr-1" /> };
-  if (t.includes("DELETE")) return { label: vi.activityLogs.badges.delete, color: "bg-red-100 text-red-700 border-red-200", icon: <Trash2 className="size-3.5 mr-1" /> };
-  if (t.includes("ALLOCATE") || t.includes("PROCESS")) return { label: vi.activityLogs.badges.process, color: "bg-purple-100 text-purple-700 border-purple-200", icon: <PlayCircle className="size-3.5 mr-1" /> };
-  return { label: type, color: "bg-gray-100 text-gray-700 border-gray-200", icon: <Activity className="size-3.5 mr-1" /> };
+  if (!type) {
+    return {
+      label: vi.common.notAvailable,
+      color: "bg-gray-100 text-gray-700 border-gray-200",
+      icon: <Activity className="mr-1 size-3.5" />,
+    };
+  }
+
+  const normalized = type.toUpperCase();
+  if (normalized.includes("CREATE")) {
+    return {
+      label: vi.activityLogs.badges.create,
+      color: "bg-green-100 text-green-700 border-green-200",
+      icon: <PlusCircle className="mr-1 size-3.5" />,
+    };
+  }
+  if (normalized.includes("UPDATE")) {
+    return {
+      label: vi.activityLogs.badges.update,
+      color: "bg-blue-100 text-blue-700 border-blue-200",
+      icon: <Edit3 className="mr-1 size-3.5" />,
+    };
+  }
+  if (normalized.includes("DELETE")) {
+    return {
+      label: vi.activityLogs.badges.delete,
+      color: "bg-red-100 text-red-700 border-red-200",
+      icon: <Trash2 className="mr-1 size-3.5" />,
+    };
+  }
+  if (normalized.includes("ALLOCATE") || normalized.includes("PROCESS")) {
+    return {
+      label: vi.activityLogs.badges.process,
+      color: "bg-purple-100 text-purple-700 border-purple-200",
+      icon: <PlayCircle className="mr-1 size-3.5" />,
+    };
+  }
+  if (normalized.includes("RENEW")) {
+    return {
+      label: "Gia hạn",
+      color: "bg-emerald-100 text-emerald-700 border-emerald-200",
+      icon: <RefreshCw className="mr-1 size-3.5" />,
+    };
+  }
+  if (normalized.includes("REFUND")) {
+    return {
+      label: "Hoàn tiền",
+      color: "bg-amber-100 text-amber-700 border-amber-200",
+      icon: <RefreshCw className="mr-1 size-3.5" />,
+    };
+  }
+
+  return {
+    label: type,
+    color: "bg-gray-100 text-gray-700 border-gray-200",
+    icon: <Activity className="mr-1 size-3.5" />,
+  };
 }
 
 type LogRow = {
   created_at?: string;
+  created_by?: string | null;
   action_type?: string;
   customers?: { full_name: string } | null;
   orders?: { id: string } | null;
@@ -49,13 +126,13 @@ type DynamicDataTableComponent = <TData, TValue>(props: {
 }) => ReactElement;
 
 const DataTable = dynamic(
-  () => import("@/shared/ui/data-table").then((m) => ({ default: m.DataTable })),
+  () => import("@/shared/ui/data-table").then((module) => ({ default: module.DataTable })),
   {
     ssr: false,
     loading: () => (
-      <div className="p-4 space-y-3">
+      <div className="space-y-3 p-4">
         {Array.from({ length: 5 }).map((_, index) => (
-          <div key={index} className="animate-pulse rounded-2xl border border-[var(--border-soft)] bg-white/50 p-4">
+          <div key={index} className="animate-pulse rounded-2xl border border-[var(--border-soft)] bg-white/60 p-4">
             <div className="flex flex-wrap items-center gap-3">
               <div className="h-4 w-24 rounded bg-gray-200" />
               <div className="h-4 w-36 rounded bg-gray-200" />
@@ -65,8 +142,32 @@ const DataTable = dynamic(
         ))}
       </div>
     ),
-  }
+  },
 ) as unknown as DynamicDataTableComponent;
+
+const ACTION_FILTER_OPTIONS = [
+  { value: "", label: vi.activityLogs.page.allActions },
+  { value: "CUSTOMER_CREATED", label: vi.activityLogs.actionLabels.CUSTOMER_CREATED },
+  { value: "CUSTOMER_UPDATED", label: vi.activityLogs.actionLabels.CUSTOMER_UPDATED },
+  { value: "CUSTOMER_DELETED", label: vi.activityLogs.actionLabels.CUSTOMER_DELETED },
+  { value: "ORDER_CREATED", label: vi.activityLogs.actionLabels.ORDER_CREATED },
+  { value: "ORDER_UPDATED", label: vi.activityLogs.actionLabels.ORDER_UPDATED },
+  { value: "ORDER_DELETED", label: vi.activityLogs.actionLabels.ORDER_DELETED },
+  { value: "ORDER_CANCELLED", label: vi.activityLogs.actionLabels.ORDER_CANCELLED },
+  { value: "PAYMENT_ADDED", label: vi.activityLogs.actionLabels.PAYMENT_ADDED },
+  { value: "INVENTORY_ASSIGNED", label: vi.activityLogs.actionLabels.INVENTORY_ASSIGNED },
+  { value: "WARRANTY_REASSIGNED", label: vi.activityLogs.actionLabels.WARRANTY_REASSIGNED },
+  { value: "PRODUCT_CREATED", label: vi.activityLogs.actionLabels.PRODUCT_CREATED },
+  { value: "PRODUCT_UPDATED", label: vi.activityLogs.actionLabels.PRODUCT_UPDATED },
+  { value: "PRODUCT_DELETED", label: vi.activityLogs.actionLabels.PRODUCT_DELETED },
+  { value: "CALENDAR_EVENT_CREATED", label: vi.activityLogs.actionLabels.CALENDAR_EVENT_CREATED },
+  { value: "CALENDAR_EVENT_UPDATED", label: vi.activityLogs.actionLabels.CALENDAR_EVENT_UPDATED },
+  { value: "CALENDAR_EVENT_DELETED", label: vi.activityLogs.actionLabels.CALENDAR_EVENT_DELETED },
+  { value: "SYSTEM_SETTINGS_UPDATED", label: vi.activityLogs.actionLabels.SYSTEM_SETTINGS_UPDATED },
+  { value: "PAYMENT_SOURCE_CREATED", label: vi.activityLogs.actionLabels.PAYMENT_SOURCE_CREATED },
+  { value: "PAYMENT_SOURCE_UPDATED", label: vi.activityLogs.actionLabels.PAYMENT_SOURCE_UPDATED },
+  { value: "PAYMENT_SOURCE_DELETED", label: vi.activityLogs.actionLabels.PAYMENT_SOURCE_DELETED },
+] as const;
 
 export default function ActivityLogsPage() {
   const [pageIndex, setPageIndex] = useState(0);
@@ -76,34 +177,50 @@ export default function ActivityLogsPage() {
   const [actionTypeFilter, setActionTypeFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const hasSearchQuery = hasSearchTokens(debouncedQuery);
 
   const { openContextMenu, ContextMenuRender } = useContextMenu();
-
-  const { data: pageData, isLoading, isFetching } = useActivityLogs({
+  const { data: pageData, isLoading, isFetching, refetch } = useActivityLogs({
     page: pageIndex + 1,
     limit: pageSize,
-    search: debouncedQuery || undefined,
+    search: hasSearchQuery ? debouncedQuery.trim() : undefined,
     actionType: actionTypeFilter || undefined,
     startDate: startDate || undefined,
-    endDate: endDate || undefined
+    endDate: endDate || undefined,
   });
 
-  const logs = pageData?.data || [];
+  const logs = useMemo(() => (pageData?.data ?? []) as LogRow[], [pageData?.data]);
   const meta = pageData?.meta || { count: 0, totalPages: 0 };
 
-  // Debounce search input 300ms
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(searchQuery), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reset page index on filter change handler directly to avoid setState in useEffect
+  const hasFilters = Boolean(hasSearchTokens(searchQuery) || actionTypeFilter || startDate || endDate);
+
+  const summary = useMemo(() => {
+    let createCount = 0;
+    let updateCount = 0;
+    let deleteCount = 0;
+    let systemCount = 0;
+
+    for (const log of logs) {
+      const action = log.action_type?.toUpperCase() ?? "";
+      if (action.includes("CREATE")) createCount += 1;
+      if (action.includes("UPDATE")) updateCount += 1;
+      if (action.includes("DELETE")) deleteCount += 1;
+      if (!log.customers && !log.orders && !log.inventory_accounts) systemCount += 1;
+    }
+
+    return { createCount, updateCount, deleteCount, systemCount };
+  }, [logs]);
 
   const columns = useMemo<ColumnDef<LogRow>[]>(() => [
     {
       id: "created_at",
       header: vi.activityLogs.page.columns.time,
-      cell: ({ row }: { row: { original: LogRow } }) => {
+      cell: ({ row }) => {
         const data = row.original;
         return (
           <div className="flex items-center gap-2 text-[13px] text-[var(--fg-muted)]">
@@ -116,16 +233,16 @@ export default function ActivityLogsPage() {
     {
       id: "action_type",
       header: vi.activityLogs.page.columns.action,
-      cell: ({ row }: { row: { original: LogRow } }) => {
+      cell: ({ row }) => {
         const data = row.original;
         const badge = getActionBadge(data.action_type);
         return (
           <div className="flex flex-col gap-1">
-            <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded-md border text-[11px] font-bold ${badge.color}`}>
+            <span className={`inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-[11px] font-bold ${badge.color}`}>
               {badge.icon}
               {badge.label}
             </span>
-            <span className="text-[10px] text-gray-400 font-mono">{data.action_type}</span>
+            <span className="text-[10px] font-mono text-gray-400">{data.action_type}</span>
           </div>
         );
       },
@@ -133,31 +250,37 @@ export default function ActivityLogsPage() {
     {
       id: "target",
       header: vi.activityLogs.page.columns.target,
-      cell: ({ row }: { row: { original: LogRow } }) => {
+      cell: ({ row }) => {
         const data = row.original;
         return (
           <div className="flex flex-col gap-1.5 text-[13px]">
-            {data.customers && (
-              <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 w-fit px-2 py-0.5 rounded-md">
+            {data.customers ? (
+              <div className="flex w-fit items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-blue-600">
                 <User className="size-3" />
                 <span className="font-semibold">{data.customers.full_name}</span>
               </div>
-            )}
-            {data.orders && (
-              <div className="flex items-center gap-1.5 text-orange-600 bg-orange-50 w-fit px-2 py-0.5 rounded-md">
+            ) : null}
+            {data.orders ? (
+              <div className="flex w-fit items-center gap-1.5 rounded-md bg-orange-50 px-2 py-0.5 text-orange-600">
                 <Database className="size-3" />
                 <span className="font-mono font-medium">Order #{data.orders.id.slice(0, 6)}</span>
               </div>
-            )}
-            {data.inventory_accounts && (
-              <div className="flex items-center gap-1.5 text-purple-600 bg-purple-50 w-fit px-2 py-0.5 rounded-md">
+            ) : null}
+            {data.inventory_accounts ? (
+              <div className="flex w-fit items-center gap-1.5 rounded-md bg-purple-50 px-2 py-0.5 text-purple-600">
                 <Server className="size-3" />
                 <span className="font-medium">{data.inventory_accounts.email}</span>
               </div>
-            )}
-            {!data.customers && !data.orders && !data.inventory_accounts && (
-              <span className="text-gray-400 italic">{vi.activityLogs.page.system}</span>
-            )}
+            ) : null}
+            {data.created_by ? (
+              <div className="flex w-fit items-center gap-1.5 rounded-md bg-slate-100 px-2 py-0.5 text-slate-600">
+                <User className="size-3" />
+                <span className="font-medium">{data.created_by}</span>
+              </div>
+            ) : null}
+            {!data.customers && !data.orders && !data.inventory_accounts ? (
+              <span className="italic text-gray-400">{vi.activityLogs.page.system}</span>
+            ) : null}
           </div>
         );
       },
@@ -165,52 +288,71 @@ export default function ActivityLogsPage() {
     {
       id: "details",
       header: vi.activityLogs.page.columns.details,
-      cell: ({ row }: { row: { original: LogRow } }) => {
+      cell: ({ row }) => {
         const data = row.original;
         if (!data.details || Object.keys(data.details).length === 0) {
-          return <span className="text-gray-400 italic text-[11px]">{vi.activityLogs.page.noDetails}</span>;
+          return <span className="text-[11px] italic text-gray-400">{vi.activityLogs.page.noDetails}</span>;
         }
 
-        // Vietnamese labels for common detail keys
         const labelMap: Record<string, string> = vi.activityLogs.details.labels;
 
-        const formatValue = (key: string, val: unknown): string => {
-          if (val === null || val === undefined) return '—';
-          if (typeof val === 'object') {
-            try { return JSON.stringify(val, null, 0); } catch { return '[complex data]'; }
-          }
-          if (typeof val === 'number' && /amount|price|cost/i.test(key)) {
-            return formatMoney(val);
-          }
-          return String(val);
-        };
-
         return (
-          <div className="max-w-[400px] max-h-[120px] overflow-auto bg-slate-50 border border-slate-100 rounded-lg p-2 custom-scrollbar">
-            {data.action_type === 'WARRANTY_REASSIGNED' && data.details.old_account && data.details.new_account ? (
+          <div className="custom-scrollbar max-h-[132px] max-w-[420px] overflow-auto rounded-lg border border-slate-100 bg-slate-50 p-2">
+            {data.action_type === "WARRANTY_REASSIGNED" &&
+            data.details.old_account &&
+            data.details.new_account ? (
               <div className="flex flex-col gap-1.5 text-[12px]">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="line-through text-slate-500 break-all">{String(data.details.old_account)}</span>
-                  <span className="text-emerald-500 font-bold break-all">→ {String(data.details.new_account)}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="break-all text-slate-500 line-through">
+                    {String(data.details.old_account)}
+                  </span>
+                  <span className="break-all font-bold text-emerald-500">
+                    → {String(data.details.new_account)}
+                  </span>
                 </div>
-                {'reason' in data.details && <span className="text-slate-500 text-[11px] mt-0.5">Lý do: {String(data.details.reason)}</span>}
+                {"reason" in data.details ? (
+                  <span className="mt-0.5 text-[11px] text-slate-500">
+                    Lý do: {String(data.details.reason)}
+                  </span>
+                ) : null}
               </div>
-            ) : data.action_type === 'PAYMENT_ADDED' ? (
+            ) : data.action_type === "PAYMENT_ADDED" ? (
               <div className="flex flex-col gap-1 text-[12px]">
                 <div className="flex items-center gap-2">
-                <span className="text-slate-500">{vi.activityLogs.timeline.paymentLabel}</span>
-                  <span className="text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">{formatMoney(Number(data.details.amount || 0))}</span>
+                  <span className="text-slate-500">{vi.activityLogs.timeline.paymentLabel}</span>
+                  <span className="rounded bg-emerald-50 px-1.5 py-0.5 font-bold text-emerald-600">
+                    {formatMoney(Number(data.details.amount || 0))}
+                  </span>
                 </div>
-                {'note' in data.details && (
-                  <div className="text-slate-500 text-[11px] mt-1 italic border-t border-slate-200 pt-1">{String(data.details.note)}</div>
-                )}
+                {"note" in data.details ? (
+                  <div className="mt-1 border-t border-slate-200 pt-1 text-[11px] italic text-slate-500">
+                    {String(data.details.note)}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <ul className="space-y-1">
-                {Object.entries(data.details).map(([key, val]) => (
-                  <li key={key} className="flex justify-between items-start gap-4 text-[11px] font-mono">
-                    <span className="text-slate-500 capitalize whitespace-nowrap">{labelMap[key] || key.replace(/_/g, ' ')}:</span>
-                    <span className="text-slate-700 text-right font-semibold break-all">{formatValue(key, val)}</span>
+                {Object.entries(data.details).map(([key, value]) => (
+                  <li key={key} className="flex items-start justify-between gap-4 text-[11px] font-mono">
+                    <span className="whitespace-nowrap capitalize text-slate-500">
+                      {humanizeActivityDetailKey(key, labelMap)}:
+                    </span>
+                    <span className="break-all text-right font-semibold text-slate-700">
+                      {(() => {
+                        const parsed = parseActivityDetailValue(value);
+                        if (Array.isArray(parsed)) {
+                          return `${parsed.length} mục`;
+                        }
+                        if (parsed && typeof parsed === "object") {
+                          return Object.entries(parsed)
+                            .slice(0, 3)
+                            .map(([childKey, childValue]) => `${humanizeActivityDetailKey(childKey, labelMap)}: ${formatActivityPrimitive(childKey, childValue)}`)
+                            .join(" • ");
+                        }
+
+                        return formatActivityPrimitive(key, parsed);
+                      })()}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -221,95 +363,177 @@ export default function ActivityLogsPage() {
     },
   ], []);
 
+  const handleCopyDetails = async (log: LogRow) => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(log.details || {}, null, 2));
+      appToast.success("Đã sao chép payload log");
+    } catch {
+      appToast.error("Không thể sao chép payload log");
+    }
+  };
+
   return (
     <AppLayout>
       <ContextMenuRender />
-      <PageContainer className="relative pb-20">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-2 mt-2">
-          <div>
-        <h1 className="text-3xl font-black tracking-tight text-[var(--fg-base)] flex items-center gap-3">
-              <Activity className="size-8 text-[var(--accent)]" /> 
-              {vi.activityLogs.page.title}
-            </h1>
-            <p className="text-[15px] text-[var(--fg-muted)] mt-2 tracking-wide">
-              {vi.activityLogs.page.description}
-            </p>
-          </div>
-        </div>
+      <PageContainer variant="wide" className="relative pb-20">
+        <PageHeader
+          title={vi.activityLogs.page.title}
+          description="Một workspace audit chung để rà lịch sử thay đổi, tra payload thao tác và đối chiếu các sự kiện vận hành theo cùng một nhịp filter và bảng dữ liệu."
+          eyebrow={
+            <>
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/15 bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--accent)]">
+                Audit Workspace
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border-soft)] bg-white/85 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+                <Activity className="size-3.5" />
+                {meta.count} log
+              </span>
+              {hasFilters ? (
+                <span className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-sky-700">
+                  Đang lọc dữ liệu
+                </span>
+              ) : null}
+            </>
+          }
+          actions={
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                void refetch();
+              }}
+              disabled={isFetching}
+            >
+              <RefreshCw className={`size-4 ${isFetching ? "animate-spin" : ""}`} />
+              Làm mới
+            </Button>
+          }
+          className="mt-2"
+        />
 
-        {/* Filter Bar (Sticky Smart Filters) */}
-        <div className="sticky top-20 z-40 bg-[var(--bg-app)]/80 backdrop-blur-md pb-4 pt-2 -mx-4 px-4">
-          <div className="glass-card p-4 rounded-ios shadow-sm border border-[var(--border-soft)] bg-white">
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex-1 min-w-[240px] relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--fg-muted)] size-4" />
-                <Input
-                  className="pl-9"
-                  placeholder={vi.activityLogs.page.searchPlaceholder}
-                  autoComplete="off"
-                  name="search-logs"
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setPageIndex(0); }}
-                />
-              </div>
-              <div className="flex gap-2">
-                <select
-                  value={actionTypeFilter}
-                  onChange={(e) => { setActionTypeFilter(e.target.value); setPageIndex(0); }}
-                  className="bg-white border border-[var(--border-soft)] rounded-xl text-[13px] font-bold text-[var(--fg-base)] px-4 py-2 focus-visible:ring-2 focus-visible:ring-[var(--ring)] outline-none min-w-[140px] cursor-pointer hover:border-[var(--accent)]/40 transition-colors"
-                >
-                  <option value="">{vi.activityLogs.page.allActions}</option>
-                  <option value="CUSTOMER_CREATED">{vi.activityLogs.actionLabels.CUSTOMER_CREATED}</option>
-                  <option value="CUSTOMER_UPDATED">{vi.activityLogs.actionLabels.CUSTOMER_UPDATED}</option>
-                  <option value="CUSTOMER_DELETED">{vi.activityLogs.actionLabels.CUSTOMER_DELETED}</option>
-                  <option value="ORDER_CREATED">{vi.activityLogs.actionLabels.ORDER_CREATED}</option>
-                  <option value="ORDER_UPDATED">{vi.activityLogs.actionLabels.ORDER_UPDATED}</option>
-                  <option value="ORDER_DELETED">{vi.activityLogs.actionLabels.ORDER_DELETED}</option>
-                  <option value="ORDER_CANCELLED">{vi.activityLogs.actionLabels.ORDER_CANCELLED}</option>
-                  <option value="PAYMENT_ADDED">{vi.activityLogs.actionLabels.PAYMENT_ADDED}</option>
-                  <option value="INVENTORY_ASSIGNED">{vi.activityLogs.actionLabels.INVENTORY_ASSIGNED}</option>
-                  <option value="WARRANTY_REASSIGNED">{vi.activityLogs.actionLabels.WARRANTY_REASSIGNED}</option>
-                  <option value="PRODUCT_CREATED">{vi.activityLogs.actionLabels.PRODUCT_CREATED}</option>
-                  <option value="PRODUCT_UPDATED">{vi.activityLogs.actionLabels.PRODUCT_UPDATED}</option>
-                  <option value="PRODUCT_DELETED">{vi.activityLogs.actionLabels.PRODUCT_DELETED}</option>
-                  <option value="CALENDAR_EVENT_CREATED">{vi.activityLogs.actionLabels.CALENDAR_EVENT_CREATED}</option>
-                  <option value="CALENDAR_EVENT_UPDATED">{vi.activityLogs.actionLabels.CALENDAR_EVENT_UPDATED}</option>
-                  <option value="CALENDAR_EVENT_DELETED">{vi.activityLogs.actionLabels.CALENDAR_EVENT_DELETED}</option>
-                  <option value="SYSTEM_SETTINGS_UPDATED">{vi.activityLogs.actionLabels.SYSTEM_SETTINGS_UPDATED}</option>
-                  <option value="PAYMENT_SOURCE_CREATED">{vi.activityLogs.actionLabels.PAYMENT_SOURCE_CREATED}</option>
-                  <option value="PAYMENT_SOURCE_UPDATED">{vi.activityLogs.actionLabels.PAYMENT_SOURCE_UPDATED}</option>
-                  <option value="PAYMENT_SOURCE_DELETED">{vi.activityLogs.actionLabels.PAYMENT_SOURCE_DELETED}</option>
-                </select>
-                <div className="flex bg-white border border-[var(--border-soft)] rounded-xl overflow-hidden hover:border-[var(--accent)]/40 transition-colors focus-within:ring-2 focus-within:ring-[var(--ring)]">
-                  <input 
-                    type="date" 
-                    value={startDate}
-                    onChange={(e) => { setStartDate(e.target.value); setPageIndex(0); }}
-                    className="text-[13px] font-bold text-[var(--fg-base)] px-3 py-2 outline-none border-r border-[var(--border-soft)] max-w-[120px] bg-transparent"
-                    title={vi.activityLogs.page.fromDate}
-                  />
-                  <input 
-                    type="date" 
-                    value={endDate}
-                    onChange={(e) => { setEndDate(e.target.value); setPageIndex(0); }}
-                    className="text-[13px] font-bold text-[var(--fg-base)] px-3 py-2 outline-none max-w-[120px] bg-transparent"
-                    title={vi.activityLogs.page.toDate}
-                  />
-                </div>
-              </div>
+        <StatsGrid className="xl:grid-cols-4">
+          <div className="app-card px-5 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Tạo mới</div>
+            <div className="mt-2 text-2xl font-black text-emerald-600">{summary.createCount}</div>
+            <p className="mt-1 text-[12px] text-[var(--fg-muted)]">Số event create trong dataset hiện tại.</p>
+          </div>
+          <div className="app-card px-5 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Cập nhật</div>
+            <div className="mt-2 text-2xl font-black text-sky-600">{summary.updateCount}</div>
+            <p className="mt-1 text-[12px] text-[var(--fg-muted)]">Các thao tác sửa đổi đã ghi lại.</p>
+          </div>
+          <div className="app-card px-5 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Xóa / huỷ</div>
+            <div className="mt-2 text-2xl font-black text-rose-600">{summary.deleteCount}</div>
+            <p className="mt-1 text-[12px] text-[var(--fg-muted)]">Phù hợp để review các thao tác nhạy cảm.</p>
+          </div>
+          <div className="app-card px-5 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">System</div>
+            <div className="mt-2 text-2xl font-black text-[var(--fg-base)]">{summary.systemCount}</div>
+            <p className="mt-1 text-[12px] text-[var(--fg-muted)]">Log không gắn trực tiếp khách, đơn hoặc kho.</p>
+          </div>
+        </StatsGrid>
+
+        <FiltersBar sticky className="px-4 py-4">
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_220px_260px_auto]">
+            <div className="relative min-w-0">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
+              <Input
+                className="h-11 pl-9"
+                placeholder={vi.activityLogs.page.searchPlaceholder}
+                autoComplete="off"
+                name="search-logs"
+                type="text"
+                value={searchQuery}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setPageIndex(0);
+                }}
+              />
+            </div>
+
+            <Select
+              value={actionTypeFilter}
+              onChange={(event) => {
+                setActionTypeFilter(event.target.value);
+                setPageIndex(0);
+              }}
+              className="h-11"
+            >
+              {ACTION_FILTER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr]">
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(event) => {
+                  setStartDate(event.target.value);
+                  setPageIndex(0);
+                }}
+                className="h-11"
+                title={vi.activityLogs.page.fromDate}
+              />
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(event) => {
+                  setEndDate(event.target.value);
+                  setPageIndex(0);
+                }}
+                className="h-11"
+                title={vi.activityLogs.page.toDate}
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-11"
+                disabled={!hasFilters}
+                onClick={() => {
+                  setSearchQuery("");
+                  setDebouncedQuery("");
+                  setActionTypeFilter("");
+                  setStartDate("");
+                  setEndDate("");
+                  setPageIndex(0);
+                }}
+              >
+                Xóa lọc
+              </Button>
             </div>
           </div>
-        </div>
+        </FiltersBar>
 
-        <div className={`bg-white rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-[var(--border-soft)] overflow-hidden transition-all duration-300 ${isFetching && !isLoading ? "opacity-60 pointer-events-none" : ""}`}>
-          <div className="p-1">
+        <SurfaceCard className={isFetching && !isLoading ? "pointer-events-none opacity-60" : undefined}>
+          <SectionHeader
+            title="Dòng sự kiện"
+            description="Click chuột phải để sao chép payload chi tiết. Bảng này giữ server-side pagination để log dài vẫn tải nhanh."
+            action={
+              <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+                Trang {pageIndex + 1}/{Math.max(meta.totalPages, 1)}
+              </span>
+            }
+          />
+          <div className="p-4">
             <DataTable
-              serverSide={true}
-              onRowContextMenu={(e, row) => {
+              serverSide
+              onRowContextMenu={(event, row) => {
                 const log = row as LogRow;
-                openContextMenu(e, [
-                  { label: vi.activityLogs.page.copyData, icon: <Database className="size-4" />, onClick: () => navigator.clipboard.writeText(JSON.stringify(log.details || {}, null, 2)) },
+                openContextMenu(event, [
+                  {
+                    label: vi.activityLogs.page.copyData,
+                    icon: <Database className="size-4" />,
+                    onClick: () => {
+                      void handleCopyDetails(log);
+                    },
+                  },
                 ]);
               }}
               isLoading={isLoading}
@@ -325,7 +549,7 @@ export default function ActivityLogsPage() {
               emptyMessage={isLoading ? vi.activityLogs.page.loading : vi.activityLogs.page.empty}
             />
           </div>
-        </div>
+        </SurfaceCard>
       </PageContainer>
     </AppLayout>
   );

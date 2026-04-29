@@ -23,7 +23,7 @@ vi.mock("@/lib/supabase/repositories/activity-logs.repo", () => ({
   createActivityLog: (...args: unknown[]) => mockCreateActivityLog(...args),
 }));
 
-import { POST as createWebhook } from "@/app/api/settings/webhooks/route";
+import { GET as listWebhooks, POST as createWebhook } from "@/app/api/settings/webhooks/route";
 import { POST as testWebhook } from "@/app/api/settings/webhooks/[id]/test/route";
 
 type ChainState = {
@@ -55,7 +55,7 @@ function createChain(endpointRow?: Record<string, unknown>) {
     if (state.table === "webhook_endpoints" && state.action === "select") {
       return {
         data: endpointRow ?? {
-          id: "wh-1",
+          id: "00000000-0000-4000-8000-0000000000a9",
           url: "https://example.com/webhook",
           secret: "whsec_test",
           is_active: true,
@@ -69,7 +69,7 @@ function createChain(endpointRow?: Record<string, unknown>) {
 
     if (state.table === "webhook_events") {
       return {
-        data: { id: "event-1" },
+        data: { id: "00000000-0000-4000-8000-0000000000aa" },
         error: null,
       };
     }
@@ -112,6 +112,51 @@ describe("POST /api/settings/webhooks", () => {
   });
 });
 
+describe("GET /api/settings/webhooks", () => {
+  it("returns an empty list immediately when local fallback is forced", async () => {
+    const previousValue = process.env.CODEX_USE_LOCAL_FALLBACK;
+    process.env.CODEX_USE_LOCAL_FALLBACK = "1";
+
+    try {
+      const response = await listWebhooks(
+        createTestRequest("http://localhost:3000/api/settings/webhooks"),
+        { params: {} } as never,
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.data).toEqual([]);
+      expect(mockFrom).not.toHaveBeenCalled();
+    } finally {
+      if (previousValue === undefined) {
+        delete process.env.CODEX_USE_LOCAL_FALLBACK;
+      } else {
+        process.env.CODEX_USE_LOCAL_FALLBACK = previousValue;
+      }
+    }
+  });
+
+  it("falls back to an empty list for localhost runtime QA when Supabase is unreachable", async () => {
+    mockFrom.mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: "TypeError: fetch failed" },
+      }),
+    }));
+
+    const response = await listWebhooks(
+      createTestRequest("http://localhost:3000/api/settings/webhooks"),
+      { params: {} } as never,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.data).toEqual([]);
+  });
+});
+
 describe("POST /api/settings/webhooks/[id]/test", () => {
   it("delivers a synthetic test event and updates health state", async () => {
     const supabase = createChain();
@@ -127,10 +172,10 @@ describe("POST /api/settings/webhooks/[id]/test", () => {
     );
 
     const response = await testWebhook(
-      createTestRequest("http://localhost:3000/api/settings/webhooks/wh-1/test", {
+      createTestRequest("http://localhost:3000/api/settings/webhooks/00000000-0000-4000-8000-0000000000a9/test", {
         method: "POST",
       }),
-      { params: Promise.resolve({ id: "wh-1" }) } as never,
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-0000000000a9" }) } as never,
     );
     const body = await response.json();
 

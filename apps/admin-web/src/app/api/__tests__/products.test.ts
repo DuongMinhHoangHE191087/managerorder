@@ -52,8 +52,8 @@ describe("GET /api/products", () => {
 
   it("should return mapped products", async () => {
     mockListProducts.mockResolvedValue([
-      { id: "p-1", name: "Netflix", mode: "slot", sellPriceVnd: 150000 },
-      { id: "p-2", name: "Spotify", mode: "key", sellPriceVnd: 60000 },
+      { id: "00000000-0000-4000-8000-0000000003ed", name: "Netflix", mode: "slot", sellPriceVnd: 150000 },
+      { id: "00000000-0000-4000-8000-0000000003ee", name: "Spotify", mode: "key", sellPriceVnd: 60000 },
     ]);
     const req = createTestRequest("http://localhost:3000/api/products");
     const res = await GET(req, { params: {} } as any);
@@ -167,16 +167,16 @@ describe("PUT /api/products/[id]", () => {
 
   it("should update a product", async () => {
     mockUpdateProduct.mockResolvedValue({
-      id: "p-1",
+      id: "00000000-0000-4000-8000-0000000003ed",
       name: "Updated",
       mode: "key",
       sellPriceVnd: 200000,
     });
-    const req = createTestRequest("http://localhost:3000/api/products/p-1", {
+    const req = createTestRequest("http://localhost:3000/api/products/00000000-0000-4000-8000-0000000003ed", {
       method: "PUT",
       body: { name: "Updated", mode: "key" },
     });
-    const res = await PUT(req, makeParams("p-1") as any);
+    const res = await PUT(req, makeParams("00000000-0000-4000-8000-0000000003ed") as any);
     const json = await res.json();
 
     expect(res.status).toBe(200);
@@ -185,14 +185,14 @@ describe("PUT /api/products/[id]", () => {
 
   it("should accept partial update (name only)", async () => {
     mockUpdateProduct.mockResolvedValue({
-      id: "p-1",
+      id: "00000000-0000-4000-8000-0000000003ed",
       name: "New Name",
     });
-    const req = createTestRequest("http://localhost:3000/api/products/p-1", {
+    const req = createTestRequest("http://localhost:3000/api/products/00000000-0000-4000-8000-0000000003ed", {
       method: "PUT",
       body: { name: "New Name" },
     });
-    const res = await PUT(req, makeParams("p-1") as any);
+    const res = await PUT(req, makeParams("00000000-0000-4000-8000-0000000003ed") as any);
     expect(res.status).toBe(200);
   });
 });
@@ -207,23 +207,23 @@ describe("DELETE /api/products/[id]", () => {
 
   it("should soft-delete a product", async () => {
     mockDeleteProduct.mockResolvedValue(undefined);
-    const req = createTestRequest("http://localhost:3000/api/products/p-1", {
+    const req = createTestRequest("http://localhost:3000/api/products/00000000-0000-4000-8000-0000000003ed", {
       method: "DELETE",
     });
-    const res = await DELETE(req, makeParams("p-1") as any);
+    const res = await DELETE(req, makeParams("00000000-0000-4000-8000-0000000003ed") as any);
     const json = await res.json();
 
     expect(res.status).toBe(200);
     expect(json.success).toBe(true);
-    expect(mockDeleteProduct).toHaveBeenCalledWith("p-1", TEST_ACCOUNT_ID);
+    expect(mockDeleteProduct).toHaveBeenCalledWith("00000000-0000-4000-8000-0000000003ed", TEST_ACCOUNT_ID);
   });
 
   it("should propagate delete errors", async () => {
     mockDeleteProduct.mockRejectedValue(new Error("Product not found"));
-    const req = createTestRequest("http://localhost:3000/api/products/p-1", {
+    const req = createTestRequest("http://localhost:3000/api/products/00000000-0000-4000-8000-0000000003ed", {
       method: "DELETE",
     });
-    const res = await DELETE(req, makeParams("p-1") as any);
+    const res = await DELETE(req, makeParams("00000000-0000-4000-8000-0000000003ed") as any);
     expect(res.status).toBe(500);
   });
 });

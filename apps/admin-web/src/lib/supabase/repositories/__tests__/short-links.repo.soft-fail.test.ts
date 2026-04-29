@@ -53,8 +53,8 @@ describe("short-links.repo soft-fail behavior", () => {
   it("uses a legacy-compatible payload for direct links even when the create form sends delivery defaults", async () => {
     const createResult = {
       data: {
-        id: "sl-1",
-        account_id: "acc-1",
+        id: "00000000-0000-4000-8000-00000000012d",
+        account_id: "00000000-0000-4000-8000-000000000016",
         slug: "abc12345",
         target_url: "https://example.com",
       },
@@ -68,7 +68,7 @@ describe("short-links.repo soft-fail behavior", () => {
     });
 
     await expect(
-      createShortLink("acc-1", {
+      createShortLink("00000000-0000-4000-8000-000000000016", {
         target_url: "https://example.com",
         require_token: false,
         notify_clicks: false,
@@ -78,7 +78,7 @@ describe("short-links.repo soft-fail behavior", () => {
       }),
     ).resolves.toEqual(
       expect.objectContaining({
-        id: "sl-1",
+        id: "00000000-0000-4000-8000-00000000012d",
         target_url: "https://example.com",
       }),
     );
@@ -106,7 +106,7 @@ describe("short-links.repo soft-fail behavior", () => {
     });
 
     await expect(
-      createShortLink("acc-1", {
+      createShortLink("00000000-0000-4000-8000-000000000016", {
         target_url: "https://example.com/landing",
         require_token: false,
         notify_clicks: false,
@@ -122,8 +122,8 @@ describe("short-links.repo soft-fail behavior", () => {
   it("uses a legacy-compatible update payload when delivery defaults are not part of the requested change", async () => {
     const updateResult = {
       data: {
-        id: "sl-1",
-        account_id: "acc-1",
+        id: "00000000-0000-4000-8000-00000000012d",
+        account_id: "00000000-0000-4000-8000-000000000016",
         slug: "abc12345",
         title: "Updated title",
         target_url: "https://example.com",
@@ -138,14 +138,14 @@ describe("short-links.repo soft-fail behavior", () => {
     });
 
     await expect(
-      updateShortLink("sl-1", "acc-1", {
+      updateShortLink("00000000-0000-4000-8000-00000000012d", "00000000-0000-4000-8000-000000000016", {
         title: "Updated title",
         delivery_mode: "direct_redirect",
         landing_template_key: null,
       }),
     ).resolves.toEqual(
       expect.objectContaining({
-        id: "sl-1",
+        id: "00000000-0000-4000-8000-00000000012d",
         title: "Updated title",
       }),
     );

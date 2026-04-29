@@ -25,7 +25,7 @@ import {
 describe("orderItemSchema", () => {
   it("validates valid order item", () => {
     const result = orderItemSchema.safeParse({
-      productId: "prod-1",
+      productId: "00000000-0000-4000-8000-000000000039",
       quantity: 2,
     });
     expect(result.success).toBe(true);
@@ -71,8 +71,8 @@ describe("orderItemSchema", () => {
 
 describe("createOrderInputSchema", () => {
   const validOrder = {
-    customerId: "cust-1",
-    items: [{ productId: "prod-1", quantity: 1 }],
+    customerId: "00000000-0000-4000-8000-000000000005",
+    items: [{ productId: "00000000-0000-4000-8000-000000000039", quantity: 1 }],
   };
 
   it("validates minimal valid order", () => {
@@ -330,6 +330,7 @@ describe("createSalesChannelInputSchema", () => {
 
     expect(result.defaultDeliveryMode).toBe("direct_redirect");
     expect(result.defaultLandingTemplateKey).toBe("owner_intro");
+    expect(result.defaultFailureTemplateKey).toBe("customer_offer_wall");
   });
 
   it("accepts landing page defaults for sales channels", () => {
@@ -337,6 +338,8 @@ describe("createSalesChannelInputSchema", () => {
       name: "TikTok Shop",
       defaultDeliveryMode: "landing_page",
       defaultLandingTemplateKey: "ctv_neutral",
+      defaultFailureTemplateKey: "seller_unlock_request",
+      sellerContactUrl: "https://zalo.me/seller",
     });
 
     expect(result.success).toBe(true);
@@ -359,6 +362,8 @@ describe("createShortLinkInputSchema", () => {
       sales_channel_id: "550e8400-e29b-41d4-a716-446655440000",
       delivery_mode: "landing_page",
       landing_template_key: "ctv_neutral",
+      failure_template_key: "seller_unlock_request",
+      seller_contact_url: "https://zalo.me/seller",
     });
 
     expect(result.success).toBe(true);
@@ -407,7 +412,7 @@ describe("createLicenseKeyInputSchema", () => {
   it("validates valid key", () => {
     const result = createLicenseKeyInputSchema.safeParse({
       keyCode: "ABC-123-XYZ",
-      productId: "prod-1",
+      productId: "00000000-0000-4000-8000-000000000039",
     });
     expect(result.success).toBe(true);
   });
@@ -472,7 +477,7 @@ describe("createCalendarEventSchema", () => {
 
 describe("addInventoryItemSchema", () => {
   const validItem = {
-    productId: "prod-1",
+    productId: "00000000-0000-4000-8000-000000000039",
     email: "test@example.com",
     maxSlots: 5,
     expiresAt: "2025-12-31",

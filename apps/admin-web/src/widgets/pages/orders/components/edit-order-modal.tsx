@@ -9,7 +9,7 @@ import {
   Loader2, ChevronDown, ChevronUp
 } from "lucide-react";
 
-import { Modal } from "@/shared/ui/modal";
+import { CreateFlowDialog } from "@/shared/ui/create-flow-shell";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { useUpdateOrder } from "@/widgets/pages/orders/hooks/use-orders";
@@ -570,6 +570,14 @@ export function EditOrderModal({
       expiresAt: sa.expires_at ?? sa.expiresAt ?? new Date().toISOString(),
     }));
   }, [rawSourceAccounts]);
+  const sourceAccountById = useMemo(
+    () => new Map(sourceAccounts.map((account) => [account.id, account] as const)),
+    [sourceAccounts],
+  );
+  const orderItemById = useMemo(
+    () => new Map(order.items.map((item) => [item.id, item] as const)),
+    [order.items],
+  );
 
   // Hooks
   const { mutateAsync: disconnectAccount, isPending: isDisconnecting } = useDisconnectSourceAccount();
@@ -609,7 +617,10 @@ export function EditOrderModal({
   const profit = totalAmount - totalCost;
   const profitPercent = totalAmount > 0 ? ((profit / totalAmount) * 100).toFixed(1) : "0.0";
 
-  const connectedCount = items.filter(i => !!i.currentAccount).length;
+  const connectedCount = useMemo(
+    () => items.reduce((count, item) => count + (item.currentAccount ? 1 : 0), 0),
+    [items],
+  );
   const totalItemCount = items.length;
 
   // Tab definitions
@@ -672,7 +683,7 @@ export function EditOrderModal({
         orderItemId: item.id,
         quantity: originalItem.quantity,
       });
-      const newAccount = sourceAccounts.find(sa => sa.id === newSourceAccountId);
+      const newAccount = sourceAccountById.get(newSourceAccountId);
       const newItems = [...items];
       newItems[itemIndex] = {
         ...newItems[itemIndex],
@@ -686,7 +697,7 @@ export function EditOrderModal({
     } catch (err: unknown) {
       appToast.error(err instanceof Error ? err.message : "Lỗi kết nối kho");
     }
-  }, [items, order, sourceAccounts, disconnectAccount, connectAccount, queryClient]);
+  }, [items, order, sourceAccountById, disconnectAccount, connectAccount, queryClient]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -709,7 +720,7 @@ export function EditOrderModal({
       if (urlsChanged) payload.proof_image_urls = proofUrls;
 
       const changedItems = items.filter(item => {
-        const original = order.items.find(i => i.id === item.id);
+        const original = orderItemById.get(item.id);
         if (!original) return false;
         return item.notes !== (original.notes || "") || item.customer_nick_used !== (original.customer_nick_used || "");
       });
@@ -764,11 +775,12 @@ export function EditOrderModal({
   );
 
   return (
-    <Modal
+    <CreateFlowDialog
       isOpen={isOpen}
       onClose={onClose}
       title="Chỉnh sửa đơn hàng"
-      size="3xl"
+      description="Cập nhật giá, phân bổ kho và bằng chứng thanh toán trong cùng một surface vận hành."
+      size="2xl"
       footer={modalFooter}
     >
       <form id="edit-order-form" onSubmit={handleUpdate}>
@@ -817,6 +829,6 @@ export function EditOrderModal({
           ) : null}
         </div>
       </form>
-    </Modal>
+    </CreateFlowDialog>
   );
 }

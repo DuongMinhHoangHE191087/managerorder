@@ -193,7 +193,7 @@ describe("GET /api/customers/export", () => {
       {
         data: [
           {
-            id: "ct-1",
+            id: "00000000-0000-4000-8000-0000000003e8",
             customer_id: "c1",
             channel: "email",
             value: "khach-a@example.com",
@@ -208,7 +208,7 @@ describe("GET /api/customers/export", () => {
     const assignmentsBuilder = createTerminalBuilder(
       {
         data: [
-          { customer_id: "c1", tag_id: "tag-1" },
+          { customer_id: "c1", tag_id: "00000000-0000-4000-8000-000000000030" },
         ],
         error: null,
       },
@@ -226,7 +226,7 @@ describe("GET /api/customers/export", () => {
     const tagsBuilder = createTerminalBuilder(
       {
         data: [
-          { id: "tag-1", name: "VIP", color: "#ef4444" },
+          { id: "00000000-0000-4000-8000-000000000030", name: "VIP", color: "#ef4444" },
         ],
         error: null,
       },

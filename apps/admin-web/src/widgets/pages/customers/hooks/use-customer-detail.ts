@@ -16,11 +16,13 @@ interface OrdersApiResponse {
 /**
  * Fetch single customer by ID with React Query caching.
  */
-export function useCustomerDetail(customerId: string, enabled = true) {
+export function useCustomerDetail(customerId: string, enabled = true, includeDeleted = false) {
   return useQuery({
-    queryKey: ["customer", customerId],
+    queryKey: ["customer", customerId, includeDeleted ? "trash" : "active"],
     queryFn: async () => {
-      const res = await fetcher<Customer>(`/api/customers/${customerId}`);
+      const res = await fetcher<Customer>(
+        `/api/customers/${customerId}${includeDeleted ? "?include_deleted=1" : ""}`,
+      );
       return res;
     },
     enabled: enabled && !!customerId,

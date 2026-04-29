@@ -271,6 +271,8 @@ export interface CustomerPremiumSubscription {
   renewal_denied_at?: string | null;
   renewal_denied_reason?: string | null;
   refund_amount?: number | null;
+  package_default_price?: number | null;
+  renewal_price_factor?: number | null;
   
   // Status
   status: 'active' | 'expired' | 'cancelled' | 'renewed' | 'migrated';
@@ -311,6 +313,9 @@ export interface SubscriptionRenewal {
   // Pricing
   original_price?: number | null;
   renewal_price?: number | null;
+  cost_price?: number | null;
+  collected_amount?: number | null;
+  profit_amount?: number | null;
   discount?: number;
   total_price?: number | null;
   

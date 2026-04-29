@@ -1,5 +1,5 @@
 // ============================================================
-// API TESTS: Batch Operations — DELETE /api/orders/batch
+// API TESTS: Batch Operations — POST /api/orders/batch
 //
 // Tests batch deletion endpoint:
 //  - Valid batch delete (multiple IDs)
@@ -13,23 +13,26 @@ import {
   mockWithAccount,
   mockWithErrorHandler,
   createTestRequest,
+  mockRBAC,
+  TEST_USER_EMAIL,
 } from "./helpers/setup";
 
 // ── Mocks ────────────────────────────────────────────────────
 vi.mock("@/lib/api/with-account", () => mockWithAccount());
 vi.mock("@/lib/api/with-error-handler", () => mockWithErrorHandler());
-vi.mock("@/lib/supabase/repositories/orders.repo", () => ({
-  batchDeleteOrders: vi.fn(),
+vi.mock("@/lib/api/rbac", () => mockRBAC());
+vi.mock("@/lib/services/order-deletion.service", () => ({
+  batchDeleteOrdersWithAudit: vi.fn(),
 }));
 
-import { batchDeleteOrders } from "@/lib/supabase/repositories/orders.repo";
-import { DELETE } from "@/app/api/orders/batch/route";
+import { batchDeleteOrdersWithAudit } from "@/lib/services/order-deletion.service";
+import { POST } from "@/app/api/orders/batch/route";
 
 // ── Helpers ──────────────────────────────────────────────────
 function batchDelete(body: unknown) {
-  return DELETE(
+  return POST(
     createTestRequest("http://localhost/api/orders/batch", {
-      method: "DELETE",
+      method: "POST",
       body,
     }),
     { params: {} } as any
@@ -38,7 +41,7 @@ function batchDelete(body: unknown) {
 
 // ── Tests ────────────────────────────────────────────────────
 
-describe("DELETE /api/orders/batch — Batch Operations", () => {
+describe("POST /api/orders/batch — Batch Operations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -47,29 +50,39 @@ describe("DELETE /api/orders/batch — Batch Operations", () => {
 
   describe("Happy path", () => {
     it("batch deletes multiple orders → 200", async () => {
-      vi.mocked(batchDeleteOrders).mockResolvedValue({ deleted: 3 } as any);
+      vi.mocked(batchDeleteOrdersWithAudit).mockResolvedValue(3);
 
       const res = await batchDelete({
-        ids: ["ord-001", "ord-002", "ord-003"],
+        ids: ["00000000-0000-4000-8000-00000000001b", "00000000-0000-4000-8000-00000000001c", "00000000-0000-4000-8000-00000000001d"],
       });
+      const json = await res.json();
+
       expect(res.status).toBe(200);
+      expect(json.data.deleted).toBe(3);
     });
 
     it("batch deletes single order → 200", async () => {
-      vi.mocked(batchDeleteOrders).mockResolvedValue({ deleted: 1 } as any);
+      vi.mocked(batchDeleteOrdersWithAudit).mockResolvedValue(1);
 
-      const res = await batchDelete({ ids: ["ord-001"] });
+      const res = await batchDelete({ ids: ["00000000-0000-4000-8000-00000000001b"] });
+      const json = await res.json();
+
       expect(res.status).toBe(200);
+      expect(json.data.deleted).toBe(1);
     });
 
     it("passes account ID and order IDs to repository", async () => {
-      vi.mocked(batchDeleteOrders).mockResolvedValue({ deleted: 2 } as any);
+      vi.mocked(batchDeleteOrdersWithAudit).mockResolvedValue(2);
 
-      await batchDelete({ ids: ["ord-001", "ord-002"] });
+      await batchDelete({ ids: ["00000000-0000-4000-8000-00000000001b", "00000000-0000-4000-8000-00000000001c"] });
 
-      expect(batchDeleteOrders).toHaveBeenCalledWith(
-        expect.arrayContaining(["ord-001", "ord-002"]),
-        expect.any(String) // accountId
+      expect(batchDeleteOrdersWithAudit).toHaveBeenCalledWith(
+        expect.arrayContaining(["00000000-0000-4000-8000-00000000001b", "00000000-0000-4000-8000-00000000001c"]),
+        expect.any(String),
+        expect.objectContaining({
+          email: TEST_USER_EMAIL,
+          displayName: "Test User",
+        }),
       );
     });
   });
@@ -88,18 +101,17 @@ describe("DELETE /api/orders/batch — Batch Operations", () => {
     });
 
     it("rejects exceeding max batch limit (100+) → 400", async () => {
-      const ids = Array.from({ length: 101 }, (_, i) => `ord-${i}`);
+      const ids = Array.from({ length: 101 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
       const res = await batchDelete({ ids });
       expect(res.status).toBe(400);
     });
 
     it("accepts exactly 100 IDs (at the limit)", async () => {
-      const ids = Array.from({ length: 100 }, (_, i) => `ord-${i}`);
-      vi.mocked(batchDeleteOrders).mockResolvedValue({ deleted: 100 } as any);
+      const ids = Array.from({ length: 100 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
+      vi.mocked(batchDeleteOrdersWithAudit).mockResolvedValue(100);
 
       const res = await batchDelete({ ids });
-      // Should succeed because 50 is at the limit, not over
-      expect([200, 400]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
   });
 
@@ -107,11 +119,11 @@ describe("DELETE /api/orders/batch — Batch Operations", () => {
 
   describe("Error handling", () => {
     it("returns 500 when repository throws", async () => {
-      vi.mocked(batchDeleteOrders).mockRejectedValue(
+      vi.mocked(batchDeleteOrdersWithAudit).mockRejectedValue(
         new Error("Database error")
       );
 
-      const res = await batchDelete({ ids: ["ord-001"] });
+      const res = await batchDelete({ ids: ["00000000-0000-4000-8000-00000000001b"] });
       expect(res.status).toBe(500);
     });
   });

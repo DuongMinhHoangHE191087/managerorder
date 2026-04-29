@@ -8,6 +8,10 @@
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { loadRowsByIds } from '@/lib/supabase/relation-fallback';
 import {
+  calculateRenewalFinanceSnapshot,
+  getCycleMonths,
+} from "@/lib/domain/premium-renewal-finance";
+import {
   isExpiringSoon,
   getDaysRemaining,
 } from '@/lib/utils/premium-accounts-helpers';
@@ -21,6 +25,14 @@ export interface RenewalDetail {
   customer_id: string;
   status: string;
   original_price: number | null;
+  renewal_price: number | null;
+  total_price: number | null;
+  new_billing_cycle: string | null;
+  new_cycle_months: number | null;
+  cost_price: number | null;
+  collected_amount: number | null;
+  profit_amount: number | null;
+  notes: string | null;
   refund_calculated: boolean;
   refund_amount: number | null;
   customer_premium_subscriptions: {
@@ -49,6 +61,7 @@ type PremiumPackageRow = {
   slug: string;
   total_slots: number;
   default_price: number | null;
+  renewal_price_factor: number | null;
 };
 
 type PremiumServiceTypeRow = {
@@ -64,6 +77,10 @@ type SubscriptionHydrationRow = {
   premium_account_id: string;
   package_id: string;
   service_type_id: string;
+  billing_cycle: string;
+  cycle_months: number;
+  original_price: number;
+  final_price: number;
   premium_accounts: PremiumAccountRow | null;
   premium_packages: PremiumPackageRow | null;
   premium_service_types: PremiumServiceTypeRow | null;
@@ -105,7 +122,7 @@ async function hydrateSubscriptionRows<T extends SubscriptionHydrationRow>(
       'premium_packages',
       accountId,
       packageIds,
-      'id, name, slug, total_slots, default_price',
+      'id, name, slug, total_slots, default_price, renewal_price_factor',
     ),
     loadRowsByIds<PremiumServiceTypeRow>(
       supabaseAdmin,
@@ -238,7 +255,14 @@ export async function getRenewalRequest(renewalId: string, accountId: string): P
 export async function createRenewalRequest(
   accountId: string,
   subscriptionId: string,
-  customerId: string
+  customerId: string,
+  options?: {
+    renewalPrice?: number | null;
+    newBillingCycle?: string | null;
+    costPrice?: number | null;
+    collectedAmount?: number | null;
+    notes?: string | null;
+  },
 ) {
   const sub = await getSubscriptionById(subscriptionId, accountId);
 
@@ -257,6 +281,16 @@ export async function createRenewalRequest(
     throw new Error('Renewal already pending for this subscription');
   }
 
+  const normalizedBillingCycle = options?.newBillingCycle ?? String(sub.billing_cycle ?? "1month");
+  const normalizedRenewalPrice = Number(options?.renewalPrice ?? sub.final_price ?? sub.original_price ?? 0);
+  const normalizedCollectedAmount = Number(options?.collectedAmount ?? 0);
+  const normalizedCostPrice = Number(options?.costPrice ?? 0);
+  const finance = calculateRenewalFinanceSnapshot({
+    renewalPrice: normalizedRenewalPrice,
+    collectedAmount: normalizedCollectedAmount,
+    costPrice: normalizedCostPrice,
+  });
+
   const { data, error } = await supabaseAdmin
     .from('subscription_renewals')
     .insert([
@@ -266,6 +300,15 @@ export async function createRenewalRequest(
         customer_id: customerId,
         renewal_requested_date: new Date().toISOString(),
         status: 'pending',
+        original_price: Number(sub.final_price ?? sub.original_price ?? 0),
+        renewal_price: finance.renewalPrice,
+        total_price: finance.renewalPrice,
+        new_billing_cycle: normalizedBillingCycle,
+        new_cycle_months: getCycleMonths(normalizedBillingCycle),
+        cost_price: finance.costPrice,
+        collected_amount: finance.collectedAmount,
+        profit_amount: finance.profitAmount,
+        notes: options?.notes?.trim() ? options.notes.trim() : null,
         refund_calculated: false,
       },
     ])
@@ -291,8 +334,13 @@ export async function createRenewalRequest(
 export async function confirmRenewalRequest(
   renewalId: string,
   accountId: string,
-  renewalPrice?: number,
-  newBillingCycle?: string
+  options?: {
+    renewalPrice?: number | null;
+    newBillingCycle?: string | null;
+    costPrice?: number | null;
+    collectedAmount?: number | null;
+    notes?: string | null;
+  },
 ) {
   const renewal = await getRenewalRequest(renewalId, accountId);
 
@@ -300,16 +348,29 @@ export async function confirmRenewalRequest(
     throw new Error('Renewal request not found');
   }
 
-  const totalPrice = renewalPrice ?? renewal.original_price ?? 0;
+  const totalPrice = Number(options?.renewalPrice ?? renewal.renewal_price ?? renewal.total_price ?? renewal.original_price ?? 0);
+  const normalizedBillingCycle = options?.newBillingCycle ?? renewal.new_billing_cycle ?? renewal.customer_premium_subscriptions?.billing_cycle ?? '1month';
+  const costPrice = Number(options?.costPrice ?? renewal.cost_price ?? 0);
+  const collectedAmount = Number(options?.collectedAmount ?? renewal.collected_amount ?? totalPrice);
+  const finance = calculateRenewalFinanceSnapshot({
+    renewalPrice: totalPrice,
+    collectedAmount,
+    costPrice,
+  });
 
   const { data: updatedRenewal, error: renewalError } = await supabaseAdmin
     .from('subscription_renewals')
     .update({
       status: 'confirmed',
       renewal_confirmed_date: new Date().toISOString(),
-      renewal_price: renewalPrice,
-      total_price: totalPrice,
-      new_billing_cycle: newBillingCycle,
+      renewal_price: finance.renewalPrice,
+      total_price: finance.renewalPrice,
+      new_billing_cycle: normalizedBillingCycle,
+      new_cycle_months: getCycleMonths(normalizedBillingCycle),
+      cost_price: finance.costPrice,
+      collected_amount: finance.collectedAmount,
+      profit_amount: finance.profitAmount,
+      notes: options?.notes?.trim() ? options.notes.trim() : renewal.notes,
     })
     .eq('id', renewalId)
     .select()

@@ -33,7 +33,7 @@ import { GET } from "@/app/api/inventory/profit-report/route";
 // ── Helpers ─────────────────────────────────────────────────
 function makeSourceAccount(overrides: Record<string, unknown> = {}) {
   return {
-    id: "sa-001",
+    id: "00000000-0000-4000-8000-000000000036",
     email: "test@example.com",
     provider: "netflix",
     purchase_cost_vnd: 500000,
@@ -85,10 +85,10 @@ describe("GET /api/inventory/profit-report", () => {
   // ── ROI Calculation ────────────────────────────────────
   it("calculates ROI correctly as integer percentage", async () => {
     vi.mocked(listSourceAccounts).mockResolvedValue([
-      makeSourceAccount({ id: "sa-1", purchase_cost_vnd: 100000 }),
+      makeSourceAccount({ id: "00000000-0000-4000-8000-000000000040", purchase_cost_vnd: 100000 }),
     ] as any);
     mockOrdersQuery([
-      { id: "o1", source_account_id: "sa-1", total_price_vnd: 250000, status: "delivered" },
+      { id: "o1", source_account_id: "00000000-0000-4000-8000-000000000040", total_price_vnd: 250000, status: "delivered" },
     ]);
 
     const res = await GET(createTestRequest("http://localhost/api/inventory/profit-report"), { params: {} } as any);
@@ -115,12 +115,12 @@ describe("GET /api/inventory/profit-report", () => {
   // ── Summary Totals ─────────────────────────────────────
   it("calculates summary totals across all accounts", async () => {
     vi.mocked(listSourceAccounts).mockResolvedValue([
-      makeSourceAccount({ id: "sa-1", purchase_cost_vnd: 100000 }),
-      makeSourceAccount({ id: "sa-2", purchase_cost_vnd: 200000 }),
+      makeSourceAccount({ id: "00000000-0000-4000-8000-000000000040", purchase_cost_vnd: 100000 }),
+      makeSourceAccount({ id: "00000000-0000-4000-8000-00000000004c", purchase_cost_vnd: 200000 }),
     ] as any);
     mockOrdersQuery([
-      { id: "o1", source_account_id: "sa-1", total_price_vnd: 300000, status: "delivered" },
-      { id: "o2", source_account_id: "sa-2", total_price_vnd: 100000, status: "active" },
+      { id: "o1", source_account_id: "00000000-0000-4000-8000-000000000040", total_price_vnd: 300000, status: "delivered" },
+      { id: "o2", source_account_id: "00000000-0000-4000-8000-00000000004c", total_price_vnd: 100000, status: "active" },
     ]);
 
     const res = await GET(createTestRequest("http://localhost/api/inventory/profit-report"), { params: {} } as any);
@@ -172,11 +172,11 @@ describe("GET /api/inventory/profit-report", () => {
   // ── Orders Without source_account_id ───────────────────
   it("ignores orders without source_account_id", async () => {
     vi.mocked(listSourceAccounts).mockResolvedValue([
-      makeSourceAccount({ id: "sa-1", purchase_cost_vnd: 100000 }),
+      makeSourceAccount({ id: "00000000-0000-4000-8000-000000000040", purchase_cost_vnd: 100000 }),
     ] as any);
     mockOrdersQuery([
       { id: "o1", source_account_id: null, total_price_vnd: 99999, status: "delivered" },
-      { id: "o2", source_account_id: "sa-1", total_price_vnd: 50000, status: "delivered" },
+      { id: "o2", source_account_id: "00000000-0000-4000-8000-000000000040", total_price_vnd: 50000, status: "delivered" },
     ]);
 
     const res = await GET(createTestRequest("http://localhost/api/inventory/profit-report"), { params: {} } as any);

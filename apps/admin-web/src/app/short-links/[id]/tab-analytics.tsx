@@ -2,7 +2,8 @@
 
 import { memo } from "react";
 import {
-  BarChart3, Globe, Bot, Loader2, Chrome, Compass,
+  BarChart3, Globe, Bot, Loader2, Chrome, Compass, Eye, MousePointerClick,
+  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { vi } from "@/shared/messages/vi";
@@ -61,6 +62,33 @@ function AnalyticsTab({ stats, isLoading, link }: TabProps) {
 
   return (
     <div className="p-5 space-y-6">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryMetric
+          icon={MousePointerClick}
+          label="Click thật"
+          value={stats.realUserClicks ?? stats.totalClicks}
+          tone="emerald"
+        />
+        <SummaryMetric
+          icon={Eye}
+          label="Xem landing"
+          value={stats.landingViewCount ?? stats.eventTypes?.landing_view ?? 0}
+          tone="sky"
+        />
+        <SummaryMetric
+          icon={Bot}
+          label="Bot preview"
+          value={stats.botPreviewCount ?? stats.eventTypes?.bot_preview ?? 0}
+          tone="slate"
+        />
+        <SummaryMetric
+          icon={ShieldAlert}
+          label="Bị chặn"
+          value={stats.blockedCount ?? stats.eventTypes?.blocked ?? 0}
+          tone="red"
+        />
+      </div>
+
       {/* Hourly Timeline */}
       {stats.hourlyTimeline && stats.hourlyTimeline.some(h => h.count > 0) && (
         <div>
@@ -149,6 +177,26 @@ function AnalyticsTab({ stats, isLoading, link }: TabProps) {
         </div>
       )}
 
+      {stats.ipVersions && Object.keys(stats.ipVersions).length > 0 && (
+        <div className="bg-[var(--border-soft)]/10 rounded-xl p-4">
+          <p className="text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-3">IPv4 / IPv6</p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {Object.entries(stats.ipVersions)
+              .sort((a, b) => b[1] - a[1])
+              .map(([version, count]) => {
+                const pct = stats.totalClicks > 0 ? Math.round((count / stats.totalClicks) * 100) : 0;
+                return (
+                  <div key={version} className="rounded-xl border border-[var(--border-soft)] bg-white p-3">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-[var(--fg-muted)]">{version}</p>
+                    <p className="mt-1 text-lg font-black text-[var(--fg-base)]">{count}</p>
+                    <p className="text-[10px] font-bold text-[var(--fg-muted)]">{pct}% click thật</p>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
       {/* Top IPs + Referers */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {/* Top IPs */}
@@ -198,6 +246,35 @@ function AnalyticsTab({ stats, isLoading, link }: TabProps) {
           ) : <p className="text-xs text-[var(--fg-muted)]">{vi.legacy.analytics.noData}</p>}
         </div>
       </div>
+    </div>
+  );
+}
+
+function SummaryMetric({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: typeof BarChart3;
+  label: string;
+  value: number;
+  tone: "emerald" | "sky" | "slate" | "red";
+}) {
+  const toneClass = {
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    sky: "bg-sky-50 text-sky-700 border-sky-200",
+    slate: "bg-slate-50 text-slate-700 border-slate-200",
+    red: "bg-red-50 text-red-700 border-red-200",
+  }[tone];
+
+  return (
+    <div className={cn("rounded-xl border p-3", toneClass)}>
+      <div className="flex items-center gap-2">
+        <Icon className="size-4" />
+        <p className="text-[10px] font-black uppercase tracking-wider">{label}</p>
+      </div>
+      <p className="mt-2 text-2xl font-black">{value}</p>
     </div>
   );
 }

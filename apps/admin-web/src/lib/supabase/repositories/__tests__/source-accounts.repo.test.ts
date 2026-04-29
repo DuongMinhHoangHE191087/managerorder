@@ -56,13 +56,13 @@ describe("source-accounts.repo", () => {
     const sourceAccountBuilder = createQueryBuilder(
       {
         data: {
-          id: "src-1",
+          id: "00000000-0000-4000-8000-00000000003a",
           account_id: TEST_ACCOUNT_ID,
           email: "source@example.com",
           provider: "gmail",
           max_slots: 10,
           used_slots: 3,
-          product_ids: ["prod-1"],
+          product_ids: ["00000000-0000-4000-8000-000000000039"],
           notes: null,
           reserved_nicks: ["nick-a"],
           status: "active",
@@ -83,30 +83,30 @@ describe("source-accounts.repo", () => {
       {
         data: [
           {
-            id: "item-1",
-            order_id: "ord-1",
-            product_id: "prod-1",
+            id: "00000000-0000-4000-8000-000000000058",
+            order_id: "00000000-0000-4000-8000-00000000000f",
+            product_id: "00000000-0000-4000-8000-000000000039",
             product_name_snapshot: "Netflix",
             quantity: 2,
             price_vnd: 100000,
             cost_price_vnd: 50000,
             subtotal_vnd: 200000,
             notes: null,
-            assigned_source_account_id: "src-1",
+            assigned_source_account_id: "00000000-0000-4000-8000-00000000003a",
             customer_nick_used: "nick-a",
             created_at: "2026-04-10T00:00:00.000Z",
           },
           {
-            id: "item-2",
-            order_id: "ord-2",
-            product_id: "prod-1",
+            id: "00000000-0000-4000-8000-000000000130",
+            order_id: "00000000-0000-4000-8000-00000000011f",
+            product_id: "00000000-0000-4000-8000-000000000039",
             product_name_snapshot: "Netflix",
             quantity: 1,
             price_vnd: 100000,
             cost_price_vnd: 50000,
             subtotal_vnd: 100000,
             notes: null,
-            assigned_source_account_id: "src-1",
+            assigned_source_account_id: "00000000-0000-4000-8000-00000000003a",
             customer_nick_used: null,
             created_at: "2026-04-10T00:00:01.000Z",
           },
@@ -120,16 +120,16 @@ describe("source-accounts.repo", () => {
       {
         data: [
           {
-            id: "ord-1",
+            id: "00000000-0000-4000-8000-00000000000f",
             account_id: TEST_ACCOUNT_ID,
-            customer_id: "cust-1",
+            customer_id: "00000000-0000-4000-8000-000000000005",
             created_at: "2026-04-09T00:00:00.000Z",
             status: "active",
           },
           {
-            id: "ord-2",
+            id: "00000000-0000-4000-8000-00000000011f",
             account_id: TEST_ACCOUNT_ID,
-            customer_id: "cust-2",
+            customer_id: "00000000-0000-4000-8000-000000000006",
             created_at: "2026-04-09T01:00:00.000Z",
             status: "active",
           },
@@ -142,8 +142,8 @@ describe("source-accounts.repo", () => {
     const customersBuilder = createQueryBuilder(
       {
         data: [
-          { id: "cust-1", full_name: "Customer One", type: "retail" },
-          { id: "cust-2", full_name: "Customer Two", type: "retail" },
+          { id: "00000000-0000-4000-8000-000000000005", full_name: "Customer One", type: "retail" },
+          { id: "00000000-0000-4000-8000-000000000006", full_name: "Customer Two", type: "retail" },
         ],
         error: null,
       },
@@ -158,17 +158,17 @@ describe("source-accounts.repo", () => {
     });
 
     const { getSlotBreakdown } = await loadRepo(supabaseAdmin);
-    const breakdown = await getSlotBreakdown("src-1", TEST_ACCOUNT_ID);
+    const breakdown = await getSlotBreakdown("00000000-0000-4000-8000-00000000003a", TEST_ACCOUNT_ID);
 
     expect(breakdown.connectedCount).toBe(3);
     expect(breakdown.reservedCount).toBe(1);
     expect(breakdown.connectedItems).toEqual([
       expect.objectContaining({
-        orderId: "ord-1",
+        orderId: "00000000-0000-4000-8000-00000000000f",
         customerName: "Customer One",
       }),
       expect.objectContaining({
-        orderId: "ord-2",
+        orderId: "00000000-0000-4000-8000-00000000011f",
         customerName: "Customer Two",
       }),
     ]);
@@ -178,13 +178,13 @@ describe("source-accounts.repo", () => {
     const sourceAccountBuilder = createQueryBuilder(
       {
         data: {
-          id: "src-1",
+          id: "00000000-0000-4000-8000-00000000003a",
           account_id: TEST_ACCOUNT_ID,
           email: "source@example.com",
           provider: "gmail",
           max_slots: 10,
           used_slots: 3,
-          product_ids: ["prod-1"],
+          product_ids: ["00000000-0000-4000-8000-000000000039"],
           notes: null,
           reserved_nicks: [],
           status: "active",
@@ -204,9 +204,9 @@ describe("source-accounts.repo", () => {
     const orderItemsBuilder = createQueryBuilder(
       {
         data: {
-          id: "item-1",
-          order_id: "ord-1",
-          assigned_source_account_id: "src-1",
+          id: "00000000-0000-4000-8000-000000000058",
+          order_id: "00000000-0000-4000-8000-00000000000f",
+          assigned_source_account_id: "00000000-0000-4000-8000-00000000003a",
           quantity: 1,
         },
         error: null,
@@ -227,7 +227,7 @@ describe("source-accounts.repo", () => {
 
     const { disconnectSourceAccount } = await loadRepo(supabaseAdmin);
 
-    await expect(disconnectSourceAccount("src-1", "item-1", TEST_ACCOUNT_ID)).rejects.toThrow(
+    await expect(disconnectSourceAccount("00000000-0000-4000-8000-00000000003a", "00000000-0000-4000-8000-000000000058", TEST_ACCOUNT_ID)).rejects.toThrow(
       "Order item does not belong to this account",
     );
   });
@@ -236,13 +236,13 @@ describe("source-accounts.repo", () => {
     const sourceAccountBuilder = createQueryBuilder(
       {
         data: {
-          id: "src-1",
+          id: "00000000-0000-4000-8000-00000000003a",
           account_id: TEST_ACCOUNT_ID,
           email: "source@example.com",
           provider: "gmail",
           max_slots: 10,
           used_slots: 3,
-          product_ids: ["prod-1"],
+          product_ids: ["00000000-0000-4000-8000-000000000039"],
           notes: null,
           reserved_nicks: [],
           status: "active",
@@ -262,9 +262,9 @@ describe("source-accounts.repo", () => {
     const orderItemsBuilder = createQueryBuilder(
       {
         data: {
-          id: "item-1",
-          order_id: "ord-1",
-          assigned_source_account_id: "src-2",
+          id: "00000000-0000-4000-8000-000000000058",
+          order_id: "00000000-0000-4000-8000-00000000000f",
+          assigned_source_account_id: "00000000-0000-4000-8000-000000000131",
           quantity: 1,
         },
         error: null,
@@ -276,7 +276,7 @@ describe("source-accounts.repo", () => {
       {
         data: [
           {
-            id: "ord-1",
+            id: "00000000-0000-4000-8000-00000000000f",
             account_id: TEST_ACCOUNT_ID,
           },
         ],
@@ -293,7 +293,7 @@ describe("source-accounts.repo", () => {
 
     const { reconnectSourceAccount } = await loadRepo(supabaseAdmin);
 
-    await expect(reconnectSourceAccount("src-1", "item-1", TEST_ACCOUNT_ID)).rejects.toThrow(
+    await expect(reconnectSourceAccount("00000000-0000-4000-8000-00000000003a", "00000000-0000-4000-8000-000000000058", TEST_ACCOUNT_ID)).rejects.toThrow(
       "Order item is already connected to a source account",
     );
   });

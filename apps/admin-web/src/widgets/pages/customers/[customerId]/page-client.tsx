@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronRight, Edit, Plus, Mail, Phone, ShoppingCart,
   History, User, Key, Star, StickyNote,
-  Clock, AlertCircle, Tag
+  Clock, AlertCircle, Tag, RefreshCw, Trash2
 } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
 
@@ -22,6 +22,7 @@ import {
 } from "@/widgets/pages/customers/hooks/use-customer-detail";
 import { useCustomer360Stats } from "@/widgets/pages/customers/hooks/use-customers";
 import { useCustomerGroups } from "@/widgets/pages/customers/hooks/use-customer-groups";
+import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
 import type { CustomerOrder } from "@/shared/types/customers";
 import { buildCustomerProfileInsights, type CustomerProfileActionTone } from "./lib/profile-insights";
 
@@ -90,6 +91,9 @@ const ACTION_TONE_STYLES: Record<
 export default function CustomerDetailPage() {
   const params = useParams();
   const customerId = params.customerId as string;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const trashMode = searchParams.get("trash") === "1";
 
   // React Query hooks (replaces raw fetch)
   const {
@@ -97,7 +101,7 @@ export default function CustomerDetailPage() {
     isLoading: isCustomerLoading,
     isError: isCustomerError,
     error: customerError,
-  } = useCustomerDetail(customerId);
+  } = useCustomerDetail(customerId, true, trashMode);
 
   const {
     data: orders = [],
@@ -110,6 +114,8 @@ export default function CustomerDetailPage() {
   const [activeTab, setActiveTab] = useState<DetailTab>("orders");
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [payingOrder, setPayingOrder] = useState<CustomerOrder | null>(null);
+  const restoreItems = useRestoreItems();
+  const purgeItems = usePurgeItems();
 
   /* ─── Computed Stats ──────────────────────────────────── */
   const stats = useMemo(() => {
@@ -127,6 +133,24 @@ export default function CustomerDetailPage() {
 
   // Debt comes from customer record (source of truth), NOT computed from orders
   const customerDebt = customer?.debtAmountVnd ?? 0;
+
+  async function handleRestoreFromTrash() {
+    if (!customer) {
+      return;
+    }
+
+    await restoreItems.mutateAsync({ type: "customers", ids: [customer.id] });
+    router.replace(`/customers/${customer.id}`);
+  }
+
+  async function handlePurgeFromTrash() {
+    if (!customer) {
+      return;
+    }
+
+    await purgeItems.mutateAsync({ type: "customers", ids: [customer.id] });
+    router.push("/trash?type=customers");
+  }
 
   /* ─── Loading State ───────────────────────────────────── */
   if (isCustomerLoading) {
@@ -191,22 +215,49 @@ export default function CustomerDetailPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setIsEditOpen(true)}
-              className="flex items-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] px-4 py-2.5 text-[13px] font-bold text-[var(--fg-base)] shadow-sm transition-colors hover:border-[var(--accent)]/30 hover:bg-white"
-            >
-              <Edit className="size-4" />
-              {vi.customers.detail.edit}
-            </button>
-            <Link
-              href={`/orders/new?customerId=${customer.id}&customerName=${encodeURIComponent(customer.name)}`}
-              className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
-            >
-              <Plus className="size-4" />
-              {vi.customers.detail.createOrder}
-            </Link>
+            {trashMode ? (
+              <>
+                <button
+                  onClick={() => void handleRestoreFromTrash()}
+                  className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
+                >
+                  <RefreshCw className="size-4" />
+                  Khôi phục
+                </button>
+                <button
+                  onClick={() => void handlePurgeFromTrash()}
+                  className="flex items-center gap-2 rounded-[1rem] border border-[var(--danger)]/30 bg-white px-4 py-2.5 text-[13px] font-bold text-[var(--danger)] shadow-sm transition-colors hover:bg-[var(--danger)]/10"
+                >
+                  <Trash2 className="size-4" />
+                  Xóa vĩnh viễn
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setIsEditOpen(true)}
+                  className="flex items-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] px-4 py-2.5 text-[13px] font-bold text-[var(--fg-base)] shadow-sm transition-colors hover:border-[var(--accent)]/30 hover:bg-white"
+                >
+                  <Edit className="size-4" />
+                  {vi.customers.detail.edit}
+                </button>
+                <Link
+                  href={`/orders/new?customerId=${customer.id}&customerName=${encodeURIComponent(customer.name)}`}
+                  className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
+                >
+                  <Plus className="size-4" />
+                  {vi.customers.detail.createOrder}
+                </Link>
+              </>
+            )}
           </div>
         </div>
+
+        {trashMode ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[13px] font-medium text-amber-700">
+            Khách hàng này đang ở thùng rác. Bạn có thể khôi phục hoặc xóa vĩnh viễn ngay trên màn chi tiết này.
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-12 gap-6">
           {/* ── Left Column ──────────────────────────────── */}

@@ -58,9 +58,9 @@ describe("GET /api/orders", () => {
 
 describe("POST /api/orders", () => {
   const validBody = {
-    customerId: "cust-1",
-    productId: "prod-1",
-    items: [{ nick: "p1", productId: "prod-1", quantity: 1, unitPriceVnd: 50000 }],
+    customerId: "00000000-0000-4000-8000-000000000005",
+    productId: "00000000-0000-4000-8000-000000000039",
+    items: [{ nick: "p1", productId: "00000000-0000-4000-8000-000000000039", quantity: 1, unitPriceVnd: 50000 }],
     totalAmountVnd: 50000,
     status: "pending_payment",
   };
@@ -68,7 +68,7 @@ describe("POST /api/orders", () => {
   beforeEach(() => {
     vi.mocked(createOrderWithItems).mockResolvedValue({
       order: { id: "new-o1", status: "pending_payment" } as any,
-      items: [{ id: "item-1" }] as any,
+      items: [{ id: "00000000-0000-4000-8000-000000000058" }] as any,
     });
   });
 

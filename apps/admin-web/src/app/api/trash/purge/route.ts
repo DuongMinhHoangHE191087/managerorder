@@ -5,7 +5,7 @@ import { withErrorHandler } from "@/lib/api/with-error-handler";
 import { purgeItems, type TrashEntityType } from "@/lib/supabase/repositories/trash.repo";
 
 const schema = z.object({
-  type: z.enum(["customers", "orders", "products", "providers", "source_accounts", "license_keys"]),
+  type: z.enum(["customers", "orders", "products", "providers", "source_accounts", "license_keys", "short_links"]),
   ids: z.array(z.string().uuid()).min(1).max(500),
 });
 

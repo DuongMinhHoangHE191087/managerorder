@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
-import { Modal } from "@/shared/ui/modal";
-import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
-import { ChoiceCard, ChoiceGrid, FieldLabel, FormSection } from "@/shared/ui/form-primitives";
+import { ChoiceCard, ChoiceGrid } from "@/shared/ui/form-primitives";
+import {
+  AdvancedOptionsDisclosure,
+  CreateActionFooter,
+  CreateFlowDialog,
+  CreateFormSection,
+} from "@/shared/ui/create-flow-shell";
 import type { ProductService } from "@/lib/domain/types";
 import { useCreateProduct } from "@/widgets/pages/products/hooks/use-products";
 import { PRODUCT_MODE_OPTIONS, MarginPreview } from "./product-shared";
@@ -93,46 +96,63 @@ export function ProductCreateModal({
   }
 
   return (
-    <Modal
+    <CreateFlowDialog
       isOpen={isOpen}
       onClose={handleClose}
       title="Tạo sản phẩm mới"
-      size="md"
+      description="Chuẩn hóa nhanh tên, kiểu bán và giá để dùng lại ngay ở orders, providers và premium flows."
+      size="lg"
       footer={
-        <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
-          <Button type="button" variant="secondary" onClick={handleClose} className="w-full sm:w-auto">
-            Hủy
-          </Button>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleSave}
-            disabled={saving || !name.trim() || !sellPrice}
-            className="w-full sm:w-auto"
-          >
-            {saving && <Loader2 className="size-4 animate-spin" />}
-            {saving ? "Đang lưu..." : "Tạo sản phẩm"}
-          </Button>
-        </div>
+        <CreateActionFooter
+          primaryLabel="Tạo sản phẩm"
+          onPrimary={() => void handleSave()}
+          onCancel={handleClose}
+          pending={saving}
+          disabled={!name.trim() || !sellPrice}
+        />
       }
     >
-      <div className="space-y-4">
-        <FormSection
+      <CreateFormSection
           title="Thông tin chính"
-          description="Định danh sản phẩm và kiểu vận hành."
+          description="Giữ phần create gọn: tên, kiểu vận hành và giá bán là đủ để tạo nhanh từ order hoặc purchase flow."
         >
-          <div className="space-y-3">
-            <FieldLabel required>Tên sản phẩm</FieldLabel>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(240px,0.8fr)]">
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                Tên sản phẩm <span className="text-[var(--danger)]">*</span>
+              </label>
             <Input
               autoFocus
               value={name}
               onChange={(event) => setName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    void handleSave();
+                  }
+                }}
               placeholder="VD: Netflix Premium 1 Năm"
             />
           </div>
 
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                Giá bán (VNĐ) <span className="text-[var(--danger)]">*</span>
+              </label>
+              <Input
+                value={sellPrice}
+                onChange={(event) => setSellPrice(event.target.value)}
+                placeholder="0"
+                type="number"
+                min={0}
+                className="font-mono"
+              />
+            </div>
+          </div>
+
           <div className="space-y-3">
-            <FieldLabel>Loại sản phẩm</FieldLabel>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+              Loại sản phẩm
+            </label>
             <ChoiceGrid className="grid-cols-1 sm:grid-cols-3">
               {PRODUCT_MODE_OPTIONS.map((option) => (
                 <ChoiceCard
@@ -145,10 +165,14 @@ export function ProductCreateModal({
               ))}
             </ChoiceGrid>
           </div>
+      </CreateFormSection>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+      <AdvancedOptionsDisclosure title="Thời hạn, giá nhập & biên lợi nhuận">
+          <div className="grid gap-4 lg:grid-cols-2">
             <div className="space-y-3">
-              <FieldLabel>Thời hạn</FieldLabel>
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                Thời hạn
+              </label>
               <div className="grid grid-cols-3 gap-2">
                 <Input
                   value={durationValue}
@@ -170,14 +194,9 @@ export function ProductCreateModal({
             </div>
 
             <div className="space-y-3">
-              <FieldLabel>Biên lợi nhuận</FieldLabel>
-              <MarginPreview buyPrice={buyPrice} sellPrice={sellPrice} />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-3">
-              <FieldLabel>Giá nhập (VNĐ)</FieldLabel>
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                Giá nhập (VNĐ)
+              </label>
               <Input
                 value={buyPrice}
                 onChange={(event) => setBuyPrice(event.target.value)}
@@ -187,20 +206,15 @@ export function ProductCreateModal({
                 className="font-mono"
               />
             </div>
-            <div className="space-y-3">
-              <FieldLabel required>Giá bán (VNĐ)</FieldLabel>
-              <Input
-                value={sellPrice}
-                onChange={(event) => setSellPrice(event.target.value)}
-                placeholder="0"
-                type="number"
-                min={0}
-                className="font-mono"
-              />
-            </div>
           </div>
-        </FormSection>
-      </div>
-    </Modal>
+
+          <div className="space-y-3">
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+              Biên lợi nhuận
+            </label>
+            <MarginPreview buyPrice={buyPrice} sellPrice={sellPrice} />
+          </div>
+      </AdvancedOptionsDisclosure>
+    </CreateFlowDialog>
   );
 }

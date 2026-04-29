@@ -15,16 +15,7 @@ export type TrashEntityType =
   | 'license_keys'
   | 'short_links';
 
-// Column mappings: which columns to select for display in trash table
-const DISPLAY_COLUMNS: Record<TrashEntityType, string> = {
-  customers: 'id, full_name, type, phone, email, notes, created_at, deleted_at',
-  orders: 'id, order_code, status, total_amount_vnd, payment_method, notes, created_at, deleted_at',
-  products: 'id, name, mode, price_vnd, cost_vnd, description, created_at, deleted_at',
-  providers: 'id, name, tier, contact_email, notes, created_at, deleted_at',
-  source_accounts: 'id, email, provider, status, notes, created_at, deleted_at',
-  license_keys: 'id, key_code, status, product_id, notes, created_at, deleted_at',
-  short_links: 'id, title, slug, target_url, max_clicks, current_clicks, status, created_at, deleted_at',
-};
+const FULL_ROW_SELECT = '*';
 
 // Human-readable labels
 export const ENTITY_LABELS: Record<TrashEntityType, string> = {
@@ -45,18 +36,33 @@ export async function listDeletedItems(
   accountId: string,
   type: TrashEntityType
 ): Promise<{ data: Record<string, unknown>[]; count: number }> {
-  const columns = DISPLAY_COLUMNS[type];
-
   const { data, error, count } = await supabase
     .from(type)
-    .select(columns, { count: 'exact' })
+    .select(FULL_ROW_SELECT, { count: 'exact' })
     .eq('account_id', accountId)
     .not('deleted_at', 'is', null)
     .order('deleted_at', { ascending: false })
-    .limit(200);
+    .limit(500);
 
   if (error) throw new Error(error.message);
   return { data: (data ?? []) as unknown as Record<string, unknown>[], count: count ?? 0 };
+}
+
+export async function countDeletedItems(
+  accountId: string,
+  type: TrashEntityType
+): Promise<number> {
+  const { count, error } = await supabase
+    .from(type)
+    .select('id', { count: 'exact', head: true })
+    .eq('account_id', accountId)
+    .not('deleted_at', 'is', null);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return count ?? 0;
 }
 
 /**

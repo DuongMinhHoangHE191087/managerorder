@@ -8,6 +8,10 @@ import {
   calculateProratedRefund,
 } from './premium-accounts-helpers';
 import { getRenewalRequest, persistRefund } from '@/lib/supabase/repositories/subscriptions.repo';
+import {
+  calculateExpiryDate,
+  getCycleMonths,
+} from "@/lib/domain/premium-renewal-finance";
 
 // Re-export DB operations for backward compatibility
 // New code should import from '@/lib/supabase/repositories/subscriptions.repo' directly.
@@ -104,7 +108,12 @@ export function validateSubscriptionData(data: Record<string, unknown>): {
   } else {
     const startDate = new Date(String(data.start_date));
     const expiryDate = new Date(String(data.expiry_date));
-    if (expiryDate <= startDate) {
+    if (Number.isNaN(startDate.getTime())) {
+      errors.start_date = ['Start date is invalid'];
+    }
+    if (Number.isNaN(expiryDate.getTime())) {
+      errors.expiry_date = ['Expiry date is invalid'];
+    } else if (!errors.start_date && expiryDate <= startDate) {
       errors.expiry_date = ['Expiry date must be after start date'];
     }
   }
@@ -123,26 +132,4 @@ export function validateSubscriptionData(data: Record<string, unknown>): {
   };
 }
 
-/**
- * Get cycle months from billing cycle string
- */
-export function getCycleMonths(billingCycle: string): number {
-  const cycles: Record<string, number> = {
-    '1month': 1,
-    '3months': 3,
-    '6months': 6,
-    '1year': 12,
-  };
-  return cycles[billingCycle] || 1;
-}
-
-/**
- * Calculate expiry date from start date + billing cycle
- */
-export function calculateExpiryDate(startDate: string, billingCycle: string): string {
-  const start = new Date(startDate);
-  const months = getCycleMonths(billingCycle);
-  const expiry = new Date(start);
-  expiry.setMonth(expiry.getMonth() + months);
-  return expiry.toISOString().split('T')[0];
-}
+export { calculateExpiryDate, getCycleMonths };

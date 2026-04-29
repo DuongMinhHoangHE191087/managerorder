@@ -6,10 +6,10 @@ import {
   ArrowLeft, Edit2, ShieldAlert, Trash2, 
   Server, Clock, Link2, Calendar, 
   Plus, Save, ShieldCheck,
-  Info, Loader2, Eye, EyeOff, Copy, Check
+  Info, Loader2, Eye, EyeOff, Copy, Check, RefreshCw
 } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { PageContainer } from "@/shared/ui/page-layout";
@@ -25,6 +25,7 @@ import {
 } from "@/widgets/pages/inventory/hooks/use-source-accounts";
 import { useProducts } from "@/widgets/pages/products/hooks/use-products";
 import { useProviders } from "@/widgets/pages/providers/hooks/use-providers";
+import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
 import { formatDateLabel, formatRelativeTime, cn } from "@/lib/utils";
 import type { SourceAccount } from "@/lib/domain/types";
 
@@ -104,12 +105,16 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
   const resolvedParams = use(params);
   const { id } = resolvedParams;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const trashMode = searchParams.get("trash") === "1";
 
-  const { data: account, isLoading, error } = useSourceAccount(id);
+  const { data: account, isLoading, error } = useSourceAccount(id, trashMode);
   const { data: products = [] } = useProducts();
   const { data: providers = [] } = useProviders();
   const { mutateAsync: deleteSourceAccount } = useDeleteSourceAccount();
   const { mutateAsync: updateSourceAccount } = useUpdateSourceAccount();
+  const restoreItems = useRestoreItems();
+  const purgeItems = usePurgeItems();
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -186,6 +191,16 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
     }
   };
 
+  const handleRestoreFromTrash = async () => {
+    await restoreItems.mutateAsync({ type: "source_accounts", ids: [account.id] });
+    router.replace(`/inventory/source-accounts/${account.id}`);
+  };
+
+  const handlePurgeFromTrash = async () => {
+    await purgeItems.mutateAsync({ type: "source_accounts", ids: [account.id] });
+    router.push("/trash?type=source_accounts");
+  };
+
   const handleSaveNotes = async () => {
     try {
       const newNotes = editedNotes.reduce((acc, { key, value }) => {
@@ -259,24 +274,51 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                setEditingAccount(account);
-              }}
-                className="flex items-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] px-4 py-2 text-[13px] font-bold text-[var(--fg-base)] shadow-sm transition-colors hover:bg-[var(--surface-strong)] active:scale-[0.98]"
-              >
-                <Edit2 className="size-4" /> {sourceAccountText.editConfig}
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsDeleting(true)}
-                className="flex items-center gap-2 rounded-[1rem] border border-[var(--danger)]/30 bg-white px-4 py-2 text-[13px] font-bold text-[var(--danger)] shadow-sm transition-colors hover:bg-[var(--danger)]/10"
-              >
-                <Trash2 className="size-4" /> {sourceAccountText.delete}
-              </button>
+              {trashMode ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void handleRestoreFromTrash()}
+                    className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
+                  >
+                    <RefreshCw className="size-4" /> Khôi phục
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handlePurgeFromTrash()}
+                    className="flex items-center gap-2 rounded-[1rem] border border-[var(--danger)]/30 bg-white px-4 py-2 text-[13px] font-bold text-[var(--danger)] shadow-sm transition-colors hover:bg-[var(--danger)]/10"
+                  >
+                    <Trash2 className="size-4" /> Xóa vĩnh viễn
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                    setEditingAccount(account);
+                  }}
+                    className="flex items-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] px-4 py-2 text-[13px] font-bold text-[var(--fg-base)] shadow-sm transition-colors hover:bg-[var(--surface-strong)] active:scale-[0.98]"
+                  >
+                    <Edit2 className="size-4" /> {sourceAccountText.editConfig}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleting(true)}
+                    className="flex items-center gap-2 rounded-[1rem] border border-[var(--danger)]/30 bg-white px-4 py-2 text-[13px] font-bold text-[var(--danger)] shadow-sm transition-colors hover:bg-[var(--danger)]/10"
+                  >
+                    <Trash2 className="size-4" /> {sourceAccountText.delete}
+                  </button>
+                </>
+              )}
             </div>
           </div>
+
+          {trashMode ? (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[13px] font-medium text-amber-700">
+              Tài khoản nguồn này đang ở thùng rác. Bạn có thể khôi phục hoặc xóa vĩnh viễn ngay trên màn chi tiết này.
+            </div>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

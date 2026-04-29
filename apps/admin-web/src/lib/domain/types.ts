@@ -35,6 +35,11 @@ export interface SalesLandingOfferConfig {
 
 export interface SalesLandingConfig {
   offers: SalesLandingOfferConfig[];
+  shortLinkFailureDefaults: {
+    defaultTemplateKey: ShortLinkFailureTemplateKey;
+    customerOfferCtaHref: string;
+    sellerUnlockMessage: string;
+  };
 }
 
 export type ReminderChannel = "telegram" | "zalo" | "email" | "both";
@@ -193,6 +198,7 @@ export interface PaymentSource {
 export type ShortLinkDeliveryMode = "inherit_channel" | "direct_redirect" | "landing_page";
 export type ShortLinkResolvedDeliveryMode = Exclude<ShortLinkDeliveryMode, "inherit_channel">;
 export type ShortLinkLandingTemplateKey = "owner_intro" | "ctv_neutral";
+export type ShortLinkFailureTemplateKey = "seller_unlock_request" | "customer_offer_wall";
 export type ShortLinkClickEventType = "bot_preview" | "landing_view" | "redirect_click" | "blocked";
 
 export interface SalesChannelRuntimeSummary {
@@ -209,6 +215,8 @@ export interface SalesChannel {
   name: string;
   defaultDeliveryMode: ShortLinkResolvedDeliveryMode;
   defaultLandingTemplateKey: ShortLinkLandingTemplateKey;
+  defaultFailureTemplateKey: ShortLinkFailureTemplateKey;
+  sellerContactUrl: string | null;
   runtime?: SalesChannelRuntimeSummary;
 }
 

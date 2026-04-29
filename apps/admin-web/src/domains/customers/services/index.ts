@@ -108,13 +108,20 @@ function chunkIds(ids: string[], size = 50): string[][] {
   return chunks;
 }
 
-export async function listCustomersForAccount(accountId: string): Promise<Customer[]> {
-  const rows = await listCustomersRepo(accountId);
+export async function listCustomersForAccount(
+  accountId: string,
+  options: { search?: string } = {},
+): Promise<Customer[]> {
+  const rows = await listCustomersRepo(accountId, options);
   return rows.map((row) => mapToCustomer(row));
 }
 
-export async function getCustomerForAccount(id: string, accountId: string): Promise<Customer | null> {
-  const row = await getCustomerByIdRepo(id, accountId);
+export async function getCustomerForAccount(
+  id: string,
+  accountId: string,
+  options: { includeDeleted?: boolean } = {},
+): Promise<Customer | null> {
+  const row = await getCustomerByIdRepo(id, accountId, options);
   return row ? mapToCustomer(row) : null;
 }
 
@@ -122,9 +129,11 @@ export async function createCustomerForAccount(
   accountId: string,
   input: CreateCustomerInput
 ): Promise<Customer> {
+  const customerType = input.customerType ?? mapTierToDbType(input.tier);
   const result = await createCustomerRepo(accountId, {
     full_name: input.name,
-    type: mapTierToDbType(input.tier),
+    type: customerType,
+    notes: input.notes,
     contacts: toDbContacts(input.contacts),
   });
 
@@ -144,7 +153,9 @@ export async function createCustomerForAccount(
     details: {
       name: data.name,
       tier: data.tier,
+      customer_type: data.customerType,
       contacts_count: data.contacts.length,
+      notes_present: Boolean(data.notes),
     },
   }).catch(() => {});
 
@@ -174,11 +185,38 @@ export async function updateCustomerForAccount(
     }
   }
 
-  return mapToCustomer(result as unknown as Record<string, unknown>);
+  const data = mapToCustomer(result as unknown as Record<string, unknown>);
+
+  createActivityLog({
+    account_id: accountId,
+    action_type: "CUSTOMER_UPDATED",
+    customer_id: id,
+    details: {
+      name: data.name,
+      customer_type: data.customerType,
+      reliability_score: data.reliabilityScore,
+      contacts_count: data.contacts.length,
+      tags_count: data.tags?.length ?? 0,
+      changed_fields: Object.keys(input),
+    },
+  }).catch(() => {});
+
+  return data;
 }
 
 export async function deleteCustomerForAccount(id: string, accountId: string): Promise<void> {
+  const current = await getCustomerByIdRepo(id, accountId);
   await deleteCustomerRepo(id, accountId);
+
+  createActivityLog({
+    account_id: accountId,
+    action_type: "CUSTOMER_DELETED",
+    customer_id: id,
+    details: {
+      name: current?.full_name ?? null,
+      type: current?.type ?? null,
+    },
+  }).catch(() => {});
 }
 
 export async function checkCustomerDependenciesForAccount(

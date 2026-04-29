@@ -258,6 +258,7 @@ export default function PremiumAccountsPage() {
         <AccountsTable
           accounts={accounts}
           isLoading={isLoading}
+          onOpenDetail={(account) => router.push(`/premium/accounts/${account.id}`)}
           onOpenSubscriptions={() => router.push("/premium/subscriptions")}
           onDelete={setDeletingAccount}
         />

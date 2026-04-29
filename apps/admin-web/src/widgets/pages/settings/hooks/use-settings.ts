@@ -6,6 +6,7 @@ import type {
   PaymentSource,
   SalesChannel,
   ShortLinkLandingTemplateKey,
+  ShortLinkFailureTemplateKey,
   ShortLinkResolvedDeliveryMode,
   ReminderConfig,
   Webhook,
@@ -97,6 +98,8 @@ export function useCreateSalesChannel() {
       name: string;
       defaultDeliveryMode: ShortLinkResolvedDeliveryMode;
       defaultLandingTemplateKey: ShortLinkLandingTemplateKey;
+      defaultFailureTemplateKey?: ShortLinkFailureTemplateKey;
+      sellerContactUrl?: string | null;
     }) =>
       fetcher<SalesChannel>("/api/settings/sales-channels", {
         method: "POST",
@@ -116,6 +119,8 @@ export function useUpdateSalesChannel() {
       name?: string;
       defaultDeliveryMode?: ShortLinkResolvedDeliveryMode;
       defaultLandingTemplateKey?: ShortLinkLandingTemplateKey;
+      defaultFailureTemplateKey?: ShortLinkFailureTemplateKey;
+      sellerContactUrl?: string | null;
     }) =>
       fetcher<SalesChannel>(`/api/settings/sales-channels/${id}`, {
         method: "PUT",

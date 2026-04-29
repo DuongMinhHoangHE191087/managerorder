@@ -41,7 +41,7 @@ import { getOrderWithItems } from "@/lib/supabase/repositories/orders.repo";
 import { createOrderStatusHistory } from "@/lib/supabase/repositories/order-status-history.repo";
 import { POST } from "@/app/api/orders/[id]/renew/route";
 
-const ORDER_ID = "ord-renew-001";
+const ORDER_ID = "00000000-0000-4000-8000-0000000000a4";
 
 function postRenew(id: string, body: unknown) {
   return POST(
@@ -71,7 +71,7 @@ describe("POST /api/orders/[id]/renew", () => {
       status: "draft",
       total_amount_vnd: 100000,
       total_paid: 0,
-      customer_id: "cust-001",
+      customer_id: "00000000-0000-4000-8000-000000000033",
     } as any);
 
     const res = await postRenew(ORDER_ID, {
@@ -92,7 +92,7 @@ describe("POST /api/orders/[id]/renew", () => {
       total_amount_vnd: 100000,
       total_paid: 100000,
       expires_at: "2025-01-01T00:00:00.000Z",
-      customer_id: "cust-001",
+      customer_id: "00000000-0000-4000-8000-000000000033",
       sales_note: "Original note",
       proof_image_urls: [],
     } as any);
