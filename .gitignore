@@ -3,7 +3,6 @@ mempalace.yaml
 node_modules/
 .pnpm-store/
 .turbo/
-pnpm-lock.yaml
 apps/*/node_modules/
 apps/*/.next/
 apps/*/coverage/
