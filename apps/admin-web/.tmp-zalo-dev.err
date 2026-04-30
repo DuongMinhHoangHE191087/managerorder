@@ -1,4 +1,0 @@
-⚠ Slow filesystem detected. The benchmark took 585ms. If D:\GITHUB\managerorder\apps/admin-web/.next/dev is a network drive, consider moving it to a local folder.
-See more: https://nextjs.org/docs/app/guides/local-development
-[Supervisor] web exited with code 4294967295.
-[Supervisor] Web process exited (4294967295). Shutting down bots.

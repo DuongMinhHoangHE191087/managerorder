@@ -177,7 +177,9 @@ export async function updateBotRuntimeSnapshot(
         : current?.lastErrorAt ?? null,
     lastErrorMessage:
       patch.lastErrorMessage !== undefined
-        ? sanitizeSensitiveText(patch.lastErrorMessage)
+        ? patch.lastErrorMessage
+          ? sanitizeSensitiveText(patch.lastErrorMessage)
+          : null
         : current?.lastErrorMessage !== undefined && current?.lastErrorMessage !== null
           ? sanitizeSensitiveText(current.lastErrorMessage)
           : null,

@@ -3,6 +3,7 @@ import { withAccount } from "@/lib/api/with-account";
 import { withErrorHandler } from "@/lib/api/with-error-handler";
 import { createCustomerInputSchema } from "@/lib/domain/schemas";
 import { createCustomerForAccount, listCustomersForAccount } from "@/domains/customers";
+import { requirePermissions } from "@/lib/api/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -15,11 +16,14 @@ export const GET = withErrorHandler(
   })
 );
 
+// BUG #3 FIX: Added requirePermissions guard
 export const POST = withErrorHandler(
-  withAccount(async (request: NextRequest, { accountId }) => {
-    const body = await request.json();
-    const validatedData = createCustomerInputSchema.parse(body);
-    const data = await createCustomerForAccount(accountId, validatedData);
-    return NextResponse.json({ data }, { status: 201 });
-  })
+  withAccount(
+    requirePermissions(["customer:create"])(async (request: NextRequest, { accountId }) => {
+      const body = await request.json();
+      const validatedData = createCustomerInputSchema.parse(body);
+      const data = await createCustomerForAccount(accountId, validatedData);
+      return NextResponse.json({ data }, { status: 201 });
+    })
+  )
 );

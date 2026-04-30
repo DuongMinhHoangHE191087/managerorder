@@ -296,7 +296,7 @@ export function CustomerDetailDrawer({
 
   const contacts = customer?.contacts ?? [];
   const tags = customer?.tags ?? [];
-  const orders = ordersQuery.data ?? [];
+  const orders = useMemo(() => ordersQuery.data ?? [], [ordersQuery.data]);
   const recentOrders = orders.slice(0, 4);
   const stats = statsQuery.data;
 

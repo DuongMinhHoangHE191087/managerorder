@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Dashboard handler: /start, /stats, /summary, /help, create menu, utilities
 import type { BotHandler } from '../bot-router';
 import { getCache, setCache } from '@/lib/redis/client';
@@ -190,7 +189,7 @@ export const handleStatsCommand: BotHandler = async (ctx) => {
   const revMonth = sumRevenueRows(revMonthD.data ?? []);
   const totalDebt = sumDebtRows(debtD.data ?? []);
   const allAccs = (accountsTotal.data ?? []) as { max_slots: number; used_slots: number }[];
-  const { totalSlots, usedSlots, slotPct: _slotPct } = summarizeSlotUsage(allAccs);
+  const { totalSlots: _totalSlots, usedSlots: _usedSlots, slotPct: _slotPct } = summarizeSlotUsage(allAccs);
   const payRate = (totalOrders.count ?? 0) > 0 ? Math.round(((paidOrders.count ?? 0) / (totalOrders.count ?? 0)) * 100) : 0;
 
   const msg = [

@@ -1,8 +1,0 @@
-⨯ Failed to start server
-Error: listen EADDRINUSE: address already in use :::3002
-    at <unknown> (Error: lis[Middleware] Click log error: Could not find the 'event_type' column of 'short_link_clicks' in the schema cache
-: -4091,
-  syscall: 'listen',
-  address: '::',
-  port: 3002
-}

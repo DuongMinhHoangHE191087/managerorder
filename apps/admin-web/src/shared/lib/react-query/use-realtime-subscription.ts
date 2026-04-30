@@ -62,6 +62,10 @@ export function useRealtimeSubscription(
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttempts = useRef(0);
   const MAX_RECONNECT_ATTEMPTS = 1;
+  const realtimeEnabled =
+    enabled &&
+    (process.env.NODE_ENV !== "development" ||
+      process.env.NEXT_PUBLIC_ENABLE_REALTIME_SUBSCRIPTIONS === "true");
 
   // Stable callback ref to avoid re-subscribing on every render
   const onEventRef = useRef(onEvent);
@@ -87,7 +91,7 @@ export function useRealtimeSubscription(
   useEffect(() => {
     let isCancelled = false;
 
-    if (!enabled || !table) {
+    if (!realtimeEnabled || !table) {
       cleanup();
       return;
     }
@@ -154,7 +158,7 @@ export function useRealtimeSubscription(
       cleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table, filter, enabled, schema, eventsKey, cleanup, queryClient, reconnectCount]);
+  }, [table, filter, realtimeEnabled, schema, eventsKey, cleanup, queryClient, reconnectCount]);
 
   return { status };
 }

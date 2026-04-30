@@ -42,6 +42,37 @@ export const createOrderInputSchema = z.object({
   }).optional(),
 });
 
+// BUG #6 FIX: Zod schema for PUT /api/orders/[id]
+export const updateOrderInputSchema = z.object({
+  customer_id: z.string().uuid().optional(),
+  status: z.enum([
+    "draft", "pending_payment", "paid", "provisioning", "active",
+    "expired", "refunded", "cancelled", "failed",
+  ]).optional(),
+  total_paid: z.number().min(0).optional(),
+  payment_method: z.string().optional(),
+  payment_terms: z.enum(PAYMENT_TERMS_VALUES).optional(),
+  payment_source_id: z.string().uuid().nullable().optional(),
+  sales_channel_id: z.string().uuid().nullable().optional(),
+  sales_note: z.string().max(500).nullable().optional(),
+  expires_at: z.string().datetime({ offset: true }).nullable().optional(),
+  created_at: z.string().datetime({ offset: true }).optional(),
+  unit_price_vnd: z.number().min(0).optional(),
+  cost_price_vnd: z.number().min(0).optional(),
+  proof_image_urls: z.array(z.string().url()).max(10).optional(),
+  items: z.array(z.object({
+    id: z.string().uuid(),
+    notes: z.string().max(300).optional(),
+    customer_nick_used: z.string().max(200).optional(),
+    assigned_source_account_id: z.string().uuid().nullable().optional(),
+  })).optional(),
+}).refine(
+  (data) => Object.keys(data).length > 0,
+  { message: "No fields to update" }
+);
+
+export type UpdateOrderInput = z.infer<typeof updateOrderInputSchema>;
+
 export const allocationRequestSchema = z.object({
   orderId: z.string().min(1, "orderId is required"),
   confirm: z.boolean().optional().default(false),

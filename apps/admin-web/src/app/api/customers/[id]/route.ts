@@ -7,6 +7,7 @@ import {
   getCustomerForAccount,
   updateCustomerForAccount,
 } from "@/domains/customers";
+import { requirePermissions } from "@/lib/api/rbac";
 
 export const GET = withErrorHandler(
   withAccount<{ id: string }>(async (_request, { accountId, params }) => {
@@ -20,20 +21,26 @@ export const GET = withErrorHandler(
   })
 );
 
+// BUG #3 FIX: Added requirePermissions guard
 export const PUT = withErrorHandler(
-  withAccount<{ id: string }>(async (request, { accountId, params }) => {
-    const { id } = await params;
-    const body = await request.json();
-    const validated = updateCustomerInputSchema.parse(body);
-    const data = await updateCustomerForAccount(id, accountId, validated);
-    return NextResponse.json({ data });
-  })
+  withAccount(
+    requirePermissions<{ id: string }>(["customer:update"])(async (request, { accountId, params }) => {
+      const { id } = await params;
+      const body = await request.json();
+      const validated = updateCustomerInputSchema.parse(body);
+      const data = await updateCustomerForAccount(id, accountId, validated);
+      return NextResponse.json({ data });
+    })
+  )
 );
 
+// BUG #3 FIX: Added requirePermissions guard
 export const DELETE = withErrorHandler(
-  withAccount<{ id: string }>(async (_request, { accountId, params }) => {
-    const { id } = await params;
-    await deleteCustomerForAccount(id, accountId);
-    return NextResponse.json({ success: true });
-  })
+  withAccount(
+    requirePermissions<{ id: string }>(["customer:delete"])(async (_request, { accountId, params }) => {
+      const { id } = await params;
+      await deleteCustomerForAccount(id, accountId);
+      return NextResponse.json({ success: true });
+    })
+  )
 );

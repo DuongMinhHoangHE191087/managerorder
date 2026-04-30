@@ -4,6 +4,7 @@
 // ============================================================
 
 import { supabaseAdmin as supabase } from '@/lib/supabase/admin';
+import { invalidateAll } from '@/lib/cache/db-cache';
 
 // Supported entity types for trash operations
 export type TrashEntityType =
@@ -87,6 +88,9 @@ export async function restoreItems(
     if (error) throw new Error(error.message);
     restored += data?.length ?? 0;
   }
+  if (restored > 0) {
+    invalidateAll();
+  }
   return restored;
 }
 
@@ -144,6 +148,9 @@ export async function purgeItems(
       .select('id');
     if (error) throw new Error(error.message);
     purged += data?.length ?? 0;
+  }
+  if (purged > 0) {
+    invalidateAll();
   }
   return purged;
 }

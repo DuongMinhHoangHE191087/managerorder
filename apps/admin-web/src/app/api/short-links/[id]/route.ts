@@ -11,51 +11,58 @@ import {
   updateShortLinkForAccount,
 } from "@/domains/short-links";
 import { getClickAnalytics } from "@/lib/services/fraud-detector";
+import { requirePermissions, type RBACApiHandler } from "@/lib/api/rbac";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+type Ctx = { id: string };
+
 // PATCH /api/short-links/[id] - Update a short link
+// BUG #5 FIX: Added requirePermissions guard
 export const PATCH = withErrorHandler(
-  withAccount(async (
-    request: NextRequest,
-    context: { accountId: string; params: Promise<{ id: string }> },
-  ) => {
-    const { id } = await context.params;
-    const body = await request.json();
-    const parsed = updateShortLinkInputSchema.safeParse(body);
+  withAccount(
+    requirePermissions<Ctx>(["order:update"])(((request, context) => {
+      return (async () => {
+        const { id } = await (context.params as Promise<Ctx>);
+        const body = await request.json();
+        const parsed = updateShortLinkInputSchema.safeParse(body);
 
-    if (!parsed.success) {
-      return createErrorResponse(
-        "Dữ liệu đầu vào không hợp lệ",
-        "VALIDATION_ERROR",
-        400,
-        parsed.error.flatten().fieldErrors,
-      );
-    }
+        if (!parsed.success) {
+          return createErrorResponse(
+            "Dữ liệu đầu vào không hợp lệ",
+            "VALIDATION_ERROR",
+            400,
+            parsed.error.flatten().fieldErrors,
+          );
+        }
 
-    if (Object.keys(parsed.data).length === 0) {
-      return createErrorResponse("Không có trường hợp lệ để cập nhật", "VALIDATION_ERROR", 400);
-    }
+        if (Object.keys(parsed.data).length === 0) {
+          return createErrorResponse("Không có trường hợp lệ để cập nhật", "VALIDATION_ERROR", 400);
+        }
 
-    const link = await updateShortLinkForAccount(id, context.accountId, parsed.data);
-    return createSuccessResponse(link);
-  }),
+        const link = await updateShortLinkForAccount(id, context.accountId, parsed.data);
+        return createSuccessResponse(link);
+      })();
+    }) as RBACApiHandler<Ctx>)
+  ),
 );
 
 // DELETE /api/short-links/[id] - Delete a short link
+// BUG #5 FIX: Added requirePermissions guard
 export const DELETE = withErrorHandler(
-  withAccount(async (
-    _request: NextRequest,
-    context: { accountId: string; params: Promise<{ id: string }> },
-  ) => {
-    const { id } = await context.params;
-    await deleteShortLink(id, context.accountId);
-    return createSuccessResponse({ deleted: true });
-  }),
+  withAccount(
+    requirePermissions<Ctx>(["order:delete"])(((_request, context) => {
+      return (async () => {
+        const { id } = await (context.params as Promise<Ctx>);
+        await deleteShortLink(id, context.accountId);
+        return createSuccessResponse({ deleted: true });
+      })();
+    }) as RBACApiHandler<Ctx>)
+  ),
 );
 
-// GET /api/short-links/[id] - Get link details and analytics
+// GET /api/short-links/[id] - Get link details and analytics (read = no RBAC needed)
 export const GET = withErrorHandler(
   withAccount(async (
     _request: NextRequest,

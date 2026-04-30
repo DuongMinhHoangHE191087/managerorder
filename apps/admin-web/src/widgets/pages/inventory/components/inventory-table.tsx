@@ -854,16 +854,6 @@ export const InventoryTable = React.memo(function InventoryTable({
 
               {paginatedAccounts.map((account) => {
 
-                const percent = account.maxSlots > 0 ? (account.usedSlots / account.maxSlots) * 100 : 0;
-
-                const freeSlots = account.maxSlots - account.usedSlots;
-
-                const productNames = account.productIds.map((pid) => productMap.get(pid)).filter(Boolean).join(", ");
-
-                const providerName = providerById.get(account.provider)?.name || account.provider;
-
-                const expiryInfo = getExpiryWarning(account.expiresAt);
-
                 const isSelected = hasBulk && selectedIds!.has(account.id);
 
                 return (

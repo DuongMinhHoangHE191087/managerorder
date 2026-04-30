@@ -1,5 +1,5 @@
-import { withAccount } from "@/lib/api/with-account";
 import { createSuccessResponse, withErrorHandler } from "@/lib/api/with-error-handler";
+import { resolveAccountId } from "@/lib/api/with-account";
 import {
   getBotRuntimeSnapshot,
   isPollingRuntimeHealthy,
@@ -94,7 +94,12 @@ function toOperationalRuntimeMode(
 }
 
 export const GET = withErrorHandler(
-  withAccount(async (_request, { accountId }) => {
+  async (request) => {
+    const accountId = await resolveAccountId(request);
+    if (!accountId) {
+      return createSuccessResponse(null);
+    }
+
     const zaloConfig = resolveZaloRuntimeConfig(process.env);
     const telegramConfiguredMode = resolveTelegramRuntimeMode(process.env);
     const zaloConfiguredMode = resolveZaloRuntimeMode(process.env);
@@ -208,5 +213,5 @@ export const GET = withErrorHandler(
     };
 
     return createSuccessResponse(status);
-  }),
+  },
 );

@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, CheckCircle, PackageSearch, CircleDollarSign, Pencil, Trash2, Eye, Power } from "lucide-react";
 import { appToast } from "@/shared/lib/toast";
 
@@ -15,6 +16,7 @@ import { ActionMenu } from "@/shared/ui/action-menu";
 import { CreateActionFooter, CreateFlowDialog } from "@/shared/ui/create-flow-shell";
 import { vi } from "@/shared/messages/vi";
 import type { ProductService } from "@/lib/domain/types";
+import { queryKeys } from "@/shared/lib/react-query/query-keys";
 import {
   useDeleteProduct,
   useProductDetail,
@@ -32,6 +34,7 @@ export default function ProductsPage() {
   const productText = vi.products.page;
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const trashMode = searchParams.get("trash") === "1";
   const viewingProductId = searchParams.get("view");
   const { data: products = [], isLoading, isError } = useProducts();
@@ -111,8 +114,12 @@ export default function ProductsPage() {
     }
 
     await restoreItems.mutateAsync({ type: "products", ids: [activeViewingProduct.id] });
-    setViewingProduct(null);
     router.replace("/products");
+    setViewingProduct(null);
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.products,
+      refetchType: "active",
+    });
   }
 
   async function handlePurgeViewingProduct() {

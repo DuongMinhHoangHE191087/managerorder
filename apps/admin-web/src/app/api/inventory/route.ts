@@ -11,6 +11,7 @@ import {
   createInventoryKeyForAccount,
   listInventoryKeysForAccount,
 } from "@/domains/inventory";
+import { requirePermissions } from "@/lib/api/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -21,20 +22,23 @@ export const GET = withErrorHandler(
   })
 );
 
+// BUG #4 FIX: Added requirePermissions guard
 export const POST = withErrorHandler(
-  withAccount(async (request: NextRequest, { accountId }) => {
-    const body = (await request.json()) as unknown;
-    const parsed = createLicenseKeyInputSchema.safeParse(body);
-    if (!parsed.success) {
-      return createErrorResponse(
-        "Dữ liệu đầu vào không hợp lệ",
-        "VALIDATION_ERROR",
-        400,
-        parsed.error.flatten().fieldErrors,
-      );
-    }
+  withAccount(
+    requirePermissions(["inventory:adjust"])(async (request: NextRequest, { accountId }) => {
+      const body = (await request.json()) as unknown;
+      const parsed = createLicenseKeyInputSchema.safeParse(body);
+      if (!parsed.success) {
+        return createErrorResponse(
+          "Dữ liệu đầu vào không hợp lệ",
+          "VALIDATION_ERROR",
+          400,
+          parsed.error.flatten().fieldErrors,
+        );
+      }
 
-    const result = await createInventoryKeyForAccount(accountId, parsed.data);
-    return createSuccessResponse(result, { status: 201 });
-  })
+      const result = await createInventoryKeyForAccount(accountId, parsed.data);
+      return createSuccessResponse(result, { status: 201 });
+    })
+  )
 );

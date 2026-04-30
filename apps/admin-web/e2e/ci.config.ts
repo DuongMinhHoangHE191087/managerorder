@@ -17,7 +17,7 @@ dotenv.config({ path: path.resolve(__dirname, ".env.local") });
  * - Single worker (deterministic)
  */
 export default defineConfig({
-  testDir: "./e2e",
+  testDir: ".",
   fullyParallel: false,
   forbidOnly: true,
   retries: 2,
@@ -25,7 +25,7 @@ export default defineConfig({
   reporter: [["html", { open: "never" }], ["list"]],
 
   use: {
-    baseURL: process.env.BASE_URL || "http://localhost:3000",
+    baseURL: process.env.BASE_URL || "http://127.0.0.1:3000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "off",
@@ -49,8 +49,9 @@ export default defineConfig({
 
   webServer: {
     command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: false,
+    url: "http://127.0.0.1:3000",
+    reuseExistingServer: !process.env.CI,
+    cwd: path.resolve(__dirname, ".."),
     env: {
       ...process.env,
       E2E_MOCK_SESSION: "1",

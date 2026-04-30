@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { PageContainer } from "@/shared/ui/page-layout";
@@ -20,6 +20,7 @@ import { vi } from "@/shared/messages/vi";
 export default function BotManagementPage() {
   const queryClient = useQueryClient();
   const text = vi.bot.page;
+  const [isClient, setIsClient] = useState(false);
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [contactChannel, setContactChannel] = useState<"zalo" | "telegram">("zalo");
   const [matchFilter, setMatchFilter] = useState<MatchFilter>("all");
@@ -31,6 +32,9 @@ export default function BotManagementPage() {
   const [testLookupPreview, setTestLookupPreview] = useState<string | null>(null);
 
   const { data: status, isLoading: statusLoading, refetch: refetchStatus } = useBotRuntimeStatus();
+  const showUnavailableState = isClient && status === null;
+  const statusGridStatus = isClient ? (status ?? undefined) : undefined;
+  const statusGridLoading = !isClient || statusLoading;
 
   const contactsQueryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -88,6 +92,10 @@ export default function BotManagementPage() {
     refetchStatus();
     refetchContacts();
   };
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   async function handleBroadcast() {
     if (!broadcastMessage.trim()) {
@@ -164,7 +172,18 @@ export default function BotManagementPage() {
     <AppLayout>
       <PageContainer className="flex flex-col gap-6">
         <BotPageHeader onRefresh={handleRefresh} />
-        <BotStatusGrid status={status} loading={statusLoading} />
+        {showUnavailableState ? (
+          <SectionCard
+            title="Trạng thái bot chưa sẵn sàng"
+            description="Phiên đăng nhập chưa sẵn sàng hoặc tài khoản hiện tại không có quyền xem trạng thái bot. Trang vẫn hoạt động, nhưng số liệu bot sẽ được ẩn để tránh lỗi console."
+          >
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium leading-6 text-amber-800">
+              Nếu bạn vừa đăng nhập, hãy tải lại trang để đồng bộ phiên. Nếu không có quyền quản trị bot, phần này sẽ không hiển thị số liệu.
+            </div>
+          </SectionCard>
+        ) : (
+          <BotStatusGrid status={statusGridStatus} loading={statusGridLoading} />
+        )}
         <SectionCard
           title="Kiểm tra tra cứu Zalo nội bộ"
           description="Kiểm tra nhanh cùng contract với lệnh /kt, /kiemtra và tra cứu đơn trước khi dùng trên bot thật."

@@ -8,6 +8,7 @@ import { createOrderStatusHistory } from "@/lib/supabase/repositories/order-stat
 import { deallocateOrder } from "@/lib/services/allocation.service";
 import { canTransitionOrder } from "@/lib/domain/order-state-machine";
 import { hasPermission, resolveUser } from "@/lib/api/rbac";
+import { updateOrderInputSchema } from "@/lib/domain/schemas";
 import {
   normalizePaymentTerms,
   toLegacyPaymentMethod,
@@ -36,26 +37,18 @@ export const GET = withErrorHandler(withAccount<{ id: string }>(async (_request,
 
 export const PUT = withErrorHandler(withAccount<{ id: string }>(async (request, { accountId, params }) => {
   const { id } = await params;
-  const body = await request.json() as { 
-    customer_id?: string;
-    status?: string;
-    total_paid?: number;
-    payment_method?: string;
-    payment_terms?: string;
-    payment_source_id?: string;
-    sales_channel_id?: string;
-    sales_note?: string;
-    expires_at?: string;
-    created_at?: string;
-    unit_price_vnd?: number;
-    cost_price_vnd?: number;
-    proof_image_urls?: string[];
-    items?: { id: string, notes?: string, customer_nick_used?: string, assigned_source_account_id?: string | null }[];
-  };
-  
-  if (Object.keys(body).length === 0) {
-    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+
+  // BUG #6 FIX: Validate body via Zod instead of raw inline interface cast
+  const rawBody = await request.json() as unknown;
+  const parseResult = updateOrderInputSchema.safeParse(rawBody);
+  if (!parseResult.success) {
+    return NextResponse.json(
+      { error: "Dữ liệu đầu vào không hợp lệ", details: parseResult.error.flatten().fieldErrors },
+      { status: 400 }
+    );
   }
+  const body = parseResult.data;
+
   
   const order = await getOrderWithItems(id, accountId);
   if (!order) {
@@ -92,6 +85,7 @@ export const PUT = withErrorHandler(withAccount<{ id: string }>(async (request, 
     await deallocateOrder(id, accountId);
   }
 
+
   // Auto-recalculate totals when price changes
   const quantity = order?.quantity ?? 1;
 
@@ -111,10 +105,10 @@ export const PUT = withErrorHandler(withAccount<{ id: string }>(async (request, 
     total_paid: body.total_paid,
     payment_method: legacyPaymentMethod ?? undefined,
     payment_terms: normalizedPaymentTerms ?? undefined,
-    payment_source_id: body.payment_source_id,
-    sales_channel_id: body.sales_channel_id,
-    sales_note: body.sales_note,
-    expires_at: body.expires_at,
+    payment_source_id: body.payment_source_id ?? undefined,
+    sales_channel_id: body.sales_channel_id ?? undefined,
+    sales_note: body.sales_note ?? undefined,
+    expires_at: body.expires_at ?? undefined,
     created_at: body.created_at,
     proof_image_urls: body.proof_image_urls,
     ...recalculated,

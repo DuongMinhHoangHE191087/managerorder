@@ -146,7 +146,7 @@ export function InventoryDetailDrawer({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { data: decryptedSecrets, isLoading: loadingCreds } = useSourceAccountDecrypt(account.id);
 
-  const decryptedCreds = decryptedSecrets?.credentials ?? [];
+  const decryptedCreds = useMemo(() => decryptedSecrets?.credentials ?? [], [decryptedSecrets?.credentials]);
   const decryptedPassword = decryptedSecrets?.password ?? null;
   const productNames = useMemo(
     () => account.productIds.map((pid) => productMap.get(pid) || pid).join(", "),

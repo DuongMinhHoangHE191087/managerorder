@@ -5,6 +5,57 @@ import { queryKeys } from "@/shared/lib/react-query/query-keys";
 // Types matching trash.repo.ts
 type TrashEntityType = "customers" | "orders" | "products" | "providers" | "source_accounts" | "license_keys" | "short_links";
 
+const TRASH_INVALIDATION_TARGETS: Record<TrashEntityType, readonly (readonly unknown[])[]> = {
+  customers: [
+    queryKeys.customers,
+  ],
+  orders: [
+    queryKeys.orders,
+  ],
+  products: [
+    queryKeys.products,
+    queryKeys.inventory,
+    queryKeys.inventoryDashboard,
+  ],
+  providers: [
+    queryKeys.providers,
+    queryKeys.purchaseOrders,
+  ],
+  source_accounts: [
+    queryKeys.sourceAccounts,
+    queryKeys.inventory,
+    queryKeys.inventoryDashboard,
+  ],
+  license_keys: [
+    queryKeys.inventory,
+    queryKeys.inventoryDashboard,
+  ],
+  short_links: [
+    ["short-links"],
+    ["short-link-detail"],
+    queryKeys.salesChannels,
+  ],
+};
+
+async function invalidateTrashRelatedQueries(
+  qc: ReturnType<typeof useQueryClient>,
+  type: TrashEntityType,
+) {
+  const targets = [
+    ["trash"] as const,
+    ...TRASH_INVALIDATION_TARGETS[type],
+  ];
+
+  await Promise.all(
+    targets.map((queryKey) =>
+      qc.invalidateQueries({
+        queryKey,
+        refetchType: "active",
+      }),
+    ),
+  );
+}
+
 // Fetch deleted items by type
 export function useTrashItems(type: TrashEntityType) {
   return useQuery({
@@ -50,13 +101,8 @@ export function useRestoreItems() {
       return res.json();
     },
     onSuccess: (data, vars) => {
+      void invalidateTrashRelatedQueries(qc, vars.type);
       appToast.success(data.message || `Đã khôi phục ${vars.ids.length} mục`);
-      qc.invalidateQueries({ queryKey: ["trash"] });
-      qc.invalidateQueries({ queryKey: queryKeys.customers });
-      qc.invalidateQueries({ queryKey: queryKeys.orders });
-      qc.invalidateQueries({ queryKey: queryKeys.products });
-      qc.invalidateQueries({ queryKey: queryKeys.providers });
-      qc.invalidateQueries({ queryKey: queryKeys.sourceAccounts });
     },
     onError: (err: Error) => appToast.error(err.message),
   });
@@ -78,9 +124,9 @@ export function usePurgeItems() {
       }
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data, vars) => {
+      void invalidateTrashRelatedQueries(qc, vars.type);
       appToast.success(data.message || "Đã xóa vĩnh viễn");
-      qc.invalidateQueries({ queryKey: ["trash"] });
     },
     onError: (err: Error) => appToast.error(err.message),
   });
