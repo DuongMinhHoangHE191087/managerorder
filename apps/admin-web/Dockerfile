@@ -5,7 +5,7 @@
 # ============================================================
 
 # Stage 1: Install dependencies
-FROM node:24-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -25,7 +25,7 @@ COPY packages/zalo-bot-js/package.json ./packages/zalo-bot-js/
 RUN pnpm install --frozen-lockfile --filter @managerorder/admin-web...
 
 # Stage 2: Build the Next.js app
-FROM node:24-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Re-enable pnpm in the builder stage
@@ -48,7 +48,7 @@ ENV BUILD_STANDALONE=true
 RUN pnpm --filter @managerorder/admin-web run build
 
 # Stage 3: Production runner
-FROM node:24-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
