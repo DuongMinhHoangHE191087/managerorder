@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@9.15.9",
   "engines": {
-    "node": "22.x"
+    "node": ">=22.22.2"
   },
   "scripts": {
     "dev": "corepack pnpm --filter @managerorder/admin-web dev",
@@ -43,6 +43,16 @@
       "axios": "^1.15.0",
       "follow-redirects": "^1.15.12",
       "dompurify": "^3.3.4"
+    },
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "react",
+        "react-dom"
+      ],
+      "allowAny": [
+        "react",
+        "react-dom"
+      ]
     }
   },
   "dependencies": {
