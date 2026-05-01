@@ -9,4 +9,4 @@ echo "   Next.js: port ${PORT:-8080}"
 echo "   Telegram Bot: polling mode"
 echo "   Zalo Bot: polling mode"
 
-exec node --experimental-strip-types --import ./scripts/register-ts-loader.mjs ./scripts/runtime-supervisor.ts --mode=docker
+exec node --experimental-strip-types --import ./apps/admin-web/scripts/register-ts-loader.mjs ./apps/admin-web/scripts/runtime-supervisor.ts --mode=docker

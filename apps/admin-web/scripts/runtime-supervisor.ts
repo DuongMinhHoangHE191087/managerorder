@@ -120,7 +120,11 @@ function resolveWebArgs(): string[] {
   if (mode === "docker") {
     const standaloneServer = path.resolve(projectRoot, ".next", "standalone", "server.js");
     const rootServer = path.resolve(projectRoot, "server.js");
-    return [existsSync(rootServer) ? rootServer : standaloneServer];
+    const monorepoRootServer = path.resolve(projectRoot, "..", "..", "server.js");
+    
+    if (existsSync(rootServer)) return [rootServer];
+    if (existsSync(monorepoRootServer)) return [monorepoRootServer];
+    return [standaloneServer];
   }
 
   if (!nextBin) {

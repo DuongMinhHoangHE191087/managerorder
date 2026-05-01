@@ -33,19 +33,19 @@
   },
   "devDependencies": {
     "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.3",
+    "eslint-config-next": "^15.2.0",
     "turbo": "^2.5.8"
   },
   "pnpm": {
     "overrides": {
-      "next": "^16.2.3",
-      "eslint-config-next": "^16.2.3",
+      "next": "^15.2.0",
+      "eslint-config-next": "^15.2.0",
       "axios": "^1.15.0",
       "follow-redirects": "^1.15.12",
       "dompurify": "^3.3.4"
     }
   },
   "dependencies": {
-    "next": "^16.2.3"
+    "next": "^15.2.0"
   }
 }

@@ -5,7 +5,13 @@ import { fileURLToPath, pathToFileURL } from "url";
 const EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".json"];
 
 function resolveProjectRoot() {
-  return process.cwd();
+  const cwd = process.cwd();
+  // In Docker/Monorepo root, the actual app source is in apps/admin-web
+  const adminWebPath = path.resolve(cwd, "apps/admin-web");
+  if (existsSync(path.join(adminWebPath, "package.json"))) {
+    return adminWebPath;
+  }
+  return cwd;
 }
 
 function resolveCandidate(basePath) {
