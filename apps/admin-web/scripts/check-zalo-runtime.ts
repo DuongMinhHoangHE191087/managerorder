@@ -9,6 +9,8 @@ import type {
   ZaloOrderWizardState,
   ZaloOrderWizardStore,
 } from "../src/lib/zalo/types";
+import type { Customer } from "../src/lib/domain/types";
+import type { CreateOrderResult } from "../src/lib/services/order.service";
 
 loadLocalEnv();
 
@@ -157,9 +159,9 @@ async function main() {
             reliabilityScore: 100,
             createdAt: "2026-04-08T00:00:00.000Z",
           },
-        ] as any;
+        ] as Customer[];
       }
-      return [] as any;
+      return [] as Customer[];
     },
     createCustomer: async (_accountId: string, input: Parameters<ZaloOrderWizardServices["createCustomer"]>[1]) => ({
       id: "cust-new",
@@ -177,7 +179,7 @@ async function main() {
       debtOverdueDays: 0,
       reliabilityScore: 100,
       createdAt: "2026-04-08T00:00:00.000Z",
-    }) as any,
+    }) as Customer,
     createOrder: async (_accountId: string, input: Parameters<ZaloOrderWizardServices["createOrder"]>[1]) => ({
       order: {
         id: "order-1",
@@ -188,7 +190,7 @@ async function main() {
         expires_at: "2026-05-01T00:00:00.000Z",
       },
       items: [{ id: "item-1" }],
-    }) as any,
+    }) as CreateOrderResult,
   };
   const assistant = {
     replyToSalesQuery: async ({ query }: { query: string }) => `AI:${query}`,

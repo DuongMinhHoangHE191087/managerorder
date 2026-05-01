@@ -22,7 +22,12 @@ type ManagedChild = {
 };
 
 const require = createRequire(import.meta.url);
-const nextBin = require.resolve("next/dist/bin/next");
+let nextBin: string;
+try {
+  nextBin = require.resolve("next/dist/bin/next");
+} catch (e) {
+  // Ignore error here, it will be handled in resolveWebArgs if needed
+}
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(currentDir, "..");
@@ -116,6 +121,10 @@ function resolveWebArgs(): string[] {
     const standaloneServer = path.resolve(projectRoot, ".next", "standalone", "server.js");
     const rootServer = path.resolve(projectRoot, "server.js");
     return [existsSync(rootServer) ? rootServer : standaloneServer];
+  }
+
+  if (!nextBin) {
+    throw new Error("Next.js binary not found. Ensure you are in 'docker' mode or have next installed.");
   }
 
   if (mode === "start") {

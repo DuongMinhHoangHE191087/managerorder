@@ -117,7 +117,7 @@ test.describe("Dashboard — KPI Cards", () => {
     await expect(dashboard.ordersCard).toBeVisible();
   });
 
-  test("KPI values display formatted VND (contain đ or ₫)", async ({ page }) => {
+  test("KPI values display formatted VND (contain đ or ₫)", async ({ page: _page }) => {
     const values = await dashboard.getKpiCardValues();
     expect(values.some((value) => value.trim().length > 0)).toBe(true);
   });

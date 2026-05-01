@@ -96,7 +96,7 @@ test.describe.serial("Business smoke", () => {
         salesNote: `Smoke flow ${suffix}`,
       });
       const order = orderResponse.data;
-      const orderCode = order.order_code ?? order.id;
+      const _orderCode = order.order_code ?? order.id;
       cleanupTargets.push(`/api/orders/${order.id}`);
 
       expect(order.status).toBe("pending_payment");

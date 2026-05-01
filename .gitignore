@@ -19,3 +19,4 @@ qa-artifacts/
 packages/*/node_modules/
 packages/*/dist/
 packages/*/.tmp/
+/.pnpm-store-local
