@@ -1,0 +1,19 @@
+name: managerorder
+region: sgp
+
+services:
+  - name: web
+    environment_slug: node-js
+    github:
+      repo: linhthuynguyen1807/managerorder
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    dockerfile_path: Dockerfile
+    instance_count: 1
+    instance_size_slug: basic-xs
+    http_port: 8080
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 30
+      period_seconds: 30
