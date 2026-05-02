@@ -3,6 +3,8 @@ import "./globals.css";
 import { ConditionalProviders } from "@/app/providers/conditional-providers";
 import { vi } from "@/shared/messages/vi";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: `${vi.navigation.brand.title} | ${vi.navigation.brand.subtitle}`,
   description: vi.navigation.brand.description,

@@ -34,7 +34,7 @@ const LazyNavUserMenu = dynamic(
 );
 const LazyNotificationsDrawer = dynamic(
   () => import("./notifications-drawer").then((module) => ({ default: module.NotificationsDrawer })),
-  { ssr: false, loading: () => null },
+  { ssr: false },
 );
 
 type NavItem = {

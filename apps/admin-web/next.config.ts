@@ -24,8 +24,8 @@ const nextConfig: NextConfig = {
   // Netlify/Vercel must NOT use standalone (conflicts with their adapters).
   ...(process.env.BUILD_STANDALONE === "true" ? { output: "standalone" as const } : {}),
   experimental: {
-    // Optimize barrels for heavy libraries
-    workerThreads: true,
+    // Disable worker threads: the threaded prerender path hits DataCloneError on this app.
+    workerThreads: false,
     optimizePackageImports: [
       "framer-motion",
       "recharts",

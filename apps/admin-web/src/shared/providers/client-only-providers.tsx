@@ -1,32 +1,37 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
-
-// Dynamic import with ssr:false to prevent hydration mismatch
-// These components inject DOM during SSR that doesn't match client
-const NextTopLoader = dynamic(() => import("nextjs-toploader"), { ssr: false });
+import NextTopLoader from "nextjs-toploader";
 
 /**
  * Client-only providers that must not render during SSR.
  * Prevents hydration mismatch from third-party DOM injection.
  */
 export function ClientOnlyProviders() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <>
-      <NextTopLoader
-        color="var(--accent)"
-        initialPosition={0.08}
-        crawlSpeed={200}
-        height={4}
-        crawl={true}
-        showSpinner={true}
-        easing="ease"
-        speed={200}
-        shadow="0 0 10px var(--accent),0 0 5px var(--accent)"
-        zIndex={120}
-        showAtBottom={false}
-      />
+      {isMounted ? (
+        <NextTopLoader
+          color="var(--accent)"
+          initialPosition={0.08}
+          crawlSpeed={200}
+          height={4}
+          crawl={true}
+          showSpinner={true}
+          easing="ease"
+          speed={200}
+          shadow="0 0 10px var(--accent),0 0 5px var(--accent)"
+          zIndex={120}
+          showAtBottom={false}
+        />
+      ) : null}
       <Toaster
         richColors
         position="top-right"

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v3";
 import { LEGACY_PAYMENT_METHOD_VALUES, PAYMENT_TERMS_VALUES } from "@/lib/domain/financial";
 
 const optionalText = (schema: z.ZodString) =>

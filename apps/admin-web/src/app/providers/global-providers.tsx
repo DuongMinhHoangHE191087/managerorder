@@ -1,20 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { ReactNode, useEffect, useRef, useState } from "react";
-
-const LazyCommandPalette = dynamic(
-  () => import("@/widgets/layout/command-palette").then((module) => ({ default: module.CommandPalette })),
-  { ssr: false }
-);
-const LazyAuthBootstrap = dynamic(
-  () => import("@/app/providers/auth-bootstrap").then((module) => ({ default: module.AuthBootstrap })),
-  { ssr: false, loading: () => null }
-);
-const LazyGlobalHotkeys = dynamic(
-  () => import("@/app/providers/global-hotkeys").then((module) => ({ default: module.GlobalHotkeys })),
-  { ssr: false, loading: () => null }
-);
+import { CommandPalette } from "@/widgets/layout/command-palette";
+import { AuthBootstrap } from "@/app/providers/auth-bootstrap";
+import { GlobalHotkeys } from "@/app/providers/global-hotkeys";
 
 export function GlobalProviders({ children }: { children: ReactNode }) {
   const [shouldRenderPalette, setShouldRenderPalette] = useState(false);
@@ -63,10 +52,10 @@ export function GlobalProviders({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <LazyAuthBootstrap />
-      <LazyGlobalHotkeys />
+      <AuthBootstrap />
+      <GlobalHotkeys />
       {shouldRenderPalette ? (
-        <LazyCommandPalette
+        <CommandPalette
           isOpen={isPaletteOpen}
           onOpenChange={setIsPaletteOpen}
         />

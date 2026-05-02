@@ -15,19 +15,15 @@ import { PageContainer } from "@/shared/ui/page-layout";
 import dynamic from "next/dynamic";
 const EventCreateModal = dynamic(() => import("@/widgets/pages/calendar/components/event-create-modal").then(mod => mod.EventCreateModal), {
   ssr: false,
-  loading: () => null,
 });
 const EventViewModal = dynamic(() => import("@/widgets/pages/calendar/components/event-view-modal").then(mod => ({ default: mod.EventViewModal })), {
   ssr: false,
-  loading: () => null,
 });
 const EventDeleteModal = dynamic(() => import("@/widgets/pages/calendar/components/event-delete-modal").then(mod => ({ default: mod.EventDeleteModal })), {
   ssr: false,
-  loading: () => null,
 });
 const RenewalPanel = dynamic(() => import("@/widgets/pages/calendar/components/renewal-panel").then(mod => ({ default: mod.RenewalPanel })), {
   ssr: false,
-  loading: () => null,
 });
 const CalendarWeekView = dynamic(() => import("@/widgets/pages/calendar/components/calendar-week-view").then(mod => ({ default: mod.CalendarWeekView })), {
   ssr: false,

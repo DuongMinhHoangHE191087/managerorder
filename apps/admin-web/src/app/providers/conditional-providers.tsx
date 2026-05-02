@@ -1,10 +1,10 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { QueryProvider } from "@/shared/providers/query-provider";
 import { AdminChromeProvider } from "@/shared/providers/admin-chrome-context";
 import { AppChrome } from "@/widgets/layout/app-layout";
+import { ClientOnlyProviders } from "@/shared/providers/client-only-providers";
 
 const PUBLIC_EXACT_PATHS = new Set([
   "/api-docs",
@@ -14,11 +14,6 @@ const PUBLIC_EXACT_PATHS = new Set([
 ]);
 
 const PUBLIC_PREFIXES = ["/s/"] as const;
-
-const LazyClientOnlyProviders = dynamic(
-  () => import("@/shared/providers/client-only-providers").then((module) => ({ default: module.ClientOnlyProviders })),
-  { ssr: false, loading: () => null }
-);
 
 function isPublicRoute(pathname: string) {
   return PUBLIC_EXACT_PATHS.has(pathname) || PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -37,7 +32,7 @@ export function ConditionalProviders({ children }: { children: React.ReactNode }
 
   return (
     <>
-      <LazyClientOnlyProviders />
+      <ClientOnlyProviders />
       <QueryProvider>
         <AdminChromeProvider>
           <AppChrome>{children}</AppChrome>

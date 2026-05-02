@@ -8,7 +8,7 @@ const ReactQueryDevtools =
   process.env.NODE_ENV === "development"
     ? dynamic(
         () => import("@tanstack/react-query-devtools").then((module) => module.ReactQueryDevtools),
-        { ssr: false, loading: () => null },
+        { ssr: false },
       )
     : null;
 

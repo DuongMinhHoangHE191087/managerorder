@@ -69,7 +69,6 @@ export function DataTable<TData, TValue>({
     }
   };
 
-  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table exposes unstable helpers here by design.
   const table = useReactTable({
     data,
     columns,

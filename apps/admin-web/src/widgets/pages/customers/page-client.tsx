@@ -33,7 +33,7 @@ const RfmBadge = dynamic(() => import("@/widgets/pages/customers/components/rfm-
 const CustomerStatsDashboard = dynamic(() => import("@/widgets/pages/customers/components/customer-stats-dashboard").then((m) => ({ default: m.CustomerStatsDashboard })), { ssr: false });
 const GroupTagManager = dynamic(() => import("@/widgets/pages/customers/components/group-tag-manager").then((m) => ({ default: m.GroupTagManager })), { ssr: false });
 const CustomerKpiCards = dynamic(() => import("@/widgets/pages/customers/components/customer-kpi-cards").then((m) => ({ default: m.CustomerKpiCards })), { ssr: false });
-const BatchActionBar = dynamic(() => import("@/widgets/pages/customers/components/batch-action-bar").then((m) => ({ default: m.BatchActionBar })), { ssr: false, loading: () => null });
+const BatchActionBar = dynamic(() => import("@/widgets/pages/customers/components/batch-action-bar").then((m) => ({ default: m.BatchActionBar })), { ssr: false });
 const CustomerDetailDrawer = dynamic(() => import("@/widgets/pages/customers/components/customer-detail-drawer").then((m) => ({ default: m.CustomerDetailDrawer })), { ssr: false });
 
 export default function CustomersPage() {
