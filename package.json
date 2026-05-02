@@ -9,6 +9,7 @@
     "dev": "corepack pnpm --filter @managerorder/admin-web dev",
     "dev:admin": "corepack pnpm --filter @managerorder/admin-web dev",
     "dev:bot": "corepack pnpm --filter @managerorder/zalo-bot-js start:bot",
+    "start": "corepack pnpm --dir apps/admin-web run start",
     "lint:admin": "corepack pnpm --dir apps/admin-web run lint",
     "lint:bot": "corepack pnpm --dir packages/zalo-bot-js run lint",
     "typecheck:admin": "corepack pnpm --dir apps/admin-web run typecheck",
