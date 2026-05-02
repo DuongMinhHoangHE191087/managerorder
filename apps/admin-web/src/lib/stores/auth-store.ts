@@ -3,6 +3,8 @@ import type { UserProfile } from "@/lib/types/auth";
 
 type AuthMode = "google" | "email" | null;
 
+const MOCK_BOOTSTRAP_DISABLED_KEY = "managerorder:disable-mock-auth-bootstrap";
+
 function hasSupabaseAuthCookie() {
   if (typeof document === "undefined") {
     return false;
@@ -12,7 +14,9 @@ function hasSupabaseAuthCookie() {
 }
 
 async function readEmailSessionUser() {
-  const response = await fetch("/api/auth/session/me");
+  const response = await fetch("/api/auth/session/me", {
+    credentials: "include",
+  });
   if (!response.ok) {
     return null;
   }
@@ -47,6 +51,57 @@ async function readGoogleSessionUser() {
   } satisfies UserProfile;
 }
 
+function canBootstrapMockSession() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (process.env.NODE_ENV !== "development") {
+    return false;
+  }
+
+  if (window.location.pathname === "/login") {
+    return false;
+  }
+
+  return window.localStorage.getItem(MOCK_BOOTSTRAP_DISABLED_KEY) !== "1";
+}
+
+async function bootstrapMockSessionUser() {
+  if (!canBootstrapMockSession()) {
+    return null;
+  }
+
+  const response = await fetch("/api/auth/session/mock", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return await readEmailSessionUser();
+}
+
+function setMockBootstrapDisabled(disabled: boolean) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (disabled) {
+      window.localStorage.setItem(MOCK_BOOTSTRAP_DISABLED_KEY, "1");
+    } else {
+      window.localStorage.removeItem(MOCK_BOOTSTRAP_DISABLED_KEY);
+    }
+  } catch {
+    // Ignore storage failures in privacy-restricted browsers.
+  }
+}
+
 let bootstrapPromise: Promise<void> | null = null;
 
 interface AuthState {
@@ -74,6 +129,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await fetch("/api/auth/session", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
@@ -93,6 +149,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
         isInitialized: true,
       });
+      setMockBootstrapDisabled(false);
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -107,7 +164,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     };
 
     try {
-      await fetch("/api/auth/session", { method: "DELETE" });
+      await fetch("/api/auth/session", {
+        method: "DELETE",
+        credentials: "include",
+      });
 
       try {
         if (hasSupabaseAuthCookie()) {
@@ -119,8 +179,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Supabase sign-out is best-effort only.
       }
 
+      setMockBootstrapDisabled(true);
       clearLocalState();
     } catch {
+      setMockBootstrapDisabled(true);
       clearLocalState();
     }
   },
@@ -157,6 +219,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             isLoading: false,
             isInitialized: true,
           });
+          setMockBootstrapDisabled(false);
+          return;
+        }
+
+        const mockUser = await bootstrapMockSessionUser();
+        if (mockUser) {
+          set({
+            user: mockUser,
+            authMode: "email",
+            isLoading: false,
+            isInitialized: true,
+          });
+          setMockBootstrapDisabled(false);
           return;
         }
 
@@ -173,6 +248,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setGoogleUser: (user: UserProfile) => {
     set({ user, authMode: "google", isInitialized: true });
+    setMockBootstrapDisabled(false);
   },
 
   clear: () => {

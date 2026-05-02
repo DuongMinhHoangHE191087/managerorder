@@ -323,7 +323,7 @@ export function RevenueChart<T extends string = string>({
                   const isActive = index === (activeIndex ?? geometry.points.length - 1);
 
                   return (
-                    <g key={point.name}>
+                    <g key={`${index}-${point.name}`}>
                       <circle
                         cx={point.x}
                         cy={point.revenueY}

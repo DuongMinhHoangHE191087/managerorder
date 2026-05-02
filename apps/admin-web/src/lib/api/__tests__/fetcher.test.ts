@@ -104,4 +104,11 @@ describe("fetcher", () => {
     const [, options] = mockFetch.mock.calls[0];
     expect(options.cache).toBe("no-store");
   });
+
+  it("sends credentials by default", async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ data: null }));
+    await fetcher("/api/test");
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options.credentials).toBe("include");
+  });
 });

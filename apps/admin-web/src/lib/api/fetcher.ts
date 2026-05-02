@@ -22,6 +22,7 @@ export async function fetcher<T>(url: string, options?: RequestInit): Promise<T>
         res = await fetch(requestUrl, {
           ...options,
           cache: "no-store",
+          credentials: options?.credentials ?? "include",
           signal,
           headers,
         });

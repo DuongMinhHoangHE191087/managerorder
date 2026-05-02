@@ -38,6 +38,10 @@ const registerLoaderUrl = pathToFileURL(registerLoaderPath).href;
 const modeArg = process.argv.find((arg) => arg.startsWith("--mode="));
 const mode = (modeArg?.split("=")[1] || process.argv[2] || "dev").trim();
 
+if (mode === "dev" && process.env.E2E_MOCK_SESSION === undefined) {
+  process.env.E2E_MOCK_SESSION = "1";
+}
+
 const logger = console;
 let shutdownRequested = false;
 

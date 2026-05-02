@@ -97,6 +97,14 @@ type JwtClaims = TrustedJwtPayload & {
 };
 
 const JWT_CLOCK_SKEW_SECONDS = 60;
+const E2E_MOCK_SESSION_HEADER = "x-e2e-mock-session";
+const E2E_MOCK_ACCOUNT_ID_FALLBACK = "00000000-0000-4000-8000-000000000001";
+const E2E_MOCK_USER_ID = "00000000-0000-4000-8000-000000000002";
+const E2E_MOCK_EMAIL = "e2e-mock@managerorder.local";
+const E2E_MOCK_ROLE = "admin_owner";
+
+let cachedE2EMockAccountId: string | null = null;
+let resolvingE2EMockAccountId: Promise<string> | null = null;
 
 function base64UrlToBytes(value: string): Uint8Array {
   let base64 = value.replace(/-/g, "+").replace(/_/g, "/");
@@ -180,11 +188,101 @@ async function verifyJwtEdge(token: string, secret: string) {
   return claims;
 }
 
+async function resolveValidJwtTokenFromRequest(request: NextRequest): Promise<string | null> {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    throw new Error("JWT_SECRET is not configured");
+  }
+
+  const authHeader = request.headers.get("authorization");
+  const candidates = [
+    request.cookies.get("access_token")?.value ?? null,
+    authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null,
+    request.cookies.get("refresh_token")?.value ?? null,
+  ];
+
+  for (const token of candidates) {
+    if (!token) {
+      continue;
+    }
+
+    try {
+      await verifyJwtEdge(token, jwtSecret);
+      return token;
+    } catch {
+      // Keep trying fallbacks. A stale access token should not block a valid
+      // refresh token from authenticating the request.
+    }
+  }
+
+  return null;
+}
+
+async function resolveE2EMockAccountId(): Promise<string> {
+  if (cachedE2EMockAccountId) {
+    return cachedE2EMockAccountId;
+  }
+
+  if (resolvingE2EMockAccountId) {
+    return resolvingE2EMockAccountId;
+  }
+
+  resolvingE2EMockAccountId = (async () => {
+    const envAccountId = process.env.E2E_MOCK_ACCOUNT_ID?.trim();
+    if (envAccountId) {
+      return envAccountId;
+    }
+
+    try {
+      const lookup = supabaseAdmin
+        .from("accounts")
+        .select("id")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      const timeout = new Promise<{ data: null }>((resolve) => {
+        setTimeout(() => resolve({ data: null }), 2_000);
+      });
+
+      const result = (await Promise.race([lookup, timeout])) as { data?: { id: string } | null };
+      if (result?.data?.id) {
+        return result.data.id;
+      }
+    } catch {
+      // Ignore lookup failures in local/offline environments.
+    }
+
+    return E2E_MOCK_ACCOUNT_ID_FALLBACK;
+  })();
+
+  try {
+    cachedE2EMockAccountId = await resolvingE2EMockAccountId;
+    return cachedE2EMockAccountId;
+  } finally {
+    resolvingE2EMockAccountId = null;
+  }
+}
+
+async function buildE2EMockRequestHeaders(request: NextRequest): Promise<Headers> {
+  const requestHeaders = new Headers(request.headers);
+  const accountId = await resolveE2EMockAccountId();
+
+  requestHeaders.set(E2E_MOCK_SESSION_HEADER, "1");
+  requestHeaders.set("x-account-id", accountId);
+  requestHeaders.set("x-user-email", E2E_MOCK_EMAIL);
+  requestHeaders.set("x-user-role", E2E_MOCK_ROLE);
+  requestHeaders.set("x-user-id", E2E_MOCK_USER_ID);
+
+  return requestHeaders;
+}
+
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const rawUa = request.headers.get("user-agent") ?? "";
   const ua = rawUa.toLowerCase();
   const isE2EMockSession = process.env.E2E_MOCK_SESSION === "1";
+  const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
   if (pathname === "/api/health") {
     return NextResponse.next();
@@ -192,9 +290,7 @@ export default async function proxy(request: NextRequest) {
 
   if (
     isE2EMockSession
-    && PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
-    && !pathname.startsWith("/s/")
-    && !pathname.startsWith("/api/s/")
+    && isPublicRoute
   ) {
     return NextResponse.next();
   }
@@ -205,6 +301,15 @@ export default async function proxy(request: NextRequest) {
   const isMaliciousScanner = /nmap|nikto|sqlmap|ahrefs|semrush|python-requests|python-urllib|go-http-client|zgrab|masscan|censys/i.test(ua);
   if (isMaliciousScanner) {
     return new NextResponse("Forbidden - Access Denied", { status: 403 });
+  }
+
+  if (isE2EMockSession && !isPublicRoute) {
+    const requestHeaders = await buildE2EMockRequestHeaders(request);
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+
+    return finalizeAuthenticatedResponse(response, pathname, pathname.startsWith("/api/"));
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -692,14 +797,8 @@ export default async function proxy(request: NextRequest) {
   const isApiRoute = pathname.startsWith("/api/");
 
   // === Priority 1: JWT (Email/Password or API clients) ===
-  // Look in cookies first, then Authorization Header
-  let accessToken = request.cookies.get("access_token")?.value;
-  if (!accessToken) {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      accessToken = authHeader.substring(7);
-    }
-  }
+  // Look in access token cookie first, then Authorization header, then refresh token cookie.
+  const accessToken = await resolveValidJwtTokenFromRequest(request);
 
   if (accessToken) {
     try {
@@ -728,11 +827,13 @@ export default async function proxy(request: NextRequest) {
         request: { headers: requestHeaders },
       });
 
-      if (process.env.E2E_MOCK_SESSION !== "1") {
-        // Still update Supabase cookies for any supabase-related operations
+      if (process.env.E2E_MOCK_SESSION !== "1" && !isApiRoute) {
+        // Only refresh Supabase cookies for browser navigations.
+        // API requests authenticated by the custom JWT should not feed that
+        // token back into Supabase SSR, because it is not a Supabase session
+        // token and can cause a 500 before the route handler runs.
         const { supabaseResponse } = await updateSession(request);
 
-        // Copy Supabase cookies to new response
         supabaseResponse.cookies.getAll().forEach((cookie) => {
           response.cookies.set(cookie.name, cookie.value, cookie);
         });
@@ -751,6 +852,15 @@ export default async function proxy(request: NextRequest) {
 
   // No session → redirect to login (web) or 401 (API)
   if (!user) {
+    if (isE2EMockSession) {
+      const requestHeaders = await buildE2EMockRequestHeaders(request);
+      const response = NextResponse.next({
+        request: { headers: requestHeaders },
+      });
+
+      return finalizeAuthenticatedResponse(response, pathname, isApiRoute);
+    }
+
     if (isApiRoute) {
       return withPrivateNoStore(
         NextResponse.json(

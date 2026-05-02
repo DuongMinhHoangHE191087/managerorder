@@ -15,6 +15,12 @@ export type ApiHandler<T extends object = Record<string, never>> = (
  */
 export async function resolveAccountId(req: NextRequest): Promise<string | null> {
   const headerAccountId = req.headers.get("x-account-id");
+  const isE2EMockSession = process.env.E2E_MOCK_SESSION === "1";
+  const mockSessionHeader = req.headers.get("x-e2e-mock-session");
+
+  if (isE2EMockSession && mockSessionHeader === "1" && headerAccountId) {
+    return headerAccountId;
+  }
 
   // Validate header against JWT to prevent header injection.
   if (headerAccountId) {

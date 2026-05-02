@@ -13,12 +13,30 @@ export async function GET() {
   try {
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("access_token")?.value;
+    const refreshToken = cookieStore.get("refresh_token")?.value;
 
-    if (!accessToken) {
+    if (!accessToken && !refreshToken) {
       return NextResponse.json({ data: null }, { status: 200 });
     }
 
-    const payload = verifyToken(accessToken);
+    let payload: ReturnType<typeof verifyToken> | null = null;
+    try {
+      payload = verifyToken(accessToken ?? refreshToken ?? "");
+    } catch {
+      if (!refreshToken || refreshToken === accessToken) {
+        return NextResponse.json({ data: null }, { status: 200 });
+      }
+
+      try {
+        payload = verifyToken(refreshToken);
+      } catch {
+        return NextResponse.json({ data: null }, { status: 200 });
+      }
+    }
+
+    if (!payload) {
+      return NextResponse.json({ data: null }, { status: 200 });
+    }
 
     if (process.env.E2E_MOCK_SESSION === "1") {
       const [firstName = "E2E", ...rest] = payload.email.split("@")[0]?.split(/[._-]+/) ?? [];
