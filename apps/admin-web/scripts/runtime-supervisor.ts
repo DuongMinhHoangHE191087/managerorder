@@ -135,7 +135,8 @@ function resolveWebArgs(): string[] {
     return [nextBin, "start"];
   }
 
-  return [nextBin, "dev", "--turbopack"];
+  const useTurbo = process.env.NEXT_TURBO !== "false";
+  return useTurbo ? [nextBin, "dev", "--turbopack"] : [nextBin, "dev"];
 }
 
 async function shutdown(
