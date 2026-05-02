@@ -18,10 +18,12 @@
     "test:bot": "corepack pnpm --dir packages/zalo-bot-js run test",
     "build:admin": "corepack pnpm --dir apps/admin-web run build",
     "build:bot": "corepack pnpm --dir packages/zalo-bot-js run build",
+    "build:all": "corepack pnpm build:admin && corepack pnpm build:bot",
+    "build:full": "corepack pnpm build:all",
     "lint": "corepack pnpm lint:admin && corepack pnpm lint:bot",
     "typecheck": "corepack pnpm typecheck:admin && corepack pnpm typecheck:bot",
     "test": "corepack pnpm test:admin && corepack pnpm test:bot",
-    "build": "corepack pnpm build:admin && corepack pnpm build:bot",
+    "build": "corepack pnpm build:admin",
     "check:bots": "corepack pnpm --dir apps/admin-web run check:telegram-runtime && corepack pnpm --dir apps/admin-web run check:zalo-runtime",
     "check:bots:live": "corepack pnpm --dir apps/admin-web run check:bots:live",
     "seed:bots:live": "corepack pnpm --dir apps/admin-web run seed:bots:live",
@@ -30,7 +32,7 @@
     "check:all": "node ./scripts/check-all-project.mjs",
     "check:all:live-telegram": "node ./scripts/check-all-project.mjs --live-telegram",
     "audit:prod": "corepack pnpm audit --prod",
-    "check": "corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build"
+    "check": "corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build:all"
   },
   "devDependencies": {
     "eslint": "^9.39.4",
