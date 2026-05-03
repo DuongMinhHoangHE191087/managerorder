@@ -138,6 +138,7 @@ const E2E_MOCK_SESSION_HEADER = "x-e2e-mock-session";
 const E2E_MOCK_USER_ID = "00000000-0000-4000-8000-000000000002";
 const E2E_MOCK_EMAIL = "e2e-mock@managerorder.local";
 const E2E_MOCK_ROLE: UserRole = "admin_owner";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function isUserRole(value: string | null | undefined): value is UserRole {
   return value === "admin_owner"
@@ -145,6 +146,10 @@ function isUserRole(value: string | null | undefined): value is UserRole {
     || value === "inventory_staff"
     || value === "customer_support"
     || value === "accountant";
+}
+
+function isUuid(value: string | null | undefined): value is string {
+  return typeof value === "string" && UUID_PATTERN.test(value);
 }
 
 /**
@@ -156,15 +161,16 @@ export async function resolveUser(
   req: NextRequest,
   accountId: string
 ): Promise<RBACUser | null> {
-  const userId = req.headers.get("x-user-id")?.trim();
+  const headerUserId = req.headers.get("x-user-id")?.trim() || null;
   const userEmail = req.headers.get("x-user-email")?.trim();
-  const identityValue = userId ?? userEmail ?? null;
-  const identityColumn = userId ? "id" : "email";
+  const lookupUserId = isUuid(headerUserId) ? headerUserId : null;
+  const identityValue = lookupUserId ?? userEmail ?? null;
+  const identityColumn = lookupUserId ? "id" : "email";
   const isE2EMockSession = process.env.E2E_MOCK_SESSION === "1";
   const mockSessionHeader = req.headers.get(E2E_MOCK_SESSION_HEADER);
 
   if (isE2EMockSession && mockSessionHeader === "1") {
-    const mockUserId = userId || E2E_MOCK_USER_ID;
+    const mockUserId = headerUserId || E2E_MOCK_USER_ID;
     const mockEmail = userEmail || E2E_MOCK_EMAIL;
     const mockRole = req.headers.get("x-user-role");
 
@@ -180,6 +186,10 @@ export async function resolveUser(
   const lookupAdminUser = async (
     identity: { column: "id" | "email"; value: string }
   ): Promise<RBACUser | null> => {
+    if (identity.column === "id" && !isUuid(identity.value)) {
+      return null;
+    }
+
     const { data: adminUser, error } = await supabaseAdmin
       .from("admin_users")
       .select("id, email, role, full_name")

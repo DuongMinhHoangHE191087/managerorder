@@ -88,6 +88,16 @@ export const createProductInputSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+export const updateProductInputSchema = z.object({
+  name: z.string().min(1, "Vui lòng nhập tên sản phẩm").optional(),
+  mode: z.enum(["slot", "key", "hybrid"]).optional(),
+  buyPriceVnd: z.number().min(0).optional(),
+  sellPriceVnd: z.number().min(0, "Giá bán không được âm").optional(),
+  durationType: z.enum(["days", "months", "years"]).optional(),
+  durationValue: z.number().int().min(1, "Thời hạn phải từ 1 trở lên").optional(),
+  isActive: z.boolean().optional(),
+});
+
 export const contactInfoSchema = z.object({
   id: z.string().optional(),
   type: z.enum(["phone", "email", "zalo", "facebook", "telegram", "other"]),
@@ -212,6 +222,7 @@ export const updateCalendarEventSchema = z.object({
 });
 
 export type CreateProductInput = z.infer<typeof createProductInputSchema>;
+export type UpdateProductInput = z.infer<typeof updateProductInputSchema>;
 export type CreateCustomerInput = z.infer<typeof createCustomerInputSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerInputSchema>;
 export type CreateProviderInput = z.infer<typeof createProviderInputSchema>;

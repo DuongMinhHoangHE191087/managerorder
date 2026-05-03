@@ -8,6 +8,7 @@ import {
   createProductInputSchema,
   createCustomerInputSchema,
   updateCustomerInputSchema,
+  updateProductInputSchema,
   contactInfoSchema,
 } from "@/lib/domain/schemas";
 
@@ -128,21 +129,19 @@ describe("createProductInputSchema", () => {
     expect(result.sellPriceVnd).toBe(0);
   });
 
-  // --- Partial for update ---
-  it("should support .partial() for product update", () => {
-    const result = createProductInputSchema.partial().parse({ name: "Updated" });
+  // --- Product update ---
+  it("should support partial product updates without create defaults", () => {
+    const result = updateProductInputSchema.parse({ name: "Updated" });
     expect(result.name).toBe("Updated");
-    // .partial() makes fields optional, but .default() still applies
-    expect(result.mode).toBe("slot");
+    expect(result.mode).toBeUndefined();
   });
 
-  it("should accept empty object in partial mode", () => {
-    const result = createProductInputSchema.partial().parse({});
-    // Zod applies defaults even in partial mode
-    expect(result.mode).toBe("slot");
-    expect(result.buyPriceVnd).toBe(0);
-    expect(result.isActive).toBe(true);
-    expect(result.durationType).toBe("days");
+  it("should accept empty product update without backfilling defaults", () => {
+    const result = updateProductInputSchema.parse({});
+    expect(result.mode).toBeUndefined();
+    expect(result.buyPriceVnd).toBeUndefined();
+    expect(result.isActive).toBeUndefined();
+    expect(result.durationType).toBeUndefined();
     expect(result.name).toBeUndefined();
     expect(result.sellPriceVnd).toBeUndefined();
     expect(result.durationValue).toBeUndefined();

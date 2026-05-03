@@ -510,14 +510,10 @@ describe("DELETE /api/customers/[id]", () => {
 
 describe("POST /api/customers — edge cases", () => {
   it("should reject request with missing body", async () => {
-    const req = new (await import("next/server")).NextRequest(
-      "http://localhost:3000/api/customers",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-account-id": TEST_ACCOUNT_ID },
-        body: JSON.stringify({}),
-      }
-    );
+    const req = createTestRequest("http://localhost:3000/api/customers", {
+      method: "POST",
+      body: {},
+    });
     const res = await POST(req, { params: {} } as any);
     expect(res.status).toBe(400);
   });

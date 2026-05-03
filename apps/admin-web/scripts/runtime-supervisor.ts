@@ -25,7 +25,7 @@ const require = createRequire(import.meta.url);
 let nextBin: string;
 try {
   nextBin = require.resolve("next/dist/bin/next");
-} catch (e) {
+} catch (_e) {
   // Ignore error here, it will be handled in resolveWebArgs if needed
 }
 

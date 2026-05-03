@@ -11,6 +11,8 @@ export const TEST_USER_ID = "test-user-id-001";
 export const TEST_USER_EMAIL = "test-user@local";
 export const TEST_USER_ROLE = "admin_owner";
 
+process.env.E2E_MOCK_SESSION ??= "1";
+
 /**
  * Set up standard API route mocks. Call in vi.mock() blocks BEFORE importing routes.
  *
@@ -200,6 +202,7 @@ export function createTestRequest(
       "x-user-id": TEST_USER_ID,
       "x-user-email": TEST_USER_EMAIL,
       "x-user-role": TEST_USER_ROLE,
+      "x-e2e-mock-session": "1",
       ...(options?.headers ?? {}),
     },
   };

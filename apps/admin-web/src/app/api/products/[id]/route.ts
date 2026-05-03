@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createProductInputSchema } from "@/lib/domain/schemas";
+import { updateProductInputSchema } from "@/lib/domain/schemas";
 import { deleteProductForAccount, getProductForAccount, updateProductForAccount } from "@/domains/products";
 import { withAccount } from "@/lib/api/with-account";
 import { withErrorHandler } from "@/lib/api/with-error-handler";
@@ -24,7 +24,7 @@ export const PATCH = withErrorHandler(
     requirePermissions<{ id: string }>(["order:update"])(async (request: NextRequest, { accountId, params }) => {
       const { id } = await params;
       const body = await request.json() as unknown;
-      const d = createProductInputSchema.partial().parse(body);
+      const d = updateProductInputSchema.parse(body);
       const data = await updateProductForAccount(id, accountId, d);
       return NextResponse.json({ data });
     })

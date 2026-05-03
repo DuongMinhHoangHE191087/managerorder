@@ -144,6 +144,32 @@ describe("resolveUser", () => {
     expect(rbacMocks.eqIdentityMock).toHaveBeenCalledWith("email", TEST_USER_EMAIL);
   });
 
+  it("falls back to x-user-email when x-user-id is not a UUID", async () => {
+    rbacMocks.maybeSingleMock.mockResolvedValue({
+      data: {
+        id: "00000000-0000-4000-8000-0000000000d2",
+        email: TEST_USER_EMAIL,
+        role: "sales_staff",
+        full_name: "Email User",
+      },
+      error: null,
+    });
+
+    const req = new NextRequest("http://localhost/api/test", {
+      headers: {
+        "x-account-id": TEST_ACCOUNT_ID,
+        "x-user-id": "codex-short-link-smoke",
+        "x-user-email": TEST_USER_EMAIL,
+      },
+    });
+
+    const user = await resolveUser(req, TEST_ACCOUNT_ID);
+
+    expect(user?.userId).toBe("00000000-0000-4000-8000-0000000000d2");
+    expect(rbacMocks.eqIdentityMock).toHaveBeenCalledWith("email", TEST_USER_EMAIL);
+    expect(rbacMocks.eqIdentityMock).not.toHaveBeenCalledWith("id", "codex-short-link-smoke");
+  });
+
   it("returns null when the admin user lookup fails", async () => {
     rbacMocks.maybeSingleMock.mockResolvedValue({
       data: null,

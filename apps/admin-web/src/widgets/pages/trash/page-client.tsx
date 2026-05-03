@@ -571,7 +571,6 @@ export default function TrashPage() {
   );
 
   const selectedCount = selectedIds.size;
-  const totalTrash = Object.values(counts).reduce((sum, value) => sum + value, 0);
 
   const handleRestoreSelected = () => {
     if (selectedIds.size === 0) {
