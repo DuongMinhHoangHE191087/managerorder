@@ -111,4 +111,16 @@ describe("fetcher", () => {
     const [, options] = mockFetch.mock.calls[0];
     expect(options.credentials).toBe("include");
   });
+
+  it("attaches status and code to HTTP errors", async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({ error: { message: "Not found", code: "NOT_FOUND" } }, 404)
+    );
+
+    await expect(fetcher("/api/missing")).rejects.toMatchObject({
+      name: "HttpError",
+      status: 404,
+      code: "NOT_FOUND",
+    });
+  });
 });

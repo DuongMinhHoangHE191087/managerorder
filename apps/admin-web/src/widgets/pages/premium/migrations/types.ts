@@ -39,6 +39,11 @@ export type MigrationListRow = AccountMigration & {
   source_user_id?: string | null;
   target_user_id?: string | null;
   terminal_reason?: string | null;
+  initiated_by: string | null;
+  started_at: string;
+  completed_at: string | null;
+  error_log: string | null;
+  updated_at: string;
   source_account: {
     id: string;
     primary_email: string;

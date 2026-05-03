@@ -24,6 +24,7 @@ import { queryKeys } from "@/shared/lib/react-query/query-keys";
 import { getOrderNextStatuses } from "@/lib/domain/order-state-machine";
 import type { OrderStatus } from "@/lib/domain/types";
 import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
+import { SoftDeletedBadge } from "@/shared/ui/soft-deleted-badge";
 
 /* ─── Types ──────────────────────────────────────────────── */
 interface LicenseKey {
@@ -171,8 +172,9 @@ export default function OrderDetailPage() {
   const trashMode = searchParams.get("trash") === "1";
   const queryClient = useQueryClient();
 
-  const { data: rawOrder, isLoading, error } = useOrder(orderId, trashMode);
-  const order = rawOrder as OrderDetail | undefined | null;
+  const { data: rawOrderResult, isLoading, error } = useOrder(orderId, trashMode);
+  const order = (rawOrderResult?.data as OrderDetail | undefined | null) ?? null;
+  const isTrashView = trashMode || Boolean(rawOrderResult?.softDeleted);
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -286,6 +288,7 @@ export default function OrderDetailPage() {
             </div>
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-black text-[var(--fg-base)] tracking-tight">{vi.orders.detail.title}</h1>
+              {isTrashView ? <SoftDeletedBadge /> : null}
               <span className={`px-3 py-1 text-[11px] font-bold rounded-full uppercase tracking-wider ${getStatusStyle(order.status)}`}>
                 {getStatusLabel(order.status)}
               </span>
@@ -294,7 +297,7 @@ export default function OrderDetailPage() {
           <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="secondary"
-            onClick={() => router.push(trashMode ? "/trash?type=orders" : "/orders")}
+            onClick={() => router.push(isTrashView ? "/trash?type=orders" : "/orders")}
             className="text-[13px] font-bold"
           >
             <ArrowLeft className="size-4 mr-1.5" /> {vi.orders.detail.back}
@@ -305,7 +308,7 @@ export default function OrderDetailPage() {
           <Button variant="secondary" onClick={() => fetchAndPrint(order.id)} className="text-[13px] font-bold">
             <Printer className="size-4 mr-1.5" /> {vi.orders.detail.printInvoice}
           </Button>
-            {!trashMode && order.expires_at && (
+            {!isTrashView && order.expires_at && (
               <Button
                 variant="secondary"
                 onClick={() => setIsRenewModalOpen(true)}
@@ -314,7 +317,7 @@ export default function OrderDetailPage() {
               <RefreshCw className="size-4 mr-1.5" /> {vi.orders.detail.renew}
               </Button>
             )}
-            {!trashMode ? (
+            {!isTrashView ? (
               <>
                 <Button variant="secondary" onClick={() => setIsEditModalOpen(true)} className="text-[13px] font-bold">
                   <Edit3 className="size-4 mr-1.5" /> {vi.orders.detail.editInfo}
@@ -346,7 +349,7 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {trashMode ? (
+        {isTrashView ? (
           <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-700">
             Bản ghi này đang ở thùng rác. Dữ liệu hiển thị để xem lại, còn khôi phục/xoá vĩnh viễn nằm ngay trên thanh thao tác.
           </div>
@@ -460,9 +463,9 @@ export default function OrderDetailPage() {
                    <RefreshCw className="size-3.5" /> {vi.orders.detail.changeStatus}
                 </h3>
                </div>
-               {trashMode ? (
-                 <div className="p-4 space-y-3">
-                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-[13px] font-medium text-amber-700">
+                {isTrashView ? (
+                  <div className="p-4 space-y-3">
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-[13px] font-medium text-amber-700">
                      Đơn hàng đang ở thùng rác, không còn dùng luồng đổi trạng thái.
                    </div>
                    <div className="grid grid-cols-2 gap-2">

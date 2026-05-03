@@ -4,6 +4,12 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 500;
 
+export interface HttpError extends Error {
+  status: number;
+  code?: string;
+  payload?: unknown;
+}
+
 export async function fetcher<T>(url: string, options?: RequestInit): Promise<T> {
   let lastError: Error | null = null;
   const requestUrl = normalizeRequestUrl(url);
@@ -39,7 +45,14 @@ export async function fetcher<T>(url: string, options?: RequestInit): Promise<T>
         const fallback =
           res.status >= 500 ? "Lỗi máy chủ nội bộ" : "Yêu cầu không hợp lệ";
         const normalized = normalizeFlatApiError(payload, fallback);
-        throw new Error(normalized.error || fallback);
+        const httpError = new Error(normalized.error || fallback) as HttpError;
+        httpError.name = "HttpError";
+        httpError.status = res.status;
+        if (normalized.code) {
+          httpError.code = normalized.code;
+        }
+        httpError.payload = payload;
+        throw httpError;
       }
 
       if (!payload || typeof payload !== "object") {

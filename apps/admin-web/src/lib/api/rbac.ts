@@ -134,6 +134,11 @@ interface AdminUserRow {
   full_name: string | null;
 }
 
+const E2E_MOCK_SESSION_HEADER = "x-e2e-mock-session";
+const E2E_MOCK_USER_ID = "00000000-0000-4000-8000-000000000002";
+const E2E_MOCK_EMAIL = "e2e-mock@managerorder.local";
+const E2E_MOCK_ROLE: UserRole = "admin_owner";
+
 function isUserRole(value: string | null | undefined): value is UserRole {
   return value === "admin_owner"
     || value === "sales_staff"
@@ -155,6 +160,22 @@ export async function resolveUser(
   const userEmail = req.headers.get("x-user-email")?.trim();
   const identityValue = userId ?? userEmail ?? null;
   const identityColumn = userId ? "id" : "email";
+  const isE2EMockSession = process.env.E2E_MOCK_SESSION === "1";
+  const mockSessionHeader = req.headers.get(E2E_MOCK_SESSION_HEADER);
+
+  if (isE2EMockSession && mockSessionHeader === "1") {
+    const mockUserId = userId || E2E_MOCK_USER_ID;
+    const mockEmail = userEmail || E2E_MOCK_EMAIL;
+    const mockRole = req.headers.get("x-user-role");
+
+    return {
+      userId: mockUserId,
+      email: mockEmail,
+      role: isUserRole(mockRole) ? mockRole : E2E_MOCK_ROLE,
+      accountId,
+      displayName: null,
+    };
+  }
 
   const lookupAdminUser = async (
     identity: { column: "id" | "email"; value: string }

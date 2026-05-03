@@ -3,6 +3,7 @@ import { createActivityLog } from "@/lib/supabase/repositories/activity-logs.rep
 import {
   createLicenseKey as createLicenseKeyRepo,
   deleteLicenseKey as deleteLicenseKeyRepo,
+  getLicenseKeyById as getLicenseKeyByIdRepo,
   getLicenseKeysByProduct as getLicenseKeysByProductRepo,
   listLicenseKeys as listLicenseKeysRepo,
   updateLicenseKeyStatus as updateLicenseKeyStatusRepo,
@@ -17,6 +18,14 @@ type CreateLicenseKeyInput = {
 
 export async function listInventoryKeysForAccount(accountId: string): Promise<LicenseKeyRow[]> {
   return listLicenseKeysRepo(accountId);
+}
+
+export async function getInventoryKeyForAccount(
+  id: string,
+  accountId: string,
+  options: { includeDeleted?: boolean } = {},
+): Promise<LicenseKeyRow | null> {
+  return getLicenseKeyByIdRepo(id, accountId, options);
 }
 
 export async function getAvailableInventoryKeysForProduct(

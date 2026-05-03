@@ -28,6 +28,34 @@ export async function listLicenseKeys(accountId: string): Promise<LicenseKeyRow[
   return data ?? [];
 }
 
+export async function getLicenseKeyById(
+  id: string,
+  accountId: string,
+  options: { includeDeleted?: boolean } = {},
+): Promise<LicenseKeyRow | null> {
+  const includeDeleted = options.includeDeleted ?? false;
+
+  let query = supabase
+    .from('license_keys')
+    .select('*')
+    .eq('id', id)
+    .eq('account_id', accountId);
+
+  if (!includeDeleted) {
+    query = query.is('deleted_at', null);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) {
+    if (isMissingRelationError(error, 'license_keys')) {
+      return null;
+    }
+    throw new Error(error.message);
+  }
+
+  return data ?? null;
+}
+
 export async function getLicenseKeysByProduct(
   accountId: string,
   productId: string

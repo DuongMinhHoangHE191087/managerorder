@@ -3,6 +3,7 @@ import { fetcher } from "@/lib/api/fetcher";
 import type { SourceAccount, WarehouseCredentialType } from "@/lib/domain/types";
 import { queryKeys } from "@/shared/lib/react-query/query-keys";
 import type { SlotBreakdownData } from "@/shared/types/inventory";
+import { fetchRecoverableDetail } from "@/shared/lib/recoverable-detail";
 
 export interface DecryptedSourceAccountCredential {
   id: string;
@@ -30,10 +31,7 @@ export function useSourceAccounts() {
 export function useSourceAccount(id: string, includeDeleted = false) {
   return useQuery({
     queryKey: [...queryKeys.sourceAccount(id), includeDeleted ? "trash" : "active"],
-    queryFn: () =>
-      fetcher<SourceAccount>(
-        `/api/source-accounts/${id}${includeDeleted ? "?include_deleted=1" : ""}`,
-      ),
+    queryFn: () => fetchRecoverableDetail<SourceAccount>(`/api/source-accounts/${id}`, includeDeleted),
     enabled: !!id,
     staleTime: 15_000,
     gcTime: 5 * 60_000,

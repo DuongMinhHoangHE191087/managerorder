@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { appToast } from "@/shared/ui/app-toast";
 import { queryKeys } from "@/shared/lib/react-query/query-keys";
+import { TRASH_COPY as copy } from "../copy";
 
 // Types matching trash.repo.ts
 type TrashEntityType = "customers" | "orders" | "products" | "providers" | "source_accounts" | "license_keys" | "short_links";
@@ -37,13 +38,48 @@ const TRASH_INVALIDATION_TARGETS: Record<TrashEntityType, readonly (readonly unk
   ],
 };
 
+const TRASH_DETAIL_INVALIDATION_TARGETS: Record<TrashEntityType, (id: string) => readonly (readonly unknown[])[]> = {
+  customers: (id) => [
+    queryKeys.customer(id),
+    queryKeys.customer360Stats(id),
+  ],
+  orders: (id) => [
+    queryKeys.order(id),
+    queryKeys.orderStatusHistory(id),
+    queryKeys.payments(id),
+    queryKeys.refunds(id),
+  ],
+  products: (id) => [
+    queryKeys.product(id),
+  ],
+  providers: (id) => [
+    queryKeys.provider(id),
+    queryKeys.providerPurchaseOrders(id),
+  ],
+  source_accounts: (id) => [
+    queryKeys.sourceAccount(id),
+    queryKeys.sourceAccountDecrypt(id),
+    queryKeys.sourceAccountConnections(id),
+    queryKeys.slotBreakdown(id),
+    queryKeys.connectionsEnriched(id),
+  ],
+  license_keys: (id) => [
+    queryKeys.inventoryItem(id),
+  ],
+  short_links: (id) => [
+    ["short-link-detail", id],
+  ],
+};
+
 async function invalidateTrashRelatedQueries(
   qc: ReturnType<typeof useQueryClient>,
   type: TrashEntityType,
+  ids: string[],
 ) {
   const targets = [
     ["trash"] as const,
     ...TRASH_INVALIDATION_TARGETS[type],
+    ...ids.flatMap((id) => TRASH_DETAIL_INVALIDATION_TARGETS[type](id)),
   ];
 
   await Promise.all(
@@ -96,13 +132,13 @@ export function useRestoreItems() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Khôi phục thất bại");
+        throw new Error(err.error || copy.errors.restoreFailed);
       }
       return res.json();
     },
     onSuccess: (data, vars) => {
-      void invalidateTrashRelatedQueries(qc, vars.type);
-      appToast.success(data.message || `Đã khôi phục ${vars.ids.length} mục`);
+      void invalidateTrashRelatedQueries(qc, vars.type, vars.ids);
+      appToast.success(data.message || copy.toasts.restored(vars.ids.length));
     },
     onError: (err: Error) => appToast.error(err.message),
   });
@@ -120,13 +156,13 @@ export function usePurgeItems() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Xóa vĩnh viễn thất bại");
+        throw new Error(err.error || copy.errors.purgeFailed);
       }
       return res.json();
     },
     onSuccess: (data, vars) => {
-      void invalidateTrashRelatedQueries(qc, vars.type);
-      appToast.success(data.message || "Đã xóa vĩnh viễn");
+      void invalidateTrashRelatedQueries(qc, vars.type, vars.ids);
+      appToast.success(data.message || copy.toasts.purged);
     },
     onError: (err: Error) => appToast.error(err.message),
   });

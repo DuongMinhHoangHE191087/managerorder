@@ -8,6 +8,7 @@ import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 import type { WarehouseCredential, WarehouseCredentialType } from "@/lib/domain/types";
 import { formatNumber } from "@/lib/utils";
+import { INVENTORY_COPY as copy } from "../copy";
 
 export interface DuolingoAutoFillResult {
   userId: number;
@@ -51,11 +52,11 @@ const CREDENTIAL_TYPES: {
   placeholder: string;
   sensitive?: boolean;
 }[] = [
-  { value: "link_join", label: "Link Tham Gia", icon: Link2, placeholder: "https://..." },
-  { value: "2fa", label: "Mã 2FA", icon: Shield, placeholder: "Mã 2FA hoặc secret key...", sensitive: true },
-  { value: "2fa_backup", label: "Mã Dự Phòng 2FA", icon: Key, placeholder: "Mã backup 2FA...", sensitive: true },
-  { value: "duolingo_id", label: "Duolingo ID", icon: Zap, placeholder: "Auto-fetch hoặc nhập tay..." },
-  { value: "other", label: "Khác", icon: MoreHorizontal, placeholder: "Giá trị..." },
+  { value: "link_join", label: copy.dynamicCredentials.types.linkJoin.label, icon: Link2, placeholder: copy.dynamicCredentials.types.linkJoin.placeholder },
+  { value: "2fa", label: copy.dynamicCredentials.types.twoFa.label, icon: Shield, placeholder: copy.dynamicCredentials.types.twoFa.placeholder, sensitive: true },
+  { value: "2fa_backup", label: copy.dynamicCredentials.types.twoFaBackup.label, icon: Key, placeholder: copy.dynamicCredentials.types.twoFaBackup.placeholder, sensitive: true },
+  { value: "duolingo_id", label: copy.dynamicCredentials.types.duolingoId.label, icon: Zap, placeholder: copy.dynamicCredentials.types.duolingoId.placeholder },
+  { value: "other", label: copy.dynamicCredentials.types.other.label, icon: MoreHorizontal, placeholder: copy.dynamicCredentials.types.other.placeholder },
 ];
 
 export function DynamicCredentialList({ credentials, onChange, baseUsername, basePassword, suggestDuolingo, onAutoFillResult }: DynamicCredentialListProps) {
@@ -93,7 +94,7 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
   // Login Duolingo: authenticate → fill ID, link_join, show family panel
   const handleDuolingoLogin = async () => {
     if (!baseUsername?.trim() || !basePassword?.trim()) {
-      appToast.error("Vui lòng nhập Email/Username và Mật khẩu đăng nhập kho ở trên trước!");
+      appToast.error(copy.dynamicCredentials.errors.missingBaseCredentials);
       return;
     }
     setAutoFillLoading(true);
@@ -106,7 +107,7 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
       });
       const data = await res.json();
       if (!res.ok) {
-        appToast.error(data.error || "Đăng nhập Duolingo thất bại");
+        appToast.error(data.error || copy.dynamicCredentials.errors.loginFailed);
         return;
       }
 
@@ -143,16 +144,16 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
       onAutoFillResult?.(data);
 
       const parts = [`Username: ${data.username}`, `ID: ${data.userId}`];
-      if (data.hasPlus) parts.push("⭐ Plus");
+      if (data.hasPlus) parts.push(copy.dynamicCredentials.duolingoLogin.plus);
       if (data.subscription?.isFamilyPlan) {
         const memberCount = data.familyMembers?.length ?? 0;
         const maxMembers = data.subscription?.maxFamilyMembers ?? 6;
         const freeCount = Math.max(0, maxMembers - memberCount);
         parts.push(`👨‍👩‍👧‍👦 Family ${memberCount}/${maxMembers} (trống: ${freeCount})`);
       }
-      appToast.success(`🦉 ${parts.join(" • ")}`);
+      appToast.success(copy.dynamicCredentials.toasts.loginSuccess(parts));
     } catch {
-      appToast.error("Lỗi kết nối khi đăng nhập Duolingo");
+      appToast.error(copy.dynamicCredentials.errors.loginConnectionFailed);
     } finally {
       setAutoFillLoading(false);
     }
@@ -162,7 +163,7 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
     if (loginResult?.inviteToken) {
       navigator.clipboard.writeText(loginResult.inviteToken);
       setCopiedToken(true);
-      appToast.success("Đã sao chép Invite Token!");
+      appToast.success(copy.dynamicCredentials.toasts.copiedInviteToken);
       setTimeout(() => setCopiedToken(false), 2000);
     }
   };
@@ -186,10 +187,10 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
         <div>
           <h3 className="text-[13px] font-bold text-[var(--fg-base)] flex items-center gap-2">
             <Key className="size-4 text-[var(--accent)]" />
-            Thông tin đăng nhập kho
+            {copy.dynamicCredentials.header.title}
           </h3>
           <p className="text-[11px] text-[var(--fg-muted)] mt-0.5">
-            Link Join, 2FA, mã dự phòng...
+            {copy.dynamicCredentials.header.description}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -201,7 +202,7 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
               onClick={() => addCredential("duolingo_id")}
               className="h-8 gap-1.5 bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-600 border-green-500/20"
             >
-              <Zap className="size-3.5" /> Thêm Duolingo ID
+              <Zap className="size-3.5" /> {copy.dynamicCredentials.header.addDuolingoId}
             </Button>
           )}
           <CredentialAddDropdown onAdd={addCredential} />
@@ -217,9 +218,9 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
           className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border-2 border-dashed border-green-500/40 bg-gradient-to-r from-green-500/5 to-emerald-500/5 hover:from-green-500/10 hover:to-emerald-500/10 hover:border-green-500/60 text-green-600 text-[13px] font-bold transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed group"
         >
           {autoFillLoading ? (
-            <><Loader2 className="size-4 animate-spin" /> Đang đăng nhập Duolingo...</>
+            <><Loader2 className="size-4 animate-spin" /> {copy.dynamicCredentials.duolingoLogin.loading}</>
           ) : (
-            <><LogIn className="size-4 group-hover:scale-110 transition-transform" /> 🦉 Đăng nhập Duolingo — Lấy ID, Username, Family</>
+            <><LogIn className="size-4 group-hover:scale-110 transition-transform" /> {copy.dynamicCredentials.duolingoLogin.idle}</>
           )}
         </button>
       )}
@@ -241,14 +242,14 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
                     </span>
                     {loginResult.hasPlus && (
                       <span className="text-[9px] font-bold bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                        ⭐ Plus
+                        {copy.dynamicCredentials.duolingoLogin.plus}
                       </span>
                     )}
                   </div>
                   <div className="text-[11px] text-green-600 flex items-center gap-2">
-                    <span>ID: <strong>{loginResult.userId}</strong></span>
+                    <span>{copy.dynamicCredentials.duolingoLogin.idLabel}: <strong>{loginResult.userId}</strong></span>
                     <span>•</span>
-                    <span>XP: {formatNumber(loginResult.totalXp)}</span>
+                    <span>{copy.dynamicCredentials.duolingoLogin.xpLabel}: {formatNumber(loginResult.totalXp)}</span>
                     <span>•</span>
                     <span>🔥 {loginResult.streak}</span>
                   </div>
@@ -260,7 +261,7 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
                 rel="noopener noreferrer"
                 className="text-[11px] text-green-600 hover:text-green-700 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-green-200/50 transition-colors"
               >
-                <ExternalLink className="size-3" /> Profile
+                <ExternalLink className="size-3" /> {copy.dynamicCredentials.duolingoLogin.profile}
               </a>
             </div>
           </div>
@@ -271,14 +272,14 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
               {/* Slot bar */}
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[11px] font-bold text-green-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <Users className="size-3.5" /> Family Plan
+                  <Users className="size-3.5" /> {copy.dynamicCredentials.duolingoLogin.familyPlan}
                 </span>
                 <div className="flex items-center gap-3 text-[11px]">
                   <span className="text-green-700">
-                    Đã join: <strong>{usedSlots}</strong>
+                    {copy.dynamicCredentials.duolingoLogin.joined}: <strong>{usedSlots}</strong>
                   </span>
                   <span className={`font-bold ${freeSlots > 0 ? "text-blue-600" : "text-red-500"}`}>
-                    Còn trống: <strong>{freeSlots}</strong>
+                    {copy.dynamicCredentials.duolingoLogin.freeSlots}: <strong>{freeSlots}</strong>
                   </span>
                   <span className="text-green-600 font-black">
                     {usedSlots}/{maxSlots}
@@ -298,7 +299,7 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
               {loginResult.inviteToken && (
                 <div className="flex items-center gap-2 p-2 bg-white/50 rounded-lg border border-green-200/50">
                   <span className="text-[10px] font-bold text-green-600 uppercase shrink-0">
-                    Invite Token:
+                    {copy.dynamicCredentials.duolingoLogin.inviteToken}:
                   </span>
                   <code className="text-[12px] font-mono font-bold text-green-800 flex-1 truncate">
                     {loginResult.inviteToken}
@@ -307,7 +308,7 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
                     type="button"
                     onClick={handleCopyInviteToken}
                     className="size-7 flex items-center justify-center rounded-md hover:bg-green-100 transition-colors shrink-0"
-                    title="Sao chép Invite Token"
+                    title={copy.dynamicCredentials.duolingoLogin.inviteTokenTitle}
                   >
                     {copiedToken ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5 text-green-600" />}
                   </button>
@@ -318,7 +319,7 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
               {loginResult.familyMembers.length > 0 && (
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-bold text-green-600/70 uppercase tracking-wider">
-                    Thành viên ({loginResult.familyMembers.length})
+                    {copy.dynamicCredentials.duolingoLogin.members} ({loginResult.familyMembers.length})
                   </span>
                   <div className="grid gap-1.5">
                     {loginResult.familyMembers.map((member) => (
@@ -338,24 +339,24 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
                             <span className="font-bold text-[12px] text-[var(--fg-base)] truncate">
-                              {member.username || `User #${member.id}`}
+                              {member.username || copy.duolingoFamily.members.fallbackUser(member.id)}
                             </span>
                             {member.isOwner && (
-                              <span className="text-[8px] font-bold bg-amber-100 text-amber-600 px-1 py-px rounded uppercase">Owner</span>
+                              <span className="text-[8px] font-bold bg-amber-100 text-amber-600 px-1 py-px rounded uppercase">{copy.dynamicCredentials.duolingoLogin.owner}</span>
                             )}
                             {member.hasPlus && !member.isOwner && (
                               <span className="text-[8px] font-bold bg-green-100 text-green-600 px-1 py-px rounded">⭐</span>
                             )}
                           </div>
                           <span className="text-[10px] text-[var(--fg-muted)]">
-                            ID: {member.id}{member.name ? ` • ${member.name}` : ""}
+                            {copy.dynamicCredentials.duolingoLogin.idLabel}: {member.id}{member.name ? ` • ${member.name}` : ""}
                           </span>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleCopyMember(member)}
                           className="size-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
-                          title={`Sao chép ${member.username || member.id}`}
+                          title={copy.dynamicCredentials.duolingoLogin.copyTitle(member.username || member.id)}
                         >
                           {copiedMemberId === member.id
                             ? <Check className="size-3 text-green-500" />
@@ -374,8 +375,8 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
           {!loginResult.subscription?.isFamilyPlan && (
             <div className="p-3 text-center">
               <span className="text-[12px] text-[var(--fg-muted)]">
-                Gói: <strong>{loginResult.subscription?.planType || "Individual"}</strong>
-                {loginResult.subscription?.isActive && " • ✅ Active"}
+                {copy.dynamicCredentials.duolingoLogin.packageLabel}: <strong>{loginResult.subscription?.planType || copy.duolingoFamily.nonFamily.fallbackPlan}</strong>
+                {loginResult.subscription?.isActive && ` • ${copy.dynamicCredentials.duolingoLogin.activeLabel}`}
               </span>
             </div>
           )}
@@ -386,7 +387,7 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
       <div className="space-y-2">
         {credentials.length === 0 && (
           <p className="text-[12px] text-[var(--fg-muted)] italic py-2 text-center">
-            Chưa có thông tin đăng nhập. Nhấn + để thêm.
+            {copy.dynamicCredentials.empty}
           </p>
         )}
         {credentials.map((cred) => (
@@ -438,7 +439,7 @@ function CredentialRow({
     }
 
     if (!usernameToLookup || /^\d+$/.test(usernameToLookup)) {
-      appToast.error("Nhập username (hoặc @username) vào ô để lấy ID!");
+      appToast.error(copy.dynamicCredentials.errors.missingUsername);
       return;
     }
 
@@ -449,12 +450,12 @@ function CredentialRow({
       if (data.id) {
         const resolvedUsername = data.username ?? usernameToLookup;
         updateCredential(cred.id, { value: `Username: ${resolvedUsername} | DuolingoID: ${data.id}` });
-        appToast.success(`Lấy ID thành công — Username: ${resolvedUsername} | DuolingoID: ${data.id}`);
+        appToast.success(copy.dynamicCredentials.toasts.lookupSuccess(resolvedUsername, data.id));
       } else {
-        appToast.error(data.error || `Không tìm thấy ID cho "${usernameToLookup}"`);
+        appToast.error(data.error || copy.dynamicCredentials.errors.lookupFailed(usernameToLookup));
       }
     } catch {
-      appToast.error("Lỗi kết nối khi lấy Duolingo ID");
+      appToast.error(copy.dynamicCredentials.errors.lookupConnectionFailed);
     } finally {
       setLoading(false);
     }
@@ -481,7 +482,7 @@ function CredentialRow({
           <Input
             value={cred.label ?? ""}
             onChange={(e) => updateCredential(cred.id, { label: e.target.value })}
-            placeholder="Tên trường..."
+            placeholder={copy.dynamicCredentials.otherLabelPlaceholder}
             className="h-9 text-[12px] w-28 shrink-0"
           />
         )}
@@ -494,7 +495,7 @@ function CredentialRow({
               type={isSensitive && !isVisible ? "password" : "text"}
               value={cred.value}
               onChange={(e) => updateCredential(cred.id, { value: e.target.value })}
-              placeholder={isDuolingoId ? "Nhập username để lấy ID hoặc nhập ID tay..." : typeInfo.placeholder}
+              placeholder={isDuolingoId ? copy.dynamicCredentials.duolingoInputPlaceholder : typeInfo.placeholder}
               className={`h-9 pl-8 pr-9 text-[12px] font-mono ${isDuolingoId ? "border-green-500/30 focus:ring-green-500" : ""}`}
             />
             {isSensitive && (
@@ -517,7 +518,7 @@ function CredentialRow({
               className="h-9 whitespace-nowrap px-3 text-green-600 bg-green-500/10 hover:bg-green-500/20 border-green-500/20"
             >
               {loading ? <Loader2 className="size-3.5 animate-spin mr-1.5" /> : <Zap className="size-3.5 mr-1.5" />}
-              Lấy ID
+              {copy.dynamicCredentials.fetchDuolingoId}
             </Button>
           )}
         </div>
@@ -558,7 +559,7 @@ function CredentialAddDropdown({ onAdd }: { onAdd: (type: WarehouseCredentialTyp
         className="h-8 gap-1.5 text-[var(--accent)] hover:text-[var(--accent-strong)]"
       >
         <Plus className="size-3.5" />
-        Thêm trường
+        {copy.dynamicCredentials.header.addField}
       </Button>
 
       {open && (

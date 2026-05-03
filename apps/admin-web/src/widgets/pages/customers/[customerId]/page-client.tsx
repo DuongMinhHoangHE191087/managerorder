@@ -10,6 +10,7 @@ import {
   Clock, AlertCircle, Tag, RefreshCw, Trash2
 } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
+import { SoftDeletedBadge } from "@/shared/ui/soft-deleted-badge";
 
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { PageContainer } from "@/shared/ui/page-layout";
@@ -97,11 +98,13 @@ export default function CustomerDetailPage() {
 
   // React Query hooks (replaces raw fetch)
   const {
-    data: customer,
+    data: customerResult,
     isLoading: isCustomerLoading,
     isError: isCustomerError,
     error: customerError,
   } = useCustomerDetail(customerId, true, trashMode);
+  const customer = customerResult?.data ?? null;
+  const isTrashView = trashMode || Boolean(customerResult?.softDeleted);
 
   const {
     data: orders = [],
@@ -209,13 +212,16 @@ export default function CustomerDetailPage() {
               <ChevronRight className="size-3" />
               <span className="truncate text-[var(--fg-muted)]">{customer.name}</span>
             </div>
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-[var(--fg-base)]">{vi.customers.detail.title}</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl font-black tracking-tight text-[var(--fg-base)]">{vi.customers.detail.title}</h1>
+              {isTrashView ? <SoftDeletedBadge /> : null}
+            </div>
             <p className="mt-1 text-[14px] font-medium text-[var(--fg-muted)]">
               {vi.customers.detail.description}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {trashMode ? (
+            {isTrashView ? (
               <>
                 <button
                   onClick={() => void handleRestoreFromTrash()}
@@ -253,7 +259,7 @@ export default function CustomerDetailPage() {
           </div>
         </div>
 
-        {trashMode ? (
+        {isTrashView ? (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[13px] font-medium text-amber-700">
             Khách hàng này đang ở thùng rác. Bạn có thể khôi phục hoặc xóa vĩnh viễn ngay trên màn chi tiết này.
           </div>

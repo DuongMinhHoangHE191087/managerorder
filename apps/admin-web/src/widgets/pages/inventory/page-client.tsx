@@ -4,6 +4,7 @@ import { useState, useCallback, useDeferredValue, useMemo } from "react";
 import { Eye, Edit2, PackageSearch, Clock, RefreshCw, Trash2, X } from "lucide-react";
 import { appToast } from "@/shared/lib/toast";
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { PageContainer } from "@/shared/ui/page-layout";
@@ -15,8 +16,9 @@ import { useOrders } from "@/widgets/pages/orders/hooks/use-orders";
 import { useProducts } from "@/widgets/pages/products/hooks/use-products";
 import { useSourceAccounts, useCreateSourceAccount, useUpdateSourceAccount, useRecalculateSlots, useDeleteSourceAccount } from "@/widgets/pages/inventory/hooks/use-source-accounts";
 import { useProviders } from "@/widgets/pages/providers/hooks/use-providers";
-import { useCreateInventory, useDeleteInventory, useInventoryRealtime } from "@/widgets/pages/inventory/hooks/use-inventory";
-import { vi } from "@/shared/messages/vi";
+import { useCreateInventory, useDeleteInventory, useInventoryKeyDetail, useInventoryRealtime } from "@/widgets/pages/inventory/hooks/use-inventory";
+import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
+import { INVENTORY_COPY as copy } from "./copy";
 import { hasSearchTokens, matchesSearchQuery } from "@/shared/lib/filtering/search";
 import { InventoryPageHeader } from "./components/inventory-page-header";
 import { InventoryPageOverlays } from "./components/inventory-page-overlays";
@@ -51,19 +53,23 @@ const AllocateOrderButton = dynamic(() => import("@/widgets/pages/orders/compone
   ssr: false,
   loading: () => (
     <button type="button" className="rounded-lg border border-[var(--border-soft)] bg-[var(--bg-surface)] px-3 py-2 text-[12px] font-bold text-[var(--fg-muted)]">
-      {vi.inventory.page.loading}
+      {copy.page.loading}
     </button>
   ),
 });
 
 export default function InventoryPage() {
-  const inventoryText = vi.inventory.page;
+  const inventoryText = copy.page;
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: sourceAccounts = [] } = useSourceAccounts();
   const { data: dashboard } = useInventoryDashboard();
   const { mutateAsync: createSourceAccount } = useCreateSourceAccount();
   const { mutateAsync: updateSourceAccount } = useUpdateSourceAccount();
   const { mutateAsync: recalculateSlots, isPending: isRecalculating } = useRecalculateSlots();
   const { mutateAsync: deleteSourceAccount } = useDeleteSourceAccount();
+  const restoreItems = useRestoreItems();
+  const purgeItems = usePurgeItems();
   const [isBulkSyncing, setIsBulkSyncing] = useState(false);
 
   const { data: ordersData } = useOrders({ status: "pending_payment,paid,provisioning", limit: 200 });
@@ -97,6 +103,10 @@ export default function InventoryPage() {
   const [editingAccount, setEditingAccount] = useState<SourceAccount | null>(null);
   const [deletingKey, setDeletingKey] = useState<LicenseKey | null>(null);
   const [showSmartMatch, setShowSmartMatch] = useState(false);
+  const selectedLicenseKeyId = searchParams.get("key");
+  const selectedLicenseKeyTrashMode = searchParams.get("trash") === "1";
+  const isLicenseKeyDetailOpen = Boolean(selectedLicenseKeyId);
+  const { data: selectedLicenseKeyResult } = useInventoryKeyDetail(selectedLicenseKeyId, selectedLicenseKeyTrashMode);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
@@ -202,6 +212,22 @@ export default function InventoryPage() {
     if (!deletingKey) return;
     await deleteInventory(deletingKey.id);
   }, [deletingKey, deleteInventory]);
+
+  const handleCloseLicenseKeyDetail = useCallback(() => {
+    router.replace("/inventory");
+  }, [router]);
+
+  const handleRestoreLicenseKey = useCallback(async () => {
+    if (!selectedLicenseKeyResult?.data) return;
+    await restoreItems.mutateAsync({ type: "license_keys", ids: [selectedLicenseKeyResult.data.id] });
+    handleCloseLicenseKeyDetail();
+  }, [handleCloseLicenseKeyDetail, restoreItems, selectedLicenseKeyResult]);
+
+  const handlePurgeLicenseKey = useCallback(async () => {
+    if (!selectedLicenseKeyResult?.data) return;
+    await purgeItems.mutateAsync({ type: "license_keys", ids: [selectedLicenseKeyResult.data.id] });
+    handleCloseLicenseKeyDetail();
+  }, [handleCloseLicenseKeyDetail, purgeItems, selectedLicenseKeyResult]);
 
   const handleToggleSelect = useCallback((id: string) => {
     setSelectedIds((previous) => {
@@ -383,11 +409,14 @@ export default function InventoryPage() {
         onCloseDrawer={handleCloseDrawer}
         onCloseEditAccount={handleCloseEditAccount}
         onCloseDeleteKey={handleCloseDeleteKey}
+        onCloseLicenseKeyDetail={handleCloseLicenseKeyDetail}
         onCreateAccount={handleCreateAccount}
         onCreateKey={handleCreateKey}
         onDeleteKey={handleDeleteKey}
         onEditAccount={handleEditAccount}
         onEditSelectedAccount={handleEditSelectedAccount}
+        onRestoreLicenseKey={handleRestoreLicenseKey}
+        onPurgeLicenseKey={handlePurgeLicenseKey}
         onRecalculateSelectedAccount={handleSelectedAccountRecalculate}
         onCloseBulkDelete={handleCloseBulkDelete}
         onConfirmBulkDelete={handleBulkDelete}
@@ -396,6 +425,9 @@ export default function InventoryPage() {
         providerById={providerById}
         providers={providers}
         selectedAccount={selectedAccount}
+        selectedLicenseKeyId={selectedLicenseKeyId}
+        selectedLicenseKeyTrashMode={selectedLicenseKeyTrashMode}
+        isLicenseKeyDetailOpen={isLicenseKeyDetailOpen}
         selectedIdsCount={selectedCount}
         showBulkDeleteConfirm={showBulkDeleteConfirm}
         showSmartMatch={showSmartMatch}

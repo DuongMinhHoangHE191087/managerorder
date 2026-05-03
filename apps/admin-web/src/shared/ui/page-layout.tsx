@@ -8,7 +8,7 @@ interface PageContainerProps {
 }
 
 interface PageHeaderProps {
-  title: string;
+  title: ReactNode;
   description?: string;
   actions?: ReactNode;
   eyebrow?: ReactNode;

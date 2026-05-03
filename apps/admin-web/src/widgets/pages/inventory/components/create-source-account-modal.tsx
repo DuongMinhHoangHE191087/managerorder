@@ -16,6 +16,7 @@ import { DynamicCredentialList, type DuolingoAutoFillResult } from "@/widgets/pa
 import { ProviderCombobox, ProductMultiCombobox } from "@/widgets/pages/inventory/components/comboboxes";
 import { useSourceAccountDecrypt } from "@/widgets/pages/inventory/hooks/use-source-accounts";
 import type { ProductService, Provider, SourceAccount, WarehouseCredential } from "@/lib/domain/types";
+import { INVENTORY_COPY as copy } from "../copy";
 
 const CustomerCreateModalLazy = dynamic(
   () =>
@@ -58,13 +59,13 @@ function AccountIdentitySection({
 }) {
   return (
     <CreateFormSection
-      title="Thông tin tài khoản"
-      description="Giữ form gọn ở những trường nhập thật sự cần thiết để thao tác nhanh và ít nhầm hơn."
+      title={copy.createSourceAccount.identity.title}
+      description={copy.createSourceAccount.identity.description}
     >
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="space-y-1.5 lg:col-span-2">
           <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-            Email đăng nhập *
+            {copy.createSourceAccount.identity.emailLabel}
           </label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
@@ -74,7 +75,7 @@ function AccountIdentitySection({
               value={emailValue}
               onChange={(event) => onEmailChange(event.target.value)}
               className="pl-9"
-              placeholder="admin@example.com"
+              placeholder={copy.createSourceAccount.identity.emailPlaceholder}
               required
             />
           </div>
@@ -82,10 +83,10 @@ function AccountIdentitySection({
 
         <div className="space-y-1.5 lg:col-span-2">
           <label className="mb-1 flex justify-between text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-            <span>{isEdit ? "Mật khẩu mới (tùy chọn)" : "Mật khẩu"}</span>
+            <span>{isEdit ? copy.createSourceAccount.identity.passwordEditLabel : copy.createSourceAccount.identity.passwordLabel}</span>
             <span className="flex items-center gap-1 text-[9px] normal-case text-[var(--warning)]">
               <ShieldAlert className="size-3" />
-              {isEdit ? "Bỏ trống nếu không đổi" : "Sẽ được mã hóa"}
+              {isEdit ? copy.createSourceAccount.identity.passwordEditHint : copy.createSourceAccount.identity.passwordHint}
             </span>
           </label>
           <div className="relative">
@@ -103,7 +104,7 @@ function AccountIdentitySection({
 
         <div className="space-y-1.5 lg:col-span-2">
           <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-            Nguồn cung cấp (Provider) *
+            {copy.createSourceAccount.identity.providerLabel}
           </label>
           <div className="relative">
             <input type="hidden" name="provider" value={selectedProviderId} />
@@ -141,13 +142,13 @@ function AccountAllocationSection({
 }) {
   return (
     <CreateFormSection
-      title="Cấu hình cấp phát"
-      description="Giữ các trường về sản phẩm, slot và hạn dùng trong cùng một vùng để đọc và rà nhanh hơn."
+      title={copy.createSourceAccount.allocation.title}
+      description={copy.createSourceAccount.allocation.description}
     >
       <div className="grid gap-4">
         <div className="space-y-1.5">
           <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-            Sản phẩm khả dụng *
+            {copy.createSourceAccount.allocation.productLabel}
           </label>
           <ProductMultiCombobox
             products={products}
@@ -160,7 +161,7 @@ function AccountAllocationSection({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-              Sức chứa (tổng slots) *
+              {copy.createSourceAccount.allocation.capacityLabel}
             </label>
             <div className="relative">
               <Users className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
@@ -178,7 +179,7 @@ function AccountAllocationSection({
 
           <div className="space-y-1.5">
             <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-              Ngày hết hạn *
+            {copy.createSourceAccount.allocation.expiryLabel}
             </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
@@ -217,8 +218,8 @@ function AccountCredentialsSection({
 }) {
   return (
     <CreateFormSection
-      title="Dữ liệu đăng nhập"
-      description="Danh sách credential được giữ riêng để dễ tái sử dụng và giảm lỗi khi cần đối soát."
+      title={copy.createSourceAccount.credentials.title}
+      description={copy.createSourceAccount.credentials.description}
     >
       <DynamicCredentialList
         credentials={credentials}
@@ -245,7 +246,7 @@ function AccountCostFields({
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
       <div className="space-y-1.5">
         <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-          Giá mua (VND)
+          {copy.createSourceAccount.cost.title}
         </label>
         <Input
           name="purchaseCostVnd"
@@ -258,7 +259,7 @@ function AccountCostFields({
       </div>
       <div className="space-y-1.5">
         <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-          Ngày mua
+          {copy.createSourceAccount.cost.date}
         </label>
         <Input
           name="purchaseDate"
@@ -268,12 +269,12 @@ function AccountCostFields({
       </div>
       <div className="space-y-1.5">
         <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-          Nguồn mua
+          {copy.createSourceAccount.cost.source}
         </label>
         <Input
           name="purchaseSource"
           type="text"
-          placeholder="VD: Shopee, Tiki, nhà cung cấp A"
+          placeholder={copy.createSourceAccount.cost.sourcePlaceholder}
           defaultValue={costDefaults?.purchaseSource ?? ""}
         />
       </div>
@@ -368,7 +369,7 @@ const AccountFormFields = memo(function AccountFormFields({
           selectedProductIds={selectedProductIds}
           onAutoFillResult={onAutoFillResult}
         />
-        <AdvancedOptionsDisclosure title="Tùy chọn nâng cao">
+        <AdvancedOptionsDisclosure title={copy.createSourceAccount.advancedOptions}>
           <AccountCostFields costDefaults={costDefaults} />
         </AdvancedOptionsDisclosure>
       </div>
@@ -452,7 +453,7 @@ export function CreateSourceAccountModal({ isOpen, onClose, providers, products,
     };
 
     if (!body.email || !body.provider) {
-      appToast.error("Email và nhà cung cấp là bắt buộc.");
+      appToast.error(copy.createSourceAccount.modal.required);
       return;
     }
 
@@ -460,9 +461,9 @@ export function CreateSourceAccountModal({ isOpen, onClose, providers, products,
     try {
       await onSubmit(body);
       handleClose();
-      appToast.success("Tạo tài khoản nguồn thành công.");
+      appToast.success(copy.createSourceAccount.modal.success);
     } catch {
-      appToast.error("Không thể tạo tài khoản nguồn.");
+      appToast.error(copy.createSourceAccount.modal.error);
     } finally {
       setSaving(false);
     }
@@ -473,18 +474,18 @@ export function CreateSourceAccountModal({ isOpen, onClose, providers, products,
       <CreateFlowDialog
         isOpen={isOpen}
         onClose={handleClose}
-        title="Thêm tài khoản nguồn"
-        description="Giữ layout nhập liệu rộng và gọn, tối ưu cho thao tác nhanh trên màn hình lớn lẫn mobile."
+        title={copy.createSourceAccount.modal.title}
+        description={copy.createSourceAccount.modal.description}
         size="2xl"
         footer={
           <CreateActionFooter
-            primaryLabel="Tạo tài khoản"
+            primaryLabel={copy.createSourceAccount.modal.save}
             onPrimary={() => {
               const form = document.getElementById("create-account-form") as HTMLFormElement | null;
               form?.requestSubmit();
             }}
             onCancel={handleClose}
-            cancelLabel="Hủy"
+            cancelLabel={copy.createSourceAccount.modal.cancel}
             pending={saving}
             disabled={saving}
           />
@@ -643,7 +644,7 @@ export function EditSourceAccountModal({ account, onClose, providers, products, 
     };
 
     if (!body.email || !body.provider) {
-      appToast.error("Email và nhà cung cấp là bắt buộc.");
+      appToast.error(copy.editSourceAccount.modal.required);
       return;
     }
 
@@ -651,9 +652,9 @@ export function EditSourceAccountModal({ account, onClose, providers, products, 
     try {
       await onSubmit(body);
       handleClose();
-      appToast.success("Cập nhật tài khoản nguồn thành công.");
+      appToast.success(copy.editSourceAccount.modal.success);
     } catch {
-      appToast.error("Không thể cập nhật tài khoản nguồn.");
+      appToast.error(copy.editSourceAccount.modal.error);
     } finally {
       setSaving(false);
     }
@@ -664,18 +665,18 @@ export function EditSourceAccountModal({ account, onClose, providers, products, 
       <CreateFlowDialog
         isOpen={!!account}
         onClose={handleClose}
-        title="Sửa thông tin tài khoản nguồn"
-        description="Nhập nhanh phần cần đổi, còn các phần nâng cao sẽ được giữ gọn ở dưới để giảm rối mắt."
+        title={copy.editSourceAccount.modal.title}
+        description={copy.editSourceAccount.modal.description}
         size="2xl"
         footer={
           <CreateActionFooter
-            primaryLabel="Lưu thay đổi"
+            primaryLabel={copy.editSourceAccount.modal.save}
             onPrimary={() => {
               const form = document.getElementById("edit-account-form") as HTMLFormElement | null;
               form?.requestSubmit();
             }}
             onCancel={handleClose}
-            cancelLabel="Hủy"
+            cancelLabel={copy.editSourceAccount.modal.cancel}
             pending={saving}
             disabled={saving}
           />

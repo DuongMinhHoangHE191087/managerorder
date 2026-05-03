@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Users, RefreshCw, Copy, Check, User, Crown, Loader2, AlertCircle, ExternalLink } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
 import { FadeIn } from "@/shared/ui/animations";
+import { INVENTORY_COPY as copy } from "../copy";
 
 interface FamilyMember {
   id: number;
@@ -40,12 +41,12 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
     try {
       // Decrypt password first
       const decRes = await fetch(`/api/source-accounts/${sourceAccountId}/decrypt`);
-      if (!decRes.ok) throw new Error("Không thể giải mã mật khẩu");
+      if (!decRes.ok) throw new Error(copy.duolingoFamily.errors.decryptFailed);
       const decData = await decRes.json();
 
       const email = decData.data?.email;
       const password = decData.data?.password;
-      if (!email || !password) throw new Error("Thiếu email hoặc mật khẩu");
+      if (!email || !password) throw new Error(copy.duolingoFamily.errors.missingCredentials);
 
       // Login + get family
       const loginRes = await fetch("/api/proxy/duolingo-login", {
@@ -56,7 +57,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
 
       if (!loginRes.ok) {
         const err = await loginRes.json();
-        throw new Error(err.error ?? "Login Duolingo thất bại");
+        throw new Error(err.error ?? copy.duolingoFamily.errors.loginFailed);
       }
 
       const result = await loginRes.json();
@@ -71,14 +72,14 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
       });
 
       if (result.familyMembers?.length > 0) {
-        appToast.success(`🦉 Đã tải ${result.familyMembers.length} thành viên family`);
+        appToast.success(copy.duolingoFamily.toasts.membersLoaded(result.familyMembers.length));
       } else if (result.subscription?.isFamilyPlan) {
-        appToast.info("🦉 Family Plan nhưng không tìm thấy danh sách thành viên từ API");
+        appToast.info(copy.duolingoFamily.toasts.noMembersFound);
       } else {
-        appToast.info("🦉 Tài khoản này không phải Family Plan");
+        appToast.info(copy.duolingoFamily.toasts.notFamilyPlan);
       }
     } catch (err) {
-      appToast.error(err instanceof Error ? err.message : "Lỗi khi tải family data");
+      appToast.error(err instanceof Error ? err.message : copy.duolingoFamily.errors.loadFailed);
     } finally {
       setIsLoading(false);
     }
@@ -87,11 +88,11 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
   const handleCopyAll = () => {
     if (!familyData?.members.length) return;
     const text = familyData.members
-      .map((m) => `${m.username || m.id}${m.name ? ` (${m.name})` : ""}${m.isOwner ? " [Owner]" : ""}`)
+      .map((m) => `${m.username || m.id}${m.name ? ` (${m.name})` : ""}${m.isOwner ? ` [${copy.duolingoFamily.members.owner}]` : ""}`)
       .join("\n");
     navigator.clipboard.writeText(text);
     setCopiedAll(true);
-    appToast.success("Đã sao chép danh sách!");
+    appToast.success(copy.duolingoFamily.toasts.copiedList);
     setTimeout(() => setCopiedAll(false), 2000);
   };
 
@@ -105,7 +106,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
     if (!familyData?.inviteToken) return;
     navigator.clipboard.writeText(familyData.inviteToken);
     setCopiedToken(true);
-    appToast.success("Đã sao chép Invite Token!");
+    appToast.success(copy.duolingoFamily.toasts.copiedInviteToken);
     setTimeout(() => setCopiedToken(false), 2000);
   };
 
@@ -121,9 +122,9 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
           <Users className="size-8 text-green-500" />
         </div>
         <div>
-          <p className="text-[14px] font-bold text-[var(--fg-base)]">Duolingo Family Plan</p>
+          <p className="text-[14px] font-bold text-[var(--fg-base)]">{copy.duolingoFamily.empty.title}</p>
           <p className="text-[12px] text-[var(--fg-muted)] mt-1">
-            Đồng bộ để xem thành viên trong Family Plan
+            {copy.duolingoFamily.empty.description}
           </p>
         </div>
         <button
@@ -136,7 +137,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
           ) : (
             <RefreshCw className="size-4" />
           )}
-          {isLoading ? "Đang đồng bộ..." : "🦉 Đồng bộ từ Duolingo"}
+          {isLoading ? copy.duolingoFamily.empty.syncing : copy.duolingoFamily.empty.sync}
         </button>
       </div>
     );
@@ -149,9 +150,9 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
         <div className="size-14 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
           <AlertCircle className="size-7 text-amber-500" />
         </div>
-        <p className="text-[13px] font-bold text-[var(--fg-base)]">Không phải Family Plan</p>
+        <p className="text-[13px] font-bold text-[var(--fg-base)]">{copy.duolingoFamily.nonFamily.title}</p>
         <p className="text-[12px] text-[var(--fg-muted)]">
-          Tài khoản này dùng gói: <strong>{familyData.planType || "Individual"}</strong>
+          {copy.duolingoFamily.nonFamily.packageLabel} <strong>{familyData.planType || copy.duolingoFamily.nonFamily.fallbackPlan}</strong>
         </p>
         <button
           onClick={handleRefresh}
@@ -159,7 +160,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
           className="text-[11px] text-[var(--accent)] hover:underline font-bold inline-flex items-center gap-1"
         >
           <RefreshCw className={`size-3 ${isLoading ? "animate-spin" : ""}`} />
-          Kiểm tra lại
+          {copy.duolingoFamily.nonFamily.refresh}
         </button>
       </div>
     );
@@ -173,7 +174,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
           <div className="flex items-center gap-2">
             <Users className="size-4 text-green-600" />
             <span className="text-[12px] font-bold text-green-700 uppercase tracking-wider">
-              Family Plan
+              {copy.duolingoFamily.header.familyPlan}
             </span>
             {familyData.planType && (
               <span className="text-[10px] font-medium text-green-600/70">
@@ -188,7 +189,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
               className="text-[10px] font-bold text-green-600 hover:text-green-700 flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:bg-green-100 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`size-3 ${isLoading ? "animate-spin" : ""}`} />
-              Đồng bộ
+              {copy.duolingoFamily.header.sync}
             </button>
             <span className="text-[12px] font-black text-green-700">
               {usedSlots} / {maxSlots}
@@ -210,13 +211,13 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
           <span className="flex items-center gap-1">
             <span className="inline-block size-2 rounded-full bg-green-500" />
             <span className="text-green-700">
-              Đã join: <strong>{usedSlots}</strong>
+              {copy.duolingoFamily.header.joined}: <strong>{usedSlots}</strong>
             </span>
           </span>
           <span className="flex items-center gap-1">
             <span className={`inline-block size-2 rounded-full ${freeSlots === 0 ? "bg-red-500" : freeSlots <= 2 ? "bg-amber-500" : "bg-gray-300"}`} />
             <span className={`${freeSlots === 0 ? "text-red-600 font-bold" : freeSlots <= 2 ? "text-amber-600 font-bold" : "text-green-700"}`}>
-              Còn trống: <strong>{freeSlots}</strong>
+              {copy.duolingoFamily.header.freeSlots}: <strong>{freeSlots}</strong>
             </span>
           </span>
         </div>
@@ -228,7 +229,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider shrink-0">
-                🎟️ Invite Token
+                {copy.duolingoFamily.inviteToken.label}
               </span>
               <code className="text-[13px] font-mono font-black text-blue-800 truncate">
                 {familyData.inviteToken}
@@ -237,7 +238,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
             <button
               onClick={handleCopyToken}
               className="size-8 flex items-center justify-center rounded-lg hover:bg-blue-100 transition-colors shrink-0 ml-2"
-              title="Sao chép Token"
+              title={copy.duolingoFamily.inviteToken.copyTitle}
             >
               {copiedToken ? <Check className="size-4 text-green-500" /> : <Copy className="size-4 text-blue-500" />}
             </button>
@@ -249,7 +250,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
       <div className="flex items-center justify-between">
         <h4 className="text-[12px] font-bold text-[var(--fg-muted)] uppercase tracking-wider flex items-center gap-2">
           <User className="size-4" />
-          Thành viên ({familyData.members.length})
+          {copy.duolingoFamily.members.title} ({familyData.members.length})
         </h4>
         {familyData.members.length > 0 && (
           <button
@@ -257,7 +258,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
             className="text-[11px] font-bold text-[var(--accent)] hover:underline flex items-center gap-1"
           >
             {copiedAll ? <Check className="size-3 text-green-500" /> : <Copy className="size-3" />}
-            {copiedAll ? "Đã sao chép!" : "Sao chép tất cả"}
+            {copiedAll ? copy.duolingoFamily.members.copiedAll : copy.duolingoFamily.members.copyAll}
           </button>
         )}
       </div>
@@ -265,7 +266,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
       {/* Members list */}
       {familyData.members.length === 0 ? (
         <p className="text-[12px] text-[var(--fg-muted)] text-center py-4 bg-gray-50 rounded-xl border border-dashed border-[var(--border-soft)]">
-          Không tìm thấy thành viên nào
+          {copy.duolingoFamily.members.empty}
         </p>
       ) : (
         <div className="space-y-2">
@@ -293,11 +294,11 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-[13px] text-[var(--fg-base)] truncate">
-                      {member.username || `User #${member.id}`}
+                      {member.username || copy.duolingoFamily.members.fallbackUser(member.id)}
                     </span>
                     {member.isOwner && (
                       <span className="text-[9px] font-bold bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded uppercase">
-                        Owner
+                        {copy.duolingoFamily.members.owner}
                       </span>
                     )}
                     {member.hasPlus && !member.isOwner && (
@@ -307,7 +308,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
                     )}
                   </div>
                   <div className="text-[11px] text-[var(--fg-muted)] flex items-center gap-2">
-                    <span>ID: {member.id}</span>
+                    <span>{copy.duolingoFamily.members.idLabel}: {member.id}</span>
                     {member.name && (
                       <>
                         <span>•</span>
@@ -326,7 +327,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
                     target="_blank"
                     rel="noopener noreferrer"
                     className="size-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100"
-                    title={`Xem profile ${member.username}`}
+                    title={copy.duolingoFamily.members.profileTitle(member.username)}
                   >
                     <ExternalLink className="size-3.5 text-[var(--fg-muted)]" />
                   </a>
@@ -334,7 +335,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
                 <button
                   onClick={() => handleCopyMember(member)}
                   className="size-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors shrink-0"
-                  title={`Sao chép ${member.username || member.id}`}
+                  title={copy.duolingoFamily.members.copyTitle(member.username || member.id)}
                 >
                   {copiedId === member.id ? (
                     <Check className="size-4 text-green-500" />

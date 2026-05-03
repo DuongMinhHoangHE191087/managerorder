@@ -54,6 +54,63 @@ export function getMigrationStatusLabel(migration: Pick<MigrationListRow, "statu
   return getStatusLabel(migration.status);
 }
 
+const MIGRATION_STEP_LABELS: Record<string, string> = {
+  request_created: "Tạo request",
+  migration_metadata_updated: "Cập nhật request",
+  migration_started: "Bắt đầu migration",
+  migration_completed: "Hoàn tất migration",
+  migration_failed: "Đánh dấu thất bại",
+  migration_cancelled: "Huỷ migration",
+};
+
+const MIGRATION_PHASE_LABELS: Record<string, string> = {
+  preflight: "Tiền kiểm",
+  copy: "Sao chép",
+  completed: "Hoàn tất",
+  rollback: "Hoàn tác",
+  sandbox: "Sandbox",
+};
+
+const TERMINAL_REASON_LABELS: Record<string, string> = {
+  cancelled_by_admin: "Đã huỷ bởi quản trị viên",
+  failed_by_admin: "Thất bại bởi quản trị viên",
+};
+
+export function getMigrationStepLabel(stepName: string) {
+  return MIGRATION_STEP_LABELS[stepName] ?? stepName.replace(/_/g, " ");
+}
+
+export function getMigrationStepStatusLabel(status: MigrationStepRow["step_status"]) {
+  switch (status) {
+    case "pending":
+      return "Chờ";
+    case "in_progress":
+      return "Đang xử lý";
+    case "completed":
+      return "Hoàn tất";
+    case "failed":
+      return "Thất bại";
+    default:
+      return status;
+  }
+}
+
+export function getMigrationPhaseLabel(phase?: string | null) {
+  if (!phase) {
+    return null;
+  }
+
+  return MIGRATION_PHASE_LABELS[phase] ?? phase.replace(/_/g, " ");
+}
+
+export function getTerminalReasonLabel(reason?: string | null) {
+  if (!reason) {
+    return null;
+  }
+
+  return TERMINAL_REASON_LABELS[reason] ?? reason.replace(/_/g, " ");
+}
+
 export function getStatusClass(status: MigrationStatus) {
   switch (status) {
     case "pending":

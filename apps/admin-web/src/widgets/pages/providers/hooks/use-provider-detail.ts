@@ -8,6 +8,7 @@ import { fetcher } from "@/lib/api/fetcher";
 import type { Provider } from "@/lib/domain/types";
 import { queryKeys } from "@/shared/lib/react-query/query-keys";
 import type { ProviderPurchaseOrder } from "@/shared/types/providers";
+import { fetchRecoverableDetail } from "@/shared/lib/recoverable-detail";
 
 /**
  * Fetch single provider by ID.
@@ -15,12 +16,7 @@ import type { ProviderPurchaseOrder } from "@/shared/types/providers";
 export function useProviderDetail(providerId: string, includeDeleted = false) {
   return useQuery({
     queryKey: [...queryKeys.provider(providerId), includeDeleted ? "trash" : "active"],
-    queryFn: async () => {
-      const res = await fetcher<Provider>(
-        `/api/providers/${providerId}${includeDeleted ? "?include_deleted=1" : ""}`,
-      );
-      return res;
-    },
+    queryFn: () => fetchRecoverableDetail<Provider>(`/api/providers/${providerId}`, includeDeleted),
     enabled: !!providerId,
     staleTime: 30_000,
   });

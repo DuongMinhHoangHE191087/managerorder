@@ -5,6 +5,7 @@ import { Clock, Link2, Trash2 } from "lucide-react";
 import type { LicenseKey, ProductService, Provider, SourceAccount } from "@/lib/domain/types";
 import { Modal } from "@/shared/ui/modal";
 import { Button } from "@/shared/ui/button";
+import { INVENTORY_COPY as copy } from "../copy";
 
 const SlideOverDrawer = dynamic(() => import("@/shared/ui/slide-over-drawer").then((m) => ({ default: m.SlideOverDrawer })), { ssr: false });
 const ActivityTimeline = dynamic(() => import("@/widgets/pages/activity-logs/components/activity-timeline").then((m) => ({ default: m.ActivityTimeline })), { ssr: false });
@@ -15,6 +16,7 @@ const CreateSourceAccountModal = dynamic(() => import("@/widgets/pages/inventory
 const EditSourceAccountModal = dynamic(() => import("@/widgets/pages/inventory/components/create-source-account-modal").then((m) => ({ default: m.EditSourceAccountModal })), { ssr: false });
 const CreateLicenseKeyModal = dynamic(() => import("@/widgets/pages/inventory/components/create-license-key-modal").then((m) => ({ default: m.CreateLicenseKeyModal })), { ssr: false });
 const DeleteLicenseKeyModal = dynamic(() => import("@/widgets/pages/inventory/components/create-license-key-modal").then((m) => ({ default: m.DeleteLicenseKeyModal })), { ssr: false });
+const LicenseKeyDetailModal = dynamic(() => import("@/widgets/pages/inventory/components/license-key-detail-modal").then((m) => ({ default: m.LicenseKeyDetailModal })), { ssr: false });
 
 type InventoryBody = {
   email: string;
@@ -40,17 +42,21 @@ type InventoryPageOverlaysProps = {
   isCreateAccountOpen: boolean;
   isCreateKeyOpen: boolean;
   isDrawerOpen: boolean;
+  isLicenseKeyDetailOpen: boolean;
   isRecalculating: boolean;
   onCloseCreateAccount: () => void;
   onCloseCreateKey: () => void;
   onCloseDrawer: () => void;
   onCloseEditAccount: () => void;
   onCloseDeleteKey: () => void;
+  onCloseLicenseKeyDetail: () => void;
   onCreateAccount: (body: InventoryBody) => Promise<void>;
   onCreateKey: (body: LicenseKeyBody) => Promise<void>;
   onDeleteKey: () => Promise<void>;
   onEditAccount: (body: InventoryBody & { id: string }) => Promise<void>;
   onEditSelectedAccount: () => void;
+  onRestoreLicenseKey: () => Promise<void>;
+  onPurgeLicenseKey: () => Promise<void>;
   onRecalculateSelectedAccount: () => Promise<void>;
   onCloseBulkDelete: () => void;
   onConfirmBulkDelete: () => Promise<void>;
@@ -59,6 +65,8 @@ type InventoryPageOverlaysProps = {
   providers: Provider[];
   providerById: Map<string, Provider>;
   selectedAccount: SourceAccount | null;
+  selectedLicenseKeyId: string | null;
+  selectedLicenseKeyTrashMode: boolean;
   selectedIdsCount: number;
   showBulkDeleteConfirm: boolean;
   showSmartMatch: boolean;
@@ -71,17 +79,21 @@ export function InventoryPageOverlays({
   isCreateAccountOpen,
   isCreateKeyOpen,
   isDrawerOpen,
+  isLicenseKeyDetailOpen,
   isRecalculating,
   onCloseCreateAccount,
   onCloseCreateKey,
   onCloseDrawer,
   onCloseEditAccount,
   onCloseDeleteKey,
+  onCloseLicenseKeyDetail,
   onCreateAccount,
   onCreateKey,
   onDeleteKey,
   onEditAccount,
   onEditSelectedAccount,
+  onRestoreLicenseKey,
+  onPurgeLicenseKey,
   onRecalculateSelectedAccount,
   onCloseBulkDelete,
   onConfirmBulkDelete,
@@ -90,6 +102,8 @@ export function InventoryPageOverlays({
   providers,
   providerById,
   selectedAccount,
+  selectedLicenseKeyId,
+  selectedLicenseKeyTrashMode,
   selectedIdsCount,
   showBulkDeleteConfirm,
   showSmartMatch,
@@ -102,7 +116,7 @@ export function InventoryPageOverlays({
       <SlideOverDrawer
         isOpen={isDrawerOpen}
         onClose={onCloseDrawer}
-        title={selectedAccount ? `Kho: ${selectedAccount.email}` : "Kho dữ liệu"}
+        title={copy.overlays.drawerTitle(selectedAccount?.email)}
         width="max-w-lg"
       >
         {selectedAccount ? (
@@ -121,7 +135,7 @@ export function InventoryPageOverlays({
               <div className="border-b border-[var(--border-soft)] bg-gray-50/50 px-4 py-3">
                 <h3 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
                   <Link2 className="size-3.5 text-[var(--accent)]" />
-                  Quản lý Kết nối
+                  {copy.overlays.connectionsTitle}
                 </h3>
               </div>
               <div className="max-h-[350px] overflow-y-auto p-3 custom-scrollbar">
@@ -138,7 +152,7 @@ export function InventoryPageOverlays({
               <div className="border-b border-[var(--border-soft)] bg-gray-50/50 px-4 py-3">
                 <h3 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
                   <Clock className="size-3.5 text-[var(--accent)]" />
-                  Lịch sử hoạt động
+                  {copy.overlays.activityTitle}
                 </h3>
               </div>
               <div className="max-h-[300px] overflow-y-auto p-3 custom-scrollbar">
@@ -167,13 +181,23 @@ export function InventoryPageOverlays({
         onSubmit={onEditAccount}
       />
 
+      <LicenseKeyDetailModal
+        isOpen={isLicenseKeyDetailOpen}
+        licenseKeyId={selectedLicenseKeyId}
+        includeDeleted={selectedLicenseKeyTrashMode}
+        productMap={productMap}
+        onClose={onCloseLicenseKeyDetail}
+        onRestore={onRestoreLicenseKey}
+        onPurge={onPurgeLicenseKey}
+      />
+
       <CreateLicenseKeyModal isOpen={isCreateKeyOpen} onClose={onCloseCreateKey} products={products} onSubmit={onCreateKey} />
       <DeleteLicenseKeyModal licenseKey={deletingKey} onClose={onCloseDeleteKey} onConfirm={onDeleteKey} />
 
       <Modal
         isOpen={showBulkDeleteConfirm}
         onClose={onCloseBulkDelete}
-        title="Xác nhận xóa hàng loạt"
+        title={copy.overlays.bulkDelete.title}
       >
         <div className="space-y-4">
           <div className="flex items-center gap-3">
@@ -181,20 +205,19 @@ export function InventoryPageOverlays({
               <Trash2 className="size-6 text-red-500" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[var(--fg-base)]">Xác nhận xóa hàng loạt</h3>
-              <p className="text-sm text-[var(--fg-muted)]">Hành động này không thể hoàn tác</p>
+              <h3 className="text-base font-bold text-[var(--fg-base)]">{copy.overlays.bulkDelete.heading}</h3>
+              <p className="text-sm text-[var(--fg-muted)]">{copy.overlays.bulkDelete.description}</p>
             </div>
           </div>
           <p className="text-sm text-[var(--fg-muted)]">
-            Bạn có chắc muốn xóa <span className="font-bold text-red-500">{selectedIdsCount}</span> tài khoản nguồn đã chọn?
-            Tất cả kết nối và dữ liệu slot liên quan sẽ bị mất.
+            {copy.overlays.bulkDelete.body(selectedIdsCount)}
           </p>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={onCloseBulkDelete}>
-              Hủy
+              {copy.overlays.bulkDelete.cancel}
             </Button>
             <Button variant="danger" onClick={onConfirmBulkDelete}>
-              Xóa {selectedIdsCount} mục
+              {copy.overlays.bulkDelete.confirm(selectedIdsCount)}
             </Button>
           </div>
         </div>

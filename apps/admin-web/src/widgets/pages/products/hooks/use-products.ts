@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetcher } from "@/lib/api/fetcher";
 import { queryKeys } from "@/shared/lib/react-query/query-keys";
 import type { ProductService } from "@/lib/domain/types";
+import { fetchRecoverableDetail } from "@/shared/lib/recoverable-detail";
 
 export function useProducts() {
   return useQuery({
@@ -14,10 +15,7 @@ export function useProducts() {
 export function useProductDetail(productId: string | null, includeDeleted = false) {
   return useQuery({
     queryKey: productId ? [...queryKeys.product(productId), includeDeleted ? "trash" : "active"] : ["products", "detail", "missing"],
-    queryFn: () =>
-      fetcher<ProductService>(
-        `/api/products/${productId}${includeDeleted ? "?include_deleted=1" : ""}`,
-      ),
+    queryFn: () => fetchRecoverableDetail<ProductService>(`/api/products/${productId}`, includeDeleted),
     enabled: Boolean(productId),
     staleTime: 30_000,
   });

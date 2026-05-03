@@ -4,6 +4,7 @@ import React from "react";
 import { useState } from "react";
 import { AlertTriangle, Clock, X, ChevronDown, ChevronUp } from "lucide-react";
 import type { InventoryDashboardData } from "@/shared/types/inventory";
+import { INVENTORY_COPY as copy } from "../copy";
 
 interface CapacityAlertBannerProps {
   dashboard: InventoryDashboardData;
@@ -31,10 +32,10 @@ export const CapacityAlertBanner = React.memo(function CapacityAlertBanner({ das
               </div>
               <div>
                 <h4 className="text-[14px] font-bold text-red-600">
-                  {dashboard.lowCapacityCount} tài khoản sắp đầy slot
+                  {copy.capacityAlert.lowCapacityTitle(dashboard.lowCapacityCount)}
                 </h4>
                 <p className="mt-0.5 text-[12px] text-red-500/70">
-                  Các tài khoản nguồn dưới 20% slot trống. Cần bổ sung hoặc nâng cấp.
+                  {copy.capacityAlert.lowCapacityDescription}
                 </p>
               </div>
             </div>
@@ -64,7 +65,7 @@ export const CapacityAlertBanner = React.memo(function CapacityAlertBanner({ das
                 >
                   <span className="font-medium text-red-600">{item.email}</span>
                   <span className="font-bold text-red-500/70">
-                    {item.freeSlots}/{item.maxSlots} slots trống ({item.freePercent}%)
+                    {copy.capacityAlert.lowCapacityItem(item.freeSlots, item.maxSlots, item.freePercent)}
                   </span>
                 </div>
               ))}
@@ -82,10 +83,10 @@ export const CapacityAlertBanner = React.memo(function CapacityAlertBanner({ das
               </div>
               <div>
                 <h4 className="text-[14px] font-bold text-amber-600">
-                  {dashboard.expiringSoon7d} tài khoản hết hạn trong 7 ngày
+                  {copy.capacityAlert.expiringTitle(dashboard.expiringSoon7d)}
                 </h4>
                 <p className="mt-0.5 text-[12px] text-amber-500/70">
-                  Cần gia hạn hoặc di chuyển dữ liệu trước khi hết hạn.
+                  {copy.capacityAlert.expiringDescription}
                 </p>
               </div>
             </div>
@@ -114,7 +115,7 @@ export const CapacityAlertBanner = React.memo(function CapacityAlertBanner({ das
                   className="flex items-center justify-between rounded-xl px-3 py-2 text-[12px] transition-colors hover:bg-amber-500/5"
                 >
                   <span className="font-medium text-amber-600">{item.email}</span>
-                  <span className="font-bold text-amber-500/70">{item.daysLeft} ngày còn lại</span>
+                  <span className="font-bold text-amber-500/70">{copy.capacityAlert.expiringItem(item.daysLeft)}</span>
                 </div>
               ))}
             </div>

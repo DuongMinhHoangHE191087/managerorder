@@ -12,6 +12,8 @@ import type {
   ShortLinkFailureTemplateKey,
   ShortLinkLandingTemplateKey,
 } from "@/lib/domain/types";
+import { fetchRecoverableDetail } from "@/shared/lib/recoverable-detail";
+import type { RecoverableDetail } from "@/shared/lib/recoverable-detail";
 
 const QUERY_KEY = ["short-links"];
 
@@ -168,10 +170,9 @@ export interface ShortLinkDetailResponse {
 }
 
 export function useShortLinkDetail(linkId: string | null, includeDeleted = false) {
-  return useQuery<ShortLinkDetailResponse>({
+  return useQuery<RecoverableDetail<ShortLinkDetailResponse>>({
     queryKey: ["short-link-detail", linkId, includeDeleted ? "trash" : "active"],
-    queryFn: () =>
-      fetcher(`/api/short-links/${linkId}${includeDeleted ? "?include_deleted=1" : ""}`),
+    queryFn: () => fetchRecoverableDetail<ShortLinkDetailResponse>(`/api/short-links/${linkId}`, includeDeleted),
     enabled: !!linkId,
     staleTime: 15_000,
     placeholderData: keepPreviousData,

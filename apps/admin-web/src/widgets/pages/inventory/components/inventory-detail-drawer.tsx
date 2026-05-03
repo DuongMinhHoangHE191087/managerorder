@@ -1,18 +1,33 @@
 "use client";
 
-import { memo, useState, useEffect, useCallback, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Key, Link2, Shield, Zap, MoreHorizontal, Copy, Check, ExternalLink,
-  Eye, EyeOff, Users, Edit2, ShieldAlert, Calendar, AlertTriangle,
-  RefreshCw
+  AlertTriangle,
+  Calendar,
+  Check,
+  Copy,
+  Edit2,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Key,
+  Link2,
+  MoreHorizontal,
+  RefreshCw,
+  Shield,
+  ShieldAlert,
+  Users,
+  Zap,
 } from "lucide-react";
+
 import { appToast } from "@/shared/ui/app-toast";
 import { formatDateLabel, formatMoney } from "@/lib/utils";
 import type { Provider, SourceAccount, WarehouseCredentialType } from "@/lib/domain/types";
 import { useSourceAccountDecrypt, type DecryptedSourceAccountCredential } from "@/widgets/pages/inventory/hooks/use-source-accounts";
-import { vi } from "@/shared/messages/vi";
+import { INVENTORY_COPY as copy } from "../copy";
 
-const drawerText = vi.inventory.page.detailDrawer;
+const drawerText = copy.inventoryDetailDrawer;
+const MASKED_VALUE = "********";
 
 type CredentialMeta = {
   label: string;
@@ -36,7 +51,7 @@ interface InventoryDetailDrawerProps {
   onEdit: () => void;
   onRecalculate: () => Promise<void>;
   isRecalculating?: boolean;
-  children?: React.ReactNode; // Connections + Activity panels
+  children?: React.ReactNode;
 }
 
 type InventoryCredentialRowProps = {
@@ -59,13 +74,13 @@ const InventoryCredentialRow = memo(function InventoryCredentialRow({
   onCopy,
 }: InventoryCredentialRowProps) {
   const Icon = meta.icon;
-  const displayValue = isSensitive && !isRevealed ? "••••••••" : cred.value;
+  const displayValue = isSensitive && !isRevealed ? MASKED_VALUE : cred.value;
   const isUrl = cred.type === "link_join" && cred.value?.startsWith("http");
 
   return (
-    <div className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--border-soft)] bg-[var(--bg-app)]/50 group hover:border-[var(--accent)]/30 transition-colors">
+    <div className="group flex items-center gap-2.5 rounded-lg border border-[var(--border-soft)] bg-[var(--bg-app)]/50 p-2.5 transition-colors hover:border-[var(--accent)]/30">
       <div
-        className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${
+        className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
           cred.type === "link_join"
             ? "bg-blue-100"
             : cred.type === "duolingo_id"
@@ -79,8 +94,8 @@ const InventoryCredentialRow = memo(function InventoryCredentialRow({
       >
         <Icon className={`size-4 ${meta.color}`} />
       </div>
-      <div className="flex-1 min-w-0">
-        <span className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider block">
+      <div className="min-w-0 flex-1">
+        <span className="block text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
           {cred.label || meta.label}
         </span>
         {isUrl ? (
@@ -88,29 +103,31 @@ const InventoryCredentialRow = memo(function InventoryCredentialRow({
             href={cred.value}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[12px] font-mono font-medium text-blue-600 hover:underline truncate block max-w-[200px]"
+            className="block max-w-[200px] truncate text-[12px] font-medium text-blue-600 hover:underline"
           >
             {cred.value}
           </a>
         ) : (
-          <span className="text-[12px] font-mono font-medium text-[var(--fg-base)] truncate block max-w-[200px]">
+          <span className="block max-w-[200px] truncate font-mono text-[12px] font-medium text-[var(--fg-base)]">
             {displayValue}
           </span>
         )}
       </div>
-      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         {isSensitive ? (
           <button
+            type="button"
             onClick={() => onToggleSensitive(cred.id)}
-            className="p-1 rounded hover:bg-gray-100 transition-colors"
+            className="rounded p-1 transition-colors hover:bg-gray-100"
             title={isRevealed ? drawerText.hide : drawerText.show}
           >
             {isRevealed ? <EyeOff className="size-3 text-[var(--fg-muted)]" /> : <Eye className="size-3 text-[var(--fg-muted)]" />}
           </button>
         ) : null}
         <button
+          type="button"
           onClick={() => onCopy(cred.value, cred.id)}
-          className="p-1 rounded hover:bg-gray-100 transition-colors"
+          className="rounded p-1 transition-colors hover:bg-gray-100"
           title={drawerText.copy}
         >
           {isCopied ? <Check className="size-3 text-green-500" /> : <Copy className="size-3 text-[var(--fg-muted)]" />}
@@ -120,7 +137,7 @@ const InventoryCredentialRow = memo(function InventoryCredentialRow({
             href={cred.value}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1 rounded hover:bg-gray-100 transition-colors"
+            className="rounded p-1 transition-colors hover:bg-gray-100"
             title={drawerText.openLink}
           >
             <ExternalLink className="size-3 text-[var(--fg-muted)]" />
@@ -155,7 +172,9 @@ export function InventoryDetailDrawer({
   const credentialValueByType = useMemo(() => {
     const map = new Map<string, string>();
     for (const cred of decryptedCreds) {
-      if (!map.has(cred.type)) map.set(cred.type, cred.value);
+      if (!map.has(cred.type)) {
+        map.set(cred.type, cred.value);
+      }
     }
     return map;
   }, [decryptedCreds]);
@@ -174,14 +193,17 @@ export function InventoryDetailDrawer({
   }, [text.copy]);
 
   const toggleSensitive = useCallback((id: string) => {
-    setVisibleSensitive(prev => {
+    setVisibleSensitive((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   }, []);
 
-  // Compute expiry info
   const [now] = useState(() => Date.now());
   const expiresDate = new Date(account.expiresAt);
   const daysUntilExpiry = Math.ceil((expiresDate.getTime() - now) / (1000 * 60 * 60 * 24));
@@ -192,126 +214,126 @@ export function InventoryDetailDrawer({
   const freeSlots = Math.max(0, account.maxSlots - account.usedSlots);
 
   const providerName = providerById.get(account.provider)?.name || account.provider;
-
-  // Find invite link from credentials
   const inviteLink = credentialValueByType.get("link_join");
   const duolingoInfo = credentialValueByType.get("duolingo_id");
 
   return (
     <div className="space-y-5">
-      {/* ═══ Quick Actions Bar ═══ */}
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={onEdit}
-          className="flex-1 flex items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] py-2.5 text-[12px] font-bold text-[var(--fg-base)] transition-all active:scale-[0.98] hover:border-[var(--accent)]/30 hover:bg-white hover:text-[var(--accent)]"
+          className="flex-1 flex items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] py-2.5 text-[12px] font-bold text-[var(--fg-base)] transition-all hover:border-[var(--accent)]/30 hover:bg-white hover:text-[var(--accent)] active:scale-[0.98]"
         >
           <Edit2 className="size-3.5" /> {text.edit}
         </button>
         <button
+          type="button"
           onClick={onRecalculate}
           disabled={isRecalculating}
-          className="flex-1 flex items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] py-2.5 text-[12px] font-bold text-[var(--fg-base)] transition-all active:scale-[0.98] hover:border-blue-500/30 hover:bg-blue-500/5 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex-1 flex items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] py-2.5 text-[12px] font-bold text-[var(--fg-base)] transition-all hover:border-blue-500/30 hover:bg-blue-500/5 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]"
         >
-          <RefreshCw className={`size-3.5 ${isRecalculating ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`size-3.5 ${isRecalculating ? "animate-spin" : ""}`} />
           {isRecalculating ? text.syncing : text.sync}
         </button>
       </div>
 
-      {/* ═══ Account Info Card ═══ */}
       <div className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
         <div className="border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-4 py-3">
-          <h3 className="text-[12px] font-bold text-[var(--fg-muted)] uppercase tracking-wider">{text.accountInfoTitle}</h3>
+          <h3 className="text-[12px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{text.accountInfoTitle}</h3>
         </div>
-        <div className="p-4 space-y-3">
-          <InfoRow label={text.email} value={account.email} copyable onCopy={() => handleCopy(account.email, 'email')} copied={copiedId === 'email'} />
+        <div className="space-y-3 p-4">
+          <InfoRow label={text.email} value={account.email} copyable onCopy={() => handleCopy(account.email, "email")} copied={copiedId === "email"} />
           <InfoRow label={text.provider} value={providerName} />
-          <InfoRow
-            label={text.products}
-            value={productNames}
-          />
-          {decryptedPassword && (
-            <div className="flex justify-between items-center">
-              <span className="text-[12px] text-[var(--fg-muted)] font-medium">{text.password}</span>
+          <InfoRow label={text.products} value={productNames} />
+          {decryptedPassword ? (
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] font-medium text-[var(--fg-muted)]">{text.password}</span>
               <div className="flex items-center gap-1.5">
-                <span className="font-mono text-[12px] font-bold text-[var(--fg-base)] max-w-[180px] truncate">
-                  {showPassword ? decryptedPassword : "••••••••"}
+                <span className="max-w-[180px] truncate font-mono text-[12px] font-bold text-[var(--fg-base)]">
+                  {showPassword ? decryptedPassword : MASKED_VALUE}
                 </span>
                 <button
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="p-1 rounded hover:bg-gray-100 transition-colors"
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="rounded p-1 transition-colors hover:bg-gray-100"
                   title={showPassword ? text.hide : text.show}
                 >
                   {showPassword ? <EyeOff className="size-3 text-[var(--fg-muted)]" /> : <Eye className="size-3 text-[var(--fg-muted)]" />}
                 </button>
                 <button
-                  onClick={() => handleCopy(decryptedPassword, 'pwd')}
-                  className="p-1 rounded hover:bg-gray-100 transition-colors"
+                  type="button"
+                  onClick={() => handleCopy(decryptedPassword, "pwd")}
+                  className="rounded p-1 transition-colors hover:bg-gray-100"
                   title={text.copy}
                 >
-                  {copiedId === 'pwd' ? <Check className="size-3 text-green-500" /> : <Copy className="size-3 text-[var(--fg-muted)]" />}
+                  {copiedId === "pwd" ? <Check className="size-3 text-green-500" /> : <Copy className="size-3 text-[var(--fg-muted)]" />}
                 </button>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* ═══ Slots & Expiry Card ═══ */}
       <div className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
         <div className="border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-4 py-3">
-          <h3 className="text-[12px] font-bold text-[var(--fg-muted)] uppercase tracking-wider flex items-center gap-2">
+          <h3 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
             <Users className="size-3.5 text-[var(--accent)]" />
             {text.slotsTitle}
           </h3>
         </div>
-        <div className="p-4 space-y-4">
-          {/* Slots */}
+        <div className="space-y-4 p-4">
           <div>
-            <div className="flex justify-between items-end mb-2">
+            <div className="mb-2 flex items-end justify-between">
               <div>
                 <span className="text-3xl font-black text-[var(--fg-base)]">{account.usedSlots}</span>
-                <span className="text-lg text-[var(--fg-muted)] font-medium"> / {account.maxSlots}</span>
+                <span className="text-lg font-medium text-[var(--fg-muted)]"> / {account.maxSlots}</span>
               </div>
               <div className="text-right">
-                <span className={`text-[13px] font-bold ${isFull ? 'text-red-500' : slotsPercent > 80 ? 'text-amber-500' : 'text-[var(--accent)]'}`}>
+                <span className={`text-[13px] font-bold ${isFull ? "text-red-500" : slotsPercent > 80 ? "text-amber-500" : "text-[var(--accent)]"}`}>
                   {slotsPercent}% {text.usedSuffix}
                 </span>
-                <div className={`text-[11px] font-medium ${freeSlots === 0 ? 'text-red-500' : 'text-blue-500'}`}>
+                <div className={`text-[11px] font-medium ${freeSlots === 0 ? "text-red-500" : "text-blue-500"}`}>
                   {text.freeLabel(freeSlots)}
                 </div>
               </div>
             </div>
-            <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
-                  isFull ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'
-                    : slotsPercent > 80 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
-                    : 'bg-[var(--accent)] shadow-[0_0_8px_rgba(85,202,2,0.4)]'
+                  isFull
+                    ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
+                    : slotsPercent > 80
+                      ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+                      : "bg-[var(--accent)] shadow-[0_0_8px_rgba(85,202,2,0.4)]"
                 }`}
                 style={{ width: `${Math.min(100, slotsPercent)}%` }}
               />
             </div>
           </div>
 
-          {/* Expiry */}
-            <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg border ${
-            isExpired ? 'bg-red-50 border-red-200'
-              : isExpiringSoon ? 'bg-amber-50 border-amber-200'
-              : 'bg-green-50 border-green-200'
-          }`}>
+          <div
+            className={`flex items-center justify-between rounded-lg border px-3 py-2.5 ${
+              isExpired ? "border-red-200 bg-red-50" : isExpiringSoon ? "border-amber-200 bg-amber-50" : "border-green-200 bg-green-50"
+            }`}
+          >
             <div className="flex items-center gap-2">
-              <Calendar className={`size-4 ${isExpired ? 'text-red-500' : isExpiringSoon ? 'text-amber-500' : 'text-green-500'}`} />
+              <Calendar className={`size-4 ${isExpired ? "text-red-500" : isExpiringSoon ? "text-amber-500" : "text-green-500"}`} />
               <span className="text-[12px] font-medium text-[var(--fg-muted)]">{text.expiryLabel}</span>
             </div>
             <div className="text-right">
               <div className="text-[13px] font-bold text-[var(--fg-base)]">{formatDateLabel(account.expiresAt)}</div>
-              <div className={`text-[10px] font-bold ${
-                isExpired ? 'text-red-500' : isExpiringSoon ? 'text-amber-500' : 'text-green-600'
-              }`}>
+              <div className={`text-[10px] font-bold ${isExpired ? "text-red-500" : isExpiringSoon ? "text-amber-500" : "text-green-600"}`}>
                 {isExpired ? (
-                  <span className="flex items-center gap-1"><AlertTriangle className="size-3" /> {text.expiredLabel} ({text.expiredDaysAgo(Math.abs(daysUntilExpiry))})</span>
+                  <span className="flex items-center gap-1">
+                    <AlertTriangle className="size-3" />
+                    {text.expiredLabel} ({text.expiredDaysAgo(Math.abs(daysUntilExpiry))})
+                  </span>
                 ) : isExpiringSoon ? (
-                  <span className="flex items-center gap-1"><AlertTriangle className="size-3" /> {text.daysLeft(daysUntilExpiry)}</span>
+                  <span className="flex items-center gap-1">
+                    <AlertTriangle className="size-3" />
+                    {text.daysLeft(daysUntilExpiry)}
+                  </span>
                 ) : (
                   <span>{text.daysLeft(daysUntilExpiry)}</span>
                 )}
@@ -321,10 +343,9 @@ export function InventoryDetailDrawer({
         </div>
       </div>
 
-      {/* ═══ Credentials Card ═══ */}
       <div className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
         <div className="border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-4 py-3">
-          <h3 className="text-[12px] font-bold text-[var(--fg-muted)] uppercase tracking-wider flex items-center gap-2">
+          <h3 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
             <Key className="size-3.5 text-[var(--accent)]" />
             {text.loginInfoTitle(loadingCreds ? 0 : decryptedCreds.length)}
           </h3>
@@ -332,13 +353,14 @@ export function InventoryDetailDrawer({
         <div className="p-3">
           {loadingCreds ? (
             <div className="flex items-center justify-center py-6 text-[var(--fg-muted)]">
-              <RefreshCw className="size-4 animate-spin mr-2" />
+              <RefreshCw className="mr-2 size-4 animate-spin" />
               <span className="text-[12px]">{text.decrypting}</span>
             </div>
           ) : decryptedCreds.length === 0 ? (
             <div className="py-4 text-center">
-              <p className="text-[12px] text-[var(--fg-muted)] italic">{text.noLoginInfo}</p>
+              <p className="text-[12px] italic text-[var(--fg-muted)]">{text.noLoginInfo}</p>
               <button
+                type="button"
                 onClick={onEdit}
                 className="mt-2 text-[11px] font-bold text-[var(--accent)] hover:underline"
               >
@@ -349,7 +371,7 @@ export function InventoryDetailDrawer({
             <div className="space-y-2">
               {decryptedCreds.map((cred) => {
                 const meta = CRED_META[cred.type as WarehouseCredentialType] || CRED_META.other;
-                const isSensitive = meta.sensitive;
+                const isSensitive = Boolean(meta.sensitive);
                 const isRevealed = visibleSensitive.has(cred.id);
 
                 return (
@@ -357,7 +379,7 @@ export function InventoryDetailDrawer({
                     key={cred.id}
                     cred={cred}
                     meta={meta}
-                    isSensitive={Boolean(isSensitive)}
+                    isSensitive={isSensitive}
                     isRevealed={isRevealed}
                     isCopied={copiedId === cred.id}
                     onToggleSensitive={toggleSensitive}
@@ -370,49 +392,46 @@ export function InventoryDetailDrawer({
         </div>
       </div>
 
-      {/* ═══ Duolingo Quick Info Banner ═══ */}
-      {duolingoInfo && (
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-green-200 bg-green-50/60">
-          <span className="text-lg">🦉</span>
-          <div className="flex-1 min-w-0">
-            <span className="text-[11px] font-bold text-green-700 uppercase tracking-wider block">{text.duolingoAccount}</span>
-            <span className="text-[12px] font-mono font-medium text-green-800 truncate block">{duolingoInfo}</span>
+      {duolingoInfo ? (
+        <div className="flex items-center gap-2.5 rounded-xl border border-green-200 bg-green-50/60 px-4 py-3">
+          <Zap className="size-5 shrink-0 text-green-600" />
+          <div className="min-w-0 flex-1">
+            <span className="block text-[11px] font-bold uppercase tracking-wider text-green-700">{text.duolingoAccount}</span>
+            <span className="block truncate font-mono text-[12px] font-medium text-green-800">{duolingoInfo}</span>
           </div>
-          {inviteLink && (
+          {inviteLink ? (
             <button
-              onClick={() => handleCopy(inviteLink, 'invite')}
-              className="text-[10px] font-bold text-green-600 bg-green-100 px-2.5 py-1.5 rounded-lg hover:bg-green-200 transition-colors flex items-center gap-1 shrink-0"
+              type="button"
+              onClick={() => handleCopy(inviteLink, "invite")}
+              className="flex shrink-0 items-center gap-1 rounded-lg bg-green-100 px-2.5 py-1.5 text-[10px] font-bold text-green-600 transition-colors hover:bg-green-200"
             >
-              {copiedId === 'invite' ? <Check className="size-3" /> : <Copy className="size-3" />}
+              {copiedId === "invite" ? <Check className="size-3" /> : <Copy className="size-3" />}
               {text.inviteLink}
             </button>
-          )}
+          ) : null}
         </div>
-      )}
+      ) : null}
 
-      {/* ═══ Cost info (if available) ═══ */}
-      {(account.purchaseCostVnd || account.purchaseDate || account.purchaseSource) && (
-      <div className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
-        <div className="border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-4 py-3">
-            <h3 className="text-[12px] font-bold text-[var(--fg-muted)] uppercase tracking-wider">{text.costTitle}</h3>
+      {account.purchaseCostVnd || account.purchaseDate || account.purchaseSource ? (
+        <div className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+          <div className="border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-4 py-3">
+            <h3 className="text-[12px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{text.costTitle}</h3>
           </div>
-          <div className="p-4 space-y-2">
-            {account.purchaseCostVnd != null && account.purchaseCostVnd > 0 && (
+          <div className="space-y-2 p-4">
+            {account.purchaseCostVnd != null && account.purchaseCostVnd > 0 ? (
               <InfoRow label={text.purchasePrice} value={formatMoney(account.purchaseCostVnd)} />
-            )}
-            {account.purchaseDate && <InfoRow label={text.purchaseDate} value={formatDateLabel(account.purchaseDate)} /> }
-            {account.purchaseSource && <InfoRow label={text.purchaseSource} value={account.purchaseSource} />}
+            ) : null}
+            {account.purchaseDate ? <InfoRow label={text.purchaseDate} value={formatDateLabel(account.purchaseDate)} /> : null}
+            {account.purchaseSource ? <InfoRow label={text.purchaseSource} value={account.purchaseSource} /> : null}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* ═══ Children: Connections + Activity ═══ */}
       {children}
     </div>
   );
 }
 
-// Helper row component
 const InfoRow = memo(function InfoRow({
   label,
   value,
@@ -427,19 +446,20 @@ const InfoRow = memo(function InfoRow({
   copied?: boolean;
 }) {
   return (
-    <div className="flex justify-between items-center">
-      <span className="text-[12px] text-[var(--fg-muted)] font-medium">{label}</span>
-      <div className="flex items-center gap-1.5 max-w-[60%]">
-        <span className="font-bold text-[12px] text-[var(--fg-base)] truncate">{value}</span>
-        {copyable && onCopy && (
+    <div className="flex items-center justify-between">
+      <span className="text-[12px] font-medium text-[var(--fg-muted)]">{label}</span>
+      <div className="flex max-w-[60%] items-center gap-1.5">
+        <span className="truncate text-[12px] font-bold text-[var(--fg-base)]">{value}</span>
+        {copyable && onCopy ? (
           <button
+            type="button"
             onClick={onCopy}
-            className="p-0.5 rounded hover:bg-gray-100 transition-colors shrink-0"
-            title={vi.inventory.page.detailDrawer.copy}
+            className="shrink-0 rounded p-0.5 transition-colors hover:bg-gray-100"
+            title={copy.inventoryDetailDrawer.copy}
           >
             {copied ? <Check className="size-3 text-green-500" /> : <Copy className="size-3 text-[var(--fg-muted)]" />}
           </button>
-        )}
+        ) : null}
       </div>
     </div>
   );

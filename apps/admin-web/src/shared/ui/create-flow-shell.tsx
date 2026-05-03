@@ -4,7 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CreateFlowShellProps {
-  title: string;
+  title: ReactNode;
   description?: string;
   children: ReactNode;
   footer?: ReactNode;

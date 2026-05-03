@@ -4,6 +4,7 @@ import { SmartSelector } from "@/shared/ui/smart-selector";
 import { SearchMultiSelector } from "@/shared/ui/search-multi-selector";
 import type { Provider } from "@/lib/domain/types";
 import { formatMoney } from "@/lib/utils";
+import { INVENTORY_COPY as copy } from "../copy";
 
 export type ApiProduct = {
   id: string;
@@ -40,7 +41,7 @@ export function ProviderCombobox({
   const items = providers.map((provider) => ({
     id: provider.id,
     label: provider.name,
-    sublabel: provider.contacts.find((contact) => contact.isPrimary)?.value || provider.contacts[0]?.value || "No contact",
+    sublabel: provider.contacts.find((contact) => contact.isPrimary)?.value || provider.contacts[0]?.value || copy.comboboxes.noContact,
   }));
 
   return (
@@ -49,8 +50,8 @@ export function ProviderCombobox({
       value={value}
       onSelect={(item) => onChange(item.id)}
       onCreateNew={onCreateNew}
-      placeholder="Tìm nhà cung cấp..."
-      createLabel="Thêm nhà cung cấp mới"
+      placeholder={copy.comboboxes.providerPlaceholder}
+      createLabel={copy.comboboxes.createProvider}
     />
   );
 }
@@ -78,9 +79,9 @@ export function ProductMultiCombobox({
       value={value}
       onChange={onChange}
       onCreateNew={onCreateNew}
-      placeholder="Tìm sản phẩm..."
-      createLabel="Tạo sản phẩm mới"
-      emptyText="Không tìm thấy sản phẩm phù hợp"
+      placeholder={copy.comboboxes.productPlaceholder}
+      createLabel={copy.comboboxes.createProduct}
+      emptyText={copy.comboboxes.noProduct}
     />
   );
 }

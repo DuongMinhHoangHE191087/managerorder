@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { fetcher } from "@/lib/api/fetcher";
 import { queryKeys } from "@/shared/lib/react-query/query-keys";
 import type { OrderStats } from "@/lib/supabase/repositories/orders.repo";
+import { fetchRecoverableDetail } from "@/shared/lib/recoverable-detail";
 
 export interface UseOrdersOptions {
   page?: number;
@@ -75,8 +76,7 @@ export function useOrderStats(options: Omit<UseOrdersOptions, 'page' | 'limit'> 
 export function useOrder(id: string, includeDeleted = false) {
   return useQuery({
     queryKey: [...queryKeys.order(id), includeDeleted ? "trash" : "active"],
-    queryFn: () =>
-      fetcher<unknown>(`/api/orders/${id}${includeDeleted ? "?include_deleted=1" : ""}`),
+    queryFn: () => fetchRecoverableDetail<unknown>(`/api/orders/${id}`, includeDeleted),
     enabled: !!id,
     staleTime: 15_000,
     gcTime: 5 * 60_000,

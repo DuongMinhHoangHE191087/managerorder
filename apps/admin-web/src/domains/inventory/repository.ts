@@ -1,6 +1,7 @@
 export {
   createLicenseKey,
   deleteLicenseKey,
+  getLicenseKeyById,
   getLicenseKeysByProduct,
   listLicenseKeys,
   updateLicenseKeyStatus,

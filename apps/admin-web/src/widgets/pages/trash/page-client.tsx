@@ -30,6 +30,7 @@ import { Button } from "@/shared/ui/button";
 import { DataTable } from "@/shared/ui/data-table";
 import { Input } from "@/shared/ui/input";
 import { Modal } from "@/shared/ui/modal";
+import { SoftDeletedBadge } from "@/shared/ui/soft-deleted-badge";
 import {
   KeyValueList,
   ToolbarField,
@@ -44,6 +45,7 @@ import {
   SurfaceCard,
 } from "@/shared/ui/page-layout";
 import { ActionMenu } from "@/shared/ui/action-menu";
+import { TRASH_COPY as copy } from "./copy";
 import {
   usePurgeItems,
   useRestoreItems,
@@ -78,66 +80,66 @@ interface EntityConfig {
 
 const ENTITY_CONFIG: Record<EntityType, EntityConfig> = {
   customers: {
-    label: vi.trash.tabs.customers,
+    label: copy.tabs.customers,
     icon: Users,
     summary: [
-      { label: vi.trash.fields.customers.fullName, keys: ["full_name", "name"] },
-      { label: vi.trash.fields.customers.type, keys: ["type"], kind: "badge" },
-      { label: vi.trash.fields.customers.notes, keys: ["notes"] },
+      { label: copy.fields.customers.fullName, keys: ["full_name", "name"] },
+      { label: copy.fields.customers.type, keys: ["type"], kind: "badge" },
+      { label: copy.fields.customers.notes, keys: ["notes"] },
     ],
   },
   orders: {
-    label: vi.trash.tabs.orders,
+    label: copy.tabs.orders,
     icon: ShoppingCart,
     summary: [
-      { label: vi.trash.fields.orders.orderCode, keys: ["order_code"] },
-      { label: vi.trash.fields.orders.status, keys: ["status"], kind: "badge" },
-      { label: vi.trash.fields.orders.totalAmount, keys: ["total_amount_vnd"], kind: "money" },
+      { label: copy.fields.orders.orderCode, keys: ["order_code"] },
+      { label: copy.fields.orders.status, keys: ["status"], kind: "badge" },
+      { label: copy.fields.orders.totalAmount, keys: ["total_amount_vnd"], kind: "money" },
     ],
   },
   products: {
-    label: vi.trash.tabs.products,
+    label: copy.tabs.products,
     icon: Package,
     summary: [
-      { label: vi.trash.fields.products.name, keys: ["name"] },
-      { label: vi.trash.fields.products.mode, keys: ["mode"], kind: "badge" },
-      { label: vi.trash.fields.products.price, keys: ["sell_price_vnd", "price_vnd"], kind: "money" },
+      { label: copy.fields.products.name, keys: ["name"] },
+      { label: copy.fields.products.mode, keys: ["mode"], kind: "badge" },
+      { label: copy.fields.products.price, keys: ["sell_price_vnd", "price_vnd"], kind: "money" },
     ],
   },
   providers: {
-    label: vi.trash.tabs.providers,
+    label: copy.tabs.providers,
     icon: Truck,
     summary: [
-      { label: vi.trash.fields.providers.name, keys: ["name"] },
-      { label: vi.trash.fields.providers.tier, keys: ["tier"], kind: "badge" },
-      { label: vi.trash.fields.providers.contactEmail, keys: ["contact_email", "email"] },
+      { label: copy.fields.providers.name, keys: ["name"] },
+      { label: copy.fields.providers.tier, keys: ["tier"], kind: "badge" },
+      { label: copy.fields.providers.contactEmail, keys: ["contact_email", "email"] },
     ],
   },
   source_accounts: {
-    label: vi.trash.tabs.sourceAccounts,
+    label: copy.tabs.sourceAccounts,
     icon: Mail,
     summary: [
-      { label: vi.trash.fields.sourceAccounts.email, keys: ["email"] },
-      { label: vi.trash.fields.sourceAccounts.provider, keys: ["provider"], kind: "badge" },
-      { label: vi.trash.fields.sourceAccounts.status, keys: ["status"], kind: "badge" },
+      { label: copy.fields.sourceAccounts.email, keys: ["email"] },
+      { label: copy.fields.sourceAccounts.provider, keys: ["provider"], kind: "badge" },
+      { label: copy.fields.sourceAccounts.status, keys: ["status"], kind: "badge" },
     ],
   },
   license_keys: {
-    label: vi.trash.tabs.licenseKeys,
+    label: copy.tabs.licenseKeys,
     icon: KeyRound,
     summary: [
-      { label: vi.trash.fields.licenseKeys.keyCode, keys: ["key_code"] },
-      { label: vi.trash.fields.licenseKeys.status, keys: ["status"], kind: "badge" },
-      { label: vi.trash.fields.licenseKeys.productId, keys: ["product_id"] },
+      { label: copy.fields.licenseKeys.keyCode, keys: ["key_code"] },
+      { label: copy.fields.licenseKeys.status, keys: ["status"], kind: "badge" },
+      { label: copy.fields.licenseKeys.productId, keys: ["product_id"] },
     ],
   },
   short_links: {
-    label: vi.trash.tabs.shortLinks,
+    label: copy.tabs.shortLinks,
     icon: LinkIcon,
     summary: [
-      { label: vi.trash.fields.shortLinks.slug, keys: ["slug"] },
-      { label: vi.trash.fields.shortLinks.targetUrl, keys: ["target_url"] },
-      { label: vi.trash.fields.shortLinks.currentClicks, keys: ["current_clicks"], kind: "badge" },
+      { label: copy.fields.shortLinks.slug, keys: ["slug"] },
+      { label: copy.fields.shortLinks.targetUrl, keys: ["target_url"] },
+      { label: copy.fields.shortLinks.currentClicks, keys: ["current_clicks"], kind: "badge" },
     ],
   },
 };
@@ -229,6 +231,7 @@ function getTrashDetailHref(type: EntityType, item: TrashRecord) {
     case "short_links":
       return `/short-links/${id}?trash=1`;
     case "license_keys":
+      return `/inventory?key=${id}&trash=1`;
     default:
       return "/inventory";
   }
@@ -285,8 +288,8 @@ function TrashPreview({
         <div className="p-6">
           <EmptyState
             icon={<Info className="size-5" />}
-            title="Chọn một mục để xem chi tiết"
-            description="Preview bên phải chỉ hiển thị các trường quan trọng và audit để bạn đối chiếu trước khi khôi phục hoặc xóa vĩnh viễn."
+            title={copy.preview.emptyTitle}
+            description={copy.preview.emptyDescription}
           />
         </div>
       </SurfaceCard>
@@ -307,8 +310,8 @@ function TrashPreview({
   return (
     <SurfaceCard data-testid="trash-preview" data-focused-id={item.id}>
       <SectionHeader
-        title="Chi tiết khôi phục"
-        description="Toàn bộ dữ liệu hiện có của bản ghi đã xóa để đối chiếu trước khi khôi phục hoặc xóa vĩnh viễn."
+        title={copy.preview.detailTitle}
+        description={copy.preview.detailDescription}
       />
       <div className="space-y-5 p-5">
         <div className="rounded-[28px] border border-[var(--border-soft)] bg-[linear-gradient(135deg,rgba(246,250,244,0.96),rgba(255,255,255,0.94))] p-5">
@@ -319,6 +322,7 @@ function TrashPreview({
                   <Icon className="size-3.5" />
                   {config.label}
                 </span>
+                <SoftDeletedBadge />
                 <span className="inline-flex items-center rounded-full border border-[var(--border-soft)] bg-white/90 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
                   {item.id.slice(0, 8)}
                 </span>
@@ -330,7 +334,7 @@ function TrashPreview({
                 {headline}
               </h3>
               <p className="text-[13px] font-medium leading-6 text-[var(--fg-muted)]">
-                Xóa lúc {formatFieldValue("date", item.deleted_at)} · bởi{" "}
+                {copy.preview.deletedAtPrefix} {formatFieldValue("date", item.deleted_at)} · {copy.preview.deletedByPrefix}{" "}
                 {String(item.deleted_by ?? "system")}
               </p>
             </div>
@@ -362,7 +366,7 @@ function TrashPreview({
         <div className="rounded-[24px] border border-[var(--border-soft)] bg-[rgba(246,250,244,0.86)] p-4">
           <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.2em] text-[var(--fg-muted)]">
             <Clock3 className="size-4" />
-            Audit
+            {copy.preview.audit}
           </div>
           <div className="mt-3 space-y-3 text-[13px] font-medium text-[var(--fg-base)]">
             <div className="flex items-center justify-between gap-3">
@@ -489,6 +493,15 @@ export default function TrashPage() {
           );
         },
       },
+      {
+        id: "status",
+        header: vi.trash.page.status,
+        cell: () => (
+          <div className="flex items-center">
+            <SoftDeletedBadge className="shrink-0" />
+          </div>
+        ),
+      },
       ...config.summary.map<ColumnDef<TrashRecord>>((field) => ({
         id: field.label,
         header: field.label,
@@ -527,7 +540,7 @@ export default function TrashPage() {
             <ActionMenu
               items={[
                 {
-                  label: "Xem chi tiết",
+                  label: copy.actions.viewDetails,
                   icon: <Eye className="size-4" />,
                   onClick: () => {
                     router.push(getTrashDetailHref(activeType, row.original));
@@ -598,7 +611,7 @@ export default function TrashPage() {
       <PageContainer variant="wide">
         <PageHeader
           title={vi.trash.page.title}
-          description="Một surface quản trị duy nhất cho toàn bộ dữ liệu đã xóa, đủ rộng để xem chi tiết, kiểm tra audit và xử lý khôi phục mà không phải chuyển qua từng trang."
+          description={copy.layout.description}
           eyebrow="Recovery Workspace"
           actions={
             <NextLink
@@ -606,7 +619,7 @@ export default function TrashPage() {
               className="inline-flex h-10 items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] px-4 text-[13px] font-semibold text-[var(--fg-base)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)]"
             >
               <Home className="size-4" />
-              {vi.trash.page.backHome}
+              {copy.page.backHome}
             </NextLink>
           }
         />
@@ -631,7 +644,7 @@ export default function TrashPage() {
                   value={counts[entityKey] ?? 0}
                   description={
                     entityKey === activeType
-                      ? "Đang xem"
+                      ? copy.layout.current
                       : "Nhấn để chuyển sang nhóm dữ liệu này"
                   }
                   icon={<Icon className="size-4" />}
@@ -645,8 +658,8 @@ export default function TrashPage() {
 
         <WorkspaceToolbar>
           <ToolbarField
-            label="Bộ tìm kiếm"
-            description={`Đang hiển thị ${filteredItems.length}/${items.length} mục của ${config.label.toLowerCase()}. Tổng thùng rác hiện có ${totalTrash} mục.`}
+            label={copy.layout.searchLabel}
+            description={copy.layout.searchDescription(filteredItems.length, items.length, config.label)}
           >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
@@ -661,7 +674,7 @@ export default function TrashPage() {
 
           <ToolbarField
             label="Điều khiển"
-            description="Sắp xếp và thực thi thao tác khôi phục hoặc xóa vĩnh viễn theo nhóm."
+            description={copy.layout.sortDescription}
           >
             <div className="flex flex-wrap gap-2">
               <Button
@@ -705,7 +718,7 @@ export default function TrashPage() {
           <SurfaceCard>
             <SectionHeader
               title={`Danh sách ${config.label.toLowerCase()}`}
-              description="Mỗi dòng mở sang preview bên phải. Bản ghi chỉ hiển thị các trường tóm tắt và audit để đối chiếu trước khi khôi phục."
+              description={copy.layout.tableDescription}
               action={
                 selectedCount > 0 ? (
                   <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">

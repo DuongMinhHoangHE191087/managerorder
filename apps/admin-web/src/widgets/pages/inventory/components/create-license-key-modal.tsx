@@ -8,6 +8,7 @@ import { CreateActionFooter, CreateFlowDialog, CreateFormSection } from "@/share
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 import type { LicenseKey } from "@/lib/domain/types";
+import { INVENTORY_COPY as copy } from "../copy";
 
 interface CreateLicenseKeyModalProps {
   isOpen: boolean;
@@ -28,10 +29,7 @@ export function CreateLicenseKeyModal({ isOpen, onClose, products, onSubmit }: C
   const defaultProductId = useMemo(() => products[0]?.id ?? "", [products]);
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
+    if (!isOpen) return;
     setKeyCode("");
     setProductId((current) => current || defaultProductId);
     setIsSaving(false);
@@ -42,12 +40,12 @@ export function CreateLicenseKeyModal({ isOpen, onClose, products, onSubmit }: C
 
     const trimmedKeyCode = keyCode.trim();
     if (!trimmedKeyCode) {
-      appToast.error("Vui lòng nhập mã License Key.");
+      appToast.error(copy.createLicenseKey.modal.keyRequired);
       return;
     }
 
     if (!productId) {
-      appToast.error("Vui lòng chọn sản phẩm.");
+      appToast.error(copy.createLicenseKey.modal.productRequired);
       return;
     }
 
@@ -59,9 +57,9 @@ export function CreateLicenseKeyModal({ isOpen, onClose, products, onSubmit }: C
         status: "available",
       });
       onClose();
-      appToast.success("Tạo License Key thành công.");
+      appToast.success(copy.createLicenseKey.modal.success);
     } catch {
-      appToast.error("Không thể tạo License Key.");
+      appToast.error(copy.createLicenseKey.modal.error);
     } finally {
       setIsSaving(false);
     }
@@ -71,32 +69,29 @@ export function CreateLicenseKeyModal({ isOpen, onClose, products, onSubmit }: C
     <CreateFlowDialog
       isOpen={isOpen}
       onClose={onClose}
-      title="Thêm License Key mới"
-      description="Nhập mã key và gắn vào sản phẩm tương ứng. Các trường còn lại sẽ được hệ thống khởi tạo tự động."
+      title={copy.createLicenseKey.modal.title}
+      description={copy.createLicenseKey.modal.description}
       size="md"
       footer={
         <CreateActionFooter
-          primaryLabel="Tạo key"
+          primaryLabel={copy.createLicenseKey.modal.save}
           pending={isSaving}
           onPrimary={() => {
             const form = document.getElementById("create-key-form") as HTMLFormElement | null;
             form?.requestSubmit();
           }}
           onCancel={onClose}
-          cancelLabel="Hủy"
+          cancelLabel={copy.createLicenseKey.modal.cancel}
           disabled={!keyCode.trim() || !productId}
         />
       }
     >
       <form id="create-key-form" onSubmit={handleSubmit} className="grid gap-5">
-        <CreateFormSection
-          title="Thông tin chính"
-          description="Giữ form gọn để nhập nhanh, tránh làm người dùng phải đi qua nhiều lớp cấu hình không cần thiết."
-        >
+        <CreateFormSection title={copy.createLicenseKey.main.title} description={copy.createLicenseKey.main.description}>
           <div className="grid gap-4">
             <div className="space-y-2">
               <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-                Mã License Key
+                {copy.createLicenseKey.main.keyLabel}
               </label>
               <Input
                 autoFocus
@@ -110,16 +105,11 @@ export function CreateLicenseKeyModal({ isOpen, onClose, products, onSubmit }: C
 
             <div className="space-y-2">
               <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-                Sản phẩm
+                {copy.createLicenseKey.main.productLabel}
               </label>
-              <Select
-                name="productId"
-                value={productId}
-                onChange={(event) => setProductId(event.target.value)}
-                required
-              >
+              <Select name="productId" value={productId} onChange={(event) => setProductId(event.target.value)} required>
                 <option value="" disabled>
-                  Chọn sản phẩm
+                  {copy.createLicenseKey.main.productPlaceholder}
                 </option>
                 {products.map((product) => (
                   <option key={product.id} value={product.id}>
@@ -149,9 +139,9 @@ export function DeleteLicenseKeyModal({ licenseKey, onClose, onConfirm }: Delete
     try {
       await onConfirm();
       onClose();
-      appToast.success("Đã xóa License Key.");
+      appToast.success(copy.createLicenseKey.delete.success);
     } catch {
-      appToast.error("Không thể xóa License Key.");
+      appToast.error(copy.createLicenseKey.delete.error);
     } finally {
       setLoading(false);
     }
@@ -161,15 +151,15 @@ export function DeleteLicenseKeyModal({ licenseKey, onClose, onConfirm }: Delete
     <CreateFlowDialog
       isOpen={!!licenseKey}
       onClose={onClose}
-      title="Xác nhận xóa License Key"
-      description="Thao tác này không thể hoàn tác. Key sẽ bị gỡ khỏi hệ thống ngay sau khi xác nhận."
+      title={copy.createLicenseKey.delete.title}
+      description={copy.createLicenseKey.delete.description}
       size="md"
       footer={
         <CreateActionFooter
-          primaryLabel="Xóa vĩnh viễn"
+          primaryLabel={copy.createLicenseKey.delete.save}
           onPrimary={handleDelete}
           onCancel={onClose}
-          cancelLabel="Hủy"
+          cancelLabel={copy.createLicenseKey.delete.cancel}
           pending={loading}
           disabled={loading}
         />
@@ -180,10 +170,9 @@ export function DeleteLicenseKeyModal({ licenseKey, onClose, onConfirm }: Delete
           <Trash2 className="size-8 text-[var(--danger)]" />
         </div>
         <div className="space-y-1">
-          <p className="text-[15px] font-bold text-[var(--fg-base)]">Bạn chắc chắn muốn xóa?</p>
+          <p className="text-[15px] font-bold text-[var(--fg-base)]">{copy.createLicenseKey.delete.question}</p>
           <p className="text-[13px] leading-6 text-[var(--fg-muted)]">
-            License Key <span className="font-bold text-[var(--fg-base)]">&ldquo;{licenseKey?.keyCode}&rdquo;</span>{" "}
-            sẽ bị xóa vĩnh viễn khỏi kho.
+            {copy.createLicenseKey.delete.body(licenseKey?.keyCode)}
           </p>
         </div>
       </div>

@@ -14,6 +14,7 @@ import { Button } from "@/shared/ui/button";
 import { Select } from "@/shared/ui/select";
 import { ActionMenu } from "@/shared/ui/action-menu";
 import { CreateActionFooter, CreateFlowDialog } from "@/shared/ui/create-flow-shell";
+import { SoftDeletedBadge } from "@/shared/ui/soft-deleted-badge";
 import { vi } from "@/shared/messages/vi";
 import type { ProductService } from "@/lib/domain/types";
 import { queryKeys } from "@/shared/lib/react-query/query-keys";
@@ -40,7 +41,9 @@ export default function ProductsPage() {
   const { data: products = [], isLoading, isError } = useProducts();
   const { mutateAsync: deleteProduct } = useDeleteProduct();
   const { mutateAsync: updateProduct } = useUpdateProduct();
-  const { data: routedProduct } = useProductDetail(viewingProductId, trashMode);
+  const { data: routedProductResult } = useProductDetail(viewingProductId, trashMode);
+  const routedProduct = routedProductResult?.data ?? null;
+  const isTrashView = trashMode || Boolean(routedProductResult?.softDeleted);
   const restoreItems = useRestoreItems();
   const purgeItems = usePurgeItems();
 
@@ -365,13 +368,22 @@ export default function ProductsPage() {
       <CreateFlowDialog
         isOpen={!!activeViewingProduct}
         onClose={handleCloseViewingProduct}
-        title={productText.detailModal.title}
+        title={
+          isTrashView && activeViewingProduct ? (
+            <>
+              {productText.detailModal.title}
+              <SoftDeletedBadge className="ml-3" />
+            </>
+          ) : (
+            productText.detailModal.title
+          )
+        }
         description="Giữ detail ngắn gọn nhưng đủ để kiểm tra mode vận hành, giá bán, giá vốn và biên lợi nhuận."
         size="lg"
-        footer={
-          trashMode && activeViewingProduct ? (
-            <div className="grid w-full gap-3 sm:grid-cols-3">
-              <Button variant="secondary" onClick={handleCloseViewingProduct}>
+          footer={
+            isTrashView && activeViewingProduct ? (
+              <div className="grid w-full gap-3 sm:grid-cols-3">
+                <Button variant="secondary" onClick={handleCloseViewingProduct}>
                 Đóng
               </Button>
               <Button
@@ -399,7 +411,7 @@ export default function ProductsPage() {
       >
         {activeViewingProduct && (
           <div className="space-y-5">
-            {trashMode ? (
+            {isTrashView ? (
               <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[13px] font-medium text-amber-700">
                 Sản phẩm này đang nằm trong thùng rác. Bạn có thể khôi phục hoặc xóa vĩnh viễn từ chính màn này.
               </div>

@@ -1,13 +1,33 @@
 "use client";
 
-import { Loader2, Link2, User, Key, AlertTriangle, ShieldCheck, X, Plus, Bookmark, AtSign, Trash2, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  AtSign,
+  Bookmark,
+  Key,
+  Link2,
+  Loader2,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+  Trash2,
+  User,
+  X,
+} from "lucide-react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { appToast } from "@/shared/ui/app-toast";
 import { Button } from "@/shared/ui/button";
 import { FadeIn, ScaleButton } from "@/shared/ui/animations";
 import { AddConnectionDialog } from "@/widgets/pages/inventory/components/add-connection-dialog";
-import { vi } from "@/shared/messages/vi";
-import { useSourceAccountConnections, useDisconnectSourceAccount, useReconnectSourceAccount, useSourceAccount, useRemoveReservedNick, useRecalculateSlots } from "@/widgets/pages/inventory/hooks/use-source-accounts";
+import {
+  useDisconnectSourceAccount,
+  useRecalculateSlots,
+  useReconnectSourceAccount,
+  useRemoveReservedNick,
+  useSourceAccount,
+  useSourceAccountConnections,
+} from "@/widgets/pages/inventory/hooks/use-source-accounts";
+import { INVENTORY_COPY as copy } from "../copy";
 
 export interface ConnectionItem {
   id: string;
@@ -28,11 +48,6 @@ type ConnectionCollections = {
   unconnected: ConnectionItem[];
 };
 
-const EMPTY_CONNECTIONS: ConnectionCollections = {
-  connected: [],
-  unconnected: [],
-};
-
 type ConnectionRowProps = {
   item: ConnectionItem;
   productName: string;
@@ -44,6 +59,19 @@ type ConnectionRowProps = {
   onReconnectClick: (item: ConnectionItem) => void;
 };
 
+type ReservedNickChipProps = {
+  nick: string;
+  disabled: boolean;
+  onRemove: (nick: string) => void;
+};
+
+const EMPTY_CONNECTIONS: ConnectionCollections = {
+  connected: [],
+  unconnected: [],
+};
+
+const ITEM_SEPARATOR = "•";
+
 const ConnectionRow = memo(function ConnectionRow({
   item,
   productName,
@@ -54,40 +82,48 @@ const ConnectionRow = memo(function ConnectionRow({
   onDisconnectClick,
   onReconnectClick,
 }: ConnectionRowProps) {
+  const text = copy.page.connections;
   const isConnected = variant === "connected";
   const rowClassName = isConnected
     ? "flex items-center justify-between gap-3 rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.96)] p-3 shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition-colors hover:border-[var(--accent)]/30"
     : "flex items-center justify-between gap-3 rounded-[1rem] border border-dashed border-[var(--border-soft)] bg-[rgba(255,255,255,0.92)] p-3 opacity-80 transition-opacity hover:opacity-100";
   const nickBadgeClassName = isConnected
-    ? "text-[10px] font-bold bg-[var(--accent)]/10 text-[var(--accent)] px-1.5 py-0.5 rounded flex items-center gap-1"
-    : "text-[10px] font-bold bg-[var(--surface-light)] text-[var(--fg-muted)] px-1.5 py-0.5 rounded flex items-center gap-1";
+    ? "flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold text-[var(--accent)] bg-[var(--accent)]/10"
+    : "flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold text-[var(--fg-muted)] bg-[var(--surface-light)]";
 
   return (
     <FadeIn className={rowClassName}>
-      <div className="flex flex-col gap-1 min-w-0 flex-1">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <User className="size-3.5 text-[var(--accent)]" />
-          <span className="font-bold text-[13px] text-[var(--fg-base)] truncate">{item.orders.customers.full_name}</span>
-          {item.customer_nick_used && (
+          <span className="truncate text-[13px] font-bold text-[var(--fg-base)]">
+            {item.orders.customers.full_name}
+          </span>
+          {item.customer_nick_used ? (
             <span className={nickBadgeClassName}>
               <Key className="size-3" />
               {item.customer_nick_used}
             </span>
-          )}
+          ) : null}
         </div>
-        <div className="text-[11px] text-[var(--fg-muted)] flex items-center gap-2">
-          <span>{vi.inventory.page.connections.orderCodeLabel} {item.orders.id.split("-")[0]}</span>
-          <span>•</span>
-          <span className="truncate max-w-[150px]">{productName}</span>
-          <span>•</span>
-          <span className="font-bold">{vi.inventory.page.connections.quantityLabel} {item.quantity}</span>
+        <div className="flex items-center gap-2 text-[11px] text-[var(--fg-muted)]">
+          <span>
+            {text.orderCodeLabel} {item.orders.id.split("-")[0]}
+          </span>
+          <span>{ITEM_SEPARATOR}</span>
+          <span className="max-w-[150px] truncate">{productName}</span>
+          <span>{ITEM_SEPARATOR}</span>
+          <span className="font-bold">
+            {text.quantityLabel} {item.quantity}
+          </span>
         </div>
       </div>
+
       {isConnected ? (
         <Button
           variant="secondary"
           size="sm"
-          title={vi.inventory.page.connections.disconnectButton}
+          title={text.disconnectButton}
           disabled={isActionDisabled}
           className="size-8 shrink-0 rounded-full border-red-200 p-0 text-red-500 shadow-none transition-colors hover:border-red-500 hover:bg-red-500 hover:text-white"
           onClick={() => onDisconnectClick(item)}
@@ -98,38 +134,35 @@ const ConnectionRow = memo(function ConnectionRow({
         <Button
           variant="secondary"
           size="sm"
-          disabled={isActionDisabled || (usedSlots + item.quantity > maxSlots)}
-          className="text-[11px] h-8 px-2.5 bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/30 hover:bg-[var(--accent)]/20 shadow-sm"
+          disabled={isActionDisabled || usedSlots + item.quantity > maxSlots}
+          className="h-8 border-[var(--accent)]/30 bg-[var(--accent)]/10 px-2.5 text-[11px] text-[var(--accent)] shadow-sm hover:bg-[var(--accent)]/20"
           onClick={() => onReconnectClick(item)}
         >
-          <ShieldCheck className="size-3 mr-1" />
-          {vi.inventory.page.connections.reconnectButton}
+          <ShieldCheck className="mr-1 size-3" />
+          {text.reconnectButton}
         </Button>
       )}
     </FadeIn>
   );
 });
 
-type ReservedNickChipProps = {
-  nick: string;
-  disabled: boolean;
-  onRemove: (nick: string) => void;
-};
-
 const ReservedNickChip = memo(function ReservedNickChip({
   nick,
   disabled,
   onRemove,
 }: ReservedNickChipProps) {
+  const text = copy.page.connections;
+
   return (
     <div className="group flex items-center gap-1.5 rounded-lg border border-purple-500/20 bg-purple-500/10 px-2.5 py-1.5 text-[12px] text-purple-700">
-      <AtSign className="size-3 text-purple-400 shrink-0" />
+      <AtSign className="size-3 shrink-0 text-purple-400" />
       <span className="font-mono">{nick}</span>
       <button
+        type="button"
         disabled={disabled}
         onClick={() => onRemove(nick)}
-        className="ml-0.5 text-purple-600 transition-colors opacity-0 group-hover:opacity-100 hover:text-red-500"
-        title={vi.inventory.page.connections.removeNickButton}
+        className="ml-0.5 text-purple-600 opacity-0 transition-colors group-hover:opacity-100 hover:text-red-500"
+        title={text.removeNickButton}
       >
         <Trash2 className="size-3" />
       </button>
@@ -157,56 +190,71 @@ export const SourceAccountConnections = memo(function SourceAccountConnections({
   const { mutateAsync: removeNick, isPending: isRemovingNick } = useRemoveReservedNick();
   const { mutateAsync: recalcSlots, isPending: isSyncing } = useRecalculateSlots();
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const text = vi.inventory.page.connections;
-  const slotText = vi.inventory.page.slotBreakdown;
+  const text = copy.page.connections;
+  const slotText = copy.page.slotBreakdown;
 
   const reservedNicks: string[] = sourceAccount?.reservedNicks ?? [];
 
-  const handleDisconnect = useCallback(async (orderItemId: string, quantity: number) => {
-    try {
-      await disconnect({ sourceAccountId, orderItemId, quantity });
-      appToast.success(text.disconnected);
-    } catch (err: unknown) {
-      appToast.error(err instanceof Error ? err.message : text.disconnectError);
-    }
-  }, [disconnect, sourceAccountId, text]);
+  const handleDisconnect = useCallback(
+    async (orderItemId: string, quantity: number) => {
+      try {
+        await disconnect({ sourceAccountId, orderItemId, quantity });
+        appToast.success(text.disconnected);
+      } catch (err: unknown) {
+        appToast.error(err instanceof Error ? err.message : text.disconnectError);
+      }
+    },
+    [disconnect, sourceAccountId, text],
+  );
 
-  const handleDisconnectClick = useCallback((item: ConnectionItem) => {
-    if (confirm(text.confirmDisconnect(item.orders.id.split("-")[0]))) {
-      void handleDisconnect(item.id, item.quantity);
-    }
-  }, [handleDisconnect, text]);
+  const handleDisconnectClick = useCallback(
+    (item: ConnectionItem) => {
+      if (confirm(text.confirmDisconnect(item.orders.id.split("-")[0]))) {
+        void handleDisconnect(item.id, item.quantity);
+      }
+    },
+    [handleDisconnect, text],
+  );
 
-  const handleReconnect = useCallback(async (item: ConnectionItem) => {
-    if (usedSlots + item.quantity > maxSlots) {
-      appToast.error(text.noEnoughSlots);
-      return;
-    }
-    try {
-      await reconnect({ sourceAccountId, orderItemId: item.id, quantity: item.quantity });
-      appToast.success(text.reconnectSuccess);
-    } catch (err: unknown) {
-      appToast.error(err instanceof Error ? err.message : text.reconnectError);
-    }
-  }, [maxSlots, reconnect, sourceAccountId, text, usedSlots]);
+  const handleReconnect = useCallback(
+    async (item: ConnectionItem) => {
+      if (usedSlots + item.quantity > maxSlots) {
+        appToast.error(text.noEnoughSlots);
+        return;
+      }
 
-  const handleRemoveReservedNick = useCallback(async (nick: string) => {
-    try {
-      await removeNick({ sourceAccountId, nick });
-      appToast.success(text.removedNick(nick));
-    } catch (err: unknown) {
-      appToast.error(err instanceof Error ? err.message : text.removeNickError);
-    }
-  }, [removeNick, sourceAccountId, text]);
+      try {
+        await reconnect({ sourceAccountId, orderItemId: item.id, quantity: item.quantity });
+        appToast.success(text.reconnectSuccess);
+      } catch (err: unknown) {
+        appToast.error(err instanceof Error ? err.message : text.reconnectError);
+      }
+    },
+    [maxSlots, reconnect, sourceAccountId, text, usedSlots],
+  );
+
+  const handleRemoveReservedNick = useCallback(
+    async (nick: string) => {
+      try {
+        await removeNick({ sourceAccountId, nick });
+        appToast.success(text.removedNick(nick));
+      } catch (err: unknown) {
+        appToast.error(err instanceof Error ? err.message : text.removeNickError);
+      }
+    },
+    [removeNick, sourceAccountId, text],
+  );
 
   const handleSyncSlots = useCallback(async () => {
     try {
       const result = await recalcSlots(sourceAccountId);
+
       if (result.changed) {
         appToast.success(text.syncSuccess(String(result.previous), String(result.recalculated)));
-      } else {
-        appToast.info(text.syncExact);
+        return;
       }
+
+      appToast.info(text.syncExact);
     } catch (err: unknown) {
       appToast.error(err instanceof Error ? err.message : text.syncError);
     }
@@ -214,18 +262,26 @@ export const SourceAccountConnections = memo(function SourceAccountConnections({
 
   const connectionCollections = (data as ConnectionCollections | undefined) ?? EMPTY_CONNECTIONS;
   const connectedSlots = useMemo(
-    () => connectionCollections.connected.reduce((sum: number, item: ConnectionItem) => sum + item.quantity, 0),
+    () => connectionCollections.connected.reduce((sum, item) => sum + item.quantity, 0),
     [connectionCollections.connected],
   );
   const reservedCount = reservedNicks.length;
   const freeSlots = Math.max(0, maxSlots - usedSlots);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center p-6 text-[var(--fg-muted)]"><Loader2 className="size-5 animate-spin" /></div>;
+    return (
+      <div className="flex items-center justify-center p-6 text-[var(--fg-muted)]">
+        <Loader2 className="size-5 animate-spin" />
+      </div>
+    );
   }
 
   if (error || !data) {
-    return <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm text-center">{text.error}</div>;
+    return (
+      <div className="rounded-lg bg-red-50 p-4 text-center text-sm text-red-600">
+        {text.error}
+      </div>
+    );
   }
 
   const { connected, unconnected } = connectionCollections;
@@ -233,64 +289,83 @@ export const SourceAccountConnections = memo(function SourceAccountConnections({
   return (
     <div className="space-y-6">
       <div className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/70 p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-wider">{text.breakdownTitle}</span>
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+            {text.breakdownTitle}
+          </span>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleSyncSlots}
               disabled={isSyncing}
-              className="text-[10px] font-bold text-[var(--fg-muted)] hover:text-[var(--accent)] flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-colors hover:bg-[var(--accent)]/10 disabled:opacity-50"
+              className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-[var(--fg-muted)] transition-colors hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] disabled:opacity-50"
               title={text.syncTooltip}
             >
               <RefreshCw className={`size-3 ${isSyncing ? "animate-spin" : ""}`} />
               {text.syncButton}
             </button>
-            <span className="text-[12px] font-black text-[var(--fg-base)]">{usedSlots} / {maxSlots}</span>
+            <span className="text-[12px] font-black text-[var(--fg-base)]">
+              {usedSlots} / {maxSlots}
+            </span>
           </div>
         </div>
-        <div className="w-full h-1.5 bg-[var(--border-soft)] rounded-full overflow-hidden mb-2">
-          <div className="h-full flex">
-            {connectedSlots > 0 && (
-              <div className="h-full bg-[var(--accent)]" style={{ width: `${(connectedSlots / maxSlots) * 100}%` }} />
-            )}
-            {reservedCount > 0 && (
-              <div className="h-full bg-purple-400" style={{ width: `${(reservedCount / maxSlots) * 100}%` }} />
-            )}
+
+        <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--border-soft)]">
+          <div className="flex h-full">
+            {connectedSlots > 0 ? (
+              <div
+                className="h-full bg-[var(--accent)]"
+                style={{ width: `${(connectedSlots / maxSlots) * 100}%` }}
+              />
+            ) : null}
+            {reservedCount > 0 ? (
+              <div
+                className="h-full bg-purple-400"
+                style={{ width: `${(reservedCount / maxSlots) * 100}%` }}
+              />
+            ) : null}
           </div>
         </div>
+
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px]">
           <span className="flex items-center gap-1">
             <span className="inline-block size-2 rounded-full bg-[var(--accent)]" />
-            <span className="text-[var(--fg-muted)]">{slotText.connections}: <strong className="text-[var(--fg-base)]">{connectedSlots}</strong></span>
+            <span className="text-[var(--fg-muted)]">
+              {slotText.connections}: <strong className="text-[var(--fg-base)]">{connectedSlots}</strong>
+            </span>
           </span>
           <span className="flex items-center gap-1">
             <span className="inline-block size-2 rounded-full bg-purple-400" />
-            <span className="text-[var(--fg-muted)]">{slotText.reserved}: <strong className="text-[var(--fg-base)]">{reservedCount}</strong></span>
+            <span className="text-[var(--fg-muted)]">
+              {slotText.reserved}: <strong className="text-[var(--fg-base)]">{reservedCount}</strong>
+            </span>
           </span>
           <span className="flex items-center gap-1">
             <span className="inline-block size-2 rounded-full bg-gray-300" />
-            <span className="text-[var(--fg-muted)]">{slotText.free}: <strong className="text-[var(--fg-base)]">{freeSlots}</strong></span>
+            <span className="text-[var(--fg-muted)]">
+              {slotText.free}: <strong className="text-[var(--fg-base)]">{freeSlots}</strong>
+            </span>
           </span>
         </div>
       </div>
 
-      {showAddDialog && (
+      {showAddDialog ? (
         <AddConnectionDialog
           sourceAccountId={sourceAccountId}
           maxSlots={maxSlots}
           usedSlots={usedSlots}
           onClose={() => setShowAddDialog(false)}
         />
-      )}
+      ) : null}
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h4 className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-wider flex items-center gap-2">
+          <h4 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[var(--accent)]">
             <Link2 className="size-4" />
             {text.connectedTitle(connected.length)}
           </h4>
           <ScaleButton
-            className="text-[11px] flex items-center gap-1 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 px-2.5 py-1.5 rounded-lg font-bold"
+            className="flex items-center gap-1 rounded-lg bg-[var(--accent)]/10 px-2.5 py-1.5 text-[11px] font-bold text-[var(--accent)] hover:bg-[var(--accent)]/20"
             onClick={() => setShowAddDialog(true)}
           >
             <Plus className="size-3" />
@@ -298,10 +373,12 @@ export const SourceAccountConnections = memo(function SourceAccountConnections({
           </ScaleButton>
         </div>
         {connected.length === 0 ? (
-          <p className="text-[12px] text-[var(--fg-muted)] text-center py-4 bg-gray-50 rounded-xl border border-dashed border-[var(--border-soft)]">{text.emptyConnected}</p>
+          <p className="rounded-xl border border-dashed border-[var(--border-soft)] bg-gray-50 py-4 text-center text-[12px] text-[var(--fg-muted)]">
+            {text.emptyConnected}
+          </p>
         ) : (
           <div className="space-y-2">
-            {connected.map((item: ConnectionItem) => (
+            {connected.map((item) => (
               <ConnectionRow
                 key={item.id}
                 item={item}
@@ -319,15 +396,17 @@ export const SourceAccountConnections = memo(function SourceAccountConnections({
       </div>
 
       <div className="space-y-3">
-        <h4 className="text-[12px] font-bold text-[var(--fg-muted)] uppercase tracking-wider flex items-center gap-2 mt-6">
+        <h4 className="mt-6 flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
           <AlertTriangle className="size-4" />
           {text.waitingTitle(unconnected.length)}
         </h4>
         {unconnected.length === 0 ? (
-          <p className="text-[12px] text-[var(--fg-muted)] text-center py-4 bg-gray-50 rounded-xl border border-dashed border-[var(--border-soft)]">{text.waitingEmpty}</p>
+          <p className="rounded-xl border border-dashed border-[var(--border-soft)] bg-gray-50 py-4 text-center text-[12px] text-[var(--fg-muted)]">
+            {text.waitingEmpty}
+          </p>
         ) : (
           <div className="space-y-2">
-            {unconnected.map((item: ConnectionItem) => (
+            {unconnected.map((item) => (
               <ConnectionRow
                 key={item.id}
                 item={item}
@@ -344,9 +423,9 @@ export const SourceAccountConnections = memo(function SourceAccountConnections({
         )}
       </div>
 
-      {reservedNicks.length > 0 && (
+      {reservedNicks.length > 0 ? (
         <div className="space-y-3">
-          <h4 className="text-[12px] font-bold text-purple-400/80 uppercase tracking-wider flex items-center gap-2 mt-6">
+          <h4 className="mt-6 flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-purple-400/80">
             <Bookmark className="size-4" />
             {text.reservedSectionTitle(reservedNicks.length)}
           </h4>
@@ -360,11 +439,9 @@ export const SourceAccountConnections = memo(function SourceAccountConnections({
               />
             ))}
           </div>
-          <p className="text-[10px] text-slate-600 italic">
-            {text.reservedHint}
-          </p>
+          <p className="text-[10px] italic text-slate-600">{text.reservedHint}</p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 });

@@ -2,14 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   mockWithAccount,
   mockWithErrorHandler,
+  mockRBAC,
   createTestRequest,
   TEST_ACCOUNT_ID,
 } from "./helpers/setup";
 
 vi.mock("@/lib/api/with-account", () => mockWithAccount());
 vi.mock("@/lib/api/with-error-handler", () => mockWithErrorHandler());
+vi.mock("@/lib/api/rbac", () => mockRBAC());
 vi.mock("@/domains/inventory", () => ({
   listInventoryKeysForAccount: vi.fn(),
+  getInventoryKeyForAccount: vi.fn(),
   createInventoryKeyForAccount: vi.fn(),
   deleteInventoryKeyForAccount: vi.fn(),
 }));
@@ -19,11 +22,12 @@ vi.mock("@/lib/supabase/repositories/activity-logs.repo", () => ({
 
 import {
   listInventoryKeysForAccount,
+  getInventoryKeyForAccount,
   createInventoryKeyForAccount,
   deleteInventoryKeyForAccount,
 } from "@/domains/inventory";
 import { GET, POST } from "@/app/api/inventory/route";
-import { DELETE } from "@/app/api/inventory/[id]/route";
+import { GET as GET_ITEM, DELETE } from "@/app/api/inventory/[id]/route";
 
 function makeLicenseKey(overrides: Record<string, unknown> = {}) {
   return {
@@ -201,5 +205,41 @@ describe("DELETE /api/inventory/[id]", () => {
     );
 
     expect(res.status).toBe(500);
+  });
+});
+
+describe("GET /api/inventory/[id]", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns a single key and passes include_deleted when requested", async () => {
+    const key = makeLicenseKey({ id: "00000000-0000-4000-8000-000000000046", key_code: "KEY-DETAIL" });
+    vi.mocked(getInventoryKeyForAccount).mockResolvedValue(key as any);
+
+    const res = await GET_ITEM(
+      createTestRequest("http://localhost/api/inventory/00000000-0000-4000-8000-000000000046?include_deleted=1"),
+      { params: Promise.resolve({ id: "00000000-0000-4000-8000-000000000046" }) } as any,
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data.key_code).toBe("KEY-DETAIL");
+    expect(getInventoryKeyForAccount).toHaveBeenCalledWith(
+      "00000000-0000-4000-8000-000000000046",
+      TEST_ACCOUNT_ID,
+      { includeDeleted: true },
+    );
+  });
+
+  it("returns 404 when the key is missing", async () => {
+    vi.mocked(getInventoryKeyForAccount).mockResolvedValue(null);
+
+    const res = await GET_ITEM(
+      createTestRequest("http://localhost/api/inventory/nonexistent"),
+      { params: Promise.resolve({ id: "nonexistent" }) } as any,
+    );
+
+    expect(res.status).toBe(404);
   });
 });

@@ -8,6 +8,7 @@ import { fetcher } from "@/lib/api/fetcher";
 import { buildFinancialSummary } from "@/lib/domain/financial";
 import type { Customer } from "@/lib/domain/types";
 import type { CustomerOrder } from "@/shared/types/customers";
+import { fetchRecoverableDetail } from "@/shared/lib/recoverable-detail";
 
 interface OrdersApiResponse {
   data: Record<string, unknown>[];
@@ -19,12 +20,7 @@ interface OrdersApiResponse {
 export function useCustomerDetail(customerId: string, enabled = true, includeDeleted = false) {
   return useQuery({
     queryKey: ["customer", customerId, includeDeleted ? "trash" : "active"],
-    queryFn: async () => {
-      const res = await fetcher<Customer>(
-        `/api/customers/${customerId}${includeDeleted ? "?include_deleted=1" : ""}`,
-      );
-      return res;
-    },
+    queryFn: () => fetchRecoverableDetail<Customer>(`/api/customers/${customerId}`, includeDeleted),
     enabled: enabled && !!customerId,
     staleTime: 30_000,
   });

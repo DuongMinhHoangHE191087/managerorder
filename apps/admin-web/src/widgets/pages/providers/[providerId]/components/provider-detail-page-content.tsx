@@ -28,6 +28,7 @@ import { formatDateCustom, formatDateLabel, formatMoney } from "@/lib/utils";
 import type { ProviderPurchaseOrder } from "@/shared/types/providers";
 import type { Provider } from "@/lib/domain/types";
 import { vi } from "@/shared/messages/vi";
+import { SoftDeletedBadge } from "@/shared/ui/soft-deleted-badge";
 import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
 
 function DetailPanelSkeleton() {
@@ -110,11 +111,13 @@ export default function ProviderDetailPage() {
   const trashMode = searchParams.get("trash") === "1";
 
   const {
-    data: provider,
+    data: providerResult,
     isLoading: isProviderLoading,
     isError: isProviderError,
     error: providerError,
   } = useProviderDetail(providerId, trashMode);
+  const provider = providerResult?.data ?? null;
+  const isTrashView = trashMode || Boolean(providerResult?.softDeleted);
   const {
     data: purchaseOrders = [],
     isLoading: isPOLoading,
@@ -222,10 +225,15 @@ export default function ProviderDetailPage() {
               <span className="truncate text-[var(--fg-muted)]">{provider.name}</span>
             </>
           }
-          title={vi.providers.detail.title}
+          title={
+            <>
+              <span>{vi.providers.detail.title}</span>
+              {isTrashView ? <SoftDeletedBadge className="ml-3" /> : null}
+            </>
+          }
           description={vi.providers.detail.description}
           actions={
-            trashMode ? (
+            isTrashView ? (
               <>
                 <button
                   onClick={() => void handleRestoreFromTrash()}
@@ -263,7 +271,7 @@ export default function ProviderDetailPage() {
           }
         />
 
-        {trashMode ? (
+        {isTrashView ? (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[13px] font-medium text-amber-700">
             Nhà cung cấp này đang ở thùng rác. Bạn có thể khôi phục hoặc xóa vĩnh viễn ngay trên màn chi tiết này.
           </div>

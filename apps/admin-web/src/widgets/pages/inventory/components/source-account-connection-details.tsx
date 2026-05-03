@@ -5,6 +5,7 @@ import { Info, Loader2 } from "lucide-react";
 import { useConnectionsEnriched } from "@/widgets/pages/inventory/hooks/use-source-accounts";
 import { ConnectionDetailRow } from "@/widgets/pages/inventory/components/connection-detail-row";
 import type { EnrichedConnection } from "@/lib/domain/types";
+import { INVENTORY_COPY as copy } from "../copy";
 
 interface SourceAccountConnectionDetailsPanelProps {
   sourceAccountId: string;
@@ -33,7 +34,7 @@ export const SourceAccountConnectionDetailsPanel = memo(function SourceAccountCo
     return (
       <div className="rounded-[1.15rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.9)] py-12 text-center text-[var(--fg-muted)]">
         <Info className="mx-auto mb-2 size-8 opacity-50" />
-        <p className="text-[13px] font-medium">Không thể tải chi tiết kết nối.</p>
+        <p className="text-[13px] font-medium">{copy.sourceAccountConnections.loadError}</p>
       </div>
     );
   }
@@ -44,7 +45,7 @@ export const SourceAccountConnectionDetailsPanel = memo(function SourceAccountCo
     return (
       <div className="rounded-[1.15rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.9)] py-12 text-center text-[var(--fg-muted)]">
         <Info className="mx-auto mb-2 size-8 opacity-50" />
-        <p className="text-[13px] font-medium">Chưa có kết nối enriched nào.</p>
+        <p className="text-[13px] font-medium">{copy.sourceAccountConnections.empty}</p>
       </div>
     );
   }

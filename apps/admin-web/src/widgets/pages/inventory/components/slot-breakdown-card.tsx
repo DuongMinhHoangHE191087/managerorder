@@ -2,15 +2,21 @@
 
 import React from "react";
 import {
-  Link2, Bookmark, Package, Loader2,
-  RefreshCw, ChevronRight, User, AtSign,
+  AtSign,
+  Bookmark,
+  ChevronRight,
+  Link2,
+  Loader2,
+  Package,
+  RefreshCw,
+  User,
 } from "lucide-react";
-import { useSlotBreakdown, useRecalculateSlots } from "@/widgets/pages/inventory/hooks/use-source-accounts";
+import { useRecalculateSlots, useSlotBreakdown } from "@/widgets/pages/inventory/hooks/use-source-accounts";
 import { Button } from "@/shared/ui/button";
 import { appToast } from "@/shared/ui/app-toast";
 import { cn } from "@/lib/utils";
 import type { SlotBreakdownData } from "@/shared/types/inventory";
-import { vi } from "@/shared/messages/vi";
+import { INVENTORY_COPY as copy } from "../copy";
 
 interface SlotBreakdownCardProps {
   sourceAccountId: string;
@@ -18,10 +24,15 @@ interface SlotBreakdownCardProps {
   onScrollToReserved?: () => void;
 }
 
+const ITEM_SEPARATOR = "•";
+
 function BreakdownBar({ data }: { data: SlotBreakdownData }) {
-  const text = vi.inventory.page.slotBreakdown;
+  const text = copy.page.slotBreakdown;
   const { connectedCount, reservedCount, availableCount, total } = data;
-  if (total <= 0) return null;
+
+  if (total <= 0) {
+    return null;
+  }
 
   const connPct = (connectedCount / total) * 100;
   const resPct = (reservedCount / total) * 100;
@@ -29,44 +40,48 @@ function BreakdownBar({ data }: { data: SlotBreakdownData }) {
 
   return (
     <div className="space-y-2">
-      {/* Stacked bar */}
-      <div className="h-4 rounded-full bg-[var(--border-soft)] overflow-hidden flex">
-        {connPct > 0 && (
+      <div className="flex h-4 overflow-hidden rounded-full bg-[var(--border-soft)]">
+        {connPct > 0 ? (
           <div
             className="h-full bg-indigo-500 transition-all duration-500"
             style={{ width: `${connPct}%` }}
             title={text.connectedTooltip(connectedCount)}
           />
-        )}
-        {resPct > 0 && (
+        ) : null}
+        {resPct > 0 ? (
           <div
             className="h-full bg-purple-500 transition-all duration-500"
             style={{ width: `${resPct}%` }}
             title={text.reservedTooltip(reservedCount)}
           />
-        )}
-        {availPct > 0 && (
+        ) : null}
+        {availPct > 0 ? (
           <div
             className="h-full bg-emerald-500/30 transition-all duration-500"
             style={{ width: `${availPct}%` }}
             title={text.freeTooltip(availableCount)}
           />
-        )}
+        ) : null}
       </div>
 
-      {/* Legend */}
       <div className="flex items-center gap-4 text-[11px] text-[var(--fg-muted)]">
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-          <span>{text.connections} ({connectedCount})</span>
+          <div className="h-2.5 w-2.5 rounded-full bg-indigo-500" />
+          <span>
+            {text.connections} ({connectedCount})
+          </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
-          <span>{text.reserved} ({reservedCount})</span>
+          <div className="h-2.5 w-2.5 rounded-full bg-purple-500" />
+          <span>
+            {text.reserved} ({reservedCount})
+          </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/40" />
-          <span>{text.free} ({availableCount})</span>
+          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/40" />
+          <span>
+            {text.free} ({availableCount})
+          </span>
         </div>
       </div>
     </div>
@@ -78,91 +93,95 @@ export function SlotBreakdownCard({
   onScrollToConnections,
   onScrollToReserved,
 }: SlotBreakdownCardProps) {
-  const text = vi.inventory.page.slotBreakdown;
+  const text = copy.page.slotBreakdown;
   const { data, isLoading, isError } = useSlotBreakdown(sourceAccountId);
   const { mutateAsync: recalculate, isPending: isRecalculating } = useRecalculateSlots();
 
   const handleRecalculate = async () => {
     try {
       const result = await recalculate(sourceAccountId);
+
       if (result.changed) {
         appToast.success(text.recalculated(result.previous, result.recalculated));
-      } else {
-        appToast.info(text.exact);
+        return;
       }
+
+      appToast.info(text.exact);
     } catch {
-      appToast.error(vi.inventory.page.toast.syncError);
+      appToast.error(copy.page.toast.syncError);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="app-card border border-[var(--border-soft)] rounded-[1.15rem] p-5 flex items-center justify-center h-40 bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
-        <Loader2 className="w-5 h-5 text-[var(--accent)] animate-spin" />
+      <div className="app-card flex h-40 items-center justify-center rounded-[1.15rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+        <Loader2 className="h-5 w-5 animate-spin text-[var(--accent)]" />
       </div>
     );
   }
 
   if (isError || !data) {
     return (
-      <div className="app-card border border-[var(--border-soft)] rounded-[1.15rem] p-5 text-center bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
+      <div className="app-card rounded-[1.15rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] p-5 text-center shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
         <p className="text-sm text-[var(--fg-muted)]">{text.error}</p>
       </div>
     );
   }
 
   return (
-    <div className="app-card border border-[var(--border-soft)] rounded-[1.15rem] overflow-hidden bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
-      {/* Header */}
+    <div className="app-card overflow-hidden rounded-[1.15rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-4 py-3">
         <div className="flex items-center gap-2">
-          <Package className="w-4 h-4 text-[var(--accent)]" />
+          <Package className="h-4 w-4 text-[var(--accent)]" />
           <h4 className="text-[13px] font-bold text-[var(--fg-base)]">{text.title}</h4>
         </div>
         <Button
           size="sm"
           disabled={isRecalculating}
           onClick={handleRecalculate}
-          className="text-[11px] h-7 px-2.5 bg-[var(--surface-strong)] text-[var(--fg-muted)] border-[var(--border-soft)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 shadow-none"
+          className="h-7 border-[var(--border-soft)] bg-[var(--surface-strong)] px-2.5 text-[11px] text-[var(--fg-muted)] shadow-none hover:bg-[var(--accent)]/10 hover:text-[var(--accent)]"
         >
-          {isRecalculating ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+          {isRecalculating ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}
           {text.recalculate}
         </Button>
       </div>
 
-      <div className="px-4 py-4 space-y-4">
-        {/* Stats row */}
+      <div className="space-y-4 px-4 py-4">
         <div className="grid grid-cols-3 gap-3">
           <button
+            type="button"
             onClick={onScrollToConnections}
-            className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/60 p-3 text-center transition-colors hover:border-[var(--accent)]/30 hover:bg-white group"
+            className="group rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/60 p-3 text-center transition-colors hover:border-[var(--accent)]/30 hover:bg-white"
           >
-            <Link2 className="w-4 h-4 text-[var(--accent)] mx-auto mb-1" />
+            <Link2 className="mx-auto mb-1 h-4 w-4 text-[var(--accent)]" />
             <div className="text-xl font-bold text-[var(--fg-base)]">{data.connectedCount}</div>
-            <div className="text-[10px] text-[var(--fg-muted)] group-hover:text-[var(--accent)] transition-colors">{text.connections}</div>
+            <div className="text-[10px] text-[var(--fg-muted)] transition-colors group-hover:text-[var(--accent)]">
+              {text.connections}
+            </div>
           </button>
           <button
+            type="button"
             onClick={onScrollToReserved}
-            className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/60 p-3 text-center transition-colors hover:border-purple-400/40 hover:bg-white group"
+            className="group rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/60 p-3 text-center transition-colors hover:border-purple-400/40 hover:bg-white"
           >
-            <Bookmark className="w-4 h-4 text-purple-500 mx-auto mb-1" />
+            <Bookmark className="mx-auto mb-1 h-4 w-4 text-purple-500" />
             <div className="text-xl font-bold text-[var(--fg-base)]">{data.reservedCount}</div>
-            <div className="text-[10px] text-[var(--fg-muted)] group-hover:text-purple-500 transition-colors">{text.reserved}</div>
+            <div className="text-[10px] text-[var(--fg-muted)] transition-colors group-hover:text-purple-500">
+              {text.reserved}
+            </div>
           </button>
           <div className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/60 p-3 text-center">
-            <Package className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
+            <Package className="mx-auto mb-1 h-4 w-4 text-emerald-500" />
             <div className="text-xl font-bold text-[var(--fg-base)]">{data.availableCount}</div>
             <div className="text-[10px] text-[var(--fg-muted)]">{text.free}</div>
           </div>
         </div>
 
-        {/* Visual breakdown bar */}
         <BreakdownBar data={data} />
 
-        {/* Connected items preview (collapsed, max 3) */}
-        {data.connectedItems.length > 0 && (
+        {data.connectedItems.length > 0 ? (
           <div className="space-y-1.5">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--fg-muted)]">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
               {text.connectedLatest}
             </p>
             {data.connectedItems.slice(0, 3).map((item) => (
@@ -170,34 +189,34 @@ export function SlotBreakdownCard({
                 key={item.orderItemId}
                 className="flex items-center gap-2 rounded-[0.9rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/70 px-2.5 py-2 text-[11px] text-[var(--fg-muted)]"
               >
-                <User className="w-3 h-3 text-[var(--accent)] shrink-0" />
-                <span className="text-[var(--fg-base)] font-semibold truncate max-w-[100px]">{item.customerName}</span>
-                {item.nickUsed && (
-                  <span className="text-[var(--accent)] font-mono bg-[var(--accent)]/10 px-1 rounded text-[10px]">
+                <User className="h-3 w-3 shrink-0 text-[var(--accent)]" />
+                <span className="max-w-[100px] truncate font-semibold text-[var(--fg-base)]">{item.customerName}</span>
+                {item.nickUsed ? (
+                  <span className="rounded bg-[var(--accent)]/10 px-1 text-[10px] font-mono text-[var(--accent)]">
                     @{item.nickUsed}
                   </span>
-                )}
-                <span className="text-[var(--border-soft)]">•</span>
+                ) : null}
+                <span className="text-[var(--border-soft)]">{ITEM_SEPARATOR}</span>
                 <span className="text-[var(--fg-muted)]">#{item.orderId.split("-")[0]}</span>
-                <span className="ml-auto font-bold text-[var(--fg-muted)]">×{item.quantity}</span>
+                <span className="ml-auto font-bold text-[var(--fg-muted)]">x{item.quantity}</span>
               </div>
             ))}
-            {data.connectedItems.length > 3 && (
+            {data.connectedItems.length > 3 ? (
               <button
+                type="button"
                 onClick={onScrollToConnections}
-                className="w-full text-[11px] text-[var(--accent)] hover:text-[var(--accent-strong)] flex items-center justify-center gap-1 py-1 transition-colors"
+                className="flex w-full items-center justify-center gap-1 py-1 text-[11px] text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]"
               >
                 {text.seeAll(data.connectedItems.length)}
-                <ChevronRight className="w-3 h-3" />
+                <ChevronRight className="h-3 w-3" />
               </button>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
 
-        {/* Reserved nicks preview (collapsed, max 4) */}
-        {data.reservedNicks.length > 0 && (
+        {data.reservedNicks.length > 0 ? (
           <div className="space-y-1.5">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--fg-muted)]">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
               {text.reservedNick}
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -205,25 +224,25 @@ export function SlotBreakdownCard({
                 <div
                   key={nick}
                   className={cn(
-                    "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-mono",
-                    "bg-purple-50 text-purple-600 border border-purple-200"
+                    "inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-1 text-[11px] font-mono text-purple-600",
                   )}
                 >
-                  <AtSign className="w-2.5 h-2.5" />
+                  <AtSign className="h-2.5 w-2.5" />
                   {nick}
                 </div>
               ))}
-              {data.reservedNicks.length > 4 && (
+              {data.reservedNicks.length > 4 ? (
                 <button
+                  type="button"
                   onClick={onScrollToReserved}
-                  className="text-[11px] text-purple-500 hover:text-purple-400 flex items-center gap-0.5 transition-colors"
+                  className="flex items-center gap-0.5 text-[11px] text-purple-500 transition-colors hover:text-purple-400"
                 >
                   {text.more(data.reservedNicks.length - 4)}
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

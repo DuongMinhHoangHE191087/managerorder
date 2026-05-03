@@ -15,7 +15,7 @@ import { AppLayout } from "@/widgets/layout/app-layout";
 import { PageContainer } from "@/shared/ui/page-layout";
 import { Modal } from "@/shared/ui/modal";
 import { Button } from "@/shared/ui/button";
-import { vi } from "@/shared/messages/vi";
+import { SoftDeletedBadge } from "@/shared/ui/soft-deleted-badge";
 
 import {
   useDeleteSourceAccount,
@@ -28,8 +28,9 @@ import { useProviders } from "@/widgets/pages/providers/hooks/use-providers";
 import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
 import { formatDateLabel, formatRelativeTime, cn } from "@/lib/utils";
 import type { SourceAccount } from "@/lib/domain/types";
+import { INVENTORY_COPY as copy } from "../../copy";
 
-const sourceAccountText = vi.inventory.sourceAccountDetail;
+const sourceAccountText = copy.sourceAccountDetail;
 
 function AsyncPanelFallback({ label }: { label: string }) {
   return (
@@ -46,7 +47,7 @@ const SlotBreakdownCard = dynamic(
       default: mod.SlotBreakdownCard,
     })),
   {
-    loading: () => <AsyncPanelFallback label="phân tích slot" />,
+    loading: () => <AsyncPanelFallback label={copy.sourceAccountDetailFallbacks.slotAnalysis} />,
   }
 );
 
@@ -56,7 +57,7 @@ const SourceAccountConnections = dynamic(
       default: mod.SourceAccountConnections,
     })),
   {
-    loading: () => <AsyncPanelFallback label="kết nối" />,
+    loading: () => <AsyncPanelFallback label={copy.sourceAccountDetailFallbacks.connections} />,
   }
 );
 
@@ -66,7 +67,7 @@ const SourceAccountConnectionDetailsPanel = dynamic(
       default: mod.SourceAccountConnectionDetailsPanel,
     })),
   {
-    loading: () => <AsyncPanelFallback label="chi tiết kết nối" />,
+    loading: () => <AsyncPanelFallback label={copy.sourceAccountDetailFallbacks.connectionDetail} />,
   }
 );
 
@@ -76,7 +77,7 @@ const DuolingoFamilyPanel = dynamic(
       default: mod.DuolingoFamilyPanel,
     })),
   {
-    loading: () => <AsyncPanelFallback label="Gia đình Duolingo" />,
+    loading: () => <AsyncPanelFallback label={copy.sourceAccountDetailFallbacks.duolingoFamily} />,
   }
 );
 
@@ -96,7 +97,7 @@ const ActivityTimeline = dynamic(
       default: mod.ActivityTimeline,
     })),
   {
-    loading: () => <AsyncPanelFallback label="lịch sử hoạt động" />,
+    loading: () => <AsyncPanelFallback label={copy.sourceAccountDetailFallbacks.activityLog} />,
   }
 );
 
@@ -108,13 +109,15 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
   const searchParams = useSearchParams();
   const trashMode = searchParams.get("trash") === "1";
 
-  const { data: account, isLoading, error } = useSourceAccount(id, trashMode);
+  const { data: accountResult, isLoading, error } = useSourceAccount(id, trashMode);
   const { data: products = [] } = useProducts();
   const { data: providers = [] } = useProviders();
   const { mutateAsync: deleteSourceAccount } = useDeleteSourceAccount();
   const { mutateAsync: updateSourceAccount } = useUpdateSourceAccount();
   const restoreItems = useRestoreItems();
   const purgeItems = usePurgeItems();
+  const account = accountResult?.data ?? null;
+  const isTrashView = trashMode || Boolean(accountResult?.softDeleted);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -262,6 +265,7 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
               <div className="min-w-0">
                 <div className="flex items-center gap-3">
                   <h1 className="text-2xl font-black tracking-tight text-[var(--fg-base)] sm:text-3xl">{sourceAccountText.title}</h1>
+                  {isTrashView ? <SoftDeletedBadge /> : null}
                   <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${
                     isFull ? "bg-[var(--danger)]/10 text-[var(--danger)]" : "bg-[var(--accent)]/10 text-[var(--accent)]"
                   }`}>
@@ -274,21 +278,21 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
             </div>
 
             <div className="flex items-center gap-2">
-              {trashMode ? (
+              {isTrashView ? (
                 <>
                   <button
                     type="button"
                     onClick={() => void handleRestoreFromTrash()}
                     className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
                   >
-                    <RefreshCw className="size-4" /> Khôi phục
+                    <RefreshCw className="size-4" /> {copy.sourceAccountTrash.restore}
                   </button>
                   <button
                     type="button"
                     onClick={() => void handlePurgeFromTrash()}
                     className="flex items-center gap-2 rounded-[1rem] border border-[var(--danger)]/30 bg-white px-4 py-2 text-[13px] font-bold text-[var(--danger)] shadow-sm transition-colors hover:bg-[var(--danger)]/10"
                   >
-                    <Trash2 className="size-4" /> Xóa vĩnh viễn
+                    <Trash2 className="size-4" /> {copy.sourceAccountTrash.purge}
                   </button>
                 </>
               ) : (
@@ -314,9 +318,9 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
 
-          {trashMode ? (
+          {isTrashView ? (
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[13px] font-medium text-amber-700">
-              Tài khoản nguồn này đang ở thùng rác. Bạn có thể khôi phục hoặc xóa vĩnh viễn ngay trên màn chi tiết này.
+              {copy.sourceAccountTrash.banner}
             </div>
           ) : null}
         </div>

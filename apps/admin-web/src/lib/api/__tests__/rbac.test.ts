@@ -80,6 +80,40 @@ describe("resolveUser", () => {
     expect(rbacMocks.eqIdentityMock).toHaveBeenCalledWith("id", "00000000-0000-4000-8000-0000000000d0");
   });
 
+  it("trusts the injected mock session user in dev", async () => {
+    const previousMockSession = process.env.E2E_MOCK_SESSION;
+    process.env.E2E_MOCK_SESSION = "1";
+
+    try {
+      const req = new NextRequest("http://localhost/api/test", {
+        headers: {
+          "x-account-id": TEST_ACCOUNT_ID,
+          "x-e2e-mock-session": "1",
+          "x-user-id": "00000000-0000-4000-8000-000000000099",
+          "x-user-email": "mock-user@managerorder.local",
+          "x-user-role": "admin_owner",
+        },
+      });
+
+      const user = await resolveUser(req, TEST_ACCOUNT_ID);
+
+      expect(user).toEqual({
+        userId: "00000000-0000-4000-8000-000000000099",
+        email: "mock-user@managerorder.local",
+        role: "admin_owner",
+        accountId: TEST_ACCOUNT_ID,
+        displayName: null,
+      });
+      expect(rbacMocks.fromMock).not.toHaveBeenCalled();
+    } finally {
+      if (previousMockSession === undefined) {
+        delete process.env.E2E_MOCK_SESSION;
+      } else {
+        process.env.E2E_MOCK_SESSION = previousMockSession;
+      }
+    }
+  });
+
   it("falls back to x-user-email when x-user-id is missing", async () => {
     rbacMocks.maybeSingleMock.mockResolvedValue({
       data: {

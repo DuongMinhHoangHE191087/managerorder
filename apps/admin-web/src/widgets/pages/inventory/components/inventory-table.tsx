@@ -15,6 +15,7 @@ import { SlideUp } from "@/shared/ui/animations";
 import { cn, formatDateLabel } from "@/lib/utils";
 
 import type { Provider, SourceAccount } from "@/lib/domain/types";
+import { INVENTORY_COPY as copy } from "../copy";
 
 
 
@@ -414,7 +415,7 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
       <div className="min-w-0 pl-8 lg:pl-0">
 
-        <span className="lg:hidden mb-1 block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Nhà CC</span>
+        <span className="lg:hidden mb-1 block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{copy.inventoryTable.providerLabel}</span>
 
         <div className="flex w-fit items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[rgba(246,250,244,0.72)] px-2.5 py-1 text-[13px] font-medium text-[var(--fg-muted)] lg:w-full lg:border-transparent lg:bg-transparent lg:px-0 lg:py-0">
 
@@ -430,11 +431,11 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
       <div className="min-w-0 pl-8 lg:pl-0">
 
-        <span className="lg:hidden mb-1 block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Sản phẩm</span>
+        <span className="lg:hidden mb-1 block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{copy.inventoryTable.productLabel}</span>
 
         <span className="inline-flex max-w-full items-center truncate rounded-full border border-[var(--border-soft)] bg-white px-2.5 py-1 text-[11px] font-bold text-[var(--fg-base)] shadow-sm transition-colors group-hover:border-[var(--accent)]/30">
 
-          {productNames || "N/A"}
+          {productNames || copy.inventoryTable.emptyValue}
 
         </span>
 
@@ -448,7 +449,7 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
           <div className="flex items-center justify-between text-[11px] font-bold tracking-wide">
 
-            <span className="text-[var(--fg-muted)] lg:hidden">SLOTS</span>
+            <span className="text-[var(--fg-muted)] lg:hidden">{copy.inventoryTable.slotsLabel}</span>
 
             <span className={cn("text-[12px]", percent >= 100 ? "font-bold text-red-500" : "font-bold text-[var(--fg-base)]")}>
 
@@ -482,7 +483,7 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
               <AlertTriangle className="size-3" />
 
-              Da day
+              {copy.inventoryTable.fullLabel}
 
             </span>
 
@@ -554,7 +555,7 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
                 <span className={cn("mt-0.5 text-[10px] font-bold", expiryInfo.level === "danger" ? "text-red-500" : "text-yellow-500")}>
 
-                  {expiryInfo.daysLeft === 0 ? "Hết hạn" : `Còn ${expiryInfo.daysLeft} ngày`}
+                  {expiryInfo.daysLeft === 0 ? copy.inventoryTable.expired : copy.inventoryTable.daysLeft(expiryInfo.daysLeft)}
 
                 </span>
 
@@ -614,13 +615,13 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
           <span className="hidden lg:inline">
 
-            {expiryInfo.daysLeft === 0 ? "Hết hạn" : freeSlots > 0 ? "Hoạt động" : "Đã đầy"}
+            {expiryInfo.daysLeft === 0 ? copy.inventoryTable.expired : freeSlots > 0 ? copy.inventoryTable.active : copy.inventoryTable.fullLabel}
 
           </span>
 
           <span className="lg:hidden">
 
-            {expiryInfo.daysLeft === 0 ? "Hết" : freeSlots > 0 ? "Hoạt động" : "Đầy"}
+            {expiryInfo.daysLeft === 0 ? copy.inventoryTable.expired : freeSlots > 0 ? copy.inventoryTable.active : copy.inventoryTable.fullCompact}
 
           </span>
 
@@ -768,7 +769,7 @@ export const InventoryTable = React.memo(function InventoryTable({
 
               />
 
-          <span className="text-[13px] font-bold text-[var(--fg-base)]">Chọn tất cả</span>
+          <span className="text-[13px] font-bold text-[var(--fg-base)]">{copy.inventoryTable.selectAll}</span>
 
             </label>
 
@@ -784,9 +785,9 @@ export const InventoryTable = React.memo(function InventoryTable({
 
           <div className="min-w-0">
 
-            <h3 className="text-[15px] font-bold tracking-tight text-[var(--fg-base)]">Tài khoản nguồn (Pool)</h3>
+            <h3 className="text-[15px] font-bold tracking-tight text-[var(--fg-base)]">{copy.inventoryTable.title}</h3>
 
-            <p className="text-[12px] text-[var(--fg-muted)]">Quản lý tài khoản nguồn, slot và hạn dùng trong một màn hình.</p>
+            <p className="text-[12px] text-[var(--fg-muted)]">{copy.inventoryTable.description}</p>
 
           </div>
 
@@ -794,7 +795,7 @@ export const InventoryTable = React.memo(function InventoryTable({
 
         <span data-testid="inventory-account-count" className="whitespace-nowrap text-[12px] font-medium text-[var(--fg-muted)]">
 
-          Tổng cộng <strong className="text-[var(--accent)]">{filteredAccounts.length}</strong> tài khoản
+          {copy.inventoryTable.showingPrefix} <strong className="text-[var(--accent)]">{filteredAccounts.length}</strong> {copy.inventoryTable.countSuffix}
 
         </span>
 
@@ -810,9 +811,9 @@ export const InventoryTable = React.memo(function InventoryTable({
 
             <Server className="mb-3 size-12 text-[var(--fg-muted)] opacity-50" />
 
-            <h3 className="text-[15px] font-bold text-[var(--fg-base)]">Không có tài khoản nguồn nào</h3>
+            <h3 className="text-[15px] font-bold text-[var(--fg-base)]">{copy.inventoryTable.noData}</h3>
 
-            <p className="mt-1 text-sm text-[var(--fg-muted)]">Chưa có dữ liệu tài khoản.</p>
+            <p className="mt-1 text-sm text-[var(--fg-muted)]">{copy.inventoryTable.noDataDescription}</p>
 
           </div>
 
@@ -834,17 +835,17 @@ export const InventoryTable = React.memo(function InventoryTable({
 
               {hasBulk && <div />}
 
-              <SortableHeader field="email" label="Tai khoan" currentField={sortField} currentDir={sortDir} onSort={handleSort} />
+              <SortableHeader field="email" label={copy.inventoryTable.accountField} currentField={sortField} currentDir={sortDir} onSort={handleSort} />
 
-              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Nha cung cap</div>
+              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{copy.inventoryTable.providerField}</div>
 
-              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Sản phẩm</div>
+              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{copy.inventoryTable.productField}</div>
 
-              <SortableHeader field="slots" label="Slot" icon={<Users className="size-3" />} currentField={sortField} currentDir={sortDir} onSort={handleSort} />
+              <SortableHeader field="slots" label={copy.inventoryTable.slotField} icon={<Users className="size-3" />} currentField={sortField} currentDir={sortDir} onSort={handleSort} />
 
-              <SortableHeader field="expiry" label="Hết hạn" currentField={sortField} currentDir={sortDir} onSort={handleSort} />
+              <SortableHeader field="expiry" label={copy.inventoryTable.expiryField} currentField={sortField} currentDir={sortDir} onSort={handleSort} />
 
-              <SortableHeader field="status" label="Trang thai" className="justify-center" currentField={sortField} currentDir={sortDir} onSort={handleSort} />
+              <SortableHeader field="status" label={copy.inventoryTable.statusField} className="justify-center" currentField={sortField} currentDir={sortDir} onSort={handleSort} />
 
             </div>
 
@@ -902,7 +903,11 @@ export const InventoryTable = React.memo(function InventoryTable({
 
           <span data-testid="inventory-pagination-info" className="text-[13px] font-medium text-[var(--fg-muted)]">
 
-            Hiển thị {(safePage - 1) * PAGE_SIZE + 1}â€“{Math.min(safePage * PAGE_SIZE, sortedAccounts.length)} / {sortedAccounts.length} tài khoản
+            {copy.inventoryTable.paginationInfo(
+              (safePage - 1) * PAGE_SIZE + 1,
+              Math.min(safePage * PAGE_SIZE, sortedAccounts.length),
+              sortedAccounts.length,
+            )}
 
           </span>
 
@@ -926,7 +931,7 @@ export const InventoryTable = React.memo(function InventoryTable({
 
               <ChevronLeft className="size-3.5" />
 
-              Trước
+              {copy.inventoryTable.prevPage}
 
             </button>
 
@@ -990,7 +995,7 @@ export const InventoryTable = React.memo(function InventoryTable({
 
             >
 
-              Tiếp
+              {copy.inventoryTable.nextPage}
 
               <ChevronRight className="size-3.5" />
 

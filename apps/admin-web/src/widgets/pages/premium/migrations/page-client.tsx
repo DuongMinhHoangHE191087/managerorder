@@ -12,6 +12,7 @@ import { readApiEnvelope } from "@/shared/lib/api-client";
 import { MigrationModals } from "./components/migration-modals";
 import { MigrationStatusCards } from "./components/migration-status-cards";
 import { MigrationsList } from "./components/migrations-list";
+import { PREMIUM_MIGRATION_COPY as copy } from "./copy";
 import type {
   MigrationAccountRow,
   MigrationDetailRow,
@@ -90,17 +91,17 @@ export default function PremiumMigrationsPage() {
       if (subscriptionsRes.ok) {
         setSubscriptions(subscriptionsPayload.data ?? []);
       } else {
-        appToast.error(`Không thể tải thuê bao: ${subscriptionsPayload.error ?? "Lỗi không xác định"}`);
+        appToast.error(copy.page.loadCatalogsError.subscriptions(subscriptionsPayload.error ?? "Lỗi không xác định"));
       }
 
       if (accountsRes.ok) {
         setAccounts(accountsPayload.data ?? []);
       } else {
-        appToast.error(`Không thể tải kho premium: ${accountsPayload.error ?? "Lỗi không xác định"}`);
+        appToast.error(copy.page.loadCatalogsError.accounts(accountsPayload.error ?? "Lỗi không xác định"));
       }
     } catch (error) {
       console.error("[fetchPremiumMigrationCatalogs]", error);
-      appToast.error("Lỗi kết nối khi tải dữ liệu nguồn cho migrations");
+      appToast.error(copy.page.loadCatalogsError.fallback);
     } finally {
       setIsCatalogLoading(false);
     }
@@ -138,7 +139,7 @@ export default function PremiumMigrationsPage() {
       const payload = await readApiEnvelope<MigrationListRow[]>(response);
 
       if (!response.ok) {
-        appToast.error(payload.error ?? "Không thể tải queue migrations");
+        appToast.error(payload.error ?? copy.page.loadMigrationsError.fallback);
         return;
       }
 
@@ -161,7 +162,7 @@ export default function PremiumMigrationsPage() {
       });
     } catch (error) {
       console.error("[fetchPremiumMigrations]", error);
-      appToast.error("Lỗi kết nối khi tải dữ liệu migrations");
+      appToast.error(copy.page.loadMigrationsError.fallback);
     } finally {
       setIsLoading(false);
     }
@@ -176,14 +177,14 @@ export default function PremiumMigrationsPage() {
       const payload = await readApiEnvelope<MigrationDetailRow>(response);
 
       if (!response.ok || !payload.data) {
-        appToast.error(payload.error ?? "Không thể tải audit di chuyển");
+        appToast.error(payload.error ?? copy.page.loadDetailError.fallback);
         return;
       }
 
       setDetailMigration(payload.data);
     } catch (error) {
       console.error("[openMigrationDetail]", error);
-      appToast.error("Lỗi kết nối khi tải audit");
+      appToast.error(copy.page.loadDetailError.fallback);
     } finally {
       setDetailLoading(false);
     }
@@ -218,13 +219,13 @@ export default function PremiumMigrationsPage() {
     <AppLayout>
       <PageContainer className="relative">
         <PageHeader
-          eyebrow={<span>Premium / Migrations</span>}
-          title="Di Chuyển Thuê Bao"
-          description="Queue vận hành chuẩn cho migration premium: lọc server-side, review chi tiết, chỉnh pending request và thực thi start/complete/fail/cancel ngay trên admin surface."
+          eyebrow={<span>{copy.page.eyebrow}</span>}
+          title={copy.page.title}
+          description={copy.page.description}
           actions={
             <Button onClick={() => setIsCreateOpen(true)} variant="primary" className="rounded-full px-5">
               <Plus className="size-4" />
-              Tạo yêu cầu di chuyển
+              {copy.page.createButton}
             </Button>
           }
         />
@@ -241,12 +242,14 @@ export default function PremiumMigrationsPage() {
         <FiltersBar className="mt-1 flex-col gap-4">
           <div className="grid gap-3 lg:grid-cols-5">
             <div className="space-y-2">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Thuê bao</label>
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                {copy.page.filters.subscription}
+              </label>
               <Select
                 value={filtersDraft.subscriptionId}
                 onChange={(event) => setFiltersDraft((current) => ({ ...current, subscriptionId: event.target.value }))}
               >
-                <option value="">Tất cả thuê bao</option>
+                <option value="">{copy.page.filters.allSubscriptions}</option>
                 {subscriptions.map((subscription) => (
                   <option key={subscription.id} value={subscription.id}>
                     {subscription.customer_name} · {subscription.service_name}
@@ -256,12 +259,14 @@ export default function PremiumMigrationsPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Kho nguồn</label>
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                {copy.page.filters.sourceAccount}
+              </label>
               <Select
                 value={filtersDraft.sourceAccountId}
                 onChange={(event) => setFiltersDraft((current) => ({ ...current, sourceAccountId: event.target.value }))}
               >
-                <option value="">Tất cả kho nguồn</option>
+                <option value="">{copy.page.filters.allSourceAccounts}</option>
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id}>
                     {account.primary_email}
@@ -271,12 +276,14 @@ export default function PremiumMigrationsPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Kho đích</label>
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                {copy.page.filters.targetAccount}
+              </label>
               <Select
                 value={filtersDraft.targetAccountId}
                 onChange={(event) => setFiltersDraft((current) => ({ ...current, targetAccountId: event.target.value }))}
               >
-                <option value="">Tất cả kho đích</option>
+                <option value="">{copy.page.filters.allTargetAccounts}</option>
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id}>
                     {account.primary_email}
@@ -286,7 +293,9 @@ export default function PremiumMigrationsPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Mã khách hàng</label>
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                {copy.page.filters.customerId}
+              </label>
               <Input
                 value={filtersDraft.customerId}
                 placeholder="cust-..."
@@ -295,7 +304,9 @@ export default function PremiumMigrationsPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Số dòng / trang</label>
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                {copy.page.filters.pageSize}
+              </label>
               <Select
                 value={String(filtersDraft.limit)}
                 onChange={(event) =>
@@ -304,7 +315,7 @@ export default function PremiumMigrationsPage() {
               >
                 {[8, 12, 20, 30].map((limit) => (
                   <option key={limit} value={limit}>
-                    {limit} dòng
+                    {copy.page.filters.rowsPerPage(limit)}
                   </option>
                 ))}
               </Select>
@@ -313,7 +324,9 @@ export default function PremiumMigrationsPage() {
 
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
             <div className="space-y-2">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Từ ngày</label>
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                {copy.page.filters.fromDate}
+              </label>
               <Input
                 type="date"
                 value={filtersDraft.fromDate}
@@ -321,7 +334,9 @@ export default function PremiumMigrationsPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Đến ngày</label>
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+                {copy.page.filters.toDate}
+              </label>
               <Input
                 type="date"
                 value={filtersDraft.toDate}
@@ -335,14 +350,14 @@ export default function PremiumMigrationsPage() {
                 disabled={isLoading}
                 className="w-full sm:w-auto"
               >
-                Reset filters
+                {copy.page.filters.reset}
               </Button>
               <Button
                 onClick={() => applyFilters()}
                 disabled={isLoading || isCatalogLoading}
                 className="w-full sm:w-auto"
               >
-                Áp dụng
+                {copy.page.filters.apply}
               </Button>
             </div>
           </div>

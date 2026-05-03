@@ -27,6 +27,8 @@ describe("vi messages", () => {
     expect(vi.customers.dynamicContactList.title).toBe("Th\u00f4ng tin li\u00ean h\u1ec7");
     expect(vi.trash.page.title).toBe("Th\u00f9ng r\u00e1c");
     expect(vi.trash.tabs.shortLinks).toBe("Link r\u00fat g\u1ecdn");
+    expect(vi.trash.page.softDeleted).toBe("Đã xoá mềm");
+    expect(vi.trash.page.status).toBe("Trạng thái");
     expect(vi.trash.page.deleteForeverConfirmText).toBe("X\u00d3A V\u0128NH VI\u1ec4N");
   });
 

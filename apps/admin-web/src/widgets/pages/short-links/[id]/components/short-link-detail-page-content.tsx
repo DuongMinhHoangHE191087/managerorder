@@ -24,6 +24,7 @@ import {
 import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
 import { formatDate } from "@/app/short-links/[id]/detail-types";
 import { vi } from "@/shared/messages/vi";
+import { SoftDeletedBadge } from "@/shared/ui/soft-deleted-badge";
 
 // â”€â”€ Dynamic imports for code-splitting (tabs load on demand) â”€â”€
 const AnalyticsTab = dynamic(() => import("@/app/short-links/[id]/tab-analytics"), {
@@ -133,12 +134,14 @@ export default function ShortLinkDetailPage() {
   const linkId = params.id as string;
   const trashMode = searchParams.get("trash") === "1";
 
-  const { data, isLoading, isError } = useShortLinkDetail(linkId, trashMode);
-  const link = data?.link ?? null;
-  const salesChannel = data?.salesChannel ?? null;
-  const resolvedPolicy = data?.resolvedPolicy ?? null;
-  const clicks = data?.clicks ?? [];
-  const stats = data?.stats ?? null;
+  const { data: detailResult, isLoading, isError } = useShortLinkDetail(linkId, trashMode);
+  const detail = detailResult?.data ?? null;
+  const link = detail?.link ?? null;
+  const salesChannel = detail?.salesChannel ?? null;
+  const resolvedPolicy = detail?.resolvedPolicy ?? null;
+  const clicks = detail?.clicks ?? [];
+  const stats = detail?.stats ?? null;
+  const isTrashView = trashMode || Boolean(detailResult?.softDeleted);
 
   const updateMut = useUpdateShortLink();
   const deleteMut = useDeleteShortLink();
@@ -260,14 +263,15 @@ export default function ShortLinkDetailPage() {
               <span className="text-[var(--fg-muted)]">{link.title || link.slug}</span>
             </div>
             <h1 className="text-3xl font-black text-[var(--fg-base)] tracking-tight flex items-center gap-3">
-              {vi.shortLinks.detail.title}
+              <span>{vi.shortLinks.detail.title}</span>
+              {isTrashView ? <SoftDeletedBadge /> : null}
               <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2.5 py-1 rounded-full animate-pulse">
                 <RefreshCw className="size-3" /> {vi.shortLinks.detail.updated}
               </span>
             </h1>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {trashMode ? (
+            {isTrashView ? (
               <>
                 <button
                   onClick={() => void handleRestoreFromTrash()}
@@ -311,7 +315,7 @@ export default function ShortLinkDetailPage() {
           </div>
         </div>
 
-        {trashMode ? (
+        {isTrashView ? (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[13px] font-medium text-amber-700">
             Link này đang ở thùng rác. Bạn có thể khôi phục hoặc xóa vĩnh viễn ngay trên màn chi tiết này.
           </div>

@@ -9,6 +9,7 @@ import {
 } from "@/shared/ui/animations";
 import { formatMoney } from "@/lib/utils";
 import type { InventoryDashboardData } from "@/shared/types/inventory";
+import { INVENTORY_COPY as copy } from "../copy";
 
 interface InventoryStatsCardsProps {
   dashboard: InventoryDashboardData;
@@ -22,14 +23,14 @@ export const InventoryStatsCards = React.memo(function InventoryStatsCards({ das
       <StaggerItem>
         <GlassHoverCard className="app-card flex h-full flex-col gap-2 border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
           <div className="flex justify-between items-start">
-            <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">Tài khoản Nguồn</p>
+            <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">{copy.stats.sourceAccounts}</p>
             <div className="flex items-center justify-center rounded-2xl bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
               <Server className="size-5" />
             </div>
           </div>
           <p className="text-[var(--fg-base)] text-3xl font-black tracking-tight">{dashboard.activeAccounts}</p>
           <div className="mt-1 flex items-center gap-1 text-xs font-semibold text-[var(--fg-muted)]">
-            <span>{dashboard.usedSlots}/{dashboard.totalSlots} slots đã dùng</span>
+            <span>{copy.stats.usedSlots(dashboard.usedSlots, dashboard.totalSlots)}</span>
             <span className="ml-1 text-[var(--accent)]">({utilPct}%)</span>
           </div>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--border-soft)]">
@@ -46,7 +47,7 @@ export const InventoryStatsCards = React.memo(function InventoryStatsCards({ das
       <StaggerItem>
         <GlassHoverCard className="app-card flex h-full flex-col gap-2 border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
           <div className="flex justify-between items-start">
-            <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">License Key Có Sẵn</p>
+            <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">{copy.stats.licenseKeysAvailable}</p>
             <div className="flex items-center justify-center rounded-2xl bg-emerald-500/10 p-2 text-emerald-500">
               <Key className="size-5" />
             </div>
@@ -63,16 +64,16 @@ export const InventoryStatsCards = React.memo(function InventoryStatsCards({ das
       <StaggerItem>
         <GlassHoverCard className="app-card flex h-full flex-col gap-2 border border-[var(--warning)]/20 bg-[rgba(255,255,255,0.94)] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
           <div className="flex justify-between items-start">
-            <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">Sắp Hết Hạn</p>
+            <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">{copy.stats.expiringSoon}</p>
             <div className="flex items-center justify-center rounded-2xl bg-[var(--warning)]/10 p-2 text-[var(--warning)]">
               <AlertTriangle className="size-5" />
             </div>
           </div>
           <p className="text-3xl font-black tracking-tight text-[var(--warning)]">{dashboard.expiringSoon30d}</p>
           <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-[var(--fg-muted)]">
-            <span>30 ngày tới</span>
+            <span>{copy.stats.inDays(30)}</span>
             {dashboard.expiringSoon7d > 0 ? (
-              <span className="font-bold text-red-500">({dashboard.expiringSoon7d} trong 7 ngày!)</span>
+              <span className="font-bold text-red-500">{copy.stats.within7Days(dashboard.expiringSoon7d)}</span>
             ) : null}
           </div>
         </GlassHoverCard>
@@ -81,14 +82,14 @@ export const InventoryStatsCards = React.memo(function InventoryStatsCards({ das
       <StaggerItem>
         <GlassHoverCard className="app-card flex h-full flex-col gap-2 border border-red-500/20 bg-[rgba(255,255,255,0.94)] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
           <div className="flex justify-between items-start">
-            <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">Đã Hết Hạn</p>
+            <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">{copy.stats.expired}</p>
             <div className="flex items-center justify-center rounded-2xl bg-red-500/10 p-2 text-red-500">
               <XCircle className="size-5" />
             </div>
           </div>
           <p className="text-3xl font-black tracking-tight text-red-500">{dashboard.expiredAccounts}</p>
           <div className="mt-1 flex items-center gap-1 text-xs font-semibold text-[var(--fg-muted)]">
-            <span>{dashboard.totalAccounts} tổng tài khoản</span>
+            <span>{copy.stats.totalAccounts(dashboard.totalAccounts)}</span>
           </div>
         </GlassHoverCard>
       </StaggerItem>
@@ -96,14 +97,14 @@ export const InventoryStatsCards = React.memo(function InventoryStatsCards({ das
       <StaggerItem>
         <GlassHoverCard className="app-card flex h-full flex-col gap-2 border border-orange-500/20 bg-[rgba(255,255,255,0.94)] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
           <div className="flex justify-between items-start">
-            <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">Gần Đầy Slot</p>
+            <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">{copy.stats.nearFull}</p>
             <div className="flex items-center justify-center rounded-2xl bg-orange-500/10 p-2 text-orange-500">
               <Gauge className="size-5" />
             </div>
           </div>
           <p className="text-3xl font-black tracking-tight text-orange-500">{dashboard.lowCapacityCount}</p>
           <div className="mt-1 flex items-center gap-1 text-xs font-semibold text-[var(--fg-muted)]">
-            <span>Dưới 20% slot trống</span>
+            <span>{copy.stats.below20Percent}</span>
           </div>
         </GlassHoverCard>
       </StaggerItem>
@@ -111,14 +112,14 @@ export const InventoryStatsCards = React.memo(function InventoryStatsCards({ das
       <StaggerItem>
         <GlassHoverCard className="app-card flex h-full flex-col gap-2 border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
           <div className="flex justify-between items-start">
-            <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">Slot Còn Trống</p>
+            <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">{copy.stats.freeSlots}</p>
             <div className="flex items-center justify-center rounded-2xl bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
               <PackageSearch className="size-5" />
             </div>
           </div>
           <p className="text-[var(--accent)] text-3xl font-black tracking-tight">{dashboard.availableSlots}</p>
           <div className="mt-1 flex items-center gap-1 text-xs font-semibold text-[var(--fg-muted)]">
-            <span>Trên {dashboard.activeAccounts} tài khoản hoạt động</span>
+            <span>{copy.stats.activeAccounts(dashboard.activeAccounts)}</span>
           </div>
         </GlassHoverCard>
       </StaggerItem>
@@ -127,7 +128,7 @@ export const InventoryStatsCards = React.memo(function InventoryStatsCards({ das
         <StaggerItem>
           <GlassHoverCard className="app-card flex h-full flex-col gap-2 border border-emerald-500/20 bg-[rgba(255,255,255,0.94)] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
             <div className="flex justify-between items-start">
-              <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">Tổng Chi Phí Mua</p>
+              <p className="text-[var(--fg-muted)] text-[12px] font-bold uppercase tracking-wider">{copy.stats.totalPurchaseCost}</p>
               <div className="flex items-center justify-center rounded-2xl bg-emerald-500/10 p-2 text-emerald-500">
                 <DollarSign className="size-5" />
               </div>
@@ -136,7 +137,7 @@ export const InventoryStatsCards = React.memo(function InventoryStatsCards({ das
               {formatMoney(dashboard.totalPurchaseCostVnd)}
             </p>
             <div className="mt-1 flex items-center gap-1 text-xs font-semibold text-[var(--fg-muted)]">
-              <span>VND tổng đầu tư</span>
+              <span>{copy.stats.totalInvestment}</span>
             </div>
           </GlassHoverCard>
         </StaggerItem>

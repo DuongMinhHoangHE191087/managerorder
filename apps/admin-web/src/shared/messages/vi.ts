@@ -1509,6 +1509,8 @@ const rawVi = {
       deletedBy: "Người xóa",
       rawData: "Dữ liệu nguyên bản (JSON)",
       deletedLabel: "Đã xóa",
+      softDeleted: "Đã xoá mềm",
+      status: "Trạng thái",
       actions: "Thao tác",
       deleteForever: "Xóa vĩnh viễn",
       deleteForeverCount: (count: number) => `Xóa ${count} mục vĩnh viễn`,
