@@ -77,6 +77,7 @@ const navSections: NavSection[] = [
       { href: "/calendar", label: vi.navigation.items.calendar, icon: CalendarDays },
       { href: "/activity-logs", label: vi.navigation.items.activityLogs, icon: ClipboardList },
       { href: "/short-links", label: vi.navigation.items.shortLinks, icon: Link2 },
+      { href: "/account-shares", label: vi.navigation.items.accountShares, icon: ShieldCheck },
       { href: "/trash", label: vi.navigation.items.trash, icon: Trash2 },
       { href: "/settings", label: vi.navigation.items.settings, icon: Settings2 },
       { href: "/settings/bot", label: vi.navigation.items.botManagement, icon: Bot },

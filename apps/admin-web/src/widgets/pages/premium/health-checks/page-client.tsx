@@ -36,6 +36,12 @@ export default function PremiumHealthChecksPage() {
   const [accounts, setAccounts] = useState<PremiumAccountOption[]>([]);
   const [services, setServices] = useState<PremiumServiceOption[]>([]);
   const [totalElements, setTotalElements] = useState(0);
+  const [summaryCounts, setSummaryCounts] = useState({
+    workingCount: 0,
+    errorCount: 0,
+    unknownCount: 0,
+    manualCount: 0,
+  });
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [selectedStatus, setSelectedStatus] = useState<HealthCheckStatusFilter>("all");
@@ -85,20 +91,6 @@ export default function PremiumHealthChecksPage() {
     [logs, selectedLog],
   );
 
-  const pageCounts = useMemo(() => {
-    const workingCount = logs.filter((item) => item.current_status === "working").length;
-    const errorCount = logs.filter((item) => item.current_status === "error").length;
-    const unknownCount = logs.filter((item) => item.current_status === "unknown").length;
-    const manualCount = logs.filter((item) => item.check_type === "manual").length;
-
-    return {
-      workingCount,
-      errorCount,
-      unknownCount,
-      manualCount,
-    };
-  }, [logs]);
-
   const pageCount = Math.max(1, Math.ceil(totalElements / pageSize));
   const runButtonLabel = selectedAccount
     ? `Chạy ${selectedAccount.primary_email}`
@@ -107,8 +99,8 @@ export default function PremiumHealthChecksPage() {
   async function bootstrapLookups() {
     try {
       const [accountsResponse, servicesResponse] = await Promise.all([
-        fetch("/api/premium/accounts?limit=100"),
-        fetch("/api/premium/services?limit=100"),
+        fetch("/api/premium/accounts"),
+        fetch("/api/premium/services"),
       ]);
 
       const [accountsPayload, servicesPayload] = await Promise.all([
@@ -174,6 +166,14 @@ export default function PremiumHealthChecksPage() {
 
       setLogs(payload.data ?? []);
       setTotalElements(pagination?.total ?? 0);
+      setSummaryCounts(
+        pagination?.summary ?? {
+          workingCount: 0,
+          errorCount: 0,
+          unknownCount: 0,
+          manualCount: 0,
+        },
+      );
     } catch (error) {
       console.error("[fetchPremiumHealthChecks]", error);
       appToast.error("Lỗi kết nối khi tải log health check");
@@ -301,7 +301,7 @@ export default function PremiumHealthChecksPage() {
                 onClick={() => void runHealthCheck()}
                 isLoading={isRunning}
                 disabled={isRunning || isBootstrapping}
-                className="rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-5 py-2.5 text-sm font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)]"
+                className="rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-5 py-2.5 text-sm font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)]"
               >
                 <Activity className="size-4" />
                 {runButtonLabel}
@@ -312,10 +312,10 @@ export default function PremiumHealthChecksPage() {
 
         <HealthChecksSummaryCards
           totalResults={totalElements}
-          workingCount={pageCounts.workingCount}
-          errorCount={pageCounts.errorCount}
-          unknownCount={pageCounts.unknownCount}
-          manualCount={pageCounts.manualCount}
+          workingCount={summaryCounts.workingCount}
+          errorCount={summaryCounts.errorCount}
+          unknownCount={summaryCounts.unknownCount}
+          manualCount={summaryCounts.manualCount}
         />
 
         <SurfaceCard className="mt-6">

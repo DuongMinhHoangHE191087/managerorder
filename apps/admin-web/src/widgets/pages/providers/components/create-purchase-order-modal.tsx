@@ -201,7 +201,7 @@ export function CreatePurchaseOrderModal({
                 type="button"
                 onClick={handleCreatePO}
                 disabled={createPOMutation.isPending || saving}
-                className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-6 py-3 text-sm font-black text-white shadow-lg shadow-emerald-700/15 transition-all hover:-translate-y-0.5 hover:opacity-95 disabled:translate-y-0 disabled:opacity-45"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-6 py-3 text-sm font-black text-white shadow-lg shadow-emerald-700/15 transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:-translate-y-0.5 hover:opacity-95 disabled:translate-y-0 disabled:opacity-45"
               >
                 <Plus className="size-4" />
                 {createPOMutation.isPending || saving ? text.creating : text.create}
@@ -431,7 +431,7 @@ export function CreatePurchaseOrderModal({
                       setSelectedSourceAccountId("");
                     }
                   }}
-                  className={`flex w-full cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-bold transition-all ${
+                  className={`flex w-full cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-bold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
                     connectToInventory
                       ? "border-transparent bg-[var(--accent)]/10 text-[var(--accent)]"
                       : "border-2 border-[var(--border-soft)] bg-[var(--surface-light)] text-[var(--fg-muted)]"

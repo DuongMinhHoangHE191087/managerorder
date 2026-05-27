@@ -296,7 +296,7 @@ export function SmartMatchPanel({ onClose }: { onClose: () => void }) {
                     <div className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-bold", confidence.color)}>
                       <div className="h-1.5 w-8 overflow-hidden rounded-full bg-slate-700">
                         <div
-                          className={cn("h-full rounded-full transition-all", confidence.bar)}
+                          className={cn("h-full rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width]", confidence.bar)}
                           style={{ width: `${item.confidence ?? 50}%` }}
                         />
                       </div>

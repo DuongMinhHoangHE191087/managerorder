@@ -49,7 +49,8 @@ export const GET = withErrorHandler(
             count: result.count,
             page: result.page,
             limit: result.limit,
-            totalPages: result.totalPages
+            totalPages: result.totalPages,
+            source: result.source ?? "database",
         }
     });
   })

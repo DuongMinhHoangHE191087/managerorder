@@ -21,7 +21,10 @@ export function BulkActionBar({
 }: BulkActionBarProps) {
   return (
     <div
-      className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 transform ${
+      role="region"
+      aria-label="Thao tác hàng loạt đơn hàng"
+      aria-live="polite"
+      className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 transform transition-[opacity,transform] duration-300 ${
         selectedCount > 0
           ? "translate-y-0 opacity-100"
           : "translate-y-20 opacity-0 pointer-events-none"
@@ -39,9 +42,11 @@ export function BulkActionBar({
         <div className="w-px h-8 bg-[var(--border-soft)]" />
         <div className="flex items-center gap-3">
           <select
+            aria-label="Chọn trạng thái mới cho các đơn đã chọn"
+            name="bulk-order-status"
             value={bulkSelectValue}
             onChange={(e) => onBulkSelectChange(e.target.value)}
-            className="bg-[var(--bg-surface)] border border-[var(--border-soft)] rounded-lg text-sm px-4 py-2 focus:border-[var(--accent)] outline-none font-bold text-[var(--fg-base)] transition-colors hover:border-[var(--accent)]/50"
+            className="bg-[var(--bg-surface)] border border-[var(--border-soft)] rounded-lg text-sm px-4 py-2 focus-visible:border-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] font-bold text-[var(--fg-base)] transition-colors hover:border-[var(--accent)]/50"
           >
             <option value="">-- Đổi trạng thái --</option>
             <option value="paid">Đã thanh toán (Paid)</option>
@@ -52,22 +57,25 @@ export function BulkActionBar({
             <option value="refunded">Hoàn tiền</option>
           </select>
           <button
+            type="button"
             onClick={onApplyStatus}
             disabled={!bulkSelectValue}
-            className="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white font-bold text-sm px-6 py-2 rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white font-bold text-sm px-6 py-2 rounded-lg shadow-sm hover:shadow-md transition-[box-shadow,opacity,transform] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
           >
             Áp dụng
           </button>
           <button
+            type="button"
             onClick={onBatchDelete}
-            className="bg-[var(--danger)]/10 text-[var(--danger)] hover:bg-[var(--danger)]/20 font-bold text-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5"
+            className="bg-[var(--danger)]/10 text-[var(--danger)] hover:bg-[var(--danger)]/20 font-bold text-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
           >
-            <Trash2 className="size-3.5" />
+            <Trash2 aria-hidden="true" className="size-3.5" />
             Xóa
           </button>
           <button
+            type="button"
             onClick={onClear}
-            className="text-[var(--fg-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 font-bold text-sm px-4 py-2 rounded-lg transition-colors ml-2"
+            className="text-[var(--fg-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 font-bold text-sm px-4 py-2 rounded-lg transition-colors ml-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
           >
             Hủy
           </button>

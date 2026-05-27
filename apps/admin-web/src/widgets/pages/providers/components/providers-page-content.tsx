@@ -101,7 +101,7 @@ export default function ProvidersPage() {
           actions={
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-6 py-3 text-sm font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)]"
+              className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-6 py-3 text-sm font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-shadow hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)]"
               type="button"
             >
               <Plus className="size-5" />
@@ -208,7 +208,7 @@ export default function ProvidersPage() {
                     onClick={() => router.push(`/providers/${provider.id}`)}
                     data-testid="provider-row"
                     data-provider-id={provider.id}
-                    className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.96)] shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)] hover:border-[var(--accent)]/40 hover:bg-[var(--surface-light)]/40"
+                    className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.96)] shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-[background-color,border-color,box-shadow,transform] duration-300 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)] hover:border-[var(--accent)]/40 hover:bg-[var(--surface-light)]/40"
                     onContextMenu={(e) => {
                     openContextMenu(e, actionMenuItems.map(item => ({
                       ...item,
@@ -284,7 +284,7 @@ export default function ProvidersPage() {
                     </div>
 
                     {/* Right section: Financial & Rating Stats */}
-                    <div className="w-full md:w-[260px] lg:w-[280px] shrink-0 flex flex-col justify-center gap-3 bg-[var(--surface-light)] p-3.5 md:p-4 rounded-xl border border-[var(--border-soft)] group-hover:bg-white group-hover:border-[var(--accent)]/30 group-hover:shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)] transition-all duration-300">
+                    <div className="w-full md:w-[260px] lg:w-[280px] shrink-0 flex flex-col justify-center gap-3 bg-[var(--surface-light)] p-3.5 md:p-4 rounded-xl border border-[var(--border-soft)] group-hover:bg-white group-hover:border-[var(--accent)]/30 group-hover:shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)] transition-[background-color,border-color,box-shadow] duration-300">
                       
                       {/* Credibility */}
                       <div className="flex items-center justify-between">
@@ -338,9 +338,11 @@ export default function ProvidersPage() {
                   {[20, 50, 100].map((s) => (
                     <button
                       key={s}
+                      type="button"
+                      aria-pressed={pageSize === s}
                       onClick={() => { setPageSize(s); setPageIndex(0); }}
                       className={cn(
-                        "px-3 py-1.5 text-[12px] font-bold rounded-md transition-all",
+                        "px-3 py-1.5 text-[12px] font-bold rounded-md transition-[background-color,color,box-shadow]",
                         pageSize === s ? "bg-white text-[var(--accent)] shadow-sm" : "text-[var(--fg-muted)] hover:text-[var(--fg-base)] hover:bg-black/5"
                       )}
                     >
@@ -356,16 +358,20 @@ export default function ProvidersPage() {
               {pageCount > 1 && (
                 <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-xl border border-[var(--border-soft)]">
                   <button
+                    type="button"
+                    aria-label="Trang trước"
                     onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
                     disabled={pageIndex === 0}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--fg-muted)] hover:text-[var(--accent)] hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent transition-all font-bold"
+                    className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--fg-muted)] hover:text-[var(--accent)] hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent transition-[background-color,color,opacity] font-bold"
                   >
                     <ChevronLeft className="size-4" />
                   </button>
                   <button
+                     type="button"
+                     aria-label="Trang sau"
                      onClick={() => setPageIndex(Math.min(pageCount - 1, pageIndex + 1))}
                      disabled={pageIndex >= pageCount - 1}
-                     className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--fg-muted)] hover:text-[var(--accent)] hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent transition-all font-bold"
+                     className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--fg-muted)] hover:text-[var(--accent)] hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent transition-[background-color,color,opacity] font-bold"
                   >
                     <ChevronRight className="size-4" />
                   </button>

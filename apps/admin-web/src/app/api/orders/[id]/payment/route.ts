@@ -7,6 +7,7 @@ import { withAccount } from "@/lib/api/with-account";
 import { withErrorHandler, createErrorResponse } from "@/lib/api/with-error-handler";
 import { hasPermission, resolveUser } from "@/lib/api/rbac";
 import { normalizePaymentTerms, toLegacyPaymentMethod } from "@/lib/domain/financial";
+import { syncOrderToPremium } from "@/lib/services/premium-order-sync.service";
 import { formatMoney } from "@/lib/utils";
 
 /**
@@ -188,6 +189,22 @@ export const POST = withErrorHandler(
         : Promise.resolve(null),
     ]);
 
+    let premiumSync: { success: boolean; detail?: unknown; error?: string } | undefined;
+    if (isFullyPaid) {
+      try {
+        premiumSync = {
+          success: true,
+          detail: await syncOrderToPremium(accountId, id, { syncedBy: user.email }),
+        };
+      } catch (syncError) {
+        console.error("[Payment] premium sync failed:", syncError);
+        premiumSync = {
+          success: false,
+          error: syncError instanceof Error ? syncError.message : "Premium sync failed",
+        };
+      }
+    }
+
     return NextResponse.json({
       data: updated,
       payment: {
@@ -200,6 +217,7 @@ export const POST = withErrorHandler(
         order_quantity: order.quantity,
         order_total: frozenTotal,
       },
+      premium_sync: premiumSync,
     });
   })
 );

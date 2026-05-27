@@ -142,7 +142,7 @@ const EditOrderTabBar = memo(function EditOrderTabBar({
             onClick={() => onChange(tab.id)}
             className={`
               flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2.5
-              text-[12px] font-semibold transition-all duration-200 ease-out
+              text-[12px] font-semibold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 ease-out
               ${isActive
                 ? "bg-[var(--accent)] text-white shadow-sm shadow-[var(--accent)]/20"
                 : "text-[var(--fg-muted)] hover:bg-[var(--border-soft)]/50 hover:text-[var(--fg-base)]"
@@ -284,7 +284,7 @@ const EditOrderPricingTab = memo(function EditOrderPricingTab({
       <div>
         <FieldLabel icon={<StickyNote className="size-3" />}>Ghi chú đơn hàng</FieldLabel>
         <textarea
-          className="w-full resize-none rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)]/60 px-4 py-3 text-[13px] text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 outline-none transition-all duration-200 hover:border-[var(--accent)]/50 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/40"
+          className="w-full resize-none rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)]/60 px-4 py-3 text-[13px] text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 outline-none transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 hover:border-[var(--accent)]/50 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/40"
           rows={3}
           value={salesNote}
           onChange={(e) => setSalesNote(e.target.value)}

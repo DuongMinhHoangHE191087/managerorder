@@ -153,8 +153,9 @@ export function normalizeRefundCalculationInput(
 export function ensurePremiumSubscriptionRenewalAllowed(
   subscription: PremiumSubscriptionRenewalSnapshot,
 ): void {
-  if ((subscription.status ?? "") !== "active") {
-    throw new ValidationError("Chỉ có thể tạo yêu cầu gia hạn cho subscription đang active.");
+  const normalizedStatus = (subscription.status ?? "").trim();
+  if (normalizedStatus !== "active" && normalizedStatus !== "expired") {
+    throw new ValidationError("Chỉ có thể tạo yêu cầu gia hạn cho subscription đang active hoặc expired.");
   }
 
   if ((subscription.renewal_status ?? "") === "pending") {

@@ -71,10 +71,7 @@ describe('Req #3 — Billing cycles', () => {
 
   it('calculateExpiryDate handles month-end edge: Jan 31 + 1m = Feb 28/29', () => {
     const result = calculateExpiryDate('2026-01-31', '1month');
-    // JS Date month overflow behaviour: Jan31 + 1m → Feb 28 or 31 March?
-    // Our impl: setMonth(0+1)=1, day=31 overflows to Mar 3 in non-leap year
-    // What matters: result is a valid date string in YYYY-MM-DD
-    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(result).toBe('2026-02-28');
   });
 
   it('all cycles produce expiry after start', () => {

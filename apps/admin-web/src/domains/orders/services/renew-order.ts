@@ -3,6 +3,7 @@ import { createActivityLog } from "@/lib/supabase/repositories/activity-logs.rep
 import { createOrderStatusHistory } from "@/lib/supabase/repositories/order-status-history.repo";
 import { getOrderWithItems } from "@/lib/supabase/repositories/orders.repo";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { syncOrderToPremium } from "@/lib/services/premium-order-sync.service";
 import {
   calculateOrderRenewalProjection,
   ensureOrderRenewalAllowed,
@@ -24,6 +25,7 @@ export interface RenewOrderResult {
   newExpiresAt: string;
   previousStatus: string | null;
   nextStatus: string;
+  premiumSyncWarning?: string;
 }
 
 export async function renewOrderForAccount(
@@ -110,9 +112,21 @@ export async function renewOrderForAccount(
     },
   });
 
+  let premiumSyncWarning: string | undefined;
+  try {
+    await syncOrderToPremium(input.accountId, input.orderId, {
+      syncedBy: input.userEmail,
+    });
+  } catch (syncError) {
+    console.error("[renewOrderForAccount] premium sync failed:", syncError);
+    premiumSyncWarning =
+      syncError instanceof Error ? syncError.message : "Premium sync failed";
+  }
+
   return {
     newExpiresAt: renewal.expiresAt,
     previousStatus: order.status,
     nextStatus: renewal.status,
+    premiumSyncWarning,
   };
 }

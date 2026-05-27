@@ -245,8 +245,9 @@ function SellPriceField({ productId: _productId, defaultPrice, customerType: _cu
             <button
               key={s.label}
               type="button"
+              aria-pressed={displayValue === s.price}
               onClick={() => onChange(s.price)}
-              className={`px-2 py-1 text-[10px] font-bold rounded-md border transition-all ${
+              className={`px-2 py-1 text-[10px] font-bold rounded-md border transition-[background-color,border-color,color] ${
                 displayValue === s.price
                   ? "border-emerald-500 bg-emerald-500/10 text-emerald-600"
                   : "border-[var(--border-soft)] text-[var(--fg-muted)] hover:border-emerald-500/50 hover:text-emerald-600"
@@ -339,7 +340,7 @@ const OrderCustomerSection = memo(function OrderCustomerSection({
         </p>
       ) : null}
       {selCustomer && selCustomer.contacts.length > 0 ? (
-        <div className="mt-4 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-4 transition-all">
+        <div className="mt-4 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-4 transition-colors">
           <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-[var(--fg-muted)]">
             {orderText.labels.transactionContact} <span className="ml-1 rounded border bg-[var(--bg-app)] px-1 text-[9px] font-normal lowercase">{orderText.labels.editable}</span>
           </label>
@@ -452,20 +453,21 @@ const OrderProductItem = memo(function OrderProductItem({
   }
 
   return (
-    <div className="group/item relative flex flex-col gap-4 rounded-2xl border-2 border-[var(--border-soft)] bg-[var(--surface-light)] p-5 shadow-sm transition-all hover:border-[var(--accent)]/30">
+    <div className="group/item relative flex flex-col gap-4 rounded-2xl border-2 border-[var(--border-soft)] bg-[var(--surface-light)] p-5 shadow-sm transition-[border-color,box-shadow] hover:border-[var(--accent)]/30">
       <div className="flex items-center gap-2">
         <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[11px] font-black text-[var(--accent)]">{index + 1}</span>
         <span className="text-[11px] font-black uppercase tracking-widest text-[var(--fg-muted)]">{orderText.labels.productItem}{index + 1}</span>
         {index > 0 ? (
           <button
             type="button"
+            aria-label="Xóa dòng sản phẩm"
             onClick={() => {
               remove(index);
               setWarehouseOpen((current) => current.filter((_, i) => i !== index));
             }}
-            className="ml-auto flex size-8 items-center justify-center rounded-full bg-[var(--danger)]/10 text-[var(--danger)]/70 transition-all hover:bg-[var(--danger)]/20 hover:text-[var(--danger)]"
+            className="ml-auto flex size-8 items-center justify-center rounded-full bg-[var(--danger)]/10 text-[var(--danger)]/70 transition-[background-color,color] hover:bg-[var(--danger)]/20 hover:text-[var(--danger)]"
           >
-            <Trash2 className="size-3.5" />
+            <Trash2 aria-hidden="true" className="size-3.5" />
           </button>
         ) : null}
       </div>
@@ -798,7 +800,7 @@ const OrderProductsSection = memo(function OrderProductsSection({
               });
               setWarehouseOpen((current) => [...current, false]);
             }}
-            className="group h-[60px] w-full border-2 border-dashed border-[var(--border-soft)] bg-transparent font-bold transition-all hover:border-[var(--accent)] hover:bg-[var(--accent)]/5"
+            className="group h-[60px] w-full border-2 border-dashed border-[var(--border-soft)] bg-transparent font-bold transition-[background-color,border-color,color] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5"
           >
             <div className="mr-3 flex size-8 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[var(--accent)] transition-colors group-hover:bg-[var(--accent)] group-hover:text-white">
               <Plus className="size-4" />
@@ -868,8 +870,9 @@ const OrderPaymentSection = memo(function OrderPaymentSection({
               <button
                 key={method.key}
                 type="button"
+                aria-pressed={active}
                 onClick={() => setPaymentTerms(method.key)}
-                className={`flex items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-[12px] font-bold transition-all ${
+                className={`flex items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-[12px] font-bold transition-[background-color,border-color,color,box-shadow] ${
                   active ? method.color + " shadow-sm" : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:border-[var(--accent)]/40"
                 }`}
               >
@@ -997,7 +1000,7 @@ const OrderScheduleSection = memo(function OrderScheduleSection({
           maxLength={1000}
           rows={3}
           placeholder="Ghi chú nội bộ cho đơn hàng này (VD: Khách VIP, cần ưu tiên, yêu cầu đặc biệt...)"
-          className="w-full resize-none rounded-xl border-2 border-[var(--border-soft)] bg-white px-4 py-3 text-[13px] text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 outline-none transition-all hover:border-[var(--accent)]/50 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+          className="w-full resize-none rounded-xl border-2 border-[var(--border-soft)] bg-white px-4 py-3 text-[13px] text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 outline-none transition-[border-color,box-shadow] hover:border-[var(--accent)]/50 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
         />
         {orderNotes.length > 0 ? (
           <p className="mt-1 text-right text-[10px] font-medium text-[var(--fg-muted)]">{orderNotes.length}/1000</p>

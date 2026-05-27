@@ -121,7 +121,7 @@ export default function PlatformMetricsPage() {
                   <button
                     key={range}
                     onClick={() => setTimeRange(range)}
-                    className={`px-4 py-2 text-[12px] font-bold transition-all ${
+                    className={`px-4 py-2 text-[12px] font-bold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
                       timeRange === range
                         ? "bg-[var(--accent)] text-white"
                         : "text-[var(--fg-muted)] hover:text-[var(--fg-base)]"

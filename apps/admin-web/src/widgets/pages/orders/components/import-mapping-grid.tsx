@@ -218,7 +218,7 @@ export function ImportMappingGrid({
           return (
             <div
               key={group}
-              className={`rounded-xl border transition-all ${
+              className={`rounded-xl border transition-[background-color,border-color] ${
                 isCore
                   ? 'border-[var(--accent)]/30 bg-[var(--accent)]/3'
                   : isContact
@@ -283,7 +283,7 @@ export function ImportMappingGrid({
                       return (
                         <div
                           key={field.key}
-                          className={`flex flex-col gap-1.5 p-3 rounded-lg border transition-all ${
+                          className={`flex flex-col gap-1.5 p-3 rounded-lg border transition-[background-color,border-color] ${
                             isMapped
                               ? 'border-emerald-200 bg-emerald-50/50'
                               : field.required
@@ -343,7 +343,7 @@ export function ImportMappingGrid({
                       <button
                         type="button"
                         onClick={() => setShowChannelPicker(!showChannelPicker)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed border-blue-300 text-blue-600 text-sm font-medium hover:bg-blue-50 transition-all w-full justify-center"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed border-blue-300 text-blue-600 text-sm font-medium hover:bg-blue-50 transition-[background-color,border-color,color] w-full justify-center"
                       >
                         <Plus className="size-4" />
                         Thêm kênh liên lạc
@@ -382,7 +382,7 @@ export function ImportMappingGrid({
                       <button
                         type="button"
                         onClick={() => setShowDuolingoPicker(!showDuolingoPicker)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed border-purple-300 text-purple-600 text-sm font-medium hover:bg-purple-50 transition-all w-full justify-center"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed border-purple-300 text-purple-600 text-sm font-medium hover:bg-purple-50 transition-[background-color,border-color,color] w-full justify-center"
                       >
                         <Plus className="size-4" />
                         Thêm thông tin Duolingo

@@ -23,6 +23,7 @@ export {
   createRenewalRequest,
   confirmRenewalRequest,
   denyRenewalRequest,
+  markSubscriptionNotRenewing,
 } from '@/lib/supabase/repositories/subscriptions.repo';
 
 // ============================================

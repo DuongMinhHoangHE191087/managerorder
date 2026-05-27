@@ -15,7 +15,7 @@ import {
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { calculateAvailableSlots } from "@/lib/domain/premium-account-math";
-import type { PremiumAccountDetailViewModel } from "@/lib/types/premium-admin";
+import type { PremiumAccountDetailUserSummary } from "@/lib/types/premium-admin";
 import { appToast } from "@/shared/lib/toast";
 import { readApiEnvelope } from "@/shared/lib/api-client";
 import { Button } from "@/shared/ui/button";
@@ -371,7 +371,7 @@ function MigrationDetailModalV2({
     createTargetUserEmail: "",
     failureReason: "",
   });
-  const [targetUsers, setTargetUsers] = useState<PremiumAccountDetailViewModel["users"]>([]);
+  const [targetUsers, setTargetUsers] = useState<PremiumAccountDetailUserSummary[]>([]);
   const [isLoadingTargetUsers, setIsLoadingTargetUsers] = useState(false);
   const [mutationAction, setMutationAction] = useState<null | "metadata" | "start" | "complete" | "fail" | "cancel">(null);
 
@@ -400,10 +400,10 @@ function MigrationDetailModalV2({
 
     void (async () => {
       try {
-        const response = await fetch(`/api/premium/accounts/${targetAccountId}?audit_limit=1`);
-        const payload = await readApiEnvelope<PremiumAccountDetailViewModel>(response);
+        const response = await fetch(`/api/premium/accounts/${targetAccountId}/users?status=active&limit=100`);
+        const payload = await readApiEnvelope<PremiumAccountDetailUserSummary[]>(response);
 
-        if (!response.ok || !payload.data) {
+        if (!response.ok) {
           if (!cancelled) {
             setTargetUsers([]);
           }
@@ -411,7 +411,7 @@ function MigrationDetailModalV2({
         }
 
         if (!cancelled) {
-          setTargetUsers(payload.data.users);
+          setTargetUsers(payload.data ?? []);
         }
       } catch (error) {
         console.error("[loadMigrationTargetUsers]", error);

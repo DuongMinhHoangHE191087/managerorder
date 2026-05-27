@@ -159,7 +159,7 @@ export function ProviderEditModal({
               <button
                 type="button"
                 onClick={() => setTier("regular")}
-                className={`flex flex-col gap-1.5 rounded-2xl border-2 p-4 text-left transition-all ${
+                className={`flex flex-col gap-1.5 rounded-2xl border-2 p-4 text-left transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
                   tier === "regular"
                     ? "border-[var(--accent)] bg-[var(--accent)]/10"
                     : "border-[var(--border-soft)] hover:border-[var(--accent)]/30"
@@ -177,7 +177,7 @@ export function ProviderEditModal({
               <button
                 type="button"
                 onClick={() => setTier("vip")}
-                className={`flex flex-col gap-1.5 rounded-2xl border-2 p-4 text-left transition-all ${
+                className={`flex flex-col gap-1.5 rounded-2xl border-2 p-4 text-left transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
                   tier === "vip"
                     ? "border-[#ff9500] bg-[#ff9500]/10"
                     : "border-[var(--border-soft)] hover:border-[#ff9500]/30"
@@ -239,7 +239,7 @@ export function ProviderEditModal({
             onChange={(event) => setNotes(event.target.value)}
             rows={4}
             placeholder={text.notesPlaceholder}
-            className="w-full resize-none rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[14px] font-medium text-[var(--fg-base)] outline-none transition-all placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+            className="w-full resize-none rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[14px] font-medium text-[var(--fg-base)] outline-none transition-[background-color,border-color,box-shadow,color,opacity,transform,width] placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
           />
         </CreateFormSection>
 

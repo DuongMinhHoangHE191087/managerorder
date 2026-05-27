@@ -13,6 +13,126 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      account_share_links: {
+        Row: {
+          id: string;
+          account_id: string;
+          source_account_id: string;
+          order_id: string | null;
+          order_item_id: string | null;
+          customer_id: string | null;
+          short_link_id: string | null;
+          slug: string;
+          title: string | null;
+          status: "active" | "disabled" | "expired";
+          expires_at: string | null;
+          max_views: number;
+          view_count: number;
+          max_unlocks: number;
+          unlock_count: number;
+          passcode_hash: string | null;
+          exposure_policy: Json;
+          access_policy: Json;
+          locked_ip: string | null;
+          locked_ipv6: string | null;
+          created_by: string | null;
+          deleted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          account_id: string;
+          source_account_id: string;
+          order_id?: string | null;
+          order_item_id?: string | null;
+          customer_id?: string | null;
+          short_link_id?: string | null;
+          slug: string;
+          title?: string | null;
+          status?: "active" | "disabled" | "expired";
+          expires_at?: string | null;
+          max_views?: number;
+          view_count?: number;
+          max_unlocks?: number;
+          unlock_count?: number;
+          passcode_hash?: string | null;
+          exposure_policy?: Json;
+          access_policy?: Json;
+          locked_ip?: string | null;
+          locked_ipv6?: string | null;
+          created_by?: string | null;
+          deleted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          account_id?: string;
+          source_account_id?: string;
+          order_id?: string | null;
+          order_item_id?: string | null;
+          customer_id?: string | null;
+          short_link_id?: string | null;
+          slug?: string;
+          title?: string | null;
+          status?: "active" | "disabled" | "expired";
+          expires_at?: string | null;
+          max_views?: number;
+          view_count?: number;
+          max_unlocks?: number;
+          unlock_count?: number;
+          passcode_hash?: string | null;
+          exposure_policy?: Json;
+          access_policy?: Json;
+          locked_ip?: string | null;
+          locked_ipv6?: string | null;
+          created_by?: string | null;
+          deleted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      account_share_access_logs: {
+        Row: {
+          id: string;
+          account_share_link_id: string;
+          account_id: string;
+          event_type: "unlock" | "view" | "copy" | "totp_view" | "blocked";
+          ip_address: string | null;
+          ip_version: string | null;
+          user_agent: string | null;
+          reason: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          account_share_link_id: string;
+          account_id: string;
+          event_type: "unlock" | "view" | "copy" | "totp_view" | "blocked";
+          ip_address?: string | null;
+          ip_version?: string | null;
+          user_agent?: string | null;
+          reason?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          account_share_link_id?: string;
+          account_id?: string;
+          event_type?: "unlock" | "view" | "copy" | "totp_view" | "blocked";
+          ip_address?: string | null;
+          ip_version?: string | null;
+          user_agent?: string | null;
+          reason?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       customers: {
         Row: {
           id: string;
@@ -2658,6 +2778,11 @@ export type Database = {
           cost_price: number | null;
           collected_amount: number | null;
           profit_amount: number | null;
+          new_product_id: string | null;
+          new_product_name_snapshot: string | null;
+          new_product_duration_months: number | null;
+          new_product_sell_price_vnd: number | null;
+          new_product_buy_price_vnd: number | null;
           notes: string | null;
           customer_response: string | null;
           customer_response_date: string | null;
@@ -2685,6 +2810,11 @@ export type Database = {
           cost_price?: number | null;
           collected_amount?: number | null;
           profit_amount?: number | null;
+          new_product_id?: string | null;
+          new_product_name_snapshot?: string | null;
+          new_product_duration_months?: number | null;
+          new_product_sell_price_vnd?: number | null;
+          new_product_buy_price_vnd?: number | null;
           notes?: string | null;
           customer_response?: string | null;
           customer_response_date?: string | null;
@@ -2712,6 +2842,11 @@ export type Database = {
           cost_price?: number | null;
           collected_amount?: number | null;
           profit_amount?: number | null;
+          new_product_id?: string | null;
+          new_product_name_snapshot?: string | null;
+          new_product_duration_months?: number | null;
+          new_product_sell_price_vnd?: number | null;
+          new_product_buy_price_vnd?: number | null;
           notes?: string | null;
           customer_response?: string | null;
           customer_response_date?: string | null;

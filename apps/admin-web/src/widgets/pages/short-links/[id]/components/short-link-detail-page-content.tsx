@@ -10,7 +10,7 @@ import {
   Lock, Unlock, Monitor, Smartphone, Bot, Bell, ScanLine,
   ArrowLeft, Settings, Activity, List, Trash2,
   RefreshCw, Power, AlertTriangle,
-  Store,
+  Store, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { appToast } from "@/shared/ui/app-toast";
@@ -119,6 +119,9 @@ function getPolicySourceLabel(source?: string | null) {
 }
 
 type DetailTab = "analytics" | "clicks" | "settings";
+type ConfirmAction =
+  | { type: "delete"; title: string; message: string; tone: "danger" }
+  | { type: "toggle-status"; title: string; message: string; tone: "warning"; nextStatus: "active" | "disabled" };
 
 const TABS: { id: DetailTab; label: string; icon: React.ReactNode }[] = [
   { id: "analytics", label: vi.shortLinks.detail.analyticsTab, icon: <BarChart3 className="size-4" /> },
@@ -149,6 +152,7 @@ export default function ShortLinkDetailPage() {
   const purgeItems = usePurgeItems();
 
   const [activeTab, setActiveTab] = useState<DetailTab>("analytics");
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
   const securitySummary = useMemo(() => {
     if (!stats) return null;
@@ -169,20 +173,42 @@ export default function ShortLinkDetailPage() {
   const orderId = link?.order_id ?? null;
   const orderHref = orderId ? `/orders/${orderId}` : null;
 
-  const handleDelete = async () => {
-    if (!link || !confirm(vi.shortLinks.detail.confirmDelete)) return;
-    await deleteMut.mutateAsync(link.id);
-    router.push("/short-links");
+  const handleDelete = () => {
+    if (!link) return;
+    setConfirmAction({
+      type: "delete",
+      title: "Xác nhận xoá short link",
+      message: vi.shortLinks.detail.confirmDelete,
+      tone: "danger",
+    });
   };
 
-  const handleToggleStatus = async () => {
+  const handleToggleStatus = () => {
     if (!link) return;
     const newStatus = link.status === "active" ? "disabled" : "active";
     const msg = newStatus === "disabled"
       ? vi.shortLinks.detail.confirmDisable
       : vi.shortLinks.detail.confirmEnable;
-    if (!confirm(msg)) return;
-    await updateMut.mutateAsync({ id: link.id, status: newStatus });
+    setConfirmAction({
+      type: "toggle-status",
+      title: "Xác nhận đổi trạng thái",
+      message: msg,
+      tone: "warning",
+      nextStatus: newStatus,
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!link || !confirmAction) return;
+    if (confirmAction.type === "delete") {
+      await deleteMut.mutateAsync(link.id);
+      setConfirmAction(null);
+      router.push("/short-links");
+      return;
+    }
+
+    await updateMut.mutateAsync({ id: link.id, status: confirmAction.nextStatus });
+    setConfirmAction(null);
   };
 
   const handleUnlockIP = async () => {
@@ -248,10 +274,72 @@ export default function ShortLinkDetailPage() {
                      : "bg-red-100 text-red-500";
 
   const tabProps = { link, clicks, stats, isLoading };
+  const confirmPending = confirmAction?.type === "delete"
+    ? deleteMut.isPending
+    : confirmAction?.type === "toggle-status"
+    ? updateMut.isPending
+    : false;
 
   return (
     <AppLayout>
       <PageContainer className="relative">
+        {confirmAction ? (
+          <div className="fixed inset-0 flex items-center justify-center px-4" style={{ zIndex: "var(--z-modal)" }}>
+            <button
+              type="button"
+              aria-label="Đóng xác nhận thao tác short link"
+              className="absolute inset-0 bg-black/40"
+              onClick={() => {
+                if (!confirmPending) setConfirmAction(null);
+              }}
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="short-link-detail-confirm-title"
+              className="relative w-full max-w-md rounded-[1.5rem] border border-[var(--border-soft)] bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.22)]"
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={cn(
+                    "flex size-11 shrink-0 items-center justify-center rounded-2xl",
+                    confirmAction.tone === "danger" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600",
+                  )}
+                >
+                  <AlertTriangle aria-hidden="true" className="size-5" />
+                </div>
+                <div>
+                  <h2 id="short-link-detail-confirm-title" className="text-base font-black text-[var(--fg-base)]">
+                    {confirmAction.title}
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-[var(--fg-muted)]">{confirmAction.message}</p>
+                </div>
+              </div>
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction(null)}
+                  disabled={confirmPending}
+                  className="rounded-xl border border-[var(--border-soft)] px-4 py-2 text-sm font-bold text-[var(--fg-base)] transition-[background-color,opacity] hover:bg-[var(--surface-light)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Huỷ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmAction()}
+                  disabled={confirmPending}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white transition-[background-color,opacity] disabled:cursor-not-allowed disabled:opacity-60",
+                    confirmAction.tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-amber-600 hover:bg-amber-700",
+                  )}
+                >
+                  {confirmPending ? <Loader2 aria-hidden="true" className="size-4 animate-spin" /> : null}
+                  {confirmAction.type === "delete" ? "Xoá" : "Xác nhận"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
         {/* Breadcrumbs & Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2 mt-2">
           <div>
@@ -274,41 +362,43 @@ export default function ShortLinkDetailPage() {
             {isTrashView ? (
               <>
                 <button
+                  type="button"
                   onClick={() => void handleRestoreFromTrash()}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] border border-transparent rounded-xl text-[13px] font-bold text-white hover:opacity-95 transition-all shadow-sm cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] border border-transparent rounded-xl text-[13px] font-bold text-white hover:opacity-95 transition-[opacity,box-shadow] shadow-sm cursor-pointer"
                 >
-                  <RefreshCw className="size-4" /> Khôi phục
+                  <RefreshCw aria-hidden="true" className="size-4" /> Khôi phục
                 </button>
                 <button
+                  type="button"
                   onClick={() => void handlePurgeFromTrash()}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-100 transition-all shadow-sm cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-100 transition-colors shadow-sm cursor-pointer"
                 >
-                  <Trash2 className="size-4" /> Xóa vĩnh viễn
+                  <Trash2 aria-hidden="true" className="size-4" /> Xóa vĩnh viễn
                 </button>
               </>
             ) : (
               <>
-                <button onClick={handleCopy} className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-soft)] rounded-xl text-[13px] font-bold hover:bg-[var(--accent)]/5 hover:border-[var(--accent)]/30 transition-all shadow-sm text-[var(--fg-base)] cursor-pointer">
-                  <Copy className="size-4" /> {vi.shortLinks.detail.copyLink}
+                <button type="button" onClick={handleCopy} className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-soft)] rounded-xl text-[13px] font-bold hover:bg-[var(--accent)]/5 hover:border-[var(--accent)]/30 transition-[background-color,border-color] shadow-sm text-[var(--fg-base)] cursor-pointer">
+                  <Copy aria-hidden="true" className="size-4" /> {vi.shortLinks.detail.copyLink}
                 </button>
                 {publicUrl ? (
-                  <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[var(--border-soft)] rounded-xl text-[13px] font-bold text-[var(--fg-base)] hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5 transition-all shadow-sm cursor-pointer">
-                    <Globe className="size-4" /> Xem trang chia sẻ
+                  <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[var(--border-soft)] rounded-xl text-[13px] font-bold text-[var(--fg-base)] hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5 transition-[background-color,border-color] shadow-sm cursor-pointer">
+                    <Globe aria-hidden="true" className="size-4" /> Xem trang chia sẻ
                   </a>
                 ) : null}
-                <a href={link.target_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-[13px] font-bold text-blue-600 hover:bg-blue-100 transition-all shadow-sm cursor-pointer">
-                  <ExternalLink className="size-4" /> {vi.shortLinks.detail.openTarget}
+                <a href={link.target_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-[13px] font-bold text-blue-600 hover:bg-blue-100 transition-colors shadow-sm cursor-pointer">
+                  <ExternalLink aria-hidden="true" className="size-4" /> {vi.shortLinks.detail.openTarget}
                 </a>
-                <button onClick={handleToggleStatus} className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all shadow-sm cursor-pointer border",
+                <button type="button" onClick={handleToggleStatus} className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-colors shadow-sm cursor-pointer border",
                   link.status === "active"
                     ? "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100"
                     : "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
                 )}>
-                  <Power className="size-4" /> {link.status === "active" ? vi.shortLinks.detail.toggleOff : vi.shortLinks.detail.toggleOn}
+                  <Power aria-hidden="true" className="size-4" /> {link.status === "active" ? vi.shortLinks.detail.toggleOff : vi.shortLinks.detail.toggleOn}
                 </button>
-                <button onClick={handleDelete} className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-100 transition-all shadow-sm cursor-pointer">
-                  <Trash2 className="size-4" /> {vi.shortLinks.detail.delete}
+                <button type="button" onClick={handleDelete} className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-100 transition-colors shadow-sm cursor-pointer">
+                  <Trash2 aria-hidden="true" className="size-4" /> {vi.shortLinks.detail.delete}
                 </button>
               </>
             )}
@@ -324,7 +414,7 @@ export default function ShortLinkDetailPage() {
         {/* Security Trust Banner */}
         {securitySummary && stats && stats.totalClicks > 0 && (
           <div className={cn(
-            "flex items-center gap-4 p-4 rounded-2xl border shadow-sm transition-all",
+            "flex items-center gap-4 p-4 rounded-2xl border shadow-sm transition-[background-color,border-color]",
             securitySummary.trustScore >= 90
               ? "bg-emerald-50 border-emerald-200"
               : securitySummary.trustScore >= 70
@@ -454,8 +544,8 @@ export default function ShortLinkDetailPage() {
                       <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider block">{vi.shortLinks.card.ipLocked}</span>
                       <span className="text-[13px] font-bold text-blue-700 font-mono">{link.locked_ip}</span>
                     </div>
-                    <button onClick={handleUnlockIP} className="px-2.5 py-1 bg-blue-500 text-white text-[10px] font-bold rounded-lg cursor-pointer hover:bg-blue-600 transition-colors flex items-center gap-1">
-                      <Unlock className="size-3" /> {vi.shortLinks.card.unlockIp}
+                    <button type="button" onClick={handleUnlockIP} className="px-2.5 py-1 bg-blue-500 text-white text-[10px] font-bold rounded-lg cursor-pointer hover:bg-blue-600 transition-colors flex items-center gap-1">
+                      <Unlock aria-hidden="true" className="size-3" /> {vi.shortLinks.card.unlockIp}
                     </button>
                   </div>
                 )}
@@ -507,7 +597,7 @@ export default function ShortLinkDetailPage() {
               <div className="w-full bg-[var(--border-soft)] h-2.5 rounded-full overflow-hidden">
                 <div
                   className={cn(
-                    "h-full rounded-full transition-all duration-500",
+                    "h-full rounded-full transition-[width,background-color] duration-500",
                     progress >= 100 ? "bg-red-500" : progress >= 70 ? "bg-amber-500" : "bg-emerald-500"
                   )}
                   style={{ width: `${Math.min(progress, 100)}%` }}
@@ -528,8 +618,10 @@ export default function ShortLinkDetailPage() {
               {TABS.map(tab => (
                 <button
                   key={tab.id}
+                  type="button"
+                  aria-pressed={activeTab === tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-[12px] font-bold rounded-lg transition-all cursor-pointer flex-1 justify-center ${
+                  className={`flex items-center gap-2 px-4 py-2.5 text-[12px] font-bold rounded-lg transition-[background-color,color,box-shadow] cursor-pointer flex-1 justify-center ${
                     activeTab === tab.id
                       ? "bg-[var(--accent)] text-white shadow-sm"
                       : "text-[var(--fg-muted)] hover:bg-[var(--surface-light)]"
@@ -604,5 +696,4 @@ function StatCard({ label, value, sub, color, highlight }: {
     </div>
   );
 }
-
 

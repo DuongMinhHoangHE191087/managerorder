@@ -151,8 +151,9 @@ export function EventCreateModal({
               <button
                 key={item.value}
                 type="button"
+                aria-pressed={selectedType === item.value}
                 onClick={() => setSelectedType(item.value)}
-                className={`flex min-h-[86px] flex-col items-start gap-2 rounded-2xl border px-4 py-3 text-left transition-all ${
+                className={`flex min-h-[86px] flex-col items-start gap-2 rounded-2xl border px-4 py-3 text-left transition-[background-color,border-color,box-shadow,color] ${
                   selectedType === item.value
                     ? `${item.color} border-current shadow-sm`
                     : "border-[var(--border-soft)] bg-white hover:border-[var(--accent)]/30"
@@ -187,7 +188,7 @@ export function EventCreateModal({
                 onChange={(event) => setTitle(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && void handleSave()}
                 placeholder={text.placeholders.title}
-                className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[14px] font-medium outline-none transition-all placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[14px] font-medium outline-none transition-[border-color,box-shadow] placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
               />
             </div>
 
@@ -200,7 +201,7 @@ export function EventCreateModal({
                 type="date"
                 value={date}
                 onChange={(event) => setDate(event.target.value)}
-                className="w-full cursor-pointer rounded-2xl border border-[var(--border-soft)] bg-white px-3 py-3 text-[13px] font-medium outline-none transition-all focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                className="w-full cursor-pointer rounded-2xl border border-[var(--border-soft)] bg-white px-3 py-3 text-[13px] font-medium outline-none transition-[border-color,box-shadow] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
               />
             </div>
 
@@ -213,7 +214,7 @@ export function EventCreateModal({
                 type="time"
                 value={time}
                 onChange={(event) => setTime(event.target.value)}
-                className="w-full cursor-pointer rounded-2xl border border-[var(--border-soft)] bg-white px-3 py-3 text-[13px] font-medium outline-none transition-all focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                className="w-full cursor-pointer rounded-2xl border border-[var(--border-soft)] bg-white px-3 py-3 text-[13px] font-medium outline-none transition-[border-color,box-shadow] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
               />
             </div>
           </div>
@@ -247,14 +248,15 @@ export function EventCreateModal({
               onChange={(event) => setNotes(event.target.value)}
               placeholder={text.placeholders.notes}
               rows={4}
-              className="w-full resize-none rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[13px] font-medium outline-none transition-all placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+              className="w-full resize-none rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[13px] font-medium outline-none transition-[border-color,box-shadow] placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
             />
           </div>
 
           <button
             type="button"
+            aria-pressed={hasReminder}
             onClick={() => setHasReminder((value) => !value)}
-            className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all ${
+            className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-[background-color,border-color] ${
               hasReminder ? "border-[var(--accent)] bg-[var(--accent)]/5" : "border-[var(--border-soft)] bg-[var(--surface-light)]/35"
             }`}
           >

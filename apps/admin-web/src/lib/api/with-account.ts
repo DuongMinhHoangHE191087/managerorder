@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isMockSessionEnabled, isMockSessionTokenAllowed } from "@/lib/auth/mock-session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { verifyToken } from "@/lib/utils/jwt";
@@ -15,7 +16,7 @@ export type ApiHandler<T extends object = Record<string, never>> = (
  */
 export async function resolveAccountId(req: NextRequest): Promise<string | null> {
   const headerAccountId = req.headers.get("x-account-id");
-  const isE2EMockSession = process.env.E2E_MOCK_SESSION === "1";
+  const isE2EMockSession = isMockSessionEnabled(req.nextUrl.hostname);
   const mockSessionHeader = req.headers.get("x-e2e-mock-session");
 
   if (isE2EMockSession && mockSessionHeader === "1" && headerAccountId) {
@@ -30,7 +31,7 @@ export async function resolveAccountId(req: NextRequest): Promise<string | null>
       if (authHeader?.startsWith("Bearer ")) {
         const token = authHeader.slice(7);
         const decoded = verifyToken(token);
-        if (decoded.accountId === headerAccountId) {
+        if (isMockSessionTokenAllowed(decoded, req.nextUrl.hostname) && decoded.accountId === headerAccountId) {
           return headerAccountId;
         }
       }
@@ -43,7 +44,7 @@ export async function resolveAccountId(req: NextRequest): Promise<string | null>
       const cookieToken = req.cookies.get("access_token")?.value;
       if (cookieToken) {
         const decoded = verifyToken(cookieToken);
-        if (decoded.accountId === headerAccountId) {
+        if (isMockSessionTokenAllowed(decoded, req.nextUrl.hostname) && decoded.accountId === headerAccountId) {
           return headerAccountId;
         }
       }
@@ -60,10 +61,11 @@ export async function resolveAccountId(req: NextRequest): Promise<string | null>
     } = await supabase.auth.getUser();
 
     if (user?.email) {
+      const normalizedEmail = user.email.trim().toLowerCase();
       const { data: adminUser } = await supabaseAdmin
         .from("admin_users")
         .select("account_id")
-        .eq("email", user.email)
+        .ilike("email", normalizedEmail)
         .single();
 
       if (adminUser?.account_id) {

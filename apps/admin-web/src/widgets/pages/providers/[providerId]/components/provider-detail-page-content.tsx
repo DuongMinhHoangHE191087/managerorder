@@ -236,13 +236,15 @@ export default function ProviderDetailPage() {
             isTrashView ? (
               <>
                 <button
+                  type="button"
                   onClick={() => void handleRestoreFromTrash()}
-                  className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
+                  className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-[box-shadow,transform] hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
                 >
                   <RefreshCw className="size-4" />
                   Khôi phục
                 </button>
                 <button
+                  type="button"
                   onClick={() => void handlePurgeFromTrash()}
                   className="flex items-center gap-2 rounded-[1rem] border border-[var(--danger)]/30 bg-white px-4 py-2.5 text-[13px] font-bold text-[var(--danger)] shadow-sm transition-colors hover:bg-[var(--danger)]/10"
                 >
@@ -253,6 +255,7 @@ export default function ProviderDetailPage() {
             ) : (
               <>
                 <button
+                  type="button"
                   onClick={() => setIsEditOpen(true)}
                   className="flex items-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] px-4 py-2.5 text-[13px] font-bold text-[var(--fg-base)] shadow-sm transition-colors hover:border-[var(--accent)]/30 hover:bg-white"
                 >
@@ -260,8 +263,9 @@ export default function ProviderDetailPage() {
                   {vi.providers.detail.edit}
                 </button>
                 <button
+                  type="button"
                   onClick={() => setIsCreatePOOpen(true)}
-                  className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
+                  className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-[box-shadow,transform] hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
                 >
                   <Plus className="size-4" />
                   {vi.providers.detail.createPurchaseOrder}
@@ -374,7 +378,7 @@ export default function ProviderDetailPage() {
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--border-soft)]">
                 <div
-                  className="h-full rounded-full bg-[var(--accent)] transition-all"
+                  className="h-full rounded-full bg-[var(--accent)] transition-[width]"
                   style={{ width: `${provider.reliabilityScore}%` }}
                 />
               </div>
@@ -416,10 +420,12 @@ export default function ProviderDetailPage() {
             <div className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_16px_38px_rgba(15,23,42,0.05)]">
               <div className="flex items-center gap-1 border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] p-1">
                 {TABS.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex flex-1 items-center justify-center gap-2 rounded-[0.95rem] px-4 py-2.5 text-[12px] font-bold transition-all ${
+                <button
+                  key={tab.id}
+                  type="button"
+                  aria-pressed={activeTab === tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-[0.95rem] px-4 py-2.5 text-[12px] font-bold transition-[background-color,color,box-shadow] ${
                       activeTab === tab.id
                         ? "bg-[var(--accent)] text-white shadow-sm"
                         : "text-[var(--fg-muted)] hover:bg-white"

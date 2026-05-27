@@ -10,6 +10,7 @@ import {
 } from "@/lib/supabase/repositories/order-status-history.repo";
 import { createActivityLog } from "@/lib/supabase/repositories/activity-logs.repo";
 import { deallocateOrder } from "@/lib/services/allocation.service";
+import { syncOrderToPremium } from "@/lib/services/premium-order-sync.service";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { withAccount } from "@/lib/api/with-account";
 import { withErrorHandler } from "@/lib/api/with-error-handler";
@@ -241,6 +242,22 @@ export const PATCH = withErrorHandler(
       },
     });
 
-    return NextResponse.json({ data: updated });
+    let premiumSync: { success: boolean; detail?: unknown; error?: string } | undefined;
+    if (newStatus === "completed" || (newStatus === "cancelled" && current.status === "completed")) {
+      try {
+        premiumSync = {
+          success: true,
+          detail: await syncOrderToPremium(accountId, id, { syncedBy: user.email }),
+        };
+      } catch (syncError) {
+        console.error("[Refund PATCH] premium sync failed:", syncError);
+        premiumSync = {
+          success: false,
+          error: syncError instanceof Error ? syncError.message : "Premium sync failed",
+        };
+      }
+    }
+
+    return NextResponse.json({ data: updated, premium_sync: premiumSync });
   })
 );

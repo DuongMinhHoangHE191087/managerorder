@@ -35,7 +35,7 @@ export const PUT = withErrorHandler(
       usedSlots?: number;
       notes?: Record<string, string>;
       expiresAt?: string;
-      credentials?: Array<{ type: string; value: string; label?: string }>;
+      credentials?: Array<{ type: string; value: string; label?: string; format?: "plain" | "totp_secret" | "backup_codes" | "url" | "identifier"; shareable?: boolean; masked?: boolean }>;
       purchaseCostVnd?: number;
       purchaseDate?: string;
       purchaseSource?: string;

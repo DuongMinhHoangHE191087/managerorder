@@ -1,7 +1,7 @@
-import { createCipheriv, randomBytes } from "crypto";
+import { createCipheriv, createHash, randomBytes } from "crypto";
 import { ApplicationError } from "@/lib/utils/errors";
 
-function getPremiumEncryptionKey() {
+function getPremiumEncryptionKeyBuffer() {
   const keyHex =
     process.env.PREMIUM_PASSWORD_ENCRYPTION_KEY ?? process.env.ENCRYPTION_KEY;
 
@@ -13,19 +13,15 @@ function getPremiumEncryptionKey() {
     );
   }
 
-  if (!/^[a-fA-F0-9]{64}$/.test(keyHex)) {
-    throw new ApplicationError(
-      "PREMIUM_PASSWORD_ENCRYPTION_KEY phải là chuỗi hex 64 ký tự",
-      500,
-      "PREMIUM_ENCRYPTION_KEY_INVALID",
-    );
+  if (/^[a-fA-F0-9]{64}$/.test(keyHex)) {
+    return Buffer.from(keyHex, "hex");
   }
 
-  return keyHex;
+  return createHash("sha256").update(keyHex, "utf8").digest();
 }
 
 export function encryptPremiumPassword(plaintext: string): string {
-  const key = Buffer.from(getPremiumEncryptionKey(), "hex");
+  const key = getPremiumEncryptionKeyBuffer();
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
   let encrypted = cipher.update(plaintext, "utf8", "hex");

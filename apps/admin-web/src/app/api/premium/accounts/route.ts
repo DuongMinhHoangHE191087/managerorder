@@ -10,6 +10,7 @@ import { encryptPremiumPassword } from "@/lib/utils/premium-account-credentials"
 import { loadRowsByIds } from "@/app/api/premium/relation-fallback";
 import {
   buildLocalPremiumAccounts,
+  shouldPreferLocalPremiumFixtures,
   shouldUseLocalPremiumFallback,
 } from "@/app/api/premium/local-fixtures";
 
@@ -65,9 +66,7 @@ function formatPremiumAccountRow<T extends PremiumAccountWithRelations>(account:
 }
 
 export const GET = withFlatAccountHandler(async (_request, { accountId }) => {
-  const preferLocalPremiumFixtures =
-    process.env.NODE_ENV === "development" &&
-    process.env.CODEX_DISABLE_LOCAL_FALLBACK !== "1";
+  const preferLocalPremiumFixtures = shouldPreferLocalPremiumFixtures();
 
   if (preferLocalPremiumFixtures) {
     const fallbackAccounts = buildLocalPremiumAccounts(accountId);

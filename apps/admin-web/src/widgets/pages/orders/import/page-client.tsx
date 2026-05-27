@@ -336,7 +336,7 @@ export default function ImportOrdersPage() {
             return (
               <div key={s.id} className="flex items-center gap-2 flex-1">
                 <div
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all flex-1 ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-[background-color,color] flex-1 ${
                     isActive
                       ? 'bg-[var(--accent)]/10 text-[var(--accent)] font-bold'
                       : isCompleted
@@ -358,7 +358,7 @@ export default function ImportOrdersPage() {
         {/* Step 1: File Upload */}
         {step === 1 && (
           <div
-            className={`border-2 border-dashed rounded-2xl p-16 text-center transition-all ${
+            className={`border-2 border-dashed rounded-2xl p-16 text-center transition-[background-color,border-color] ${
               isDragging
                 ? 'border-[var(--accent)] bg-[var(--accent)]/5 scale-[1.01]'
                 : 'border-[var(--border-soft)] hover:border-[var(--accent)]/50'
@@ -490,7 +490,7 @@ export default function ImportOrdersPage() {
               <button
                 type="button"
                 onClick={resetState}
-                className="px-6 py-3 bg-white border border-[var(--border-soft)] rounded-lg font-bold text-[var(--fg-base)] hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm"
+                className="px-6 py-3 bg-white border border-[var(--border-soft)] rounded-lg font-bold text-[var(--fg-base)] hover:bg-gray-50 transition-[background-color,border-color,box-shadow] flex items-center gap-2 shadow-sm"
               >
                 <RotateCcw className="size-4" />
                 {importText.importAgain}
@@ -498,7 +498,7 @@ export default function ImportOrdersPage() {
               <button
                 type="button"
                 onClick={() => router.push("/orders")}
-                className="px-6 py-3 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white rounded-lg font-bold hover:opacity-90 transition-all flex items-center gap-2 shadow-lg"
+                className="px-6 py-3 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white rounded-lg font-bold hover:opacity-90 transition-[opacity,box-shadow] flex items-center gap-2 shadow-lg"
               >
                 <ExternalLink className="size-4" />
                 {importText.viewOrders}
@@ -558,7 +558,7 @@ export default function ImportOrdersPage() {
                 type="button"
                 onClick={handleImport}
                 disabled={isImporting || stats.valid === 0}
-                className="px-8 py-3 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white rounded-lg font-bold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
+                className="px-8 py-3 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white rounded-lg font-bold hover:opacity-90 transition-[opacity,box-shadow] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
               >
                 {isImporting ? (
                   <>

@@ -21,3 +21,4 @@ packages/*/dist/
 packages/*/.tmp/
 
 /.pnpm-store-local
+.env

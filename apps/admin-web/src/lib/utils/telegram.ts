@@ -7,7 +7,16 @@ import { markBotRuntimeError, markBotRuntimeReply } from "@/lib/bot-manager/runt
 import { formatDateShort, formatNumber, type FormatOptions } from "./formatters";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? '';
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID ?? '';
+const TELEGRAM_ADMIN_CHAT_ID = (process.env.TELEGRAM_ADMIN_CHAT_ID ?? '').trim();
+const TELEGRAM_CHAT_ID = (process.env.TELEGRAM_CHAT_ID ?? '').trim();
+
+export function resolveTelegramAdminChatId(): string {
+  return TELEGRAM_ADMIN_CHAT_ID || TELEGRAM_CHAT_ID;
+}
+
+export function resolveTelegramDefaultChatId(): string {
+  return resolveTelegramAdminChatId();
+}
 
 // ─── Rate Limiter (Token Bucket — 30 msgs/sec) ───────────────
 const RATE_LIMIT = 30;
@@ -120,7 +129,7 @@ export async function sendTelegramMessage(
   text: string,
   options?: SendMessageOptions
 ): Promise<number | false> {
-  const chatId = options?.chatId ?? TELEGRAM_CHAT_ID;
+  const chatId = (options?.chatId ?? resolveTelegramDefaultChatId()).trim();
   const maxRetries = options?.retries ?? DEFAULT_RETRIES;
   const disablePreview = options?.disablePreview ?? true;
   const parseMode = options?.parseMode ?? 'HTML';
@@ -232,7 +241,7 @@ export async function sendTelegramPhoto(
   caption: string,
   options?: Omit<SendMessageOptions, 'disablePreview'>
 ): Promise<boolean> {
-  const chatId = options?.chatId ?? TELEGRAM_CHAT_ID;
+  const chatId = (options?.chatId ?? resolveTelegramDefaultChatId()).trim();
   const maxRetries = options?.retries ?? DEFAULT_RETRIES;
 
   if (!TELEGRAM_BOT_TOKEN || !chatId) {
@@ -321,7 +330,7 @@ export async function sendMessageWithKeyboard(
   keyboard: TelegramButton[][],
   options?: Omit<SendMessageOptions, 'buttons'>
 ): Promise<number | false> {
-  const chatId = options?.chatId ?? TELEGRAM_CHAT_ID;
+  const chatId = (options?.chatId ?? resolveTelegramDefaultChatId()).trim();
   const maxRetries = options?.retries ?? DEFAULT_RETRIES;
 
   if (!TELEGRAM_BOT_TOKEN || !chatId) {

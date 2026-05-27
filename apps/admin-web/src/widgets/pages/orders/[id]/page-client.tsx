@@ -25,6 +25,7 @@ import { getOrderNextStatuses } from "@/lib/domain/order-state-machine";
 import type { OrderStatus } from "@/lib/domain/types";
 import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
 import { SoftDeletedBadge } from "@/shared/ui/soft-deleted-badge";
+import { AccountShareLauncher } from "@/widgets/pages/inventory/components/account-share-launcher";
 
 /* ─── Types ──────────────────────────────────────────────── */
 interface LicenseKey {
@@ -360,7 +361,7 @@ export default function OrderDetailPage() {
           <div className="col-span-12 xl:col-span-4 space-y-5">
             
             {/* Customer Box */}
-            <div className="bg-[var(--bg-surface)] border border-[var(--border-soft)] rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:border-[var(--accent)]/30 transition-all">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-soft)] rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:border-[var(--accent)]/30 transition-[background-color,border-color,box-shadow,color,opacity,transform,width]">
               <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
               <h3 className="text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-4 flex items-center gap-1.5">
                 <User className="size-3.5" /> {vi.orders.detail.customer}
@@ -436,7 +437,7 @@ export default function OrderDetailPage() {
                 
                 <div className="w-full bg-[var(--border-soft)] h-2 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 bg-gradient-to-r ${
+                    className={`h-full rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500 bg-gradient-to-r ${
                       paidPercent >= 100 ? "from-emerald-400 to-emerald-500" :
                       paidPercent > 0 ? "from-amber-400 to-amber-500" : "from-[var(--border-soft)] to-[var(--border-soft)]"
                     }`}
@@ -498,7 +499,7 @@ export default function OrderDetailPage() {
                     <button
                       key={s}
                       onClick={() => handleUpdateStatus(s)}
-                      className="px-3 py-2.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer border-[var(--border-soft)] text-[var(--fg-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] bg-[var(--surface-light)]"
+                      className="px-3 py-2.5 rounded-xl text-[11px] font-bold border transition-[background-color,border-color,box-shadow,color,opacity,transform,width] cursor-pointer border-[var(--border-soft)] text-[var(--fg-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] bg-[var(--surface-light)]"
                     >
                       → {getStatusLabel(s)}
                     </button>
@@ -608,6 +609,16 @@ export default function OrderDetailPage() {
                                         <div className="text-[13px] font-medium text-[var(--fg-base)]">{item.assigned_source_account.email}</div>
                                         <div className="text-[11px] text-[var(--fg-muted)] capitalize">{item.assigned_source_account.provider}</div>
                                       </div>
+                                      <AccountShareLauncher
+                                        account={{
+                                          id: item.assigned_source_account.id,
+                                          email: item.assigned_source_account.email,
+                                        }}
+                                        orderId={order.id}
+                                        orderItemId={item.id}
+                                        customerId={order.customer_id}
+                                        className="h-8 rounded-lg px-3 text-[12px] font-bold"
+                                      />
                                     </div>
                                   </div>
                                 </div>

@@ -81,6 +81,7 @@ const rawVi = {
       calendar: "Lịch hẹn",
       activityLogs: "Nhật ký",
       shortLinks: "Link rút gọn",
+      accountShares: "Chia sẻ tài khoản",
       trash: "Thùng rác",
       settings: "Cài đặt",
       botManagement: "Quản lý bot",

@@ -115,7 +115,7 @@ export function ProviderPurchaseOrdersPanel({
                     </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--border-soft)]">
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${
+                        className={`h-full rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500 ${
                           paidPercent >= 100
                             ? "bg-emerald-500"
                             : paidPercent > 0

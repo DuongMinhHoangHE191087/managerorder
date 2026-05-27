@@ -341,7 +341,7 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
       className={cn(
 
-        "group relative flex cursor-pointer flex-col gap-4 px-4 py-4 transition-all hover:bg-[var(--surface-light)]/40 lg:grid lg:items-center lg:gap-4 lg:pr-12",
+        "group relative flex cursor-pointer flex-col gap-4 px-4 py-4 transition-colors hover:bg-[var(--surface-light)]/40 lg:grid lg:items-center lg:gap-4 lg:pr-12",
 
         hasBulk ? "lg:grid-cols-[48px_minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_140px_140px_100px]" : "lg:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_140px_140px_100px]",
 
@@ -381,7 +381,7 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
           className={cn(
 
-            "flex size-10 shrink-0 items-center justify-center rounded-xl border border-[var(--border-soft)] bg-white text-[var(--fg-muted)] shadow-sm transition-all group-hover:border-[var(--accent)]/30 group-hover:text-[var(--accent)]",
+            "flex size-10 shrink-0 items-center justify-center rounded-xl border border-[var(--border-soft)] bg-white text-[var(--fg-muted)] shadow-sm transition-[border-color,color] group-hover:border-[var(--accent)]/30 group-hover:text-[var(--accent)]",
 
             selected && "border-[var(--accent)] text-[var(--accent)]",
 
@@ -469,7 +469,7 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
             <div
 
-              className={cn("h-full rounded-full transition-all duration-500", getSlotBarColor(percent))}
+              className={cn("h-full rounded-full transition-[width,background-color] duration-500", getSlotBarColor(percent))}
 
               style={{ width: `${Math.min(percent, 100)}%` }}
 
@@ -631,7 +631,7 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
 
 
-      <div className="absolute right-3 top-1/2 hidden size-8 -translate-y-1/2 translate-x-2 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-[var(--accent)] opacity-0 shadow-[0_2px_10px_rgba(0,0,0,0.05)] transition-all group-hover:translate-x-0 group-hover:opacity-100 hover:bg-[var(--accent)] hover:text-white lg:flex">
+      <div className="absolute right-3 top-1/2 hidden size-8 -translate-y-1/2 translate-x-2 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-[var(--accent)] opacity-0 shadow-[0_2px_10px_rgba(0,0,0,0.05)] transition-[background-color,color,opacity,transform] group-hover:translate-x-0 group-hover:opacity-100 hover:bg-[var(--accent)] hover:text-white lg:flex">
 
         <ChevronRight className="size-4" />
 
@@ -745,7 +745,7 @@ export const InventoryTable = React.memo(function InventoryTable({
 
   return (
 
-    <SlideUp delay={0.5} data-testid="inventory-list" className="app-card mb-6 overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
+    <SlideUp delay={0.5} data-testid="inventory-list" className="app-card mb-6 overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
 
       <div className="flex items-center justify-between gap-4 border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-5 py-4">
 

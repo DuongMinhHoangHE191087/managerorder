@@ -74,7 +74,7 @@ export function LoginEmailPanel({ redirectUrl, onErrorChange }: LoginEmailPanelP
             setEmail(event.target.value);
             setErrors((current) => ({ ...current, email: undefined }));
           }}
-          className={`w-full rounded-xl border bg-[var(--border-soft)]/50 px-4 py-3 text-sm text-[var(--fg-base)] outline-none transition-all duration-200 placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 ${
+          className={`w-full rounded-xl border bg-[var(--border-soft)]/50 px-4 py-3 text-sm text-[var(--fg-base)] outline-none transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 ${
             errors.email
               ? "border-[var(--danger)]/50 focus:border-[var(--danger)]"
               : "border-transparent focus:border-[var(--accent)]/50"
@@ -98,7 +98,7 @@ export function LoginEmailPanel({ redirectUrl, onErrorChange }: LoginEmailPanelP
               setPassword(event.target.value);
               setErrors((current) => ({ ...current, password: undefined }));
             }}
-            className={`w-full rounded-xl border bg-[var(--border-soft)]/50 px-4 py-3 pr-12 text-sm text-[var(--fg-base)] outline-none transition-all duration-200 placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 ${
+            className={`w-full rounded-xl border bg-[var(--border-soft)]/50 px-4 py-3 pr-12 text-sm text-[var(--fg-base)] outline-none transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 ${
               errors.password
                 ? "border-[var(--danger)]/50 focus:border-[var(--danger)]"
                 : "border-transparent focus:border-[var(--accent)]/50"
@@ -119,7 +119,7 @@ export function LoginEmailPanel({ redirectUrl, onErrorChange }: LoginEmailPanelP
       <button
         type="submit"
         disabled={isLoading}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-6 py-3.5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(85,202,2,0.3)] transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-6 py-3.5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(85,202,2,0.3)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isLoading ? (
           <div className="size-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />

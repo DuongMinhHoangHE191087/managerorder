@@ -9,6 +9,9 @@ import {
   logShortLinkClick,
 } from "@/domains/short-links";
 import { applyPublicShortLinkSecurityHeaders } from "@/domains/short-links/services/public-redirect";
+import { applyAccountSharePublicSecurityHeaders } from "@/domains/account-sharing/public-http";
+import { resolveBestMockAccountId } from "@/lib/mock-account";
+import { resolveTelegramAdminChatId } from "@/lib/utils/telegram";
 import {
   createShortLinkRelayCookieValue,
   isShortLinkRelayEnabled,
@@ -16,6 +19,7 @@ import {
   SHORT_LINK_RELAY_MAX_AGE_SECONDS,
   verifyShortLinkRelayCookieValue,
 } from "@/domains/short-links/services/public-relay";
+import { isMockSessionEnabled, isMockSessionTokenAllowed } from "@/lib/auth/mock-session";
 import { isMissingRelationError } from "@/lib/supabase/schema-errors";
 
 /**
@@ -24,12 +28,14 @@ import { isMissingRelationError } from "@/lib/supabase/schema-errors";
 const PUBLIC_ROUTES = [
   "/login",
   "/unauthorized",
+  "/share/",
   "/s/",                // Public short link redirect (NO auth — customer-facing)
   "/api/auth",          // All auth endpoints (session, callback, google, etc.)
   "/api/v1/auth",       // V1 auth endpoints (login, register, refresh, etc.)
   "/api/health",        // Public health probe for runtime checks and process supervisors
   "/api/cron",          // Cron jobs (auth handled by CRON_SECRET)
   "/api/s/",            // Public short link API redirect (NO auth)
+  "/api/share/",
 ];
 
 /**
@@ -98,7 +104,6 @@ type JwtClaims = TrustedJwtPayload & {
 
 const JWT_CLOCK_SKEW_SECONDS = 60;
 const E2E_MOCK_SESSION_HEADER = "x-e2e-mock-session";
-const E2E_MOCK_ACCOUNT_ID_FALLBACK = "00000000-0000-4000-8000-000000000001";
 const E2E_MOCK_USER_ID = "00000000-0000-4000-8000-000000000002";
 const E2E_MOCK_EMAIL = "e2e-mock@managerorder.local";
 const E2E_MOCK_ROLE = "admin_owner";
@@ -207,7 +212,10 @@ async function resolveValidJwtTokenFromRequest(request: NextRequest): Promise<st
     }
 
     try {
-      await verifyJwtEdge(token, jwtSecret);
+      const claims = await verifyJwtEdge(token, jwtSecret);
+      if (!isMockSessionTokenAllowed(claims, request.nextUrl.hostname)) {
+        throw new Error("E2E mock token is disabled");
+      }
       return token;
     } catch {
       // Keep trying fallbacks. A stale access token should not block a valid
@@ -228,32 +236,7 @@ async function resolveE2EMockAccountId(): Promise<string> {
   }
 
   resolvingE2EMockAccountId = (async () => {
-    const envAccountId = process.env.E2E_MOCK_ACCOUNT_ID?.trim();
-    if (envAccountId) {
-      return envAccountId;
-    }
-
-    try {
-      const lookup = supabaseAdmin
-        .from("accounts")
-        .select("id")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      const timeout = new Promise<{ data: null }>((resolve) => {
-        setTimeout(() => resolve({ data: null }), 2_000);
-      });
-
-      const result = (await Promise.race([lookup, timeout])) as { data?: { id: string } | null };
-      if (result?.data?.id) {
-        return result.data.id;
-      }
-    } catch {
-      // Ignore lookup failures in local/offline environments.
-    }
-
-    return E2E_MOCK_ACCOUNT_ID_FALLBACK;
+    return resolveBestMockAccountId();
   })();
 
   try {
@@ -281,7 +264,7 @@ export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const rawUa = request.headers.get("user-agent") ?? "";
   const ua = rawUa.toLowerCase();
-  const isE2EMockSession = process.env.E2E_MOCK_SESSION === "1";
+  const isE2EMockSession = isMockSessionEnabled(request.nextUrl.hostname);
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
   if (pathname === "/api/health") {
@@ -747,7 +730,10 @@ export default async function proxy(request: NextRequest) {
       try {
         const jwtSecret = process.env.JWT_SECRET;
         if (jwtSecret) {
-          await verifyJwtEdge(jwt, jwtSecret);
+          const claims = await verifyJwtEdge(jwt, jwtSecret);
+          if (!isMockSessionTokenAllowed(claims, request.nextUrl.hostname)) {
+            throw new Error("E2E mock token is disabled");
+          }
           isAuthenticated = true;
         } else {
           console.warn("[Middleware] JWT_SECRET is missing; skipping JWT login shortcut.");
@@ -786,12 +772,17 @@ export default async function proxy(request: NextRequest) {
   // Allow other public routes
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
     if (pathname.startsWith("/api/")) {
-      return NextResponse.next();
+      const response = NextResponse.next();
+      return pathname.startsWith("/api/share/")
+        ? applyAccountSharePublicSecurityHeaders(response)
+        : response;
     }
 
     // Still update session cookies even for public routes
     const { supabaseResponse } = await updateSession(request);
-    return supabaseResponse;
+    return pathname.startsWith("/share/")
+      ? applyAccountSharePublicSecurityHeaders(supabaseResponse)
+      : supabaseResponse;
   }
 
   const isApiRoute = pathname.startsWith("/api/");
@@ -807,6 +798,9 @@ export default async function proxy(request: NextRequest) {
         throw new Error("JWT_SECRET is not configured");
       }
       const payload = await verifyJwtEdge(accessToken, jwtSecret) as TrustedJwtPayload;
+      if (!isMockSessionTokenAllowed(payload, request.nextUrl.hostname)) {
+        throw new Error("E2E mock token is disabled");
+      }
 
       // JWT is valid — inject account info into request headers
       const requestHeaders = new Headers(request.headers);
@@ -876,22 +870,23 @@ export default async function proxy(request: NextRequest) {
   }
 
   // Check admin cache first, then DB if miss
-  const email = user.email!;
-  let adminUser = getCachedAdmin(email);
+  const email = user.email!.trim();
+  const normalizedEmail = email.toLowerCase();
+  let adminUser = getCachedAdmin(normalizedEmail);
 
   if (adminUser === undefined) {
     // Cache miss — query DB
     const { data, error: adminError } = await supabaseAdmin
       .from("admin_users")
       .select("id, email, role, account_id")
-      .eq("email", email)
+      .ilike("email", normalizedEmail)
       .single();
 
     if (adminError) {
-      console.error("[Middleware] admin_users lookup failed:", adminError.message, "| email:", email);
+      console.error("[Middleware] admin_users lookup failed:", adminError.message, "| email:", normalizedEmail);
     }
     adminUser = data;
-    setCachedAdmin(email, adminUser);
+    setCachedAdmin(normalizedEmail, adminUser);
   }
 
   // User exists in Supabase Auth but NOT in admin_users → unauthorized
@@ -915,7 +910,7 @@ export default async function proxy(request: NextRequest) {
     // Clone request headers and add account_id
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-account-id", adminUser.account_id);
-    requestHeaders.set("x-user-email", adminUser.email ?? email);
+    requestHeaders.set("x-user-email", adminUser.email ?? normalizedEmail);
     requestHeaders.set("x-user-role", adminUser.role);
     requestHeaders.set("x-user-id", adminUser.id);
 
@@ -1162,7 +1157,7 @@ function sendClickNotificationInMiddleware(info: {
   country?: string | null; city?: string | null; ipVersion?: string | null; browser?: string | null;
 }): void {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  const chatId = resolveTelegramAdminChatId();
   if (!botToken || !chatId) return;
 
   const progressPct = info.maxClicks > 0 ? Math.round((info.clickCount / info.maxClicks) * 100) : 0;

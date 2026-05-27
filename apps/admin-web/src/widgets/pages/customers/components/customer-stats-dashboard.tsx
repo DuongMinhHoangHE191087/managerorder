@@ -80,7 +80,7 @@ export const CustomerStatsDashboard = React.memo(function CustomerStatsDashboard
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-gray-100">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
+                    className="h-full rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500"
                     style={{ width: `${bar.percent}%`, backgroundColor: bar.color }}
                   />
                 </div>
@@ -199,7 +199,7 @@ export const CustomerStatsDashboard = React.memo(function CustomerStatsDashboard
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-gray-100">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
+                    className="h-full rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500"
                     style={{ width: `${bucket.percent}%`, backgroundColor: bucket.color }}
                   />
                 </div>

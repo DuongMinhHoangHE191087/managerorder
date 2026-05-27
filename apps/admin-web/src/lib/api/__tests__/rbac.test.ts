@@ -5,13 +5,15 @@ import { TEST_ACCOUNT_ID, TEST_USER_EMAIL } from "@/app/api/__tests__/helpers/se
 const rbacMocks = vi.hoisted(() => {
   const maybeSingleMock = vi.fn();
   const eqIdentityMock = vi.fn(() => ({ maybeSingle: maybeSingleMock }));
-  const eqAccountMock = vi.fn(() => ({ eq: eqIdentityMock }));
+  const ilikeIdentityMock = vi.fn(() => ({ maybeSingle: maybeSingleMock }));
+  const eqAccountMock = vi.fn(() => ({ eq: eqIdentityMock, ilike: ilikeIdentityMock }));
   const selectMock = vi.fn(() => ({ eq: eqAccountMock }));
   const fromMock = vi.fn(() => ({ select: selectMock }));
 
   return {
     maybeSingleMock,
     eqIdentityMock,
+    ilikeIdentityMock,
     eqAccountMock,
     selectMock,
     fromMock,
@@ -141,7 +143,7 @@ describe("resolveUser", () => {
       accountId: TEST_ACCOUNT_ID,
       displayName: "Email User",
     });
-    expect(rbacMocks.eqIdentityMock).toHaveBeenCalledWith("email", TEST_USER_EMAIL);
+    expect(rbacMocks.ilikeIdentityMock).toHaveBeenCalledWith("email", TEST_USER_EMAIL);
   });
 
   it("falls back to x-user-email when x-user-id is not a UUID", async () => {
@@ -166,7 +168,7 @@ describe("resolveUser", () => {
     const user = await resolveUser(req, TEST_ACCOUNT_ID);
 
     expect(user?.userId).toBe("00000000-0000-4000-8000-0000000000d2");
-    expect(rbacMocks.eqIdentityMock).toHaveBeenCalledWith("email", TEST_USER_EMAIL);
+    expect(rbacMocks.ilikeIdentityMock).toHaveBeenCalledWith("email", TEST_USER_EMAIL);
     expect(rbacMocks.eqIdentityMock).not.toHaveBeenCalledWith("id", "codex-short-link-smoke");
   });
 

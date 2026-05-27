@@ -71,6 +71,12 @@ export type MigrationListMeta = {
   page: number;
   limit: number;
   totalPages: number;
+  statusCounts?: {
+    pending: number;
+    in_progress: number;
+    completed: number;
+    failed: number;
+  };
 };
 
 export type MigrationStepRow = {

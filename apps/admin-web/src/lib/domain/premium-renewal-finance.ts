@@ -1,13 +1,16 @@
-export type PremiumBillingCycle = "1month" | "3months" | "6months" | "1year";
+import { addMonths } from "date-fns";
 
-const BILLING_CYCLE_MONTHS: Record<PremiumBillingCycle, number> = {
+export type PremiumBillingCycle = "1month" | "3months" | "6months" | "1year" | `${number}months`;
+export type PremiumRenewalStatus = "pending" | "confirmed" | "denied" | "not_renewing";
+
+const BILLING_CYCLE_MONTHS: Record<"1month" | "3months" | "6months" | "1year", number> = {
   "1month": 1,
   "3months": 3,
   "6months": 6,
   "1year": 12,
 };
 
-const BILLING_CYCLE_LABELS: Record<PremiumBillingCycle, string> = {
+const BILLING_CYCLE_LABELS: Record<"1month" | "3months" | "6months" | "1year", string> = {
   "1month": "1 tháng",
   "3months": "3 tháng",
   "6months": "6 tháng",
@@ -23,12 +26,17 @@ function clampCurrency(value: number) {
 }
 
 export function isPremiumBillingCycle(value: string): value is PremiumBillingCycle {
-  return value in BILLING_CYCLE_MONTHS;
+  return value in BILLING_CYCLE_MONTHS || /^([1-9]\d*)months$/.test(value);
 }
 
 export function getCycleMonths(billingCycle: string): number {
   if (isPremiumBillingCycle(billingCycle)) {
-    return BILLING_CYCLE_MONTHS[billingCycle];
+    const dynamicMatch = billingCycle.match(/^([1-9]\d*)months$/);
+    if (dynamicMatch) {
+      return Number(dynamicMatch[1]);
+    }
+
+    return BILLING_CYCLE_MONTHS[billingCycle as keyof typeof BILLING_CYCLE_MONTHS];
   }
 
   return 1;
@@ -39,7 +47,24 @@ export function getBillingCycleLabel(billingCycle: string | null | undefined): s
     return "1 tháng";
   }
 
-  return BILLING_CYCLE_LABELS[billingCycle];
+  return BILLING_CYCLE_LABELS[billingCycle as keyof typeof BILLING_CYCLE_LABELS] ?? `${getCycleMonths(billingCycle)} thÃ¡ng`;
+}
+
+export function resolvePremiumBillingCycle(
+  billingCycle: string | null | undefined,
+  fallback?: PremiumBillingCycle,
+): PremiumBillingCycle {
+  const normalized = String(billingCycle ?? "").trim();
+
+  if (isPremiumBillingCycle(normalized)) {
+    return normalized;
+  }
+
+  if (normalized.length === 0 && fallback) {
+    return fallback;
+  }
+
+  throw new Error(`Invalid premium billing cycle: ${billingCycle ?? "empty"}`);
 }
 
 export function calculateExpiryDate(startDate: string, billingCycle: string): string {
@@ -49,9 +74,62 @@ export function calculateExpiryDate(startDate: string, billingCycle: string): st
   }
 
   const months = getCycleMonths(billingCycle);
-  const expiry = new Date(start);
-  expiry.setMonth(expiry.getMonth() + months);
-  return expiry.toISOString().split("T")[0];
+  return addMonths(start, months).toISOString().split("T")[0];
+}
+
+export function billingCycleFromMonths(months: number): PremiumBillingCycle {
+  const normalizedMonths = Math.max(1, Math.round(Number(months) || 1));
+
+  if (normalizedMonths === 1) {
+    return "1month";
+  }
+  if (normalizedMonths === 3) {
+    return "3months";
+  }
+  if (normalizedMonths === 6) {
+    return "6months";
+  }
+  if (normalizedMonths === 12) {
+    return "1year";
+  }
+
+  return `${normalizedMonths}months`;
+}
+
+export function durationToMonths(
+  durationType: string | null | undefined,
+  durationValue: number | null | undefined,
+): number {
+  const value = Math.max(1, Math.round(Number(durationValue ?? 1) || 1));
+
+  if (durationType === "years") {
+    return value * 12;
+  }
+  if (durationType === "days") {
+    return Math.max(1, Math.round(value / 30));
+  }
+
+  return value;
+}
+
+export function normalizeRenewalStatus(
+  status: string | null | undefined,
+): PremiumRenewalStatus {
+  const normalized = String(status ?? "").trim().toLowerCase();
+
+  if (normalized === "confirmed" || normalized === "completed") {
+    return "confirmed";
+  }
+
+  if (normalized === "denied") {
+    return "denied";
+  }
+
+  if (normalized === "not_renewing") {
+    return "not_renewing";
+  }
+
+  return "pending";
 }
 
 export function scaleAmountByCycle(

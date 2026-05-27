@@ -5,6 +5,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { formatDateCustom } from '@/lib/utils';
+import { resolveTelegramAdminChatId } from '@/lib/utils/telegram';
 import {
   detectDeviceType as detectShortLinkDeviceType,
   extractVisitorIp,
@@ -75,7 +76,7 @@ async function sendClickNotification(
   isSuspicious: boolean,
 ): Promise<void> {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  const chatId = resolveTelegramAdminChatId();
   if (!botToken || !chatId) return;
 
   // Check if this link has notifications enabled
@@ -276,7 +277,7 @@ async function flagSuspicious(linkId: string, reason: string, details: string): 
 
 async function sendFraudAlert(alert: FraudAlert): Promise<void> {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  const chatId = resolveTelegramAdminChatId();
   
   if (!botToken || !chatId) return;
 

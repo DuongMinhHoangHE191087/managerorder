@@ -62,7 +62,7 @@ describe("premium admin contract routes", () => {
 
   describe("GET/PATCH /api/premium/accounts/[id]", () => {
     it("returns the local premium account detail for premium-local-spotify", async () => {
-      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("CODEX_USE_LOCAL_FALLBACK", "1");
 
       const { GET } = await loadRoute("@/app/api/premium/accounts/[id]/route");
       const response = await GET(
@@ -78,10 +78,11 @@ describe("premium admin contract routes", () => {
       expect(body.data.renewals.length).toBeGreaterThan(0);
       expect(body.data.migrations.length).toBeGreaterThan(0);
       expect(body.data.audit.meta.page).toBe(1);
+      expect(body.data.audit.meta.limit).toBe(12);
     }, PREMIUM_ROUTE_TIMEOUT_MS);
 
     it("patches local premium account detail without hitting a missing detail route", async () => {
-      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("CODEX_USE_LOCAL_FALLBACK", "1");
 
       const { PATCH } = await loadRoute("@/app/api/premium/accounts/[id]/route");
       const response = await PATCH(
@@ -105,6 +106,66 @@ describe("premium admin contract routes", () => {
       expect(body.data.status).toBe("suspended");
       expect(body.data.notes).toBe("Updated from contract test");
     });
+  });
+
+  describe("GET /api/premium/accounts/[id]/users", () => {
+    it("returns premium account users without loading the full account detail payload", async () => {
+      const usersBuilder = {
+        select: vi.fn(() => usersBuilder),
+        eq: vi.fn(() => usersBuilder),
+        is: vi.fn(() => usersBuilder),
+        order: vi.fn(() => usersBuilder),
+        range: vi.fn().mockResolvedValue({
+          data: [
+            {
+              id: "user-1",
+              account_id: TEST_ACCOUNT_ID,
+              premium_account_id: "premium-account-1",
+              user_email: "alpha@example.com",
+              status: "active",
+              created_at: "2026-05-01T00:00:00.000Z",
+              updated_at: "2026-05-01T00:00:00.000Z",
+              deleted_at: null,
+            },
+          ],
+          error: null,
+          count: 1,
+        }),
+      };
+      const accountBuilder = {
+        select: vi.fn(() => accountBuilder),
+        eq: vi.fn(() => accountBuilder),
+        is: vi.fn(() => accountBuilder),
+        single: vi.fn().mockResolvedValue({
+          data: { id: "premium-account-1" },
+          error: null,
+        }),
+      };
+
+      const { GET } = await loadRoute("@/app/api/premium/accounts/[id]/users/route", {
+        supabaseAdmin: {
+          from: vi.fn((table: string) => {
+            if (table === "premium_accounts") {
+              return accountBuilder;
+            }
+            if (table === "premium_account_users") {
+              return usersBuilder;
+            }
+            throw new Error(`Unexpected table: ${table}`);
+          }),
+        } as any,
+      });
+      const response = await GET(
+        createTestRequest("http://localhost/api/premium/accounts/premium-local-spotify/users"),
+        { params: { id: "premium-local-spotify" } } as any,
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(Array.isArray(body.data)).toBe(true);
+      expect(body.pagination.page).toBe(1);
+      expect(body.pagination.limit).toBe(20);
+    }, PREMIUM_ROUTE_TIMEOUT_MS);
   });
 
   describe("GET /api/premium/renewals/auto-run/history", () => {
@@ -198,7 +259,7 @@ describe("premium admin contract routes", () => {
 
   describe("PATCH /api/premium/migrations/[id]", () => {
     beforeEach(() => {
-      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("CODEX_USE_LOCAL_FALLBACK", "1");
     });
 
     it("updates pending migration metadata in local fallback mode", async () => {

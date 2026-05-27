@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -52,7 +52,43 @@ const DEFAULT_META: MigrationListMeta = {
   page: 1,
   limit: 12,
   totalPages: 1,
+  statusCounts: {
+    pending: 0,
+    in_progress: 0,
+    completed: 0,
+    failed: 0,
+  },
 };
+
+type SubscriptionCatalogMeta = {
+  pagination?: {
+    page?: number;
+    totalPages?: number;
+  };
+};
+
+async function fetchAllMigrationSubscriptions() {
+  const rows: MigrationSubscriptionRow[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  while (page <= totalPages) {
+      const response = await fetch(
+        `/api/premium/subscriptions?renewal_state=all&page=${page}&page_size=100&sort_by=customer_asc`,
+      );
+    const payload = await readApiEnvelope<MigrationSubscriptionRow[]>(response);
+
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Khong the tai subscriptions");
+    }
+
+    rows.push(...(payload.data ?? []));
+    totalPages = Number((payload.meta as SubscriptionCatalogMeta | undefined)?.pagination?.totalPages ?? 1);
+    page += 1;
+  }
+
+  return rows;
+}
 
 export default function PremiumMigrationsPage() {
   const [migrations, setMigrations] = useState<MigrationListRow[]>([]);
@@ -60,6 +96,7 @@ export default function PremiumMigrationsPage() {
   const [accounts, setAccounts] = useState<MigrationAccountRow[]>([]);
   const [filtersDraft, setFiltersDraft] = useState<MigrationFilters>(DEFAULT_FILTERS);
   const [filters, setFilters] = useState<MigrationFilters>(DEFAULT_FILTERS);
+  const [quickSearch, setQuickSearch] = useState("");
   const [pagination, setPagination] = useState<MigrationListMeta>(DEFAULT_META);
   const [isLoading, setIsLoading] = useState(true);
   const [isCatalogLoading, setIsCatalogLoading] = useState(true);
@@ -78,21 +115,14 @@ export default function PremiumMigrationsPage() {
   async function fetchCatalogs() {
     setIsCatalogLoading(true);
     try {
-      const [subscriptionsRes, accountsRes] = await Promise.all([
-        fetch("/api/premium/subscriptions"),
+      const [subscriptionsData, accountsRes] = await Promise.all([
+        fetchAllMigrationSubscriptions(),
         fetch("/api/premium/accounts"),
       ]);
 
-      const [subscriptionsPayload, accountsPayload] = await Promise.all([
-        readApiEnvelope<MigrationSubscriptionRow[]>(subscriptionsRes),
-        readApiEnvelope<MigrationAccountRow[]>(accountsRes),
-      ]);
+      const accountsPayload = await readApiEnvelope<MigrationAccountRow[]>(accountsRes);
 
-      if (subscriptionsRes.ok) {
-        setSubscriptions(subscriptionsPayload.data ?? []);
-      } else {
-        appToast.error(copy.page.loadCatalogsError.subscriptions(subscriptionsPayload.error ?? "Lỗi không xác định"));
-      }
+      setSubscriptions(subscriptionsData);
 
       if (accountsRes.ok) {
         setAccounts(accountsPayload.data ?? []);
@@ -114,6 +144,7 @@ export default function PremiumMigrationsPage() {
         status: nextFilters.status,
         page: String(nextFilters.page),
         limit: String(nextFilters.limit),
+        include_status_counts: "1",
       });
 
       if (nextFilters.subscriptionId) {
@@ -159,6 +190,12 @@ export default function PremiumMigrationsPage() {
         page: Number(meta.page) || nextFilters.page,
         limit: Number(meta.limit) || nextFilters.limit,
         totalPages: Number(meta.totalPages) || 1,
+        statusCounts: {
+          pending: Number(meta.statusCounts?.pending ?? 0),
+          in_progress: Number(meta.statusCounts?.in_progress ?? 0),
+          completed: Number(meta.statusCounts?.completed ?? 0),
+          failed: Number(meta.statusCounts?.failed ?? 0),
+        },
       });
     } catch (error) {
       console.error("[fetchPremiumMigrations]", error);
@@ -203,17 +240,42 @@ export default function PremiumMigrationsPage() {
   function resetFilters() {
     setFiltersDraft(DEFAULT_FILTERS);
     setFilters(DEFAULT_FILTERS);
+    setQuickSearch("");
   }
 
-  const pendingCount = migrations.filter((migration) => migration.status === "pending").length;
-  const inProgressCount = migrations.filter((migration) => migration.status === "in_progress").length;
-  const completedCount = migrations.filter((migration) => migration.status === "completed").length;
-  const failedCount = migrations.filter((migration) => migration.status === "failed").length;
+  const pendingCount = pagination.statusCounts?.pending ?? 0;
+  const inProgressCount = pagination.statusCounts?.in_progress ?? 0;
+  const completedCount = pagination.statusCounts?.completed ?? 0;
+  const failedCount = pagination.statusCounts?.failed ?? 0;
   const activeAccounts = useMemo(
     () => accounts.filter((account) => account.status === "active" && account.available_slots > 0),
     [accounts],
   );
   const activeSubscriptionCount = subscriptions.filter((item) => item.status === "active").length;
+  const visibleMigrations = useMemo(() => {
+    const normalizedSearch = quickSearch.trim().toLowerCase();
+    if (!normalizedSearch) {
+      return migrations;
+    }
+
+    return migrations.filter((migration) =>
+      [
+        migration.id,
+        migration.customer_name,
+        migration.source_account_email,
+        migration.target_account_email,
+        migration.status,
+        migration.reason,
+        migration.notes,
+        migration.terminal_reason,
+        migration.error_log,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedSearch),
+    );
+  }, [migrations, quickSearch]);
 
   return (
     <AppLayout>
@@ -240,6 +302,21 @@ export default function PremiumMigrationsPage() {
         />
 
         <FiltersBar className="mt-1 flex-col gap-4">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
+              <Input
+                value={quickSearch}
+                onChange={(event) => setQuickSearch(event.target.value)}
+                placeholder="Tìm migration theo khách, account nguồn/đích, lý do, lỗi..."
+                className="pl-10"
+              />
+            </div>
+            <div className="flex items-center rounded-[1rem] border border-[var(--border-soft)] bg-white px-4 text-[12px] font-bold text-[var(--fg-muted)]">
+              {visibleMigrations.length} / {migrations.length} dòng sau tìm nhanh
+            </div>
+          </div>
+
           <div className="grid gap-3 lg:grid-cols-5">
             <div className="space-y-2">
               <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
@@ -364,7 +441,7 @@ export default function PremiumMigrationsPage() {
         </FiltersBar>
 
         <MigrationsList
-          migrations={migrations}
+          migrations={visibleMigrations}
           activeAccountsCount={activeAccounts.length}
           activeSubscriptionsCount={activeSubscriptionCount}
           isLoading={isLoading || isCatalogLoading}

@@ -26,6 +26,7 @@ describe("GET /api/orders", () => {
   const mockResult = {
     data: [{ id: "o1", status: "completed" }],
     count: 1, page: 1, limit: 20, totalPages: 1,
+    source: "database" as const,
   };
 
   beforeEach(() => {
@@ -49,7 +50,14 @@ describe("GET /api/orders", () => {
   });
 
   it("handles empty result", async () => {
-    vi.mocked(getOrdersPaginated).mockResolvedValue({ data: [], count: 0, page: 1, limit: 20, totalPages: 0 });
+    vi.mocked(getOrdersPaginated).mockResolvedValue({
+      data: [],
+      count: 0,
+      page: 1,
+      limit: 20,
+      totalPages: 0,
+      source: "database" as const,
+    });
     const res = await GET(createTestRequest("http://localhost/api/orders"), { params: {} } as any);
     const body = await res.json();
     expect(body.data).toEqual([]);

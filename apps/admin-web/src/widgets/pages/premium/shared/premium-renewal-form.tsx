@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import {
   calculateExpiryDate,
   calculateRenewalFinanceSnapshot,
+  billingCycleFromMonths,
   getBillingCycleLabel,
   getCycleMonths,
   normalizeRenewalCurrency,
@@ -17,11 +18,21 @@ import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 
 export type RenewalFormValue = {
+  productId: string;
   newBillingCycle: PremiumBillingCycle;
+  durationMonths: number;
   renewalPrice: number;
   costPrice: number;
   collectedAmount: number;
   notes: string;
+};
+
+export type PremiumRenewalProductOption = {
+  id: string;
+  name: string;
+  durationMonths: number;
+  sellPriceVnd: number;
+  buyPriceVnd: number;
 };
 
 export type RenewalDefaultsSource = {
@@ -57,7 +68,9 @@ export function buildRenewalFormDefaults(source: RenewalDefaultsSource): Renewal
   );
 
   return {
+    productId: "",
     newBillingCycle: billingCycle,
+    durationMonths: getCycleMonths(billingCycle),
     renewalPrice,
     costPrice,
     collectedAmount: renewalPrice,
@@ -74,6 +87,8 @@ export function PremiumRenewalForm({
   currentPrice,
   packageDefaultPrice,
   currentPriceLabel,
+  productOptions = [],
+  isLoadingProducts = false,
 }: {
   value: RenewalFormValue;
   onChange: (next: RenewalFormValue) => void;
@@ -83,7 +98,22 @@ export function PremiumRenewalForm({
   currentPrice: number;
   packageDefaultPrice?: number | null;
   currentPriceLabel: string;
+  productOptions?: PremiumRenewalProductOption[];
+  isLoadingProducts?: boolean;
 }) {
+  const cycleOptions = useMemo(() => {
+    if (PREMIUM_BILLING_CYCLE_OPTIONS.some((option) => option.value === value.newBillingCycle)) {
+      return PREMIUM_BILLING_CYCLE_OPTIONS;
+    }
+
+    return [
+      ...PREMIUM_BILLING_CYCLE_OPTIONS,
+      {
+        value: value.newBillingCycle,
+        label: getBillingCycleLabel(value.newBillingCycle),
+      },
+    ];
+  }, [value.newBillingCycle]);
   const scaledCurrentPrice = useMemo(
     () => scaleAmountByCycle(currentPrice, currentCycleMonths, value.newBillingCycle),
     [currentCycleMonths, currentPrice, value.newBillingCycle],
@@ -106,9 +136,75 @@ export function PremiumRenewalForm({
     [currentExpiryDate, value.newBillingCycle],
   );
 
+  function applyBillingCycle(nextBillingCycle: PremiumBillingCycle) {
+    onChange({
+      ...value,
+      productId: "",
+      newBillingCycle: nextBillingCycle,
+      durationMonths: getCycleMonths(nextBillingCycle),
+    });
+  }
+
+  function applyDurationMonths(nextDurationMonths: number) {
+    const durationMonths = Math.max(1, Math.round(Number(nextDurationMonths) || 1));
+
+    onChange({
+      ...value,
+      productId: "",
+      durationMonths,
+      newBillingCycle: billingCycleFromMonths(durationMonths),
+    });
+  }
+
+  function applyProduct(productId: string) {
+    const product = productOptions.find((item) => item.id === productId);
+
+    if (!product) {
+      onChange({ ...value, productId: "" });
+      return;
+    }
+
+    onChange({
+      ...value,
+      productId: product.id,
+      durationMonths: product.durationMonths,
+      newBillingCycle: billingCycleFromMonths(product.durationMonths),
+      renewalPrice: product.sellPriceVnd,
+      costPrice: product.buyPriceVnd,
+      collectedAmount: product.sellPriceVnd,
+    });
+  }
+
   return (
     <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
       <div className="grid gap-4">
+        <div className="space-y-2">
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
+            Sản phẩm gia hạn
+          </label>
+          <Select
+            value={value.productId}
+            onChange={(event) => applyProduct(event.target.value)}
+            disabled={isLoadingProducts}
+          >
+            <option value="">
+              {isLoadingProducts
+                ? "Đang tải sản phẩm..."
+                : productOptions.length > 0
+                  ? "Chọn sản phẩm hoặc nhập tay"
+                  : "Chưa có sản phẩm active"}
+            </option>
+            {productOptions.map((product) => (
+              <option key={product.id} value={product.id}>
+                {product.name} • {product.durationMonths} tháng • {formatMoney(product.sellPriceVnd)}
+              </option>
+            ))}
+          </Select>
+          <p className="text-[11px] leading-5 text-[var(--fg-muted)]">
+            Chọn sản phẩm để tự điền thời hạn, giá bán, giá vốn; vẫn có thể sửa tay nếu cần.
+          </p>
+        </div>
+
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_160px]">
           <div className="space-y-2">
             <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
@@ -117,13 +213,10 @@ export function PremiumRenewalForm({
             <Select
               value={value.newBillingCycle}
               onChange={(event) =>
-                onChange({
-                  ...value,
-                  newBillingCycle: event.target.value as PremiumBillingCycle,
-                })
+                applyBillingCycle(event.target.value as PremiumBillingCycle)
               }
             >
-              {PREMIUM_BILLING_CYCLE_OPTIONS.map((option) => (
+              {cycleOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -135,9 +228,12 @@ export function PremiumRenewalForm({
             <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
               Số tháng
             </label>
-            <div className="flex h-10 items-center rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] px-3 text-[13px] font-bold text-[var(--fg-base)]">
-              {getCycleMonths(value.newBillingCycle)} tháng
-            </div>
+            <Input
+              type="number"
+              min={1}
+              value={value.durationMonths}
+              onChange={(event) => applyDurationMonths(Number(event.target.value))}
+            />
           </div>
         </div>
 
@@ -210,7 +306,7 @@ export function PremiumRenewalForm({
             onChange={(event) => onChange({ ...value, notes: event.target.value })}
             rows={4}
             placeholder="Ví dụ: khách chuyển khoản trước 50%, còn lại hẹn cuối tuần..."
-            className="w-full resize-none rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.88)] px-3 py-2 text-[13px] font-medium text-[var(--fg-base)] shadow-sm transition-all placeholder:text-[var(--fg-muted)]/80 focus-visible:border-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            className="w-full resize-none rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.88)] px-3 py-2 text-[13px] font-medium text-[var(--fg-base)] shadow-sm transition-[background-color,border-color,box-shadow,color,opacity,transform,width] placeholder:text-[var(--fg-muted)]/80 focus-visible:border-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           />
         </div>
       </div>

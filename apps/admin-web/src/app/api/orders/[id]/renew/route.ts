@@ -41,7 +41,10 @@ export const POST = withErrorHandler(withAccount<{ id: string }>(async (request,
 
     return NextResponse.json({
       success: true,
-      data: { newExpiresAt: renewal.newExpiresAt },
+      data: {
+        newExpiresAt: renewal.newExpiresAt,
+        premiumSyncWarning: renewal.premiumSyncWarning ?? null,
+      },
     });
   } catch (error) {
     if (isApplicationError(error)) {

@@ -22,6 +22,7 @@ import {
   buildLocalPremiumRenewals,
   buildLocalPremiumSubscriptions,
   findLocalPremiumAccount,
+  shouldPreferLocalPremiumFixtures,
   shouldUseLocalPremiumFallback,
 } from "@/app/api/premium/local-fixtures";
 
@@ -278,9 +279,7 @@ async function loadPremiumAccountDetail(
   auditPage: number,
   auditLimit: number,
 ): Promise<PremiumAccountDetailViewModel | null> {
-  const preferLocalPremiumFixtures =
-    process.env.NODE_ENV === "development" &&
-    process.env.CODEX_DISABLE_LOCAL_FALLBACK !== "1";
+  const preferLocalPremiumFixtures = shouldPreferLocalPremiumFixtures();
 
   if (preferLocalPremiumFixtures) {
     const localDetail = await buildLocalPremiumAccountDetail(accountId, premiumAccountId, auditPage, auditLimit);
@@ -489,7 +488,7 @@ export const GET = withFlatAccountHandler<{ id: string }>(async (request, { para
   const { id } = await params;
   const searchParams = new URL(request.url).searchParams;
   const auditPage = parsePositiveInt(searchParams.get("audit_page"), 1, 200);
-  const auditLimit = parsePositiveInt(searchParams.get("audit_limit"), 10, 50);
+  const auditLimit = parsePositiveInt(searchParams.get("audit_limit"), 12, 50);
 
   if (!id) {
     throw new ApplicationError("Thiếu ID tài khoản", 400, "MISSING_ID");
@@ -527,9 +526,7 @@ export const PATCH = withFlatAccountHandler<{ id: string }>(async (request, { pa
   }
 
   const localFixture = findLocalPremiumAccount(accountId, id);
-  const preferLocalPremiumFixtures =
-    process.env.NODE_ENV === "development" &&
-    process.env.CODEX_DISABLE_LOCAL_FALLBACK !== "1";
+  const preferLocalPremiumFixtures = shouldPreferLocalPremiumFixtures();
 
   if (preferLocalPremiumFixtures && localFixture) {
     const detail = await buildLocalPremiumAccountDetail(accountId, id, 1, 10);
@@ -671,9 +668,7 @@ export const DELETE = withFlatAccountHandler<{ id: string }>(
     }
 
     const localFixture = findLocalPremiumAccount(accountId, id);
-    const preferLocalPremiumFixtures =
-      process.env.NODE_ENV === "development" &&
-      process.env.CODEX_DISABLE_LOCAL_FALLBACK !== "1";
+    const preferLocalPremiumFixtures = shouldPreferLocalPremiumFixtures();
 
     if (preferLocalPremiumFixtures && localFixture) {
       return createFlatSuccessResponse({ id, deleted: true, isLocalFixture: true }, { status: 200 });

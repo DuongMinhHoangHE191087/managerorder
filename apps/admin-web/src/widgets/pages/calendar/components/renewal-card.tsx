@@ -57,7 +57,7 @@ function getUrgency(days: number): {
 export function RenewalCard({ item, onRequestRenewal }: RenewalCardProps) {
   const urgency = getUrgency(item.days_remaining);
   const isExpired = item.days_remaining <= 0;
-  const alreadyPending = item.renewal_status === "pending" || item.renewal_status === "confirmed";
+  const alreadyPending = item.renewal_status === "pending";
   const expiryFormatted = formatDateLabel(item.expiry_date);
 
   return (

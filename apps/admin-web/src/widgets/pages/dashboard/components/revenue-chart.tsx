@@ -213,7 +213,7 @@ export function RevenueChart<T extends string = string>({
                   data-testid={`dashboard-chart-time-tab-${tab.value}`}
                   type="button"
                   onClick={() => setTimeRange(tab.value)}
-                  className={`rounded-lg px-3 py-1 text-[11px] font-bold transition-all ${
+                  className={`rounded-lg px-3 py-1 text-[11px] font-bold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
                     timeRange === tab.value
                       ? "bg-[var(--accent)] text-white"
                       : "text-[var(--fg-muted)] hover:text-[var(--fg-base)]"

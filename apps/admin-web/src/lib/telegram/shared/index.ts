@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Shared constants and utilities for all Telegram bot handlers
 import { supabaseAdmin } from '@/lib/supabase/admin';
-import { sendTelegramMessage, escapeHtml, formatVnd, formatDateVn, sendMessageWithKeyboard, answerCallbackQuery, editMessageText, sendChatAction, setMyCommands, sendKbWithMenu, type TelegramButton, type TelegramReplyButton, type BotCommand } from '@/lib/utils/telegram';
+import { resolveTelegramAdminChatId, sendTelegramMessage, escapeHtml, formatVnd, formatDateVn, sendMessageWithKeyboard, answerCallbackQuery, editMessageText, sendChatAction, setMyCommands, sendKbWithMenu, type TelegramButton, type TelegramReplyButton, type BotCommand } from '@/lib/utils/telegram';
 import { decryptNotes } from '@/lib/utils/credential-crypto';
 import {
   daysUntil, progressBar, findSimilarCommands, levenshtein,
@@ -14,7 +14,7 @@ import {
 import type { BotContext } from '../bot-router';
 
 // ─── Constants ─────────────────────────────────────────────
-export const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID ?? '';
+export const ADMIN_CHAT_ID = resolveTelegramAdminChatId();
 export const BOT_ACCOUNT_ID = process.env.TELEGRAM_BOT_ACCOUNT_ID ?? '';
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || '';
 

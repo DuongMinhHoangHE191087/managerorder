@@ -42,7 +42,7 @@ import {
   type FailedAttemptRecord,
 } from './telegram-bot.helpers';
 
-const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID ?? '';
+const ADMIN_CHAT_ID = (process.env.TELEGRAM_ADMIN_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID ?? '').trim();
 let BOT_ACCOUNT_ID = (process.env.TELEGRAM_BOT_ACCOUNT_ID ?? process.env.ACCOUNT_ID ?? '').trim();
 
 export function setLegacyBotAccountId(accountId: string): void {
@@ -5119,4 +5119,3 @@ async function handleProductView(chatId: number, data: string) {
     [{ text: '🏷 DS Sản phẩm', callback_data: 'cmd:products' }, { text: '🏠 Menu', callback_data: 'cmd:start' }],
   ]);
 }
-

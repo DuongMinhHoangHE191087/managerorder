@@ -10,6 +10,21 @@ import { cached, invalidate, invalidatePrefix, TTL } from '@/lib/cache/db-cache'
 import { derivePaymentState } from '@/lib/domain/financial';
 import { loadRowsByIds } from '@/lib/supabase/relation-fallback';
 import { filterRowsBySearchQuery, hasSearchTokens, paginateRows } from '@/shared/lib/filtering/search';
+import {
+  buildLocalDebtOrders,
+  buildLocalOrderCandidatesByCode,
+  buildLocalOrderExportRows,
+  buildLocalOrderNickMatches,
+  buildLocalOrderRows,
+  buildLocalOrderStats,
+  buildLocalOrderWithItems,
+  buildLocalOrderWithItemsByCode,
+  buildLocalOrdersForTelegramSearch,
+  buildLocalOrdersPaginated,
+  buildLocalRecentCustomerOrders,
+  invalidateOrderFixtureState,
+  isLocalOrderFixtureAccount,
+} from './orders.local-fixtures';
 
 export type OrderRow = Database['public']['Tables']['orders']['Row'];
 type OrderInsert = Database['public']['Tables']['orders']['Insert'];
@@ -231,7 +246,59 @@ const key = {
   itemWithItems: (id: string, accountId: string) => `orders:itemWithItems:${id}:${accountId}`,
 };
 
+async function shouldUseLocalOrderFixtures(accountId: string): Promise<boolean> {
+  return isLocalOrderFixtureAccount(accountId);
+}
+
+async function loadOrdersForFiltering(
+  accountId: string,
+  params: Omit<GetOrdersParams, 'page' | 'limit'>,
+) {
+  const { data, error } = await buildOrdersBaseQuery(
+    accountId,
+    {
+      customerId: params.customerId,
+      status: params.status,
+      date_from: params.date_from,
+      date_to: params.date_to,
+    },
+    false,
+  );
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const baseRows = (data ?? []) as OrderRelationRow[];
+  const maps = await loadOrderRelationMaps(accountId, baseRows, true);
+  const enrichedRows = attachOrderRelations(baseRows, maps, true) as EnrichedOrderSearchRow[];
+
+  const filteredBySearch = filterRowsBySearchQuery(
+    enrichedRows,
+    params.search ?? '',
+    (row) => [
+      row.id,
+      row.order_code,
+      row.product_name_snapshot,
+      row.status,
+      row.payment_method,
+      row.payment_terms,
+      row.customer?.full_name,
+      row.customer?.customer_contacts,
+      row.product?.name,
+      row.sales_channel?.name,
+      row.payment_source?.name,
+    ],
+  );
+
+  return filteredBySearch.filter((row) => matchesOrderPaymentState(row, params.paymentState));
+}
+
 export async function listOrders(accountId: string): Promise<OrderRow[]> {
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalOrderRows(accountId) as OrderRow[];
+  }
+
   return cached(
     key.list(accountId),
     async () => {
@@ -259,6 +326,10 @@ export async function getOrderWithItems(
   accountId: string,
   options: { includeDeleted?: boolean } = {},
 ): Promise<OrderWithItems | null> {
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalOrderWithItems(accountId, id);
+  }
+
   return loadOrderWithItemsFallback(id, accountId, options.includeDeleted ?? false);
 }
 
@@ -419,6 +490,10 @@ export async function getOrderWithItemsByCode(
   const normalizedCode = orderCode.trim().toUpperCase();
   if (!normalizedCode) return null;
 
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalOrderWithItemsByCode(accountId, normalizedCode);
+  }
+
   const { data, error } = await supabase
     .from('orders')
     .select('id')
@@ -438,6 +513,10 @@ export async function findOrderCandidatesByCode(
 ): Promise<TelegramOrderSummary[]> {
   const normalizedCode = orderCode.trim().toUpperCase();
   if (!normalizedCode) return [];
+
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalOrderCandidatesByCode(accountId, normalizedCode, limit);
+  }
 
   const { data, error } = await supabase
     .from('orders')
@@ -471,6 +550,10 @@ export async function searchOrdersForTelegram(
 ): Promise<TelegramOrderSummary[]> {
   const keyword = query.trim();
   if (!keyword) return [];
+
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalOrdersForTelegramSearch(accountId, keyword, limit);
+  }
 
   const [byCode, byProduct] = await Promise.all([
     supabase
@@ -562,6 +645,10 @@ export async function searchOrderNicksForTelegram(
   const keyword = query.trim();
   if (!keyword) return [];
 
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalOrderNickMatches(accountId, keyword, limit);
+  }
+
   const { data, error } = await supabase
     .from('order_items')
     .select(`
@@ -569,6 +656,7 @@ export async function searchOrderNicksForTelegram(
       product_name_snapshot,
       order_id
     `)
+    .eq('account_id', accountId)
     .ilike('customer_nick_used', `%${keyword}%`)
     .limit(limit);
 
@@ -626,6 +714,10 @@ export async function listRecentCustomerOrdersForTelegram(
   accountId: string,
   limit = 5
 ): Promise<TelegramOrderSummary[]> {
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalRecentCustomerOrders(accountId, customerId, limit);
+  }
+
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -652,6 +744,10 @@ export async function listRecentCustomerOrdersForTelegram(
 }
 
 export async function listDebtOrdersForTelegram(accountId: string): Promise<TelegramOrderSummary[]> {
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalDebtOrders(accountId);
+  }
+
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -680,6 +776,10 @@ export async function getOrderById(
   id: string,
   accountId: string
 ): Promise<OrderRow | null> {
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalOrderWithItems(accountId, id);
+  }
+
   return cached(
     key.item(id, accountId),
     async () => {
@@ -709,6 +809,7 @@ export async function createOrder(
   if (error) throw new Error(error.message);
   
   invalidate(key.list(accountId));
+  invalidateOrderFixtureState(accountId);
   return data;
 }
 
@@ -826,6 +927,7 @@ export async function deleteOrder(id: string, accountId: string): Promise<void> 
   invalidate(key.list(accountId));
   invalidate(key.item(id, accountId));
   invalidate(key.itemWithItems(id, accountId));
+  invalidateOrderFixtureState(accountId);
 }
 
 export interface GetOrdersParams {
@@ -887,55 +989,28 @@ async function getOrdersWithServerFilters(
   accountId: string,
   params: GetOrdersParams,
 ) {
-  const page = params.page || 1;
-  const limit = params.limit || 10;
-  const { data, error } = await buildOrdersBaseQuery(
-    accountId,
-    {
-      customerId: params.customerId,
-      status: params.status,
-      date_from: params.date_from,
-      date_to: params.date_to,
-    },
-    false,
-  );
-
-  if (error) {
-    throw new Error(error.message);
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalOrdersPaginated(accountId, params);
   }
 
-  const baseRows = (data ?? []) as OrderRelationRow[];
-  const maps = await loadOrderRelationMaps(accountId, baseRows, true);
-  const enrichedRows = attachOrderRelations(baseRows, maps, true) as EnrichedOrderSearchRow[];
-  const filteredBySearch = filterRowsBySearchQuery(
-    enrichedRows,
-    params.search ?? '',
-    (row) => [
-      row.id,
-      row.order_code,
-      row.product_name_snapshot,
-      row.status,
-      row.payment_method,
-      row.payment_terms,
-      row.customer?.full_name,
-      row.customer?.customer_contacts,
-      row.product?.name,
-      row.sales_channel?.name,
-      row.payment_source?.name,
-    ],
-  );
+  const page = params.page || 1;
+  const limit = params.limit || 10;
+  const filteredRows = await loadOrdersForFiltering(accountId, params);
 
-  return paginateRows(
-    filteredBySearch.filter((row) => matchesOrderPaymentState(row, params.paymentState)),
-    page,
-    limit,
-  );
+  return {
+    ...paginateRows(filteredRows, page, limit),
+    source: "database" as const,
+  };
 }
 
 export async function getOrdersPaginated(
   accountId: string,
   params: GetOrdersParams
 ) {
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalOrdersPaginated(accountId, params);
+  }
+
   const page = params.page || 1;
   const limit = params.limit || 10;
   const offset = (page - 1) * limit;
@@ -971,7 +1046,8 @@ export async function getOrdersPaginated(
     count: count || 0,
     page,
     limit,
-    totalPages: count ? Math.ceil(count / limit) : 0
+    totalPages: count ? Math.ceil(count / limit) : 0,
+    source: "database" as const,
   };
 }
 
@@ -994,6 +1070,14 @@ export async function getOrdersStats(
   accountId: string,
   params: Omit<GetOrdersParams, 'page' | 'limit'> = {}
 ): Promise<OrderStats> {
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalOrderStats(accountId, params);
+  }
+
+  if (hasSearchTokens(params.search ?? '') || params.paymentState) {
+    return getOrdersStatsFallback(accountId, params);
+  }
+
   // Use DB-level aggregation via RPC for performance (no full-table fetch)
   const dateToAdjusted = params.date_to ? adjustEndDate(params.date_to) : null;
 
@@ -1030,23 +1114,11 @@ async function getOrdersStatsFallback(
   accountId: string,
   params: Omit<GetOrdersParams, 'page' | 'limit'>
 ): Promise<OrderStats> {
-  let query = supabase
-    .from('orders')
-    .select('total_amount_vnd, total_cost_vnd, total_paid, status')
-    .eq('account_id', accountId)
-    .is('deleted_at', null);
-
-  if (params.status) query = query.eq('status', params.status);
-  if (params.customerId) query = query.eq('customer_id', params.customerId);
-  if (params.date_from) query = query.gte('created_at', params.date_from);
-  if (params.date_to) {
-    query = query.lt('created_at', adjustEndDate(params.date_to));
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalOrderStats(accountId, params);
   }
 
-  const { data, error: queryError } = await query;
-  if (queryError) throw new Error(queryError.message);
-
-  const rows = data ?? [];
+  const rows = await loadOrdersForFiltering(accountId, params);
   let totalRevenue = 0, totalCost = 0, totalPaid = 0;
   let pendingCount = 0, activeCount = 0, paidCount = 0, expiredCount = 0;
 
@@ -1090,6 +1162,7 @@ export async function batchDeleteOrders(
 
   // Bulk invalidation — much faster than per-key loop
   invalidatePrefix(`orders:`);
+  invalidateOrderFixtureState(accountId);
 }
 
 // ── Export ─────────────────────────────────────────────────────────────────────
@@ -1098,6 +1171,14 @@ export async function getOrdersForExport(
   accountId: string,
   params: Omit<GetOrdersParams, 'page' | 'limit'> = {}
 ) {
+  if (await shouldUseLocalOrderFixtures(accountId)) {
+    return buildLocalOrderExportRows(accountId, params);
+  }
+
+  if (hasSearchTokens(params.search ?? '') || params.paymentState) {
+    return loadOrdersForFiltering(accountId, params) as unknown as OrderRow[];
+  }
+
   let query = supabase
     .from('orders')
     .select(`

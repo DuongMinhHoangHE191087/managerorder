@@ -85,7 +85,7 @@ type LocalRenewalRow = {
   renewal_confirmed_date: string | null;
   renewal_price: number;
   original_price: number;
-  status: "pending" | "completed" | "denied";
+  status: "pending" | "confirmed" | "denied";
 };
 
 type LocalPremiumAccountUserRow = {
@@ -846,7 +846,7 @@ export function shouldPreferLocalPremiumFixtures(): boolean {
     return true;
   }
 
-  return process.env.NODE_ENV === "development";
+  return false;
 }
 
 function collectErrorSignals(error: unknown, seen = new Set<unknown>()): string[] {

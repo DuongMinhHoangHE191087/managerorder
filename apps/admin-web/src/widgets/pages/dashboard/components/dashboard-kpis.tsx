@@ -26,7 +26,7 @@ function KPIStyleCard({
 }) {
   return (
     <div
-      className={`app-card flex h-full flex-col justify-between border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(246,250,244,0.86))] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(15,23,42,0.08)] ${className}`}
+      className={`app-card flex h-full flex-col justify-between border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(246,250,244,0.86))] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(15,23,42,0.08)] ${className}`}
     >
       {children}
     </div>
@@ -110,7 +110,7 @@ export function DashboardKPIs({
         </div>
         <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-[var(--border-soft)] shadow-inner">
           <div
-            className="h-full rounded-full bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] shadow-[0_0_10px_rgba(var(--accent-rgb),0.32)] transition-all duration-1000 ease-out"
+            className="h-full rounded-full bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] shadow-[0_0_10px_rgba(var(--accent-rgb),0.32)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-1000 ease-out"
             style={{ width: `${fillRate}%` }}
           />
         </div>

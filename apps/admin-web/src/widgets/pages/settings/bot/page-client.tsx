@@ -8,7 +8,7 @@ import { SectionCard } from "@/shared/ui/section-card";
 import { useBotRuntimeStatus } from "@/shared/hooks/use-bot-runtime-status";
 import { queryKeys } from "@/shared/lib/react-query/query-keys";
 import { appToast } from "@/shared/lib/toast";
-import { fetcher } from "@/lib/api/fetcher";
+import { fetcher, type HttpError } from "@/lib/api/fetcher";
 import type { BotCustomerMatchCandidate, BotUserContact } from "@/lib/domain/types";
 import { BotBroadcastSection } from "./components/bot-broadcast-section";
 import { BotContactsSection } from "./components/bot-contacts-section";
@@ -72,6 +72,19 @@ export default function BotManagementPage() {
       }),
   });
 
+  const testTelegramMutation = useMutation({
+    mutationFn: () =>
+      fetcher<{
+        success: boolean;
+        messageId: number | string;
+        chatId: string;
+        message: string;
+        sentAt: string;
+      }>("/api/telegram/test-message", {
+        method: "POST",
+      }),
+  });
+
   const testLookupMutation = useMutation({
     mutationFn: (query: string) =>
       fetcher<{ query: string; count: number; replyPreview: string }>("/api/settings/bot/test-lookup", {
@@ -110,6 +123,39 @@ export default function BotManagementPage() {
       setBroadcastMessage("");
     } catch {
       appToast.error(text.broadcastFailed, { id: "bot-broadcast" });
+    }
+  }
+
+  async function handleSendTestMessage() {
+    appToast.loading("Dang gui tin test...", { id: "telegram-test" });
+    try {
+      const result = await testTelegramMutation.mutateAsync();
+      const sentAtLabel = new Date(result.sentAt).toLocaleString("vi-VN", {
+        dateStyle: "short",
+        timeStyle: "short",
+      });
+      appToast.success(
+        `Da gui tin test toi Telegram admin (chat ${result.chatId}, message ${result.messageId}, ${sentAtLabel})`,
+        { id: "telegram-test" },
+      );
+    } catch (error) {
+      let message = "Khong the gui tin test";
+      if (error instanceof Error) {
+        message = error.message;
+        const httpError = error as HttpError;
+        if (httpError.status || httpError.payload) {
+          const payload = httpError.payload as { error?: string | { message?: string } } | undefined;
+          const detail =
+            typeof payload?.error === "string"
+              ? payload.error
+              : payload?.error && typeof payload.error === "object" && typeof payload.error.message === "string"
+                ? payload.error.message
+                : null;
+          const statusLabel = httpError.status ? `HTTP ${httpError.status}` : null;
+          message = [message, statusLabel, detail].filter(Boolean).join(" - ");
+        }
+      }
+      appToast.error(message, { id: "telegram-test" });
     }
   }
 
@@ -171,7 +217,11 @@ export default function BotManagementPage() {
   return (
     <AppLayout>
       <PageContainer className="flex flex-col gap-6">
-        <BotPageHeader onRefresh={handleRefresh} />
+        <BotPageHeader
+          onRefresh={handleRefresh}
+          onSendTest={handleSendTestMessage}
+          testPending={testTelegramMutation.isPending}
+        />
         {showUnavailableState ? (
           <SectionCard
             title="Trạng thái bot chưa sẵn sàng"

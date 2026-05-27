@@ -468,7 +468,7 @@ export function AddConnectionDialog({
                   <div
                     key={item.id}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl border p-3 transition-all",
+                      "flex items-center gap-3 rounded-xl border p-3 transition-[background-color,border-color,box-shadow,color,opacity,transform,width]",
                       canConnect
                         ? isConfirming
                           ? "border-indigo-500/40 bg-indigo-900/20"

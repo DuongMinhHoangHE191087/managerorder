@@ -180,7 +180,7 @@ const CustomerRecentOrderCard = memo(function CustomerRecentOrderCard({ order }:
           <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--border-soft)]">
             <div
               className={cn(
-                "h-full rounded-full transition-all duration-500",
+                "h-full rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500",
                 paidPercent >= 100 ? "bg-emerald-500" : paidPercent > 0 ? "bg-amber-500" : "bg-[var(--border-soft)]",
               )}
               style={{ width: `${paidPercent}%` }}
@@ -406,7 +406,7 @@ export function CustomerDetailDrawer({
                 {createOrderHref ? (
                   <Link
                     href={createOrderHref}
-                    className="inline-flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)]"
+                    className="inline-flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)]"
                   >
                     <Plus className="size-4" />
                     {vi.customers.detail.createOrder}
@@ -692,7 +692,7 @@ export function CustomerDetailDrawer({
                 {customerHref ? (
                   <Link
                     href={customerHref}
-                    className="inline-flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)]"
+                    className="inline-flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)]"
                   >
                     <ExternalLink className="size-4" />
                     {vi.common.viewAll}

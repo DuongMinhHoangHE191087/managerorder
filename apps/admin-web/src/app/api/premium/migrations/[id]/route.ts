@@ -15,6 +15,7 @@ import {
 } from "@/lib/utils/migrations-helpers";
 import {
   buildLocalPremiumAccountMigrations,
+  shouldPreferLocalPremiumFixtures,
 } from "@/app/api/premium/local-fixtures";
 
 type MigrationAction = "start" | "complete" | "fail" | "cancel";
@@ -521,7 +522,7 @@ export const GET = withErrorHandler(
     const { id } = await params;
 
     const localDetail = buildLocalMigrationDetail(accountId, id);
-    if (process.env.NODE_ENV === "development" && process.env.CODEX_DISABLE_LOCAL_FALLBACK !== "1" && localDetail) {
+    if (shouldPreferLocalPremiumFixtures() && localDetail) {
       return successResponse(localDetail);
     }
 
@@ -538,7 +539,7 @@ export const PATCH = withErrorHandler(
     const payload = parseBody(await request.json().catch(() => ({})));
 
     const localDetail = buildLocalMigrationDetail(accountId, id);
-    if (process.env.NODE_ENV === "development" && process.env.CODEX_DISABLE_LOCAL_FALLBACK !== "1" && localDetail) {
+    if (shouldPreferLocalPremiumFixtures() && localDetail) {
       if (payload.action === "start") {
         return successResponse({ ...localDetail, status: "in_progress" });
       }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buildGoogleAdminLoginUrl } from "../login-routing";
 
 type LoginGooglePanelProps = {
   redirectUrl: string;
@@ -15,19 +16,7 @@ export function LoginGooglePanel({ redirectUrl, onErrorChange }: LoginGooglePane
     onErrorChange(null);
 
     try {
-      const { createSupabaseBrowserClient } = await import("@/lib/supabase/client");
-      const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(redirectUrl)}`,
-        },
-      });
-
-      if (error) {
-        onErrorChange(error.message);
-        setIsLoading(false);
-      }
+      window.location.assign(buildGoogleAdminLoginUrl(redirectUrl));
     } catch {
       onErrorChange("Da xay ra loi. Vui long thu lai.");
       setIsLoading(false);
@@ -39,7 +28,7 @@ export function LoginGooglePanel({ redirectUrl, onErrorChange }: LoginGooglePane
       <button
         onClick={handleGoogleLogin}
         disabled={isLoading}
-        className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-2xl bg-[var(--fg-base)] px-6 py-3.5 text-sm font-semibold text-[var(--bg-app)] shadow-lg transition-all duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-2xl bg-[var(--fg-base)] px-6 py-3.5 text-sm font-semibold text-[var(--bg-app)] shadow-lg transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isLoading ? (
           <div className="size-5 animate-spin rounded-full border-2 border-[var(--bg-app)]/30 border-t-[var(--bg-app)]" />

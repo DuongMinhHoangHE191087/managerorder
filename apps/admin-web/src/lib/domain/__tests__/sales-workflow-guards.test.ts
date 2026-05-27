@@ -101,6 +101,9 @@ describe("sales-workflow-guards", () => {
         ensurePremiumSubscriptionRenewalAllowed({ status: "inactive", renewal_status: null }),
       ).toThrow("active");
       expect(() =>
+        ensurePremiumSubscriptionRenewalAllowed({ status: "expired", renewal_status: null }),
+      ).not.toThrow();
+      expect(() =>
         ensurePremiumSubscriptionRenewalAllowed({ status: "active", renewal_status: "pending" }),
       ).toThrow("đã tồn tại");
       expect(() =>

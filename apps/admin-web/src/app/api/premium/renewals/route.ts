@@ -4,25 +4,40 @@ import {
   withFlatAccountHandler,
 } from "@/lib/api/flat-response";
 import { loadRowsByIds } from "@/app/api/premium/relation-fallback";
+import { normalizeRenewalStatus } from "@/lib/domain/premium-renewal-finance";
 
 export const GET = withFlatAccountHandler(async (request, { accountId }) => {
   const { searchParams } = new URL(request.url);
-  const status = searchParams.get("status") || "pending";
+  const requestedStatus = normalizeRenewalStatus(searchParams.get("status"));
 
-  const { data: baseRenewals, error } = await supabaseAdmin
-    .from("subscription_renewals")
-    .select("*")
-    .eq("account_id", accountId)
-    .eq("status", status)
-    .order("renewal_requested_date", { ascending: false });
+  const loadRenewalsByStatus = async (status: string) => {
+    const { data, error } = await supabaseAdmin
+      .from("subscription_renewals")
+      .select("*")
+      .eq("account_id", accountId)
+      .eq("status", status)
+      .order("renewal_requested_date", { ascending: false });
 
-  if (error) {
-    throw error;
-  }
+    if (error) {
+      throw error;
+    }
+
+    return data ?? [];
+  };
+
+  const baseRenewals =
+    requestedStatus === "confirmed"
+      ? [...(await loadRenewalsByStatus("confirmed")), ...(await loadRenewalsByStatus("completed"))]
+          .sort((left, right) => {
+            const leftTime = new Date(left.renewal_requested_date ?? 0).getTime();
+            const rightTime = new Date(right.renewal_requested_date ?? 0).getTime();
+            return rightTime - leftTime;
+          })
+      : await loadRenewalsByStatus(requestedStatus);
 
   const originalSubscriptionIds = [
     ...new Set(
-      (baseRenewals ?? [])
+      baseRenewals
         .map((item) => item.original_subscription_id)
         .filter((id): id is string => Boolean(id)),
     ),
@@ -142,6 +157,7 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
 
     return {
       ...item,
+      status: normalizeRenewalStatus(item.status),
       original_subscription: subscription
         ? {
             ...subscription,
@@ -167,6 +183,6 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
   });
 
   return createFlatSuccessResponse(formattedData, {
-    meta: { total: formattedData.length, status },
+    meta: { total: formattedData.length, status: requestedStatus },
   });
 });

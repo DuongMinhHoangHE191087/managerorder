@@ -77,11 +77,23 @@ vi.mock("@/lib/supabase/repositories/payments.repo", () => ({
 vi.mock("@/lib/supabase/repositories/order-status-history.repo", () => ({
   createOrderStatusHistory: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock("@/lib/services/premium-order-sync.service", () => ({
+  syncOrderToPremium: vi.fn().mockResolvedValue({
+    status: "created",
+    orderId: "00000000-0000-4000-8000-00000000006d",
+    orderCode: "DMH_TEST",
+    subscriptionId: "sub-1",
+    premiumAccountId: "pa-1",
+    sourceAccountId: null,
+    placeholderAccount: true,
+  }),
+}));
 
 import { createPayment } from "@/lib/supabase/repositories/payments.repo";
 // import { createActivityLog } from "@/lib/supabase/repositories/activity-logs.repo";
 import { createOrderStatusHistory } from "@/lib/supabase/repositories/order-status-history.repo";
 import { resolveUser } from "@/lib/api/rbac";
+import { syncOrderToPremium } from "@/lib/services/premium-order-sync.service";
 import { POST } from "@/app/api/orders/[id]/payment/route";
 
 // ── Fixtures ─────────────────────────────────────────────────
@@ -209,6 +221,7 @@ describe("POST /api/orders/[id]/payment — Payment Recording", () => {
       expect(body.payment.new_total_paid).toBe(50000);
       expect(body.payment.remaining).toBe(150000);
       expect(body.payment.fully_paid).toBe(false);
+      expect(syncOrderToPremium).not.toHaveBeenCalled();
     });
 
     it("records second partial payment (100k after 50k already paid)", async () => {
@@ -244,6 +257,11 @@ describe("POST /api/orders/[id]/payment — Payment Recording", () => {
       const body = await res.json();
       expect(body.payment.fully_paid).toBe(true);
       expect(body.payment.remaining).toBe(0);
+      expect(syncOrderToPremium).toHaveBeenCalledWith(
+        TEST_ACCOUNT_ID,
+        ORDER_ID,
+        { syncedBy: TEST_USER_EMAIL },
+      );
     });
 
     it("final partial payment completes the total → fully_paid=true", async () => {

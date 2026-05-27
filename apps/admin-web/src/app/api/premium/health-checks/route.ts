@@ -4,12 +4,11 @@
 // GET  /api/premium/health-checks  → list health check logs
 // ============================================
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabase/admin';
 import {
   successResponse,
   serverErrorResponse,
-  paginatedResponse,
   getPaginationParams,
   getSortParams,
 } from '@/lib/utils/api-helpers';
@@ -23,6 +22,13 @@ import {
   shouldUseLocalPremiumFallback,
 } from "@/app/api/premium/local-fixtures";
 import { runPremiumHealthChecksForAccount } from "@/lib/services/premium-health-checks.service";
+
+type HealthCheckSummaryCounts = {
+  workingCount: number;
+  errorCount: number;
+  unknownCount: number;
+  manualCount: number;
+};
 
 // ============================================
 // GET /api/premium/health-checks — list logs
@@ -59,12 +65,44 @@ export const GET = withErrorHandler(
       return query;
     };
 
-    const { data, error: dbError, count } = await buildQuery(
-      '*',
-      true,
-    )
-      .order(safeSort, { ascending: order === 'asc' })
-      .range(offset, offset + limit - 1);
+    const loadSummaryCounts = async (): Promise<HealthCheckSummaryCounts> => {
+      const buildSummaryQuery = (selectClause: string, includeCount = false) => {
+        let query = supabase
+          .from('premium_account_health_logs')
+          .select(selectClause, includeCount ? { count: 'exact' } : undefined)
+          .eq('account_id', accountId);
+
+        if (premiumAccountId) query = query.eq('premium_account_id', premiumAccountId);
+        if (serviceTypeId) query = query.eq('service_type_id', serviceTypeId);
+        if (fromDate) query = query.gte('check_timestamp', fromDate);
+        if (toDate) query = query.lte('check_timestamp', toDate);
+
+        return query;
+      };
+
+      const [workingResult, errorResult, unknownResult, manualResult] = await Promise.all([
+        buildSummaryQuery("id", true).eq("current_status", "working").range(0, 0),
+        buildSummaryQuery("id", true).eq("current_status", "error").range(0, 0),
+        buildSummaryQuery("id", true).eq("current_status", "unknown").range(0, 0),
+        buildSummaryQuery("id", true).eq("check_type", "manual").range(0, 0),
+      ]);
+
+      return {
+        workingCount: Number(workingResult.count ?? 0),
+        errorCount: Number(errorResult.count ?? 0),
+        unknownCount: Number(unknownResult.count ?? 0),
+        manualCount: Number(manualResult.count ?? 0),
+      };
+    };
+
+    const [pageResult, summaryCounts] = await Promise.all([
+      buildQuery('*', true)
+        .order(safeSort, { ascending: order === 'asc' })
+        .range(offset, offset + limit - 1),
+      loadSummaryCounts(),
+    ]);
+
+    const { data, error: dbError, count } = pageResult;
 
     if (dbError) {
       return serverErrorResponse(dbError.message);
@@ -94,7 +132,23 @@ export const GET = withErrorHandler(
       premium_accounts: accountMap.get(row.premium_account_id) ?? null,
     }));
 
-    return paginatedResponse(hydrated, page, limit, count ?? 0);
+    const total = count ?? 0;
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: hydrated,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          summary: summaryCounts,
+        },
+        summary: summaryCounts,
+      },
+      { status: 200 },
+    );
   })
 );
 

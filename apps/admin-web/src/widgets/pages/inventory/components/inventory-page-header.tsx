@@ -36,7 +36,7 @@ export const InventoryPageHeader = React.memo(function InventoryPageHeader({
         <div className="relative w-full min-w-[220px] xl:w-[260px]">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
           <input
-            className="w-full rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] py-2 pl-9 pr-4 text-[13px] font-medium text-[var(--fg-base)] shadow-sm outline-none transition-all placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--ring)]"
+            className="w-full rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] py-2 pl-9 pr-4 text-[13px] font-medium text-[var(--fg-base)] shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--ring)]"
             placeholder={copy.header.searchPlaceholder}
             type="text"
             value={searchQuery}
@@ -46,7 +46,7 @@ export const InventoryPageHeader = React.memo(function InventoryPageHeader({
         <button
           type="button"
           onClick={onCreateKeyClick}
-          className="flex items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-white px-4 py-2 text-[13px] font-bold text-[var(--fg-base)] shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-white px-4 py-2 text-[13px] font-bold text-[var(--fg-base)] shadow-sm transition-[box-shadow,transform] hover:shadow-md active:scale-[0.98]"
         >
           <Key className="size-4 text-[var(--accent)]" />
           {copy.header.createKey}
@@ -54,7 +54,7 @@ export const InventoryPageHeader = React.memo(function InventoryPageHeader({
         <button
           type="button"
           onClick={onShowSmartMatch}
-          className="flex items-center justify-center gap-2 rounded-[1rem] border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-[13px] font-bold text-amber-500 shadow-sm transition-all hover:bg-amber-500/20 active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-[1rem] border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-[13px] font-bold text-amber-500 shadow-sm transition-[background-color,transform] hover:bg-amber-500/20 active:scale-[0.98]"
         >
           <Zap className="size-4" />
           {copy.header.smartMatch}
@@ -62,7 +62,7 @@ export const InventoryPageHeader = React.memo(function InventoryPageHeader({
         <button
           type="button"
           onClick={onExportCSV}
-          className="flex items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-white px-4 py-2 text-[13px] font-bold text-[var(--fg-base)] shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-white px-4 py-2 text-[13px] font-bold text-[var(--fg-base)] shadow-sm transition-[box-shadow,transform] hover:shadow-md active:scale-[0.98]"
         >
           <Download className="size-4 text-[var(--accent)]" />
           {copy.header.exportCsv}
@@ -71,7 +71,7 @@ export const InventoryPageHeader = React.memo(function InventoryPageHeader({
         <button
           type="button"
           onClick={onCreateAccountClick}
-          className="flex items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-[box-shadow,transform] hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
         >
           <Plus className="size-4" />
           {copy.header.createAccount}

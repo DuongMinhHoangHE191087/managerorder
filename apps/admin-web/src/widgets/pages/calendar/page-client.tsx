@@ -13,6 +13,7 @@ import { vi } from "@/shared/messages/vi";
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { PageContainer } from "@/shared/ui/page-layout";
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 const EventCreateModal = dynamic(() => import("@/widgets/pages/calendar/components/event-create-modal").then(mod => mod.EventCreateModal), {
   ssr: false,
 });
@@ -42,6 +43,58 @@ import { formatDateKey } from "@/lib/utils";
 
 const calendarText = vi.calendar.page;
 const calendarMonths = vi.calendar.monthNames;
+type CalendarViewMode = "month" | "week" | "day";
+
+type QueryReader = {
+  get: (name: string) => string | null;
+};
+
+type CalendarRouteState = {
+  currentMonth: Date;
+  calendarView: CalendarViewMode;
+};
+
+const CALENDAR_VIEW_VALUES = new Set<CalendarViewMode>(["month", "week", "day"]);
+
+function readEnumParam<T extends string>(params: QueryReader, key: string, values: Set<T>, fallback: T) {
+  const value = params.get(key);
+  return value && values.has(value as T) ? (value as T) : fallback;
+}
+
+function readCalendarDate(value: string | null) {
+  if (!value) return new Date();
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+function readCalendarRouteState(params: QueryReader): CalendarRouteState {
+  return {
+    currentMonth: readCalendarDate(params.get("date")),
+    calendarView: readEnumParam(params, "view", CALENDAR_VIEW_VALUES, "month"),
+  };
+}
+
+function writeCalendarRouteState(params: URLSearchParams, state: CalendarRouteState) {
+  const todayKey = formatDateKey(new Date());
+  const currentDateKey = formatDateKey(state.currentMonth);
+
+  if (state.calendarView !== "month") {
+    params.set("view", state.calendarView);
+  } else {
+    params.delete("view");
+  }
+
+  if (currentDateKey !== todayKey) {
+    params.set("date", currentDateKey);
+  } else {
+    params.delete("date");
+  }
+}
+
+function buildCalendarHref(params: URLSearchParams) {
+  const queryString = params.toString();
+  return queryString ? `/calendar?${queryString}` : "/calendar";
+}
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -59,6 +112,9 @@ function CalendarSubviewSkeleton() {
 }
 
 export default function CalendarPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialRouteState = readCalendarRouteState(searchParams);
   const { data: events = [] } = useCalendarEvents();
   const { mutateAsync: deleteEvent } = useDeleteCalendarEvent();
   const { mutateAsync: updateEvent } = useUpdateCalendarEvent();
@@ -67,8 +123,8 @@ export default function CalendarPage() {
   const [createInitialDate, setCreateInitialDate] = useState("");
   const [viewingEvent, setViewingEvent] = useState<CalendarEvent | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<CalendarEvent | null>(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [calendarView, setCalendarView] = useState<"month" | "week" | "day">("month");
+  const [currentMonth, setCurrentMonth] = useState(initialRouteState.currentMonth);
+  const [calendarView, setCalendarView] = useState<CalendarViewMode>(initialRouteState.calendarView);
 
   const { noteQuery, saveNoteMutation } = useCalendarNotes();
   const { data: savedNoteText = "" } = noteQuery;
@@ -115,6 +171,22 @@ export default function CalendarPage() {
       saveNoteMutation.mutate(debouncedNoteText);
     }
   }, [debouncedNoteText, savedNoteText, saveNoteMutation]);
+
+  useEffect(() => {
+    const nextState = readCalendarRouteState(searchParams);
+    setCurrentMonth(nextState.currentMonth);
+    setCalendarView(nextState.calendarView);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const currentQuery = searchParams.toString();
+    const params = new URLSearchParams(currentQuery);
+    writeCalendarRouteState(params, { currentMonth, calendarView });
+
+    if (params.toString() !== currentQuery) {
+      router.replace(buildCalendarHref(params), { scroll: false });
+    }
+  }, [calendarView, currentMonth, router, searchParams]);
 
   function openCreateForDate(date: string) {
     setCreateInitialDate(date);
@@ -287,18 +359,20 @@ export default function CalendarPage() {
           </div>
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => refetchRenewals()}
-               aria-label={calendarText.refreshRenewals}
+              aria-label={calendarText.refreshRenewals}
               className="p-2.5 rounded-full border border-[var(--border-soft)] hover:bg-[var(--surface-light)] transition-colors cursor-pointer"
             >
-              <RefreshCw className={`size-4 text-[var(--fg-muted)] ${renewalLoading ? "animate-spin" : ""}`} />
+              <RefreshCw aria-hidden="true" className={`size-4 text-[var(--fg-muted)] ${renewalLoading ? "animate-spin" : ""}`} />
             </button>
             <GoogleConnectButton />
             <button
+              type="button"
               onClick={() => setIsCreateOpen(true)}
-              className="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white px-5 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm hover:shadow-md transition-all cursor-pointer"
+              className="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white px-5 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm hover:shadow-md transition-[box-shadow] cursor-pointer"
             >
-              <Plus className="size-4" />
+              <Plus aria-hidden="true" className="size-4" />
                {calendarText.addEvent}
             </button>
           </div>
@@ -330,12 +404,13 @@ export default function CalendarPage() {
               <div className="flex flex-col sm:flex-row items-center justify-between px-5 py-4 border-b border-[var(--border-soft)] bg-[var(--bg-app)]/50 backdrop-blur-sm gap-4">
                 <div className="flex items-center gap-3">
                     <button
+                     type="button"
                      onClick={prevPeriod}
                      aria-label={calendarText.prev}
                      data-testid="prev-month"
                     className="p-2 hover:bg-[var(--surface-light)] rounded-lg transition-colors cursor-pointer"
                   >
-                    <ChevronLeft className="size-4 text-[var(--fg-muted)]" />
+                    <ChevronLeft aria-hidden="true" className="size-4 text-[var(--fg-muted)]" />
                   </button>
                   <h3 data-testid="month-label" className="text-[15px] font-black text-[var(--fg-base)] tracking-tight w-40 text-center">
                     {calendarView === "month" && `${monthNames[month]} ${year}`}
@@ -343,21 +418,24 @@ export default function CalendarPage() {
                     {calendarView === "day" && `${currentMonth.getDate()} ${monthNames[month]}, ${year}`}
                   </h3>
                     <button
+                     type="button"
                      onClick={nextPeriod}
                      aria-label={calendarText.next}
                      data-testid="next-month"
                     className="p-2 hover:bg-[var(--surface-light)] rounded-lg transition-colors cursor-pointer"
                   >
-                    <ChevronRight className="size-4 text-[var(--fg-muted)]" />
+                    <ChevronRight aria-hidden="true" className="size-4 text-[var(--fg-muted)]" />
                   </button>
                 </div>
                 {/* View Toggles */}
                 <div className="flex bg-[var(--surface-light)] p-1 rounded-lg border border-[var(--border-soft)]">
                   {(["month", "week", "day"] as const).map(view => (
                     <button
+                      type="button"
                       key={view}
                       onClick={() => setCalendarView(view)}
-                      className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md transition-all cursor-pointer ${
+                      aria-pressed={calendarView === view}
+                      className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md transition-[background-color,box-shadow,color] cursor-pointer ${
                         calendarView === view 
                           ? "bg-[var(--accent)] text-white shadow-sm" 
                           : "text-[var(--fg-muted)] hover:text-[var(--fg-base)] hover:bg-[var(--bg-app)]/50"
@@ -422,15 +500,16 @@ export default function CalendarPage() {
                           <div className="space-y-1 flex-1 overflow-y-auto pr-0.5 custom-scrollbar">
                             {dayEvents.map(evt => (
                               <button
+                                type="button"
                                 key={evt.id}
                                 onClick={(e) => { e.stopPropagation(); setViewingEvent(evt); }}
                                 className={`w-full text-left px-1.5 py-1 rounded text-[10px] font-bold text-white truncate flex items-center gap-1 ${
                                   evt.isDone ? "bg-[var(--fg-muted)] opacity-60 line-through" : (typeColors[evt.type] ?? "bg-[var(--fg-muted)]")
                                 } hover:opacity-80 transition-opacity cursor-pointer`}
                               >
-                                <div onClick={(e) => { e.stopPropagation(); toggleEventDone(evt); }} className="shrink-0 transition-colors hover:text-white/80">
+                                <span onClick={(e) => { e.stopPropagation(); toggleEventDone(evt); }} className="shrink-0 transition-colors hover:text-white/80">
                                   {evt.isDone ? <CheckCircle2 className="size-2.5" /> : <Circle className="size-2.5" />}
-                                </div>
+                                </span>
                                 <span className="truncate">{evt.title}</span>
                               </button>
                             ))}
@@ -513,12 +592,12 @@ export default function CalendarPage() {
                   )}
                   {debtEvents.map(evt => (
                     <div key={evt.id} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-white/50 transition-colors group">
-                       <button onClick={(e) => { e.stopPropagation(); toggleEventDone(evt); }} className={`mt-0.5 shrink-0 transition-colors cursor-pointer ${evt.isDone ? "text-[var(--danger)]/50" : "text-[var(--danger)]/80 hover:text-[var(--danger)]"}`} aria-label={calendarText.markDone}>
+                       <button type="button" onClick={(e) => { e.stopPropagation(); toggleEventDone(evt); }} className={`mt-0.5 shrink-0 transition-colors cursor-pointer ${evt.isDone ? "text-[var(--danger)]/50" : "text-[var(--danger)]/80 hover:text-[var(--danger)]"}`} aria-label={calendarText.markDone}>
                         {evt.isDone ? <CheckCircle2 className="size-4" /> : <Circle className="size-4" />}
                       </button>
                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setViewingEvent(evt)}>
-                        <p className={`text-[13px] font-bold truncate transition-all ${evt.isDone ? "text-[var(--danger)]/50 line-through" : "text-[var(--danger)]"}`}>{evt.title}</p>
-                        <div className={`flex items-center gap-2 mt-0.5 transition-all ${evt.isDone ? "opacity-50" : "opacity-80"}`}>
+                        <p className={`text-[13px] font-bold truncate transition-[color,opacity,text-decoration-color] ${evt.isDone ? "text-[var(--danger)]/50 line-through" : "text-[var(--danger)]"}`}>{evt.title}</p>
+                        <div className={`flex items-center gap-2 mt-0.5 transition-[opacity] ${evt.isDone ? "opacity-50" : "opacity-80"}`}>
                           <span className={`text-[10px] font-medium ${evt.isDone ? "text-[var(--danger)]/60" : "text-[var(--danger)]"}`}>{evt.date}</span>
                           {evt.time && <span className={`text-[10px] flex items-center gap-1 ${evt.isDone ? "text-[var(--danger)]/60" : "text-[var(--danger)]"}`}><Clock className="size-2.5"/>{evt.time}</span>}
                         </div>
@@ -551,7 +630,7 @@ export default function CalendarPage() {
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
                    placeholder={calendarText.notesPlaceholder}
-                  className="w-full flex-1 p-4 resize-none bg-transparent outline-none text-[13px] font-medium text-[var(--fg-base)] placeholder:text-[var(--fg-muted)] custom-scrollbar min-h-[110px] decoration-transparent transition-all focus:bg-white/10"
+                  className="w-full flex-1 p-4 resize-none bg-transparent outline-none text-[13px] font-medium text-[var(--fg-base)] placeholder:text-[var(--fg-muted)] custom-scrollbar min-h-[110px] decoration-transparent transition-[background-color] focus:bg-white/10"
                   spellCheck={false}
                 />
               </div>
@@ -575,7 +654,7 @@ export default function CalendarPage() {
                             <circle cx="16" cy="16" r="14" fill="none" className="stroke-slate-200" strokeWidth="3" />
                             <circle 
                               cx="16" cy="16" r="14" fill="none" 
-                              className="stroke-[var(--accent)] transition-all duration-1000 ease-out" 
+                              className="stroke-[var(--accent)] transition-[stroke-dashoffset] duration-1000 ease-out"
                               strokeWidth="3" 
                               strokeDasharray={strokeDasharray} 
                               strokeDashoffset={strokeDashoffset} 
@@ -598,15 +677,17 @@ export default function CalendarPage() {
 
               <div className="p-2 border-b border-[var(--border-soft)] bg-[var(--surface-light)]/50 shrink-0 relative z-10">
                 <div className="relative">
-                  <Plus className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--fg-muted)]" />
+                  <Plus aria-hidden="true" className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--fg-muted)]" />
                   <input
+                    aria-label="Thêm nhanh việc hôm nay"
+                    name="calendar-quick-add"
                     type="text"
                     value={quickAddText}
                     onChange={(e) => setQuickAddText(e.target.value)}
                     onKeyDown={handleQuickAdd}
                     disabled={isQuickAdding}
                     placeholder={calendarText.quickAddPlaceholder}
-                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-[var(--border-soft)] rounded-lg text-[12px] font-medium outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-all placeholder:text-[var(--fg-muted)] disabled:opacity-50 shadow-sm"
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-[var(--border-soft)] rounded-lg text-[12px] font-medium outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-[background-color,border-color,box-shadow,color,opacity] placeholder:text-[var(--fg-muted)] disabled:opacity-50 shadow-sm"
                   />
                   {isQuickAdding && <RefreshCw className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--accent)] animate-spin" />}
                 </div>
@@ -622,12 +703,12 @@ export default function CalendarPage() {
                   </div>
                 ) : (
                   todayTodoList.map(evt => (
-                    <div key={evt.id} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-white hover:shadow-sm hover:translate-x-1 transition-all duration-300 group border border-transparent hover:border-[var(--border-soft)]">
-                      <button onClick={(e) => { e.stopPropagation(); toggleEventDone(evt); }} className={`mt-0.5 shrink-0 transition-colors cursor-pointer ${evt.isDone ? "text-[var(--accent)]" : "text-[var(--fg-muted)] hover:text-[var(--accent)]"}`}>
+                    <div key={evt.id} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-white hover:shadow-sm hover:translate-x-1 transition-[background-color,border-color,box-shadow,transform] duration-300 group border border-transparent hover:border-[var(--border-soft)]">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); toggleEventDone(evt); }} className={`mt-0.5 shrink-0 transition-colors cursor-pointer ${evt.isDone ? "text-[var(--accent)]" : "text-[var(--fg-muted)] hover:text-[var(--accent)]"}`} aria-label={calendarText.markDone}>
                         {evt.isDone ? <CheckCircle2 className="size-4 shadow-sm rounded-full bg-white" /> : <Circle className="size-4" />}
                       </button>
                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setViewingEvent(evt)}>
-                        <p className={`text-[13px] font-bold ${evt.isDone ? "text-[var(--fg-muted)] opacity-60 line-through" : "text-[var(--fg-base)]"} truncate transition-all`}>{evt.title}</p>
+                        <p className={`text-[13px] font-bold ${evt.isDone ? "text-[var(--fg-muted)] opacity-60 line-through" : "text-[var(--fg-base)]"} truncate transition-[color,opacity,text-decoration-color]`}>{evt.title}</p>
                         {evt.time && <p className="text-[10px] text-[var(--fg-muted)] mt-0.5 flex items-center gap-1"><Clock className="size-2.5"/> {evt.time}</p>}
                       </div>
                     </div>

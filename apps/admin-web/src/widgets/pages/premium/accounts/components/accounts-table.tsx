@@ -107,7 +107,7 @@ export function AccountsTable({
             const isFull = acc.total_slots > 0 && acc.used_slots >= acc.total_slots;
 
             return (
-              <div key={acc.id} className="group relative overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-white transition-all duration-300">
+              <div key={acc.id} className="group relative overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-white transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-300">
                 <div className="grid grid-cols-1 gap-4 p-4 lg:grid-cols-12 lg:items-center lg:p-6 lg:px-8">
                   <div className="col-span-1 flex items-center gap-3 lg:col-span-3">
                     <div className="size-10 shrink-0 rounded-xl border border-[var(--accent)]/10 bg-gradient-to-br from-[var(--accent)]/10 to-[var(--accent)]/5 text-[var(--accent)] transition-transform group-hover:rotate-12 flex items-center justify-center">
@@ -147,7 +147,7 @@ export function AccountsTable({
                       </div>
                       <div className="h-2 w-full overflow-hidden rounded-full border border-[var(--border-soft)] bg-[var(--surface-light)] p-0.5 shadow-inner">
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${
+                          className={`h-full rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500 ${
                             isFull ? "bg-gradient-to-r from-[#ff9500] to-[#ffcc00]" : "bg-gradient-to-r from-[#32d74b] to-[#63f58c]"
                           }`}
                           style={{ width: `${percent}%` }}

@@ -231,12 +231,16 @@ export interface ContactInfo {
 }
 
 export type WarehouseCredentialType = "link_join" | "2fa" | "2fa_backup" | "duolingo_id" | "other";
+export type WarehouseCredentialFormat = "plain" | "totp_secret" | "backup_codes" | "url" | "identifier";
 
 export interface WarehouseCredential {
   id: string;
   type: WarehouseCredentialType;
   label?: string; // custom label for "other"
   value: string;
+  format?: WarehouseCredentialFormat;
+  shareable?: boolean;
+  masked?: boolean;
 }
 
 export interface CustomerNick {
@@ -455,4 +459,3 @@ export interface SlotBreakdown {
   connectedItems: EnrichedConnection[];
   reservedNicks: string[];
 }
-

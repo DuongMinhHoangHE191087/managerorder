@@ -51,7 +51,7 @@ export function DashboardAlerts({ pendingOrders, topOverdueCustomers, expiringAc
                 key={action.href}
                 href={action.href}
                 data-testid={`dashboard-quick-action-${action.href.replaceAll("/", "-").replace(/^-/, "")}`}
-                className={`group flex flex-col items-center justify-center gap-2 rounded-[1rem] border border-transparent p-4 text-center text-[12px] font-bold transition-all hover:shadow-md ${action.color}`}
+                className={`group flex flex-col items-center justify-center gap-2 rounded-[1rem] border border-transparent p-4 text-center text-[12px] font-bold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:shadow-md ${action.color}`}
               >
                 <span className="material-symbols-outlined text-[24px] transition-transform group-hover:scale-110">
                   {action.icon}

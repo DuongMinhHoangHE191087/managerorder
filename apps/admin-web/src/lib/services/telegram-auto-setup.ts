@@ -170,7 +170,7 @@ export async function forceReconfigure() {
 // ─── AUTO-REGISTER WEBHOOK (called by instrumentation.ts) ────
 
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET ?? '';
-const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID ?? '';
+const ADMIN_CHAT_ID = (process.env.TELEGRAM_ADMIN_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID ?? '').trim();
 
 /**
  * Automatically register the Telegram webhook on server cold start.

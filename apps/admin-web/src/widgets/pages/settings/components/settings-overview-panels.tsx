@@ -131,7 +131,7 @@ export function SettingsOverviewPanels() {
       </DeferredSettingsCard>
 
       <Link href="/settings/webhooks" className="group block">
-        <div className="glass-card flex items-center justify-between p-6 transition-all duration-300 hover:border-[var(--accent)]/30">
+        <div className="glass-card flex items-center justify-between p-6 transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-300 hover:border-[var(--accent)]/30">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-blue-500/20">
               <Globe className="size-6 text-violet-500" />
@@ -145,7 +145,7 @@ export function SettingsOverviewPanels() {
               </p>
             </div>
           </div>
-          <ChevronRight className="size-5 text-[var(--fg-muted)] transition-all group-hover:translate-x-1 group-hover:text-[var(--accent)]" />
+          <ChevronRight className="size-5 text-[var(--fg-muted)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] group-hover:translate-x-1 group-hover:text-[var(--accent)]" />
         </div>
       </Link>
     </>

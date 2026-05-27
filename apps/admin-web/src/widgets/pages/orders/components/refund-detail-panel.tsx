@@ -238,7 +238,7 @@ export function RefundDetailPanel({ orderId, orderStatus, orderTotalPaid, produc
 
               return (
                 <div key={step.key} className="flex items-center gap-2 shrink-0">
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
                     isActive ? (cfg?.color ?? "") + " ring-2 ring-current/20" :
                     isPast ? "text-emerald-500 bg-emerald-50 line-through" :
                     "text-[var(--fg-muted)] bg-[var(--border-soft)]"
@@ -312,7 +312,7 @@ export function RefundDetailPanel({ orderId, orderStatus, orderTotalPaid, produc
                       key={action.next}
                       disabled={isUpdating}
                       onClick={() => handleTransition(latestRefund, action.next)}
-                      className={`flex items-center gap-1.5 px-4 py-2.5 text-[12px] font-bold rounded-xl transition-all shadow-sm disabled:opacity-50 ${action.color}`}
+                      className={`flex items-center gap-1.5 px-4 py-2.5 text-[12px] font-bold rounded-xl transition-[background-color,border-color,box-shadow,color,opacity,transform,width] shadow-sm disabled:opacity-50 ${action.color}`}
                     >
                       {isUpdating ? <Loader2 className="size-3.5 animate-spin" /> : <Icon className="size-3.5" />}
                       {action.label}
@@ -330,7 +330,7 @@ export function RefundDetailPanel({ orderId, orderStatus, orderTotalPaid, produc
                 navigator.clipboard.writeText(buildMessage(latestRefund));
                 appToast.success("Đã copy tin nhắn cho khách!");
               }}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white text-[13px] font-bold rounded-xl transition-all shadow-sm active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white text-[13px] font-bold rounded-xl transition-[background-color,border-color,box-shadow,color,opacity,transform,width] shadow-sm active:scale-[0.98]"
             >
               <Copy className="size-4" />
               Copy tin nhắn hoàn tiền cho khách

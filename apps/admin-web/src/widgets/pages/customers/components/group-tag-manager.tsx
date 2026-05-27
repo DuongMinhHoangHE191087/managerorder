@@ -32,8 +32,9 @@ export const GroupTagManager = React.memo(function GroupTagManager() {
           <button
             key={currentTab}
             type="button"
+            aria-pressed={tab === currentTab}
             onClick={() => setTab(currentTab)}
-            className={`relative flex flex-1 items-center justify-center gap-2 px-4 py-3.5 text-[13px] font-bold transition-all ${
+            className={`relative flex flex-1 items-center justify-center gap-2 px-4 py-3.5 text-[13px] font-bold transition-[background-color,color] ${
               tab === currentTab
                 ? "bg-[var(--accent)]/5 text-[var(--accent)]"
                 : "text-[var(--fg-muted)] hover:bg-gray-50 hover:text-[var(--fg-base)]"
@@ -169,8 +170,10 @@ function GroupsTab() {
               <button
                 key={color}
                 type="button"
+                aria-label={`Chọn màu ${color}`}
+                aria-pressed={newColor === color}
                 onClick={() => setNewColor(color)}
-                className={`size-6 rounded-full transition-all ${
+                className={`size-6 rounded-full transition-[box-shadow,transform] ${
                   newColor === color
                     ? "scale-110 ring-2 ring-[var(--accent)] ring-offset-2"
                     : "hover:scale-110"
@@ -235,8 +238,10 @@ function GroupsTab() {
                       <button
                         key={color}
                         type="button"
+                        aria-label={`Chọn màu ${color}`}
+                        aria-pressed={editColor === color}
                         onClick={() => setEditColor(color)}
-                        className={`size-5 rounded-full transition-all ${
+                        className={`size-5 rounded-full transition-[box-shadow,transform] ${
                           editColor === color
                             ? "scale-110 ring-2 ring-[var(--accent)] ring-offset-1"
                             : "hover:scale-105"
@@ -424,8 +429,10 @@ function TagsTab() {
               <button
                 key={color}
                 type="button"
+                aria-label={`Chọn màu ${color}`}
+                aria-pressed={newColor === color}
                 onClick={() => setNewColor(color)}
-                className={`size-6 rounded-full transition-all ${
+                className={`size-6 rounded-full transition-[box-shadow,transform] ${
                   newColor === color
                     ? "scale-110 ring-2 ring-[var(--accent)] ring-offset-2"
                     : "hover:scale-110"
@@ -489,7 +496,7 @@ function TagsTab() {
                 </div>
               ) : (
                 <div
-                  className="inline-flex cursor-default items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-bold transition-all"
+                  className="inline-flex cursor-default items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-bold transition-colors"
                   style={{
                     backgroundColor: `${tag.color}12`,
                     color: tag.color,

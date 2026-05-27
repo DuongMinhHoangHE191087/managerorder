@@ -354,7 +354,7 @@ export function WebhooksList({
                                 type="button"
                                 aria-pressed={selected}
                                 onClick={() => setEditEvents(toggleEvent(editEvents, eventItem.value))}
-                                className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition-all ${
+                                className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
                                   selected
                                     ? "bg-[var(--accent)] text-white"
                                     : "bg-white text-[var(--fg-muted)] border border-[var(--border-soft)]"

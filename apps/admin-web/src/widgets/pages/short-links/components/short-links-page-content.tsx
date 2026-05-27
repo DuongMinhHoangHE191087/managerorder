@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import NextLink from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AppLayout } from "@/widgets/layout/app-layout";
 import {
   AdvancedOptionsDisclosure,
@@ -111,6 +112,66 @@ function expiryToDate(value: string): string | null {
 
 const PAGE_SIZE = 10;
 type StatusFilter = "all" | "active" | "expired" | "disabled";
+type SortOrder = "newest" | "clicks" | "expiry";
+
+type QueryReader = {
+  get: (name: string) => string | null;
+};
+
+type ShortLinksListState = {
+  searchQuery: string;
+  statusFilter: StatusFilter;
+  sortOrder: SortOrder;
+  currentPage: number;
+};
+
+const STATUS_FILTER_VALUES = new Set<StatusFilter>(["all", "active", "expired", "disabled"]);
+const SORT_ORDER_VALUES = new Set<SortOrder>(["newest", "clicks", "expiry"]);
+
+function parseZeroBasedPage(value: string | null) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed - 1 : 0;
+}
+
+function readEnumParam<T extends string>(params: QueryReader, key: string, values: Set<T>, fallback: T) {
+  const value = params.get(key);
+  return value && values.has(value as T) ? (value as T) : fallback;
+}
+
+function readShortLinksListState(params: QueryReader): ShortLinksListState {
+  return {
+    searchQuery: params.get("search") ?? "",
+    statusFilter: readEnumParam(params, "status", STATUS_FILTER_VALUES, "all"),
+    sortOrder: readEnumParam(params, "sort", SORT_ORDER_VALUES, "newest"),
+    currentPage: parseZeroBasedPage(params.get("page")),
+  };
+}
+
+function setOptionalQueryParam(params: URLSearchParams, key: string, value: string, defaultValue = "") {
+  const normalized = value.trim();
+  if (normalized && normalized !== defaultValue) {
+    params.set(key, normalized);
+  } else {
+    params.delete(key);
+  }
+}
+
+function writeShortLinksListState(params: URLSearchParams, state: ShortLinksListState) {
+  setOptionalQueryParam(params, "search", state.searchQuery);
+  setOptionalQueryParam(params, "status", state.statusFilter, "all");
+  setOptionalQueryParam(params, "sort", state.sortOrder, "newest");
+
+  if (state.currentPage > 0) {
+    params.set("page", String(state.currentPage + 1));
+  } else {
+    params.delete("page");
+  }
+}
+
+function buildShortLinksHref(params: URLSearchParams) {
+  const queryString = params.toString();
+  return queryString ? `/short-links?${queryString}` : "/short-links";
+}
 
 interface EditState {
   max_clicks: number;
@@ -167,6 +228,9 @@ const FAILURE_TEMPLATE_OPTIONS: Array<{ value: ShortLinkFailureTemplateKey; labe
 // â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function ShortLinksPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialListState = readShortLinksListState(searchParams);
   const { data: links = [], isLoading } = useShortLinks();
   const { data: salesChannels = [] } = useSalesChannels();
   const createMut = useCreateShortLink();
@@ -180,14 +244,15 @@ export default function ShortLinksPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditState>({ max_clicks: 5, expiry: "", status: "active", require_token: false, notify_clicks: false });
   const [analyticsId, setAnalyticsId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [sortOrder, setSortOrder] = useState<"newest" | "clicks" | "expiry">("newest");
-  const [currentPage, setCurrentPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState(initialListState.searchQuery);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialListState.statusFilter);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(initialListState.sortOrder);
+  const [currentPage, setCurrentPage] = useState(initialListState.currentPage);
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
   // Bulk Select
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<{ ids: string[]; message: string } | null>(null);
 
   // Analytics
   const { data: analytics, isLoading: analyticsLoading } = useShortLinkAnalytics(analyticsId);
@@ -307,6 +372,29 @@ export default function ShortLinksPage() {
     setCurrentPage((value) => Math.min(value, Math.max(0, totalPages - 1)));
   }, [totalPages]);
 
+  useEffect(() => {
+    const nextState = readShortLinksListState(searchParams);
+    setSearchQuery(nextState.searchQuery);
+    setStatusFilter(nextState.statusFilter);
+    setSortOrder(nextState.sortOrder);
+    setCurrentPage(nextState.currentPage);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const currentQuery = searchParams.toString();
+    const params = new URLSearchParams(currentQuery);
+    writeShortLinksListState(params, {
+      searchQuery,
+      statusFilter,
+      sortOrder,
+      currentPage,
+    });
+
+    if (params.toString() !== currentQuery) {
+      router.replace(buildShortLinksHref(params), { scroll: false });
+    }
+  }, [currentPage, router, searchParams, searchQuery, sortOrder, statusFilter]);
+
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
     setCurrentPage(0);
@@ -314,6 +402,11 @@ export default function ShortLinksPage() {
 
   const handleFilterChange = useCallback((value: StatusFilter) => {
     setStatusFilter(value);
+    setCurrentPage(0);
+  }, []);
+
+  const handleSortChange = useCallback((value: SortOrder) => {
+    setSortOrder(value);
     setCurrentPage(0);
   }, []);
 
@@ -344,9 +437,7 @@ export default function ShortLinksPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(vi.shortLinks.detail.confirmDelete)) return;
-    await deleteMut.mutateAsync(id);
-    if (analyticsId === id) setAnalyticsId(null);
+    setDeleteConfirm({ ids: [id], message: vi.shortLinks.detail.confirmDelete });
   };
 
   const startEdit = (link: typeof links[0]) => {
@@ -425,11 +516,28 @@ export default function ShortLinksPage() {
   };
 
   const handleBulkDelete = async () => {
-    if (!confirm(vi.shortLinks.page.bulkDeleteConfirm(selectedIds.size))) return;
-    const ids = Array.from(selectedIds);
-    await Promise.allSettled(ids.map(id => deleteMut.mutateAsync(id)));
-    appToast.success(vi.shortLinks.page.bulkDeleteSuccess(ids.length));
-    setSelectedIds(new Set());
+    if (selectedIds.size === 0) return;
+    setDeleteConfirm({
+      ids: Array.from(selectedIds),
+      message: vi.shortLinks.page.bulkDeleteConfirm(selectedIds.size),
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm) return;
+    const ids = deleteConfirm.ids;
+    const results = await Promise.allSettled(ids.map(id => deleteMut.mutateAsync(id)));
+    const success = results.filter((result) => result.status === "fulfilled").length;
+    if (analyticsId && ids.includes(analyticsId)) setAnalyticsId(null);
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      ids.forEach((id) => next.delete(id));
+      return next;
+    });
+    setDeleteConfirm(null);
+    if (ids.length > 1 && success > 0) {
+      appToast.success(vi.shortLinks.page.bulkDeleteSuccess(success));
+    }
   };
 
   const FILTER_OPTIONS: { label: string; value: StatusFilter; count: number }[] = [
@@ -441,6 +549,53 @@ export default function ShortLinksPage() {
   return (
     <AppLayout>
       <PageContainer>
+        {deleteConfirm ? (
+          <div className="fixed inset-0 flex items-center justify-center px-4" style={{ zIndex: "var(--z-modal)" }}>
+            <button
+              type="button"
+              aria-label="Đóng xác nhận xoá"
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setDeleteConfirm(null)}
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="short-links-delete-title"
+              className="relative w-full max-w-md rounded-[1.5rem] border border-[var(--border-soft)] bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.22)]"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+                  <AlertTriangle aria-hidden="true" className="size-5" />
+                </div>
+                <div className="min-w-0">
+                  <h2 id="short-links-delete-title" className="text-base font-black text-[var(--fg-base)]">
+                    Xác nhận xoá short link
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-[var(--fg-muted)]">{deleteConfirm.message}</p>
+                </div>
+              </div>
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  className="rounded-xl border border-[var(--border-soft)] px-4 py-2 text-sm font-bold text-[var(--fg-base)] transition-colors hover:bg-[var(--surface-light)]"
+                >
+                  Huỷ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmDelete()}
+                  disabled={deleteMut.isPending}
+                  className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition-[background-color,opacity] hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {deleteMut.isPending ? <Loader2 aria-hidden="true" className="size-4 animate-spin" /> : null}
+                  Xoá
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 mt-2">
           <div>
@@ -453,11 +608,12 @@ export default function ShortLinksPage() {
             </p>
           </div>
           <button
+            type="button"
             onClick={() => { setShowCreate(!showCreate); setCreatedSlug(null); }}
             data-testid="short-links-create-toggle"
-            className="flex items-center gap-2 bg-[var(--fg-base)] text-[var(--bg-app)] px-5 py-2.5 rounded-full font-bold text-sm shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            className="flex items-center gap-2 bg-[var(--fg-base)] text-[var(--bg-app)] px-5 py-2.5 rounded-full font-bold text-sm shadow-xl hover:scale-105 active:scale-95 transition-[box-shadow,opacity,transform] cursor-pointer"
           >
-            <Plus className="size-4" />
+            <Plus aria-hidden="true" className="size-4" />
             {vi.shortLinks.page.create}
           </button>
         </div>
@@ -521,7 +677,7 @@ export default function ShortLinksPage() {
                       value={form.target_url}
                       onChange={(event) => setForm((current) => ({ ...current, target_url: event.target.value }))}
                       placeholder={vi.shortLinks.page.targetUrlPlaceholder}
-                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-[background-color,border-color,box-shadow,color]"
                     />
                   </div>
 
@@ -535,7 +691,7 @@ export default function ShortLinksPage() {
                         value={form.title}
                         onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
                         placeholder={vi.shortLinks.page.titlePlaceholder}
-                        className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
+                        className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-[background-color,border-color,box-shadow,color]"
                       />
                     </div>
 
@@ -551,7 +707,7 @@ export default function ShortLinksPage() {
                             sales_channel_id: event.target.value || null,
                           }))
                         }
-                        className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer"
+                        className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-[background-color,border-color,box-shadow,color] cursor-pointer"
                       >
                         <option value="">Không gắn kênh bán</option>
                         {salesChannels.map((channel) => (
@@ -586,7 +742,7 @@ export default function ShortLinksPage() {
                               : current.landing_template_key,
                         }))
                       }
-                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer"
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-[background-color,border-color,box-shadow,color] cursor-pointer"
                     >
                       {DELIVERY_MODE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -632,7 +788,7 @@ export default function ShortLinksPage() {
                       onChange={(event) =>
                         setForm((current) => ({ ...current, max_clicks: Number(event.target.value) || 1 }))
                       }
-                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-[background-color,border-color,box-shadow,color]"
                     />
                   </div>
                   <div className="space-y-2">
@@ -642,7 +798,7 @@ export default function ShortLinksPage() {
                     <select
                       value={form.expiry}
                       onChange={(event) => setForm((current) => ({ ...current, expiry: event.target.value }))}
-                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer"
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-[background-color,border-color,box-shadow,color] cursor-pointer"
                     >
                       {EXPIRY_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -664,7 +820,7 @@ export default function ShortLinksPage() {
                         }))
                       }
                       disabled={form.delivery_mode === "direct_redirect"}
-                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer disabled:opacity-60"
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-[background-color,border-color,box-shadow,color,opacity] cursor-pointer disabled:opacity-60"
                     >
                       <option value="">Kế thừa theo kênh bán</option>
                       {LANDING_TEMPLATE_OPTIONS.map((option) => (
@@ -689,7 +845,7 @@ export default function ShortLinksPage() {
                           failure_template_key: (event.target.value || null) as ShortLinkFailureTemplateKey | null,
                         }))
                       }
-                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all cursor-pointer"
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-[background-color,border-color,box-shadow,color] cursor-pointer"
                     >
                       <option value="">Kế thừa theo kênh bán / hệ thống</option>
                       {FAILURE_TEMPLATE_OPTIONS.map((option) => (
@@ -710,7 +866,7 @@ export default function ShortLinksPage() {
                         setForm((current) => ({ ...current, seller_contact_url: event.target.value }))
                       }
                       placeholder="https://zalo.me/... hoặc link chat người bán"
-                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
+                      className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-[background-color,border-color,box-shadow,color]"
                     />
                   </div>
                 </div>
@@ -784,6 +940,7 @@ export default function ShortLinksPage() {
           {/* Search, Sort & Filter */}
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 mb-4">
             <button
+              type="button"
               onClick={handleToggleSelectAll}
               data-testid="short-links-select-all"
               className={cn(
@@ -800,25 +957,29 @@ export default function ShortLinksPage() {
               )}
             </button>
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[var(--fg-muted)]" />
+              <Search aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[var(--fg-muted)]" />
               <input
+                aria-label="Tìm short link"
+                name="short-links-search"
                 type="text"
                 value={searchQuery}
                 onChange={e => handleSearchChange(e.target.value)}
                 placeholder={vi.shortLinks.page.searchPlaceholder}
                 data-testid="short-links-search"
-                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all"
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white border border-[var(--border-soft)] text-sm text-[var(--fg-base)] placeholder:text-[var(--fg-muted)]/50 focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-[background-color,border-color,box-shadow,color]"
               />
             </div>
             <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--border-soft)]/50" data-testid="short-links-status-filters">
-              <Filter className="size-3.5 text-[var(--fg-muted)] mx-1.5" />
+              <Filter aria-hidden="true" className="size-3.5 text-[var(--fg-muted)] mx-1.5" />
               {FILTER_OPTIONS.map(opt => (
                 <button
+                  type="button"
                   key={opt.value}
+                  aria-pressed={statusFilter === opt.value}
                   onClick={() => handleFilterChange(opt.value)}
                   data-testid={`short-links-filter-${opt.value}`}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-[background-color,box-shadow,color] cursor-pointer",
                     statusFilter === opt.value
                       ? "bg-[var(--bg-surface)] text-[var(--fg-base)] shadow-sm"
                       : "text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
@@ -829,8 +990,10 @@ export default function ShortLinksPage() {
               ))}
             </div>
             <select
+              aria-label="Sắp xếp short link"
+              name="short-links-sort"
               value={sortOrder}
-              onChange={e => setSortOrder(e.target.value as "newest" | "clicks" | "expiry")}
+              onChange={e => handleSortChange(e.target.value as SortOrder)}
               data-testid="short-links-sort"
               className="p-2.5 rounded-xl bg-white border border-[var(--border-soft)] text-xs font-bold text-[var(--fg-base)] focus:ring-2 focus:ring-[var(--accent)]/30 outline-none cursor-pointer"
             >
@@ -992,8 +1155,9 @@ function CreatedSuccess({ slug, link, onCopy, onCreateAnother, onClose }: {
           </p>
         </div>
           <button
+            type="button"
             onClick={() => onCopy(slug, token)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-xl hover:bg-emerald-600 active:scale-95 transition-all cursor-pointer shadow-md shadow-emerald-500/30"
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-xl hover:bg-emerald-600 active:scale-95 transition-[background-color,box-shadow,transform] cursor-pointer shadow-md shadow-emerald-500/30"
           >
             <Copy className="size-3.5" />
           {vi.shortLinks.created.copy}
@@ -1017,10 +1181,10 @@ function CreatedSuccess({ slug, link, onCopy, onCreateAnother, onClose }: {
       )}
 
       <div className="flex items-center gap-2">
-          <button onClick={onCreateAnother} className="flex items-center gap-2 bg-[var(--accent)] text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer">
+          <button type="button" onClick={onCreateAnother} className="flex items-center gap-2 bg-[var(--accent)] text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 active:scale-95 transition-[opacity,transform] cursor-pointer">
           <Plus className="size-4" /> {vi.shortLinks.created.createAnother}
         </button>
-        <button onClick={onClose} className="px-4 py-2.5 text-sm font-medium text-[var(--fg-muted)] hover:text-[var(--fg-base)] transition-colors cursor-pointer">
+        <button type="button" onClick={onClose} className="px-4 py-2.5 text-sm font-medium text-[var(--fg-muted)] hover:text-[var(--fg-base)] transition-colors cursor-pointer">
           {vi.shortLinks.created.close}
         </button>
       </div>
@@ -1064,7 +1228,7 @@ function LinkCard({
 
   return (
     <div className={cn(
-      "glass-card p-4 rounded-2xl transition-all group",
+      "glass-card p-4 rounded-2xl transition-[border-color,box-shadow] group",
       isEditing ? "border-[var(--accent)]/40 ring-2 ring-[var(--accent)]/10" : "hover:border-[var(--accent)]/20"
     )}
       data-testid="short-links-row"
@@ -1141,7 +1305,7 @@ function LinkCard({
               <div className="flex-1 h-1.5 bg-[var(--border-soft)] rounded-full overflow-hidden max-w-xs">
                 <div
                   className={cn(
-                    "h-full rounded-full transition-all duration-500",
+                    "h-full rounded-full transition-[background-color,width] duration-500",
                     progress >= 100 ? "bg-red-500" : progress >= 70 ? "bg-amber-500" : "bg-emerald-500"
                   )}
                   style={{ width: `${Math.min(progress, 100)}%` }}
@@ -1264,8 +1428,8 @@ function LinkCard({
             )}
 
             <div className="flex items-center gap-2 mt-3">
-              <button onClick={onSaveEdit} disabled={updatePending}
-                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              <button type="button" onClick={onSaveEdit} disabled={updatePending}
+                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600 active:scale-95 transition-[background-color,opacity,transform] cursor-pointer disabled:opacity-50"
               >
                 {updatePending ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
                 {vi.shortLinks.card.saveChanges}
@@ -1311,7 +1475,7 @@ function LinkCard({
                           <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5 group/bar relative">
                             <div
                               className={cn(
-                                "w-full rounded-t-sm transition-all min-h-[2px]",
+                                "w-full rounded-t-sm transition-[background-color,height] min-h-[2px]",
                                 h.count > 0 ? "bg-purple-500/80 hover:bg-purple-500" : "bg-[var(--border-soft)]/40"
                               )}
                               style={{ height: `${Math.max(heightPct, 3)}%` }}
@@ -1582,9 +1746,6 @@ function StatMini({ icon: Icon, label, value, color }: {
     </div>
   );
 }
-
-
-
 
 
 

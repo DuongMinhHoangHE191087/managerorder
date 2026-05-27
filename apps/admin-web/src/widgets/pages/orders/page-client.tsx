@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback, useDeferredValue } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useCallback, useDeferredValue, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, Printer, Trash2, CheckCircle2, Clock } from "lucide-react";
 import { appToast } from "@/shared/lib/toast";
 import { useDebounce } from "@/shared/hooks/use-debounce";
@@ -44,6 +44,73 @@ type RawOrder = Record<string, unknown> & {
   proof_image_urls?: string[] | null;
 };
 
+type OrdersListState = {
+  pageIndex: number;
+  pageSize: number;
+  searchQuery: string;
+  statusFilter: string;
+  dateFrom: string;
+  dateTo: string;
+};
+
+type QueryReader = {
+  get: (name: string) => string | null;
+};
+
+const DEFAULT_PAGE_SIZE = 50;
+
+function parsePositiveInteger(value: string | null, fallback: number) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function readOrdersListState(params: QueryReader): OrdersListState {
+  const page = parsePositiveInteger(params.get("page"), 1);
+  const pageSize = parsePositiveInteger(params.get("page_size"), DEFAULT_PAGE_SIZE);
+
+  return {
+    pageIndex: page - 1,
+    pageSize,
+    searchQuery: params.get("search") ?? "",
+    statusFilter: params.get("status") ?? "",
+    dateFrom: params.get("date_from") ?? "",
+    dateTo: params.get("date_to") ?? "",
+  };
+}
+
+function setOptionalQueryParam(params: URLSearchParams, key: string, value: string) {
+  const normalized = value.trim();
+  if (normalized) {
+    params.set(key, normalized);
+  } else {
+    params.delete(key);
+  }
+}
+
+function writeOrdersListState(params: URLSearchParams, state: OrdersListState) {
+  setOptionalQueryParam(params, "search", state.searchQuery);
+  setOptionalQueryParam(params, "status", state.statusFilter);
+  setOptionalQueryParam(params, "date_from", state.dateFrom);
+  setOptionalQueryParam(params, "date_to", state.dateTo);
+
+  if (state.pageIndex > 0) {
+    params.set("page", String(state.pageIndex + 1));
+  } else {
+    params.delete("page");
+  }
+
+  if (state.pageSize !== DEFAULT_PAGE_SIZE) {
+    params.set("page_size", String(state.pageSize));
+  } else {
+    params.delete("page_size");
+  }
+}
+
+function buildOrdersHref(params: URLSearchParams) {
+  const queryString = params.toString();
+  return queryString ? `/orders?${queryString}` : "/orders";
+}
+
 /* ─── Helpers ────────────────────────────────────────────── */
 function mapRawToOrderRow(order: RawOrder): OrderRow {
   const customer = order.customer;
@@ -79,12 +146,14 @@ function mapRawToOrderRow(order: RawOrder): OrderRow {
 
 export default function OrdersPage() {
   const router = useRouter();
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(50);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const searchParams = useSearchParams();
+  const initialListState = readOrdersListState(searchParams);
+  const [pageIndex, setPageIndex] = useState(initialListState.pageIndex);
+  const [pageSize, setPageSize] = useState(initialListState.pageSize);
+  const [searchQuery, setSearchQuery] = useState(initialListState.searchQuery);
+  const [statusFilter, setStatusFilter] = useState(initialListState.statusFilter);
+  const [dateFrom, setDateFrom] = useState(initialListState.dateFrom);
+  const [dateTo, setDateTo] = useState(initialListState.dateTo);
 
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -102,6 +171,16 @@ export default function OrdersPage() {
   const deferredQuery = useDeferredValue(debouncedQuery);
   const hasSearchQuery = hasSearchTokens(deferredQuery);
 
+  useEffect(() => {
+    const nextListState = readOrdersListState(searchParams);
+    setPageIndex(nextListState.pageIndex);
+    setPageSize(nextListState.pageSize);
+    setSearchQuery(nextListState.searchQuery);
+    setStatusFilter(nextListState.statusFilter);
+    setDateFrom(nextListState.dateFrom);
+    setDateTo(nextListState.dateTo);
+  }, [searchParams]);
+
   const { data: pageData, isLoading, isFetching } = useOrders({
     page: pageIndex + 1,
     limit: pageSize,
@@ -118,6 +197,7 @@ export default function OrdersPage() {
   useOrdersRealtime();
 
   const meta = pageData?.meta || { count: 0, totalPages: 0 };
+  const isLocalFixture = pageData?.meta?.source === "local-fixture";
   const mappedOrders = useMemo(() => {
     const rawOrdersData = pageData?.data || [];
     const rawOrders = rawOrdersData as unknown as RawOrder[];
@@ -136,30 +216,53 @@ export default function OrdersPage() {
 
   const { openContextMenu, ContextMenuRender } = useContextMenu();
 
+  const replaceListQuery = useCallback(
+    (nextState: Partial<OrdersListState>) => {
+      const mergedState: OrdersListState = {
+        pageIndex,
+        pageSize,
+        searchQuery,
+        statusFilter,
+        dateFrom,
+        dateTo,
+        ...nextState,
+      };
+      const params = new URLSearchParams(searchParams.toString());
+      writeOrdersListState(params, mergedState);
+      router.replace(buildOrdersHref(params), { scroll: false });
+    },
+    [dateFrom, dateTo, pageIndex, pageSize, router, searchParams, searchQuery, statusFilter],
+  );
+
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
     setPageIndex(0);
-  }, []);
+    replaceListQuery({ searchQuery: value, pageIndex: 0 });
+  }, [replaceListQuery]);
 
   const handleStatusChange = useCallback((value: string) => {
     setStatusFilter(value);
     setPageIndex(0);
-  }, []);
+    replaceListQuery({ statusFilter: value, pageIndex: 0 });
+  }, [replaceListQuery]);
 
   const handleDateFromChange = useCallback((value: string) => {
     setDateFrom(value);
     setPageIndex(0);
-  }, []);
+    replaceListQuery({ dateFrom: value, pageIndex: 0 });
+  }, [replaceListQuery]);
 
   const handleDateToChange = useCallback((value: string) => {
     setDateTo(value);
     setPageIndex(0);
-  }, []);
+    replaceListQuery({ dateTo: value, pageIndex: 0 });
+  }, [replaceListQuery]);
 
   const handlePaginationChange = useCallback((newPageIndex: number, newPageSize: number) => {
     setPageIndex(newPageIndex);
     setPageSize(newPageSize);
-  }, []);
+    replaceListQuery({ pageIndex: newPageIndex, pageSize: newPageSize });
+  }, [replaceListQuery]);
 
   const handleRowClick = useCallback((row: OrderRow) => {
     router.push(`/orders/${row.id}`);
@@ -310,6 +413,7 @@ export default function OrdersPage() {
           totalOrders={meta.count}
           isFetching={isFetching && !isLoading}
           hasFilters={Boolean(hasSearchQuery || statusFilter || dateFrom || dateTo)}
+          isLocalFixture={isLocalFixture}
         />
 
         <OrdersKPIs

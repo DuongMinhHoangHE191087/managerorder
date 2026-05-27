@@ -35,7 +35,7 @@ export const InventoryStatsCards = React.memo(function InventoryStatsCards({ das
           </div>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--border-soft)]">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${
+              className={`h-full rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500 ${
                 utilPct >= 90 ? "bg-[var(--danger)]" : utilPct >= 70 ? "bg-[var(--warning)]" : "bg-[var(--accent)]"
               }`}
               style={{ width: `${utilPct}%` }}

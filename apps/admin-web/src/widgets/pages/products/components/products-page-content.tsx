@@ -144,7 +144,7 @@ export default function ProductsPage() {
           actions={
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-[0.98] hover:shadow-md"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-[box-shadow,transform] active:scale-[0.98] hover:shadow-md"
               type="button"
             >
               <Plus className="size-5" />
@@ -191,7 +191,7 @@ export default function ProductsPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--fg-muted)] size-4" />
                 <input
-                  className="w-full bg-[var(--bg-surface)] backdrop-blur-md border border-[var(--border-soft)] rounded-xl pl-9 pr-4 py-2 text-[13px] font-medium focus:ring-1 focus:ring-[var(--ring)] focus:border-[var(--accent)] text-[var(--fg-base)] placeholder:text-[var(--fg-muted)] outline-none transition-all"
+                  className="w-full bg-[var(--bg-surface)] backdrop-blur-md border border-[var(--border-soft)] rounded-xl pl-9 pr-4 py-2 text-[13px] font-medium focus:ring-1 focus:ring-[var(--ring)] focus:border-[var(--accent)] text-[var(--fg-base)] placeholder:text-[var(--fg-muted)] outline-none transition-[border-color,box-shadow]"
                   placeholder={productText.searchPlaceholder}
                   type="text"
                   value={searchQuery}
@@ -262,7 +262,7 @@ export default function ProductsPage() {
                     onClick={() => setViewingProduct(product)}
                     data-testid="product-row"
                     data-product-id={product.id}
-                    className="group flex flex-col lg:grid lg:grid-cols-[minmax(0,3.5fr)_minmax(0,2fr)_minmax(0,3fr)_140px_100px] gap-4 items-center p-5 bg-[var(--surface-light)] border border-[var(--border-soft)] rounded-2xl hover:border-[var(--accent)]/50 hover:shadow-md transition-all cursor-pointer relative"
+                    className="group flex flex-col lg:grid lg:grid-cols-[minmax(0,3.5fr)_minmax(0,2fr)_minmax(0,3fr)_140px_100px] gap-4 items-center p-5 bg-[var(--surface-light)] border border-[var(--border-soft)] rounded-2xl hover:border-[var(--accent)]/50 hover:shadow-md transition-[border-color,box-shadow] cursor-pointer relative"
                   >
                     {/* name & Icon */}
                     <div className="flex items-center gap-4 w-full min-w-0">
@@ -316,8 +316,10 @@ export default function ProductsPage() {
                     <div className="flex justify-start lg:justify-center w-full lg:w-auto mt-2 lg:mt-0 pt-3 border-t border-[var(--border-soft)] lg:pt-0 lg:border-none">
                       <span className="lg:hidden text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] mr-3">{productText.tableHeaders.status}:</span>
                       <button 
+                        type="button"
+                        aria-pressed={product.isActive}
                         onClick={(e) => { e.stopPropagation(); handleToggleActive(product); }} 
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${product.isActive ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.15)]" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-[background-color,border-color,box-shadow,color,transform] hover:scale-105 active:scale-95 ${product.isActive ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.15)]" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}
                       >
                         <div className={`size-1.5 rounded-full animate-pulse ${product.isActive ? "bg-emerald-500" : "bg-red-500"}`} />
                         {product.isActive ? productText.statusLabels.selling : productText.statusLabels.paused}

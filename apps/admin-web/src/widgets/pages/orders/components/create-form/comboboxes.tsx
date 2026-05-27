@@ -19,7 +19,7 @@ export function CustomerCombobox({ customers, value, onChange, onCreateNew }: { 
       <SmartSelector items={items} value={value} onSelect={i => onChange(i.id)} onCreateNew={onCreateNew} placeholder="Tìm kiếm theo tên, email, SĐT..." createLabel="Thêm khách hàng mới" />
       {sel && (
         <FadeIn className="flex items-center justify-between p-4 bg-gradient-to-r from-[var(--accent)]/5 to-transparent rounded-xl border border-[var(--accent)]/30 shadow-sm overflow-hidden group relative">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--accent)]/5 rounded-full blur-[30px] -mr-8 -mt-8 group-hover:scale-110 transition-all" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--accent)]/5 rounded-full blur-[30px] -mr-8 -mt-8 group-hover:scale-110 transition-[background-color,border-color,box-shadow,color,opacity,transform,width]" />
           <div className="flex items-center gap-3 relative z-10 flex-1 min-w-0">
             <div className="size-11 rounded-full bg-[var(--accent)]/10 border-2 border-[var(--accent)]/20 flex items-center justify-center text-[var(--accent)] font-black text-[15px] shrink-0">{sel.name.charAt(0).toUpperCase()}</div>
             <div className="min-w-0">

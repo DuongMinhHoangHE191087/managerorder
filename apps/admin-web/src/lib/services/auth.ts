@@ -19,6 +19,10 @@ interface InternalUser {
   createdAt: Date;
 }
 
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
 // ─── Repository ──────────────────────────────────────────────────────────────
 
 /**
@@ -58,11 +62,13 @@ export class AuthRepository {
   }
 
   async findUserByEmail(email: string): Promise<InternalUser | null> {
+    const normalizedEmail = normalizeEmail(email);
+
     // First try new schema (with status filter)
     const { data, error } = await supabaseAdmin
       .from('admin_users')
       .select('*')
-      .eq('email', email)
+      .ilike('email', normalizedEmail)
       .single();
     
     if (error || !data) {
@@ -95,20 +101,24 @@ export class AuthRepository {
   }
 
   async findAccountByEmail(email: string) {
+    const normalizedEmail = normalizeEmail(email);
+
     const { data } = await supabaseAdmin
       .from('admin_users')
       .select('account_id, email')
-      .eq('email', email)
+      .ilike('email', normalizedEmail)
       .single();
     return data ?? null;
   }
 
   async createAccount(email: string, name: string) {
+    const normalizedEmail = normalizeEmail(email);
+
     const { data, error } = await supabaseAdmin
       .from('accounts')
       .insert({
         name,
-        owner_email: email,
+        owner_email: normalizedEmail,
         status: 'active',
       })
       .select()
@@ -118,7 +128,7 @@ export class AuthRepository {
       throw new Error(`[Auth] Failed to create account: ${error.message}`);
     }
 
-    return { id: data.id, name: data.name, email, status: data.status ?? 'active' };
+    return { id: data.id, name: data.name, email: normalizedEmail, status: data.status ?? 'active' };
   }
 
   async createUser(
@@ -127,12 +137,13 @@ export class AuthRepository {
     accountId: string,
     userData: { firstName: string; lastName: string }
   ): Promise<InternalUser> {
+    const normalizedEmail = normalizeEmail(email);
     const hashedPassword = await hashPassword(password);
     
     // Insert with both old and new column names for compatibility
     const insertData: Record<string, unknown> = {
       account_id: accountId,
-      email,
+      email: normalizedEmail,
       role: 'admin',
       display_name: `${userData.firstName} ${userData.lastName}`.trim(),
     };

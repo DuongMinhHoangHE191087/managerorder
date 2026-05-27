@@ -10,6 +10,7 @@ import { loadRowsByIds } from "@/lib/supabase/relation-fallback";
 import { ValidationError } from "@/lib/utils/errors";
 import {
   buildLocalPremiumMigrations,
+  shouldPreferLocalPremiumFixtures,
   shouldUseLocalPremiumFallback,
 } from "@/app/api/premium/local-fixtures";
 
@@ -34,6 +35,19 @@ type MigrationRow = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+};
+
+type MigrationStatus = "pending" | "in_progress" | "completed" | "failed";
+type MigrationStatusCounts = Record<MigrationStatus, number>;
+type MigrationRangeResult = {
+  data: unknown;
+  count?: number | null;
+  error: unknown;
+};
+type MigrationFilterChain = {
+  eq: (column: string, value: unknown) => unknown;
+  gte: (column: string, value: string) => unknown;
+  lt: (column: string, value: string) => unknown;
 };
 
 const createMigrationSchema = z.object({
@@ -66,6 +80,97 @@ async function logValidationFailure(
   });
 }
 
+function applyMigrationFilters(
+  query: unknown,
+  filters: {
+    accountId: string;
+    status?: string | null;
+    subscriptionId?: string | null;
+    sourceAccountId?: string | null;
+    targetAccountId?: string | null;
+    customerId?: string | null;
+    fromDate?: string | null;
+    toDate?: string | null;
+  },
+) {
+  let nextQuery = query as MigrationFilterChain;
+  nextQuery = nextQuery.eq("account_id", filters.accountId) as MigrationFilterChain;
+
+  if (filters.status) {
+    nextQuery = nextQuery.eq("status", filters.status) as MigrationFilterChain;
+  }
+  if (filters.subscriptionId) {
+    nextQuery = nextQuery.eq("subscription_id", filters.subscriptionId) as MigrationFilterChain;
+  }
+  if (filters.sourceAccountId) {
+    nextQuery = nextQuery.eq("source_account_id", filters.sourceAccountId) as MigrationFilterChain;
+  }
+  if (filters.targetAccountId) {
+    nextQuery = nextQuery.eq("target_account_id", filters.targetAccountId) as MigrationFilterChain;
+  }
+  if (filters.customerId) {
+    nextQuery = nextQuery.eq("customer_id", filters.customerId) as MigrationFilterChain;
+  }
+  if (filters.fromDate) {
+    nextQuery = nextQuery.gte("created_at", filters.fromDate) as MigrationFilterChain;
+  }
+  if (filters.toDate) {
+    const inclusiveEnd = new Date(filters.toDate);
+    inclusiveEnd.setDate(inclusiveEnd.getDate() + 1);
+    nextQuery = nextQuery.lt("created_at", inclusiveEnd.toISOString()) as MigrationFilterChain;
+  }
+
+  return nextQuery;
+}
+
+async function loadMigrationStatusCounts(filters: {
+  accountId: string;
+  subscriptionId?: string | null;
+  sourceAccountId?: string | null;
+  targetAccountId?: string | null;
+  customerId?: string | null;
+  fromDate?: string | null;
+  toDate?: string | null;
+}) {
+  const statuses: MigrationStatus[] = ["pending", "in_progress", "completed", "failed"];
+  const counts = await Promise.all(
+    statuses.map(async (status) => {
+      const query = applyMigrationFilters(
+        supabaseAdmin
+          .from("account_migrations")
+          .select("id", { count: "exact" }),
+        {
+          ...filters,
+          status,
+        },
+      ) as unknown as {
+        range: (from: number, to: number) => Promise<MigrationRangeResult>;
+      };
+
+      const { count, data, error } = await query.range(0, 0);
+
+      if (error) {
+        throw error;
+      }
+
+      return [status, Number(count ?? (Array.isArray(data) ? data.length : 0))] as const;
+    }),
+  );
+
+  return Object.fromEntries(counts) as MigrationStatusCounts;
+}
+
+function buildFallbackStatusCounts(
+  rows: Array<{ status: string }>,
+): MigrationStatusCounts {
+  return {
+    pending: rows.filter((item) => item.status === "pending").length,
+    in_progress: rows.filter((item) => item.status === "in_progress").length,
+    completed: rows.filter((item) => item.status === "completed").length,
+    failed: rows.filter((item) => item.status === "failed").length,
+  };
+}
+
 export const GET = withFlatAccountHandler(async (request, { accountId }) => {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status") || "pending";
@@ -75,14 +180,13 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
   const customerId = searchParams.get("customer_id");
   const fromDate = searchParams.get("from_date");
   const toDate = searchParams.get("to_date");
+  const includeStatusCounts = searchParams.get("include_status_counts") === "1";
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const limit = Math.min(Math.max(1, Number(searchParams.get("limit")) || 20), 100);
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
-  const preferLocalPremiumFixtures =
-    process.env.NODE_ENV === "development" &&
-    process.env.CODEX_DISABLE_LOCAL_FALLBACK !== "1";
+  const preferLocalPremiumFixtures = shouldPreferLocalPremiumFixtures();
 
   if (preferLocalPremiumFixtures) {
     const fallbackMigrations = buildLocalPremiumMigrations(accountId, status)
@@ -99,12 +203,33 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
         end.setDate(end.getDate() + 1);
         return new Date(item.created_at) < end;
       });
+    const statusCounts = includeStatusCounts
+      ? buildFallbackStatusCounts(
+          ["pending", "in_progress", "completed", "failed"].flatMap((itemStatus) =>
+            buildLocalPremiumMigrations(accountId, itemStatus)
+              .filter((item) => (subscriptionId ? item.subscription_id === subscriptionId : true))
+              .filter((item) => (sourceAccountId ? item.source_account_id === sourceAccountId : true))
+              .filter((item) => (targetAccountId ? item.target_account_id === targetAccountId : true))
+              .filter((item) => (customerId ? item.customer_id === customerId : true))
+              .filter((item) => (fromDate ? new Date(item.created_at) >= new Date(fromDate) : true))
+              .filter((item) => {
+                if (!toDate) {
+                  return true;
+                }
+                const end = new Date(toDate);
+                end.setDate(end.getDate() + 1);
+                return new Date(item.created_at) < end;
+              }),
+          ),
+        )
+      : undefined;
     const pagedFallback = fallbackMigrations.slice(from, to + 1);
 
     return createFlatSuccessResponse(pagedFallback, {
       meta: {
         total: fallbackMigrations.length,
         status,
+        ...(statusCounts ? { statusCounts } : {}),
         page,
         limit,
         totalPages: Math.ceil(fallbackMigrations.length / limit) || 1,
@@ -113,38 +238,45 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
   }
 
   try {
-    let query = supabaseAdmin
-      .from("account_migrations")
-      .select("*", { count: "exact" })
-      .eq("account_id", accountId);
-
-    if (status) {
-      query = query.eq("status", status);
-    }
-    if (subscriptionId) {
-      query = query.eq("subscription_id", subscriptionId);
-    }
-    if (sourceAccountId) {
-      query = query.eq("source_account_id", sourceAccountId);
-    }
-    if (targetAccountId) {
-      query = query.eq("target_account_id", targetAccountId);
-    }
-    if (customerId) {
-      query = query.eq("customer_id", customerId);
-    }
-    if (fromDate) {
-      query = query.gte("created_at", fromDate);
-    }
-    if (toDate) {
-      const inclusiveEnd = new Date(toDate);
-      inclusiveEnd.setDate(inclusiveEnd.getDate() + 1);
-      query = query.lt("created_at", inclusiveEnd.toISOString());
-    }
-
-    const { data: baseMigrations, error, count } = await query
-      .order("created_at", { ascending: false })
-      .range(from, to);
+    const filterParams = {
+      accountId,
+      status,
+      subscriptionId,
+      sourceAccountId,
+      targetAccountId,
+      customerId,
+      fromDate,
+      toDate,
+    };
+    const [migrationResult, statusCounts] = await Promise.all([
+      (applyMigrationFilters(
+        supabaseAdmin
+          .from("account_migrations")
+          .select("*", { count: "exact" }),
+        filterParams,
+      ) as unknown as {
+        order: (
+          column: string,
+          options?: { ascending?: boolean },
+        ) => {
+          range: (from: number, to: number) => Promise<MigrationRangeResult>;
+        };
+      })
+        .order("created_at", { ascending: false })
+        .range(from, to),
+      includeStatusCounts
+        ? loadMigrationStatusCounts({
+            accountId,
+            subscriptionId,
+            sourceAccountId,
+            targetAccountId,
+            customerId,
+            fromDate,
+            toDate,
+          })
+        : Promise.resolve(undefined),
+    ]);
+    const { data: baseMigrations, error, count } = migrationResult;
 
     if (error) {
       throw error;
@@ -227,6 +359,7 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
       meta: {
         total: count ?? formattedData.length,
         status,
+        ...(statusCounts ? { statusCounts } : {}),
         page,
         limit,
         totalPages: count ? Math.ceil(count / limit) : 0,
@@ -241,12 +374,24 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
         .filter((item) => (sourceAccountId ? item.source_account_id === sourceAccountId : true))
         .filter((item) => (targetAccountId ? item.target_account_id === targetAccountId : true))
         .filter((item) => (customerId ? item.customer_id === customerId : true));
+      const statusCounts = includeStatusCounts
+        ? buildFallbackStatusCounts(
+            ["pending", "in_progress", "completed", "failed"].flatMap((itemStatus) =>
+              buildLocalPremiumMigrations(accountId, itemStatus)
+                .filter((item) => (subscriptionId ? item.subscription_id === subscriptionId : true))
+                .filter((item) => (sourceAccountId ? item.source_account_id === sourceAccountId : true))
+                .filter((item) => (targetAccountId ? item.target_account_id === targetAccountId : true))
+                .filter((item) => (customerId ? item.customer_id === customerId : true)),
+            ),
+          )
+        : undefined;
       const pagedFallback = fallbackMigrations.slice(from, to + 1);
 
       return createFlatSuccessResponse(pagedFallback, {
         meta: {
           total: fallbackMigrations.length,
           status,
+          ...(statusCounts ? { statusCounts } : {}),
           page,
           limit,
           totalPages: Math.ceil(fallbackMigrations.length / limit) || 1,

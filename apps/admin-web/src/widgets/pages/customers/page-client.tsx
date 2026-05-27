@@ -350,7 +350,7 @@ export default function CustomersPage() {
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <button
             onClick={handleToggleStats}
-            className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-[12px] font-bold transition-all ${
+            className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-[12px] font-bold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
               showStats ? "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:bg-gray-50"
             }`}
           >
@@ -358,7 +358,7 @@ export default function CustomersPage() {
           </button>
           <button
             onClick={handleToggleGroupTag}
-            className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-[12px] font-bold transition-all ${
+            className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-[12px] font-bold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
               showGroupTag ? "border-[#6366f1]/30 bg-[#6366f1]/10 text-[#6366f1]" : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:bg-gray-50"
             }`}
           >
@@ -372,7 +372,7 @@ export default function CustomersPage() {
                   key={seg}
                   data-segment={seg}
                   onClick={handleSegmentFilterClick}
-                  className={`cursor-pointer whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
+                  className={`cursor-pointer whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
                     segmentFilter === seg
                       ? "border-[var(--accent)] bg-[var(--accent)] text-white"
                       : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:bg-gray-50"

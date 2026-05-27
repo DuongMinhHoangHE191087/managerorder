@@ -49,9 +49,7 @@ describe('calculateExpiryDate', () => {
 
   it('handles month overflow (Jan 31 + 1 month)', () => {
     const result = calculateExpiryDate('2026-01-31', '1month');
-    // Feb doesn't have 31 days → may roll to March
-    const d = new Date(result);
-    expect(d.getMonth()).toBeGreaterThanOrEqual(1); // Feb or March
+    expect(result).toBe('2026-02-28');
   });
 
   it('handles year boundary correctly', () => {

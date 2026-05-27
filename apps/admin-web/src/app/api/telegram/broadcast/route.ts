@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAccount } from "@/lib/api/with-account";
 import { withErrorHandler } from "@/lib/api/with-error-handler";
 import { requirePermissions } from "@/lib/api/rbac";
+import { resolveTelegramAdminChatId } from "@/lib/utils/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export const POST = withErrorHandler(
       }
 
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+      const adminChatId = resolveTelegramAdminChatId();
 
       if (!botToken || !adminChatId) {
         return NextResponse.json(

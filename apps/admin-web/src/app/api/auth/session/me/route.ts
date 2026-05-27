@@ -1,16 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { verifyToken } from "@/lib/utils/jwt";
+import { isMockSessionEnabled } from "@/lib/auth/mock-session";
 import { AuthRepository } from "@/lib/services/auth";
-
-const authRepo = new AuthRepository();
+import { verifyToken } from "@/lib/utils/jwt";
 
 /**
  * GET — Read current user profile from httpOnly access_token cookie.
  * Used by client-side auth store to check session status.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const authRepo = new AuthRepository();
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("access_token")?.value;
     const refreshToken = cookieStore.get("refresh_token")?.value;
@@ -38,7 +38,7 @@ export async function GET() {
       return NextResponse.json({ data: null }, { status: 200 });
     }
 
-    if (process.env.E2E_MOCK_SESSION === "1") {
+    if (isMockSessionEnabled(request.nextUrl.hostname)) {
       const [firstName = "E2E", ...rest] = payload.email.split("@")[0]?.split(/[._-]+/) ?? [];
       return NextResponse.json({
         data: {

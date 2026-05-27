@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 const ACCOUNT_CACHE_TTL_MS = 5 * 60 * 1000;
+const EMPTY_ACCOUNT_PLACEHOLDER = "00000000-0000-0000-0000-000000000000";
 
 export type BotAccountResolutionSource =
   | "env:telegram_bot_account_id"
@@ -22,7 +23,9 @@ type CacheEntry = {
 let cachedResolution: CacheEntry | null = null;
 
 function normalize(value?: string | null): string {
-  return (value ?? "").trim();
+  const normalized = (value ?? "").trim();
+  // Ignore the repo's placeholder UUID so it does not force a false tenant mismatch.
+  return normalized === EMPTY_ACCOUNT_PLACEHOLDER ? "" : normalized;
 }
 
 export function resolveBotAccountFromCandidates(input: {

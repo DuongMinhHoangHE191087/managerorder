@@ -58,6 +58,8 @@ type UserDraftMap = Record<
   }
 >;
 
+const AUDIT_PAGE_LIMIT = 12;
+
 function formatDateLabel(value?: string | null) {
   if (!value) return "Chưa có";
   const parsed = new Date(value);
@@ -160,7 +162,9 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
     else setIsLoading(true);
 
     try {
-      const response = await fetch(`/api/premium/accounts/${accountId}?audit_page=${nextAuditPage}&audit_limit=6`);
+      const response = await fetch(
+        `/api/premium/accounts/${accountId}?audit_page=${nextAuditPage}&audit_limit=${AUDIT_PAGE_LIMIT}`,
+      );
       const payload = await readApiEnvelope<PremiumAccountDetailViewModel>(response);
 
       if (!response.ok || !payload.data) {
@@ -379,7 +383,7 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
                 <div className="space-y-2"><label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Trạng thái account</label><Select value={configForm.status} onChange={(event) => setConfigForm((current) => current ? { ...current, status: event.target.value as PremiumAccountDetailViewModel["status"] } : current)}><option value="active">Đang hoạt động</option><option value="expired">Đã hết hạn</option><option value="suspended">Tạm ngưng</option><option value="cancelled">Đã hủy</option></Select></div>
                 <div className="space-y-2"><label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Tình trạng kết nối</label><Select value={configForm.connection_status} onChange={(event) => setConfigForm((current) => current ? { ...current, connection_status: event.target.value as AccountConfigFormState["connection_status"] } : current)}><option value="">Chưa gắn</option><option value="working">working</option><option value="manual_check_needed">manual_check_needed</option><option value="error">error</option></Select></div>
                 <div className="space-y-2 md:col-span-2"><label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Hoá đơn mua</label><Input value={configForm.purchase_invoice_url} onChange={(event) => setConfigForm((current) => current ? { ...current, purchase_invoice_url: event.target.value } : current)} /></div>
-                <div className="space-y-2 md:col-span-2"><label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Ghi chú vận hành</label><textarea value={configForm.notes} onChange={(event) => setConfigForm((current) => current ? { ...current, notes: event.target.value } : current)} className="min-h-[120px] w-full rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.88)] px-3 py-2 text-[13px] font-medium text-[var(--fg-base)] shadow-sm outline-none transition-all focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]" /></div>
+                <div className="space-y-2 md:col-span-2"><label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Ghi chú vận hành</label><textarea value={configForm.notes} onChange={(event) => setConfigForm((current) => current ? { ...current, notes: event.target.value } : current)} className="min-h-[120px] w-full rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.88)] px-3 py-2 text-[13px] font-medium text-[var(--fg-base)] shadow-sm outline-none transition-[background-color,border-color,box-shadow,color,opacity,transform,width] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]" /></div>
               </div>
             </SurfaceCard>
 

@@ -40,6 +40,12 @@ export type HealthCheckPagination = {
   limit: number;
   total: number;
   totalPages: number;
+  summary?: {
+    workingCount: number;
+    errorCount: number;
+    unknownCount: number;
+    manualCount: number;
+  };
 };
 
 export type HealthCheckRunResponse = {

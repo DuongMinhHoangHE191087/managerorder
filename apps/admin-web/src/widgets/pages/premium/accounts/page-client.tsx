@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Search } from "lucide-react";
 import { AppLayout } from "@/widgets/layout/app-layout";
-import { PageContainer } from "@/shared/ui/page-layout";
+import { FiltersBar, PageContainer } from "@/shared/ui/page-layout";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Select } from "@/shared/ui/select";
 import { appToast } from "@/shared/lib/toast";
 import { readApiEnvelope } from "@/shared/lib/api-client";
 import { AccountsModals } from "./components/accounts-modals";
@@ -21,6 +25,17 @@ type PremiumMigrationSummaryRow = {
   status: string;
 };
 
+type PremiumSummaryMeta = {
+  overallSummary?: {
+    activeCount?: number;
+    expiringCount?: number;
+  };
+};
+
+type PremiumMigrationMeta = {
+  total?: number;
+};
+
 export default function PremiumAccountsPage() {
   const router = useRouter();
   const [accounts, setAccounts] = useState<PremiumAccountRow[]>([]);
@@ -29,6 +44,9 @@ export default function PremiumAccountsPage() {
   const [activeSubscriptions, setActiveSubscriptions] = useState(0);
   const [expiringSubscriptions, setExpiringSubscriptions] = useState(0);
   const [pendingMigrations, setPendingMigrations] = useState(0);
+  const [accountSearch, setAccountSearch] = useState("");
+  const [accountStatus, setAccountStatus] = useState("all");
+  const [accountServiceId, setAccountServiceId] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [isRunningHealthCheck, setIsRunningHealthCheck] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -88,8 +106,8 @@ export default function PremiumAccountsPage() {
   async function fetchRuntimeSummary() {
     try {
       const [subscriptionsRes, migrationsRes] = await Promise.all([
-        fetch("/api/premium/subscriptions"),
-        fetch("/api/premium/migrations?status=pending"),
+        fetch("/api/premium/subscriptions?renewal_state=all&page_size=1"),
+        fetch("/api/premium/migrations?status=pending&limit=1"),
       ]);
 
       const [subscriptionsPayload, migrationsPayload] = await Promise.all([
@@ -98,17 +116,22 @@ export default function PremiumAccountsPage() {
       ]);
 
       if (subscriptionsRes.ok) {
+        const summary = (subscriptionsPayload.meta as PremiumSummaryMeta | undefined)?.overallSummary;
         const subscriptions = subscriptionsPayload.data ?? [];
-        setActiveSubscriptions(subscriptions.filter((item) => item.status === "active").length);
+        setActiveSubscriptions(
+          summary?.activeCount ?? subscriptions.filter((item) => item.status === "active").length,
+        );
         setExpiringSubscriptions(
-          subscriptions.filter(
-            (item) => item.status === "active" && item.days_remaining > 0 && item.days_remaining <= 7,
-          ).length,
+          summary?.expiringCount ??
+            subscriptions.filter(
+              (item) => item.status === "active" && item.days_remaining > 0 && item.days_remaining <= 7,
+            ).length,
         );
       }
 
       if (migrationsRes.ok) {
-        setPendingMigrations((migrationsPayload.data ?? []).length);
+        const pendingTotal = Number((migrationsPayload.meta as PremiumMigrationMeta | undefined)?.total ?? 0);
+        setPendingMigrations(pendingTotal || (migrationsPayload.data ?? []).length);
       }
     } catch (error) {
       console.error("[fetchRuntimeSummary]", error);
@@ -233,6 +256,34 @@ export default function PremiumAccountsPage() {
   const workingConnections = accounts.filter((item) => item.connection_status === "working").length;
   const manualCheckNeeded = accounts.filter((item) => item.connection_status === "manual_check_needed").length;
   const connectionErrors = accounts.filter((item) => item.connection_status === "error").length;
+  const visibleAccounts = useMemo(() => {
+    const normalizedSearch = accountSearch.trim().toLowerCase();
+
+    return accounts.filter((account) => {
+      if (accountStatus !== "all" && account.status !== accountStatus && account.connection_status !== accountStatus) {
+        return false;
+      }
+      if (accountServiceId !== "all" && account.service_type_id !== accountServiceId) {
+        return false;
+      }
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      return [
+        account.id,
+        account.primary_email,
+        account.service?.name,
+        account.package?.name,
+        account.status,
+        account.connection_status,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedSearch);
+    });
+  }, [accountSearch, accountServiceId, accountStatus, accounts]);
 
   return (
     <AppLayout>
@@ -255,8 +306,52 @@ export default function PremiumAccountsPage() {
           manualCheckNeeded={manualCheckNeeded}
           connectionErrors={connectionErrors}
         />
+        <FiltersBar className="mt-6 flex-col gap-3">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
+              <Input
+                value={accountSearch}
+                onChange={(event) => setAccountSearch(event.target.value)}
+                placeholder="Tìm email, dịch vụ, gói, trạng thái..."
+                className="pl-10"
+              />
+            </div>
+            <Select value={accountServiceId} onChange={(event) => setAccountServiceId(event.target.value)}>
+              <option value="all">Tất cả dịch vụ</option>
+              {services.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.name}
+                </option>
+              ))}
+            </Select>
+            <Select value={accountStatus} onChange={(event) => setAccountStatus(event.target.value)}>
+              <option value="all">Tất cả trạng thái</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="expired">Đã hết hạn</option>
+              <option value="suspended">Tạm ngưng</option>
+              <option value="manual_check_needed">Cần kiểm tra</option>
+              <option value="error">Lỗi kết nối</option>
+            </Select>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setAccountSearch("");
+                setAccountStatus("all");
+                setAccountServiceId("all");
+              }}
+              className="rounded-full"
+            >
+              Reset
+            </Button>
+          </div>
+          <p className="text-[12px] text-[var(--fg-muted)]">
+            Hiển thị {visibleAccounts.length} / {accounts.length} tài khoản sau lọc.
+          </p>
+        </FiltersBar>
         <AccountsTable
-          accounts={accounts}
+          accounts={visibleAccounts}
           isLoading={isLoading}
           onOpenDetail={(account) => router.push(`/premium/accounts/${account.id}`)}
           onOpenSubscriptions={() => router.push("/premium/subscriptions")}

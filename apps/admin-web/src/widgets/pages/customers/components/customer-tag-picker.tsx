@@ -77,7 +77,7 @@ export function CustomerTagPicker({ selectedTagIds, onChange, compact }: Custome
             setIsOpen(!isOpen);
           }
         }}
-        className={`flex items-center gap-2 flex-wrap w-full border border-[var(--border-soft)] rounded-xl transition-all hover:border-[var(--accent)]/40 cursor-pointer ${
+        className={`flex items-center gap-2 flex-wrap w-full border border-[var(--border-soft)] rounded-xl transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:border-[var(--accent)]/40 cursor-pointer ${
           compact ? "px-2 py-1.5 min-h-[32px]" : "px-3 py-2.5 min-h-[44px]"
         } bg-[#f8f9fa] text-left`}
       >
@@ -134,7 +134,7 @@ export function CustomerTagPicker({ selectedTagIds, onChange, compact }: Custome
                   key={tag.id}
                   type="button"
                   onClick={() => toggleTag(tag.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all text-[13px] font-medium ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-[background-color,border-color,box-shadow,color,opacity,transform,width] text-[13px] font-medium ${
                     isSelected
                       ? "bg-[var(--accent)]/10 text-[var(--accent)]"
                       : "hover:bg-gray-50 text-[var(--fg-base)]"
@@ -164,7 +164,7 @@ export function CustomerTagPicker({ selectedTagIds, onChange, compact }: Custome
                     key={color}
                     type="button"
                     onClick={() => setNewTagColor(color)}
-                    className={`size-5 rounded-full transition-all ${
+                    className={`size-5 rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
                       newTagColor === color ? "ring-2 ring-offset-1 ring-[var(--accent)]" : "hover:scale-110"
                     }`}
                     style={{ backgroundColor: color }}

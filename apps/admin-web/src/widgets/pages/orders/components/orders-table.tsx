@@ -348,7 +348,7 @@ const OrderTableRow = React.memo(function OrderTableRow({
 
       className={cn(
 
-        "group relative flex cursor-pointer flex-col gap-5 rounded-[1.5rem] border bg-[rgba(255,255,255,0.96)] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)] md:flex-row md:p-5",
+        "group relative flex cursor-pointer flex-col gap-5 rounded-[1.5rem] border bg-[rgba(255,255,255,0.96)] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)] md:flex-row md:p-5",
 
         isSelected
 
@@ -376,7 +376,7 @@ const OrderTableRow = React.memo(function OrderTableRow({
 
           className={cn(
 
-            "flex h-5 w-5 items-center justify-center rounded-md border-2 transition-all",
+            "flex h-5 w-5 items-center justify-center rounded-md border-2 transition-[background-color,border-color,color]",
 
             isSelected ? "border-[var(--accent)] bg-[var(--accent)]" : "border-[var(--border-soft)] bg-white group-hover:border-[var(--accent)]/50",
 
@@ -502,7 +502,7 @@ const OrderTableRow = React.memo(function OrderTableRow({
 
             <div
 
-              className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-emerald-500 transition-all duration-700 ease-out"
+              className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-emerald-500 transition-[width] duration-700 ease-out"
 
               style={{ width: `${Math.max(5, ((currentStepIdx + 1) / TIMELINE_STEPS.length) * 100)}%` }}
 
@@ -550,7 +550,7 @@ const OrderTableRow = React.memo(function OrderTableRow({
 
                 <div
 
-                  className={cn("absolute left-0 top-0 h-full rounded-full transition-all duration-500", isFullyPaid ? "bg-emerald-500" : "bg-[var(--warning)]")}
+                  className={cn("absolute left-0 top-0 h-full rounded-full transition-[background-color,width] duration-500", isFullyPaid ? "bg-emerald-500" : "bg-[var(--warning)]")}
 
                   style={{ width: `${paymentPct}%` }}
 
@@ -582,7 +582,7 @@ const OrderTableRow = React.memo(function OrderTableRow({
 
 
 
-      <div className="absolute right-3 top-1/2 hidden size-8 -translate-y-1/2 translate-x-2 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-[var(--accent)] opacity-0 shadow-[0_2px_10px_rgba(0,0,0,0.05)] transition-all group-hover:translate-x-0 group-hover:opacity-100 hover:bg-[var(--accent)] hover:text-white md:flex">
+      <div className="absolute right-3 top-1/2 hidden size-8 -translate-y-1/2 translate-x-2 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-[var(--accent)] opacity-0 shadow-[0_2px_10px_rgba(0,0,0,0.05)] transition-[background-color,border-color,box-shadow,color,opacity,transform] group-hover:translate-x-0 group-hover:opacity-100 hover:bg-[var(--accent)] hover:text-white md:flex">
 
         <ChevronRight className="size-4" />
 
@@ -672,7 +672,7 @@ export const OrdersTable = React.memo(function OrdersTable({
 
           className={cn(
 
-            "h-8 w-8 rounded-lg border text-[13px] font-bold transition-all",
+            "h-8 w-8 rounded-lg border text-[13px] font-bold transition-[background-color,border-color,box-shadow,color]",
 
             i === pageIndex
 
@@ -702,7 +702,7 @@ export const OrdersTable = React.memo(function OrdersTable({
 
   return (
 
-    <section data-testid="orders-list" className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
+    <section data-testid="orders-list" className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-[box-shadow] hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
 
       <div className="flex items-center justify-between gap-4 border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] px-5 py-4">
 
@@ -870,7 +870,7 @@ export const OrdersTable = React.memo(function OrdersTable({
 
                   className={cn(
 
-                    "rounded-md px-3 py-1.5 text-[12px] font-bold transition-all",
+                    "rounded-md px-3 py-1.5 text-[12px] font-bold transition-[background-color,box-shadow,color]",
 
                     pageSize === size ? "bg-white text-[var(--accent)] shadow-sm" : "text-[var(--fg-muted)] hover:bg-black/5 hover:text-[var(--fg-base)]",
 
@@ -910,7 +910,7 @@ export const OrdersTable = React.memo(function OrdersTable({
 
                 disabled={pageIndex === 0 || isLoading}
 
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--fg-muted)] transition-all hover:bg-white hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--fg-muted)] transition-[background-color,color,opacity] hover:bg-white hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-30"
 
               >
 
@@ -930,7 +930,7 @@ export const OrdersTable = React.memo(function OrdersTable({
 
                 disabled={pageIndex >= pageCount - 1 || isLoading}
 
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--fg-muted)] transition-all hover:bg-white hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--fg-muted)] transition-[background-color,color,opacity] hover:bg-white hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-30"
 
               >
 

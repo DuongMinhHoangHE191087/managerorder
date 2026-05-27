@@ -21,6 +21,7 @@ export interface PaginatedResponse<T> {
     page: number;
     limit: number;
     totalPages: number;
+    source?: "database" | "local-fixture";
   };
 }
 
@@ -243,4 +244,3 @@ export function useOrdersRealtime(enabled = true) {
     enabled,
   });
 }
-

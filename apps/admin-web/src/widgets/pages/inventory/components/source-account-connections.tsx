@@ -190,6 +190,7 @@ export const SourceAccountConnections = memo(function SourceAccountConnections({
   const { mutateAsync: removeNick, isPending: isRemovingNick } = useRemoveReservedNick();
   const { mutateAsync: recalcSlots, isPending: isSyncing } = useRecalculateSlots();
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [disconnectConfirm, setDisconnectConfirm] = useState<ConnectionItem | null>(null);
   const text = copy.page.connections;
   const slotText = copy.page.slotBreakdown;
 
@@ -209,11 +210,18 @@ export const SourceAccountConnections = memo(function SourceAccountConnections({
 
   const handleDisconnectClick = useCallback(
     (item: ConnectionItem) => {
-      if (confirm(text.confirmDisconnect(item.orders.id.split("-")[0]))) {
-        void handleDisconnect(item.id, item.quantity);
-      }
+      setDisconnectConfirm(item);
     },
-    [handleDisconnect, text],
+    [],
+  );
+
+  const handleConfirmDisconnect = useCallback(
+    async () => {
+      if (!disconnectConfirm) return;
+      await handleDisconnect(disconnectConfirm.id, disconnectConfirm.quantity);
+      setDisconnectConfirm(null);
+    },
+    [disconnectConfirm, handleDisconnect],
   );
 
   const handleReconnect = useCallback(
@@ -288,6 +296,57 @@ export const SourceAccountConnections = memo(function SourceAccountConnections({
 
   return (
     <div className="space-y-6">
+      {disconnectConfirm ? (
+        <div className="fixed inset-0 flex items-center justify-center px-4" style={{ zIndex: "var(--z-modal)" }}>
+          <button
+            type="button"
+            aria-label="Đóng xác nhận ngắt kết nối"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => {
+              if (!isDisconnecting) setDisconnectConfirm(null);
+            }}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="source-account-disconnect-title"
+            className="relative w-full max-w-md rounded-[1.5rem] border border-[var(--border-soft)] bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.22)]"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                <AlertTriangle aria-hidden="true" className="size-5" />
+              </div>
+              <div>
+                <h2 id="source-account-disconnect-title" className="text-base font-black text-[var(--fg-base)]">
+                  Xác nhận ngắt kết nối
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--fg-muted)]">
+                  {text.confirmDisconnect(disconnectConfirm.orders.id.split("-")[0])}
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDisconnectConfirm(null)}
+                disabled={isDisconnecting}
+                className="rounded-xl border border-[var(--border-soft)] px-4 py-2 text-sm font-bold text-[var(--fg-base)] transition-[background-color,opacity] hover:bg-[var(--surface-light)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Huỷ
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmDisconnect()}
+                disabled={isDisconnecting}
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-sm font-bold text-white transition-[background-color,opacity] hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDisconnecting ? <Loader2 aria-hidden="true" className="size-4 animate-spin" /> : null}
+                Ngắt kết nối
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/70 p-4">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">

@@ -57,10 +57,11 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
       <FiltersBar sticky className="px-4 py-4">
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)_auto]">
           <div className="relative min-w-0">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
+            <Search aria-hidden="true" className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
             <Input
+              aria-label="Tìm đơn hàng"
               className="h-11 pl-9"
-              placeholder="Tìm theo mã đơn, khách hàng, sản phẩm hoặc ghi chú..."
+              placeholder="Tìm theo mã đơn, khách hàng, sản phẩm hoặc ghi chú…"
               autoComplete="off"
               name="search-orders"
               type="text"
@@ -71,6 +72,8 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
 
           <div className="grid gap-3 sm:grid-cols-[minmax(180px,0.7fr)_minmax(0,1fr)]">
             <Select
+              aria-label="Lọc theo trạng thái đơn hàng"
+              name="order-status-filter"
               value={statusFilter}
               onChange={(event) => onStatusChange(event.target.value)}
               className="h-11 min-w-[180px]"
@@ -84,8 +87,10 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
 
             <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr]">
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
+                <Calendar aria-hidden="true" className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
                 <Input
+                  aria-label="Từ ngày tạo đơn"
+                  name="orders-date-from"
                   type="date"
                   value={dateFrom}
                   onChange={(event) => onDateFromChange(event.target.value)}
@@ -97,8 +102,10 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
                 đến
               </div>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
+                <Calendar aria-hidden="true" className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
                 <Input
+                  aria-label="Đến ngày tạo đơn"
+                  name="orders-date-to"
                   type="date"
                   value={dateTo}
                   onChange={(event) => onDateToChange(event.target.value)}
@@ -134,10 +141,11 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
           <button
             key={chip.value}
             type="button"
+            aria-pressed={statusFilter === chip.value}
             onClick={() => onStatusChange(chip.value)}
-            className={`rounded-full border px-3.5 py-1.5 text-[12px] font-bold tracking-wide transition-all duration-200 ${
+            className={`rounded-full border px-3.5 py-1.5 text-[12px] font-bold tracking-wide transition-[background-color,border-color,color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 ${
               statusFilter === chip.value
-                ? `${chip.color} border-current shadow-sm scale-105`
+                ? `${chip.color} border-current shadow-sm`
                 : "border-transparent bg-[rgba(255,255,255,0.82)] text-[var(--fg-muted)] hover:bg-white"
             }`}
           >

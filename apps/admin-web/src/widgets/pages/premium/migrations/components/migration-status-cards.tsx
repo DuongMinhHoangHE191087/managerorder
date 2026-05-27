@@ -27,7 +27,7 @@ function StatusCard({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl border p-5 text-left shadow-sm transition-all ${
+      className={`rounded-2xl border p-5 text-left shadow-sm transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
         selected
           ? `${accent} ring-2 ring-[var(--ring)]`
           : "border-[var(--border-soft)] bg-white hover:border-[var(--accent)]/30"

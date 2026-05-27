@@ -62,7 +62,7 @@ export function DashboardRecentOrders({ recentOrders }: DashboardRecentOrdersPro
   return (
     <section
       data-testid="dashboard-recent-orders"
-      className="app-card overflow-hidden border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
+      className="app-card overflow-hidden border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
     >
       <div className="flex items-center justify-between border-b border-[var(--border-soft)] bg-[var(--bg-app)]/50 p-5 backdrop-blur-sm">
         <h3 className="text-[15px] font-bold tracking-tight text-[var(--fg-base)]">{vi.dashboard.recentOrders.title}</h3>

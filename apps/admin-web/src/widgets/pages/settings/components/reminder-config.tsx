@@ -134,7 +134,7 @@ function ReminderConfigForm({
                 onClick={() => updateField(day.key, !enabled)}
                 aria-pressed={enabled}
                 className={[
-                  "rounded-2xl border-2 p-4 text-left transition-all duration-300",
+                  "rounded-2xl border-2 p-4 text-left transition-[background-color,border-color,box-shadow] duration-300",
                   enabled
                     ? "border-[var(--accent)] bg-[var(--accent)]/5 shadow-sm"
                     : "border-[var(--border-soft)] bg-white opacity-70",
@@ -176,10 +176,12 @@ function ReminderConfigForm({
             const Icon = channel.icon;
             return (
               <button
+                type="button"
                 key={channel.value}
                 onClick={() => updateField("channel", channel.value)}
+                aria-pressed={active}
                 className={[
-                  "rounded-2xl border px-4 py-3 text-left transition-all",
+                  "rounded-2xl border px-4 py-3 text-left transition-[background-color,border-color,box-shadow]",
                   active
                     ? "border-[var(--accent)] bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/20"
                     : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:border-[var(--accent)]/40",
@@ -281,18 +283,20 @@ function ReminderConfigForm({
 
       <div className="flex items-center justify-between border-t border-[var(--border-soft)] pt-2">
         <button
+          type="button"
           onClick={handleTestSend}
           disabled={testSending}
-          className="flex items-center gap-2 rounded-xl border border-[var(--border-soft)] px-4 py-2.5 text-[12px] font-bold text-[var(--fg-muted)] transition-all hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
+          className="flex items-center gap-2 rounded-xl border border-[var(--border-soft)] px-4 py-2.5 text-[12px] font-bold text-[var(--fg-muted)] transition-[border-color,color,opacity] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
         >
           <Send className="size-3.5" />
           {testSending ? "Đang render..." : "Render test"}
         </button>
 
         <button
+          type="button"
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-2.5 text-[13px] font-bold text-white shadow-md shadow-[var(--accent)]/20 transition-all hover:opacity-90 disabled:opacity-50"
+          className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-2.5 text-[13px] font-bold text-white shadow-md shadow-[var(--accent)]/20 transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           <Save className="size-4" />
           {saving ? "Đang lưu..." : "Lưu cấu hình"}
@@ -321,7 +325,7 @@ function TemplateField({
         rows={4}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full resize-none rounded-xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[13px] font-medium outline-none transition-all focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15"
+        className="w-full resize-none rounded-xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[13px] font-medium outline-none transition-[border-color,box-shadow] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15"
       />
     </div>
   );

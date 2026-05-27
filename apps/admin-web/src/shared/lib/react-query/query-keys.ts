@@ -50,9 +50,13 @@ export const queryKeys = {
   sourceAccounts: ["source-accounts"] as const,
   sourceAccount: (id: string) => ["source-accounts", id] as const,
   sourceAccountDecrypt: (id: string) => ["source-accounts", id, "decrypt"] as const,
+  sourceAccountTotp: (id: string, credentialId: string) => ["source-accounts", id, "totp", credentialId] as const,
   sourceAccountConnections: (id: string) => ["source-accounts", id, "connections"] as const,
   slotBreakdown: (id: string) => ["source-accounts", id, "slot-breakdown"] as const,
   connectionsEnriched: (id: string) => ["source-accounts", id, "connections-enriched"] as const,
+  accountShares: ["account-shares"] as const,
+  accountSharesForSource: (id: string) => ["account-shares", "source-account", id] as const,
+  accountShareLogs: (id: string) => ["account-shares", id, "logs"] as const,
 
   // Dashboard
   dashboard: ["dashboard"] as const,
@@ -62,4 +66,3 @@ export const queryKeys = {
   // Inventory Dashboard
   inventoryDashboard: ["inventory-dashboard"] as const,
 };
-

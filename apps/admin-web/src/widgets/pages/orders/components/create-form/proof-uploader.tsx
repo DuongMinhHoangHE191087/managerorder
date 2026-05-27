@@ -83,7 +83,7 @@ export function ProofUploader({ value, onChange }: { value: string[]; onChange: 
         {files.map(f => (
           <div key={f.id} className="relative size-20 rounded-xl overflow-hidden border-2 border-[var(--border-soft)] group shadow-sm">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={f.url} alt="proof" className={`size-full object-cover transition-all ${f.uploading ? "opacity-40 blur-sm" : ""}`} />
+            <img src={f.url} alt="proof" className={`size-full object-cover transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${f.uploading ? "opacity-40 blur-sm" : ""}`} />
             {f.uploading && <div className="absolute inset-0 flex items-center justify-center bg-black/40"><Loader2 className="size-5 text-white animate-spin" /></div>}
             {f.error && <div className="absolute inset-0 flex items-center justify-center bg-red-500/80 text-white text-[9px] text-center p-1 font-bold">{f.error}</div>}
             {!f.uploading && (
@@ -94,7 +94,7 @@ export function ProofUploader({ value, onChange }: { value: string[]; onChange: 
           </div>
         ))}
         {files.length < MAX && (
-          <label htmlFor={fileId} className="size-20 rounded-xl border-2 border-dashed border-[var(--border-soft)] hover:border-[var(--accent)] bg-[var(--bg-app)]/40 hover:bg-[var(--accent)]/5 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all group">
+          <label htmlFor={fileId} className="size-20 rounded-xl border-2 border-dashed border-[var(--border-soft)] hover:border-[var(--accent)] bg-[var(--bg-app)]/40 hover:bg-[var(--accent)]/5 flex flex-col items-center justify-center gap-1 cursor-pointer transition-[background-color,border-color,box-shadow,color,opacity,transform,width] group">
             <ImagePlus className="size-6 text-[var(--fg-muted)] group-hover:text-[var(--accent)] transition-colors" />
             <span className="text-[9px] font-bold text-[var(--fg-muted)] group-hover:text-[var(--accent)] uppercase tracking-wider">{files.length}/{MAX}</span>
             <input id={fileId} type="file" className="hidden" multiple accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleAdd} />

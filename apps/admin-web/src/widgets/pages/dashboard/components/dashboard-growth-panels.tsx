@@ -46,7 +46,7 @@ function EmptyState({ label }: { label: string }) {
 export function DashboardGrowthPanels({ forecast, cohorts, clvCustomers }: DashboardGrowthPanelsProps) {
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-      <section className="app-card flex min-w-0 flex-col overflow-hidden border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
+      <section className="app-card flex min-w-0 flex-col overflow-hidden border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
         <SectionHeader
           icon={TrendingUp}
           title="Dự báo doanh thu"
@@ -85,7 +85,7 @@ export function DashboardGrowthPanels({ forecast, cohorts, clvCustomers }: Dashb
         </div>
       </section>
 
-      <section className="app-card flex min-w-0 flex-col overflow-hidden border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
+      <section className="app-card flex min-w-0 flex-col overflow-hidden border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
         <SectionHeader
           icon={CalendarRange}
           title="Cohort retention"
@@ -127,7 +127,7 @@ export function DashboardGrowthPanels({ forecast, cohorts, clvCustomers }: Dashb
         </div>
       </section>
 
-      <section className="app-card flex min-w-0 flex-col overflow-hidden border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
+      <section className="app-card flex min-w-0 flex-col overflow-hidden border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
         <SectionHeader
           icon={BadgeDollarSign}
           title="Top CLV khách hàng"

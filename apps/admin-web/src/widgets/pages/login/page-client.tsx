@@ -2,10 +2,11 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Globe, LogIn, Mail, Shield } from "lucide-react";
+import { Globe, LogIn, Mail, Shield, Wrench } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CONTACTS, getAuthErrorMessage } from "@/widgets/marketing/sales-landing-config";
+import { resolveInternalRedirectPath } from "./login-routing";
 
 type AuthTab = "email" | "google";
 
@@ -45,15 +46,53 @@ export default function LoginPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<AuthTab>("email");
   const [error, setError] = useState<string | null>(null);
+  const [isLocalDevLoginVisible, setIsLocalDevLoginVisible] = useState(false);
+  const [isSigningInLocally, setIsSigningInLocally] = useState(false);
 
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect") || "/dashboard";
+  const redirectUrl = resolveInternalRedirectPath(searchParams.get("next"), searchParams.get("redirect"));
   const authError = searchParams.get("error");
   const authReason = searchParams.get("reason");
   const displayError = error || getAuthErrorMessage(authError, authReason);
   const retryUrl = redirectUrl === "/dashboard"
     ? "/login"
-    : `/login?redirect=${encodeURIComponent(redirectUrl)}`;
+    : `/login?next=${encodeURIComponent(redirectUrl)}`;
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    setIsLocalDevLoginVisible(process.env.NODE_ENV === "development" && isLocalhost);
+  }, []);
+
+  async function handleLocalDevLogin() {
+    setIsSigningInLocally(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/auth/session/mock", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+
+      if (!response.ok) {
+        setError(payload.error ?? "Khong the tao local session cho localhost/dev.");
+        return;
+      }
+
+      window.location.assign(redirectUrl);
+    } catch {
+      setError("Khong the tao local session de truy cap moi truong dev.");
+    } finally {
+      setIsSigningInLocally(false);
+    }
+  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--bg-app)]">
@@ -87,7 +126,7 @@ export default function LoginPage() {
                 setActiveTab("email");
                 setError(null);
               }}
-              className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all duration-200 ${
+              className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 ${
                 activeTab === "email"
                   ? "bg-[var(--bg-surface)] text-[var(--fg-base)] shadow-sm"
                   : "text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
@@ -102,7 +141,7 @@ export default function LoginPage() {
                 setActiveTab("google");
                 setError(null);
               }}
-              className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all duration-200 ${
+              className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 ${
                 activeTab === "google"
                   ? "bg-[var(--bg-surface)] text-[var(--fg-base)] shadow-sm"
                   : "text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
@@ -133,6 +172,35 @@ export default function LoginPage() {
           ) : (
             <LoginGooglePanel redirectUrl={redirectUrl} onErrorChange={setError} />
           )}
+
+          {isLocalDevLoginVisible ? (
+            <div className="mt-5 rounded-3xl border border-sky-200/70 bg-gradient-to-br from-sky-50 via-white to-cyan-50 p-4 shadow-[0_14px_34px_rgba(14,165,233,0.1)]">
+              <div className="flex items-start gap-3">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-sky-200/60">
+                  <Wrench className="size-5 text-sky-700" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-extrabold text-slate-900">Đăng nhập local để kiểm tra runtime</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    Dùng mock session cho môi trường localhost/dev để vào thẳng trang đang test.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void handleLocalDevLogin()}
+                    disabled={isSigningInLocally}
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSigningInLocally ? (
+                      <div className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    ) : (
+                      <LogIn className="size-4" />
+                    )}
+                    Vào nhanh trang đang yêu cầu
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-8 flex flex-col items-center gap-2">
             <div className="flex items-center gap-1.5 text-xs text-[var(--fg-muted)]">

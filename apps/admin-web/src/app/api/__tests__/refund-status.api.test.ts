@@ -15,6 +15,17 @@ vi.mock("@/lib/api/rbac", () => mockResolveUser());
 vi.mock("@/lib/services/allocation.service", () => ({
   deallocateOrder: vi.fn(),
 }));
+vi.mock("@/lib/services/premium-order-sync.service", () => ({
+  syncOrderToPremium: vi.fn().mockResolvedValue({
+    orderId: "00000000-0000-4000-8000-00000000009a",
+    orderCode: "DMH_REFUND",
+    subscriptionId: "sub-refund",
+    premiumAccountId: "acct-refund",
+    status: "updated",
+    sourceAccountId: null,
+    placeholderAccount: false,
+  }),
+}));
 vi.mock("@/lib/supabase/repositories/refund-requests.repo", () => ({
   getRefundById: vi.fn(),
   updateRefundStatus: vi.fn(),
@@ -55,6 +66,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 
 import { resolveUser } from "@/lib/api/rbac";
 import { deallocateOrder } from "@/lib/services/allocation.service";
+import { syncOrderToPremium } from "@/lib/services/premium-order-sync.service";
 import { getRefundById, updateRefundStatus } from "@/lib/supabase/repositories/refund-requests.repo";
 import { getOrderStatusHistory, createOrderStatusHistory } from "@/lib/supabase/repositories/order-status-history.repo";
 import { PATCH } from "@/app/api/orders/[id]/refunds/[refundId]/route";
@@ -143,6 +155,11 @@ describe("PATCH /api/orders/[id]/refunds/[refundId]", () => {
         new_status: "refunded",
       })
     );
+    expect(syncOrderToPremium).toHaveBeenCalledWith(
+      TEST_ACCOUNT_ID,
+      ORDER_ID,
+      { syncedBy: TEST_USER_EMAIL },
+    );
   });
 
   it("restores the previous order status when cancelling a completed refund", async () => {
@@ -216,6 +233,11 @@ describe("PATCH /api/orders/[id]/refunds/[refundId]", () => {
         old_status: "refunded",
         new_status: "expired",
       })
+    );
+    expect(syncOrderToPremium).toHaveBeenCalledWith(
+      TEST_ACCOUNT_ID,
+      ORDER_ID,
+      { syncedBy: TEST_USER_EMAIL },
     );
   });
 });

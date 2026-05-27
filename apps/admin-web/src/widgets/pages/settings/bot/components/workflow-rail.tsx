@@ -54,7 +54,7 @@ export function WorkflowRail({
             <article
               key={`${step.title}-${index}`}
               className={cn(
-                "rounded-[1.2rem] border p-4 transition-all",
+                "rounded-[1.2rem] border p-4 transition-[background-color,border-color,box-shadow,color,opacity,transform,width]",
                 statusClasses[status],
               )}
             >

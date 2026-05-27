@@ -139,7 +139,7 @@ function WebhooksCreatePanelContent({
                   type="button"
                   aria-pressed={selected}
                   onClick={() => setNewEvents(toggleEvent(newEvents, eventItem.value))}
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-bold transition-all duration-200 ${
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-bold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 ${
                     selected
                       ? "bg-[var(--accent)] text-white shadow-sm"
                       : "border border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:border-[var(--accent)]/40"

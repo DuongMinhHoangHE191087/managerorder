@@ -56,7 +56,7 @@ export function DashboardHeader({
               data-testid={`dashboard-time-tab-${tab.value}`}
               type="button"
               onClick={() => onTimeRangeChange(tab.value)}
-              className={`rounded-lg px-4 py-1.5 text-[12px] font-bold transition-all ${
+              className={`rounded-lg px-4 py-1.5 text-[12px] font-bold transition-[background-color,color,box-shadow] ${
                 timeRange === tab.value
                   ? "bg-[var(--accent)] text-white shadow-sm"
                   : "text-[var(--fg-muted)] hover:bg-white hover:text-[var(--fg-base)]"
@@ -72,7 +72,7 @@ export function DashboardHeader({
           aria-label="Refresh dashboard"
           data-testid="dashboard-refresh"
           onClick={onRefresh}
-          className="inline-flex items-center justify-center rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] px-3 py-2 text-[13px] font-bold text-[var(--fg-muted)] transition-all hover:border-[var(--accent)]/30 hover:text-[var(--accent)]"
+          className="inline-flex items-center justify-center rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] px-3 py-2 text-[13px] font-bold text-[var(--fg-muted)] transition-[border-color,color] hover:border-[var(--accent)]/30 hover:text-[var(--accent)]"
         >
           <RefreshCw className={`size-4 ${isFetching ? "animate-spin" : ""}`} />
         </button>
@@ -83,7 +83,7 @@ export function DashboardHeader({
             onClick={() => onExport("xlsx")}
             disabled={isExporting}
             aria-busy={exportingFormat === "xlsx"}
-            className="inline-flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-[box-shadow,opacity] hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {exportingFormat === "xlsx" ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
             {exportingFormat === "xlsx" ? "Đang xuất Excel..." : "Xuất Excel"}
@@ -94,7 +94,7 @@ export function DashboardHeader({
             onClick={() => onExport("pdf")}
             disabled={isExporting}
             aria-busy={exportingFormat === "pdf"}
-            className="inline-flex items-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] px-4 py-2 text-[13px] font-bold text-[var(--fg-muted)] transition-all hover:border-[var(--accent)]/30 hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex items-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.84)] px-4 py-2 text-[13px] font-bold text-[var(--fg-muted)] transition-[border-color,color,opacity] hover:border-[var(--accent)]/30 hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {exportingFormat === "pdf" ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />}
             {exportingFormat === "pdf" ? "Đang mở PDF..." : "Xuất PDF"}

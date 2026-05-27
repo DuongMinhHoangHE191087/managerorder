@@ -395,7 +395,7 @@ export function SalesChannelManager() {
                   <button
                     onClick={() => handleCopyValue(channel.id, "ID kênh bán")}
                     title="Sao chép ID kênh bán"
-                    className="opacity-0 transition-all group-hover:opacity-100 text-[var(--fg-muted)] hover:text-[var(--accent)]"
+                    className="opacity-0 transition-[background-color,border-color,box-shadow,color,opacity,transform,width] group-hover:opacity-100 text-[var(--fg-muted)] hover:text-[var(--accent)]"
                   >
                     <Copy className="size-4" />
                   </button>
@@ -410,14 +410,14 @@ export function SalesChannelManager() {
                         sellerContactUrl: channel.sellerContactUrl ?? "",
                       });
                     }}
-                    className="opacity-0 transition-all group-hover:opacity-100 text-[var(--fg-muted)] hover:text-[var(--accent)]"
+                    className="opacity-0 transition-[background-color,border-color,box-shadow,color,opacity,transform,width] group-hover:opacity-100 text-[var(--fg-muted)] hover:text-[var(--accent)]"
                   >
                     <Pencil className="size-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(channel.id)}
                     disabled={deletingChannel || deletingId === channel.id || updatingChannel || savingId === channel.id}
-                    className="opacity-0 transition-all group-hover:opacity-100 text-[var(--fg-muted)] hover:text-[var(--danger)] disabled:opacity-40"
+                    className="opacity-0 transition-[background-color,border-color,box-shadow,color,opacity,transform,width] group-hover:opacity-100 text-[var(--fg-muted)] hover:text-[var(--danger)] disabled:opacity-40"
                   >
                     <Trash2 className="size-4" />
                   </button>

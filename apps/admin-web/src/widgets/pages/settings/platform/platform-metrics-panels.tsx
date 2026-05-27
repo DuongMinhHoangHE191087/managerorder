@@ -214,7 +214,7 @@ export function PlatformMetricsPanels({ metrics }: { metrics: PlatformMetrics })
                   <code className="text-[12px] font-mono font-bold text-[var(--fg-base)]">{ep.path}</code>
                   <div className="w-full bg-gray-100 rounded-full h-2 mt-1.5">
                     <div
-                      className="h-2 rounded-full bg-gradient-to-r from-amber-400 to-red-500 transition-all"
+                      className="h-2 rounded-full bg-gradient-to-r from-amber-400 to-red-500 transition-[background-color,border-color,box-shadow,color,opacity,transform,width]"
                       style={{ width: `${(ep.hits / topEndpointHits) * 100}%` }}
                     />
                   </div>

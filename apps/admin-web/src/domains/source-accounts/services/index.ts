@@ -1,4 +1,4 @@
-import type { SourceAccount } from "@/lib/domain/types";
+import type { SourceAccount, WarehouseCredentialFormat } from "@/lib/domain/types";
 import { mapRowToSourceAccount } from "@/lib/mappers/source-account.mapper";
 import { createActivityLog } from "@/lib/supabase/repositories/activity-logs.repo";
 import {
@@ -19,6 +19,7 @@ import {
   type SourceAccountRow,
 } from "@/lib/supabase/repositories/source-accounts.repo";
 import { decryptNotes, encryptNotes } from "@/lib/utils/credential-crypto";
+import { ApplicationError } from "@/lib/utils/errors";
 import {
   scanSmartMatches,
   searchUnconnectedByNickOrNote,
@@ -31,6 +32,9 @@ type SourceAccountCredentialInput = {
   type: string;
   value: string;
   label?: string;
+  format?: WarehouseCredentialFormat;
+  shareable?: boolean;
+  masked?: boolean;
 };
 
 export interface DecryptedSourceAccountCredential {
@@ -38,6 +42,9 @@ export interface DecryptedSourceAccountCredential {
   type: string;
   value: string;
   label?: string;
+  format?: WarehouseCredentialFormat;
+  shareable?: boolean;
+  masked?: boolean;
 }
 
 export interface DecryptedSourceAccountSecrets {
@@ -103,6 +110,15 @@ function normalizeDecryptedCredentials(
       if (typeof raw.label === "string" && raw.label.trim()) {
         normalized.label = raw.label;
       }
+      if (isWarehouseCredentialFormat(raw.format)) {
+        normalized.format = raw.format;
+      }
+      if (typeof raw.shareable === "boolean") {
+        normalized.shareable = raw.shareable;
+      }
+      if (typeof raw.masked === "boolean") {
+        normalized.masked = raw.masked;
+      }
 
       return normalized;
     }
@@ -113,6 +129,14 @@ function normalizeDecryptedCredentials(
       value: "",
     };
   });
+}
+
+function isWarehouseCredentialFormat(value: unknown): value is WarehouseCredentialFormat {
+  return value === "plain"
+    || value === "totp_secret"
+    || value === "backup_codes"
+    || value === "url"
+    || value === "identifier";
 }
 
 function buildPersistedNotes(
@@ -465,7 +489,11 @@ export async function getDecryptedSourceAccountSecretsForAccount(
   try {
     decryptedNotes = decryptNotes(notes);
   } catch {
-    // Backward compatible: return raw notes when decryption is not available.
+    throw new ApplicationError(
+      "Không thể giải mã credential. Kiểm tra CREDENTIAL_ENCRYPTION_KEY trước khi xem hoặc share tài khoản.",
+      503,
+      "CREDENTIAL_DECRYPTION_UNAVAILABLE",
+    );
   }
 
   return {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useDeferredValue, useMemo } from "react";
+import { useState, useCallback, useDeferredValue, useEffect, useMemo } from "react";
 import { Eye, Edit2, PackageSearch, Clock, RefreshCw, Trash2, X } from "lucide-react";
 import { appToast } from "@/shared/lib/toast";
 import dynamic from "next/dynamic";
@@ -27,7 +27,7 @@ const InventoryFilters = dynamic(() => import("@/widgets/pages/inventory/compone
 const InventoryTable = dynamic(() => import("@/widgets/pages/inventory/components/inventory-table").then((m) => ({ default: m.InventoryTable })), {
   ssr: false,
   loading: () => (
-    <div data-testid="inventory-list-loading" className="app-card mb-6 overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
+    <div data-testid="inventory-list-loading" className="app-card mb-6 overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-[box-shadow] hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
       <div className="flex items-center justify-between border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] p-5">
         <div className="h-4 w-44 animate-pulse rounded bg-gray-200" />
         <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
@@ -57,6 +57,51 @@ const AllocateOrderButton = dynamic(() => import("@/widgets/pages/orders/compone
     </button>
   ),
 });
+
+type QueryReader = {
+  get: (name: string) => string | null;
+};
+
+type InventoryFilterState = {
+  searchQuery: string;
+  productIdFilter: string;
+  providerFilter: string;
+  statusFilter: string;
+};
+
+const INVENTORY_STATUS_VALUES = new Set(["", "active", "full", "expired", "expiring_7d"]);
+
+function readInventoryFilterState(params: QueryReader): InventoryFilterState {
+  const status = params.get("status") ?? "";
+
+  return {
+    searchQuery: params.get("search") ?? "",
+    productIdFilter: params.get("product_id") ?? "",
+    providerFilter: params.get("provider") ?? "",
+    statusFilter: INVENTORY_STATUS_VALUES.has(status) ? status : "",
+  };
+}
+
+function setOptionalQueryParam(params: URLSearchParams, key: string, value: string) {
+  const normalized = value.trim();
+  if (normalized) {
+    params.set(key, normalized);
+  } else {
+    params.delete(key);
+  }
+}
+
+function writeInventoryFilterState(params: URLSearchParams, state: InventoryFilterState) {
+  setOptionalQueryParam(params, "search", state.searchQuery);
+  setOptionalQueryParam(params, "product_id", state.productIdFilter);
+  setOptionalQueryParam(params, "provider", state.providerFilter);
+  setOptionalQueryParam(params, "status", state.statusFilter);
+}
+
+function buildInventoryHref(params: URLSearchParams) {
+  const queryString = params.toString();
+  return queryString ? `/inventory?${queryString}` : "/inventory";
+}
 
 export default function InventoryPage() {
   const inventoryText = copy.page;
@@ -91,10 +136,11 @@ export default function InventoryPage() {
 
   useInventoryRealtime();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [productIdFilter, setProductIdFilter] = useState("");
-  const [providerFilter, setProviderFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const initialFilterState = readInventoryFilterState(searchParams);
+  const [searchQuery, setSearchQuery] = useState(initialFilterState.searchQuery);
+  const [productIdFilter, setProductIdFilter] = useState(initialFilterState.productIdFilter);
+  const [providerFilter, setProviderFilter] = useState(initialFilterState.providerFilter);
+  const [statusFilter, setStatusFilter] = useState(initialFilterState.statusFilter);
 
   const [selectedAccount, setSelectedAccount] = useState<SourceAccount | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -112,6 +158,29 @@ export default function InventoryPage() {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [currentTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    const nextState = readInventoryFilterState(searchParams);
+    setSearchQuery(nextState.searchQuery);
+    setProductIdFilter(nextState.productIdFilter);
+    setProviderFilter(nextState.providerFilter);
+    setStatusFilter(nextState.statusFilter);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const currentQuery = searchParams.toString();
+    const params = new URLSearchParams(currentQuery);
+    writeInventoryFilterState(params, {
+      searchQuery,
+      productIdFilter,
+      providerFilter,
+      statusFilter,
+    });
+
+    if (params.toString() !== currentQuery) {
+      router.replace(buildInventoryHref(params), { scroll: false });
+    }
+  }, [productIdFilter, providerFilter, router, searchParams, searchQuery, statusFilter]);
 
   const productMap = useMemo(() => new Map(products.map((product: { id: string; name: string }) => [product.id, product.name])), [products]);
   const providerById = useMemo(
@@ -214,8 +283,11 @@ export default function InventoryPage() {
   }, [deletingKey, deleteInventory]);
 
   const handleCloseLicenseKeyDetail = useCallback(() => {
-    router.replace("/inventory");
-  }, [router]);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("key");
+    params.delete("trash");
+    router.replace(buildInventoryHref(params), { scroll: false });
+  }, [router, searchParams]);
 
   const handleRestoreLicenseKey = useCallback(async () => {
     if (!selectedLicenseKeyResult?.data) return;
@@ -504,7 +576,7 @@ export default function InventoryPage() {
           </div>
         ) : null}
 
-        <div className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
+        <div className="app-card overflow-hidden border border-[var(--border-soft)] bg-[rgba(255,255,255,0.94)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-[box-shadow] hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
           <div className="flex items-center justify-between border-b border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,250,244,0.84))] p-5">
             <h3 className="text-[15px] font-bold tracking-tight text-[var(--fg-base)]">{inventoryText.pendingOrders.title}</h3>
           </div>

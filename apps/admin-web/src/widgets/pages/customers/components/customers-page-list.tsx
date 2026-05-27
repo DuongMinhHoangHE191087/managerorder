@@ -204,7 +204,7 @@ const CustomerListRow = React.memo(function CustomerListRow({
 
       className={cn(
 
-        "group relative flex cursor-pointer flex-col gap-5 rounded-[1.5rem] border bg-[rgba(255,255,255,0.96)] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)] md:flex-row md:p-5",
+        "group relative flex cursor-pointer flex-col gap-5 rounded-[1.5rem] border bg-[rgba(255,255,255,0.96)] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)] md:flex-row md:p-5",
 
         isSelected
 
@@ -236,7 +236,7 @@ const CustomerListRow = React.memo(function CustomerListRow({
 
             className={cn(
 
-              "flex h-5 w-5 items-center justify-center rounded-md border-2 transition-all",
+              "flex h-5 w-5 items-center justify-center rounded-md border-2 transition-[background-color,border-color]",
 
               isSelected ? "border-[var(--accent)] bg-[var(--accent)]" : "border-[var(--border-soft)] bg-white group-hover:border-[var(--accent)]/50",
 
@@ -506,7 +506,7 @@ export const CustomersPageList = React.memo(function CustomersPageList({
 
             <input type="checkbox" className="peer sr-only" checked={allFilteredSelected} onChange={onToggleSelectAll} />
 
-            <div className="flex h-5 w-5 items-center justify-center rounded-md border-2 border-[var(--border-soft)] transition-all group-hover:border-[var(--accent)]/50 peer-checked:border-[var(--accent)] peer-checked:bg-[var(--accent)]">
+            <div className="flex h-5 w-5 items-center justify-center rounded-md border-2 border-[var(--border-soft)] transition-[background-color,border-color] group-hover:border-[var(--accent)]/50 peer-checked:border-[var(--accent)] peer-checked:bg-[var(--accent)]">
 
               <CheckCircle2 className={cn("size-3.5 text-white opacity-0 transition-opacity peer-checked:opacity-100")} />
 
@@ -645,6 +645,8 @@ export const CustomersPageList = React.memo(function CustomersPageList({
                 <button
 
                   key={size}
+                  type="button"
+                  aria-pressed={pageSize === size}
 
                   onClick={() => {
 
@@ -656,7 +658,7 @@ export const CustomersPageList = React.memo(function CustomersPageList({
 
                   className={cn(
 
-                    "rounded-md px-3 py-1.5 text-[12px] font-bold transition-all",
+                    "rounded-md px-3 py-1.5 text-[12px] font-bold transition-[background-color,color,box-shadow]",
 
                     pageSize === size ? "bg-white text-[var(--accent)] shadow-sm" : "text-[var(--fg-muted)] hover:bg-black/5 hover:text-[var(--fg-base)]"
 
@@ -687,12 +689,14 @@ export const CustomersPageList = React.memo(function CustomersPageList({
             <div className="flex items-center gap-1.5 rounded-xl border border-[var(--border-soft)] bg-gray-50 p-1">
 
               <button
+                type="button"
+                aria-label="Trang trước"
 
                 onClick={() => onPageIndexChange(Math.max(0, pageIndex - 1))}
 
                 disabled={pageIndex === 0 || isLoading}
 
-                className="flex h-8 w-8 items-center justify-center rounded-lg font-bold text-[var(--fg-muted)] transition-all hover:bg-white hover:text-[var(--accent)] disabled:opacity-30 disabled:hover:bg-transparent"
+                className="flex h-8 w-8 items-center justify-center rounded-lg font-bold text-[var(--fg-muted)] transition-[background-color,color,opacity] hover:bg-white hover:text-[var(--accent)] disabled:opacity-30 disabled:hover:bg-transparent"
 
               >
 
@@ -721,12 +725,14 @@ export const CustomersPageList = React.memo(function CustomersPageList({
                     <button
 
                       key={index}
+                      type="button"
+                      aria-current={index === pageIndex ? "page" : undefined}
 
                       onClick={() => onPageIndexChange(index)}
 
                       className={cn(
 
-                        "flex h-8 w-8 items-center justify-center rounded-lg border text-[13px] font-bold transition-all",
+                        "flex h-8 w-8 items-center justify-center rounded-lg border text-[13px] font-bold transition-[background-color,border-color,color,box-shadow]",
 
                         index === pageIndex
 
@@ -751,12 +757,14 @@ export const CustomersPageList = React.memo(function CustomersPageList({
               })()}
 
               <button
+                type="button"
+                aria-label="Trang sau"
 
                 onClick={() => onPageIndexChange(Math.min(pageCount - 1, pageIndex + 1))}
 
                 disabled={pageIndex >= pageCount - 1 || isLoading}
 
-                className="flex h-8 w-8 items-center justify-center rounded-lg font-bold text-[var(--fg-muted)] transition-all hover:bg-white hover:text-[var(--accent)] disabled:opacity-30 disabled:hover:bg-transparent"
+                className="flex h-8 w-8 items-center justify-center rounded-lg font-bold text-[var(--fg-muted)] transition-[background-color,color,opacity] hover:bg-white hover:text-[var(--accent)] disabled:opacity-30 disabled:hover:bg-transparent"
 
               >
 

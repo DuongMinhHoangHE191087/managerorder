@@ -100,7 +100,7 @@ export function ServiceCreateModal({
                 onChange={(event) => setName(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && void handleSave()}
                 placeholder="VD: Duolingo Super"
-                className="w-full rounded-2xl border border-[var(--border-soft)] bg-white py-3 pl-10 pr-4 text-[14px] font-medium outline-none transition-all placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                className="w-full rounded-2xl border border-[var(--border-soft)] bg-white py-3 pl-10 pr-4 text-[14px] font-medium outline-none transition-[background-color,border-color,box-shadow,color,opacity,transform,width] placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
               />
             </div>
           </div>
@@ -116,7 +116,7 @@ export function ServiceCreateModal({
                 pattern="^[a-z0-9-]+$"
                 title="Chỉ chữ cái thường, số và gạch ngang"
                 placeholder="vd: duolingo"
-                className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[14px] font-medium outline-none transition-all focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[14px] font-medium outline-none transition-[background-color,border-color,box-shadow,color,opacity,transform,width] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
               />
               <p className="text-xs leading-6 text-[var(--fg-muted)]">Slug dùng để map service trong kho, thuê bao và báo cáo.</p>
             </div>
@@ -143,7 +143,7 @@ export function ServiceCreateModal({
             onChange={(event) => setDescription(event.target.value)}
             rows={3}
             placeholder="Mô tả ngắn để vận hành biết đây là dịch vụ nào, dùng cho ai."
-            className="w-full resize-none rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[14px] font-medium outline-none transition-all placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+            className="w-full resize-none rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[14px] font-medium outline-none transition-[background-color,border-color,box-shadow,color,opacity,transform,width] placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
           />
         </div>
       </AdvancedOptionsDisclosure>

@@ -30,6 +30,20 @@ describe("resolveBotAccountFromCandidates", () => {
     });
   });
 
+  it("ignores the placeholder telegram account id and falls back to ACCOUNT_ID", () => {
+    const result = resolveBotAccountFromCandidates({
+      telegramBotAccountId: "00000000-0000-0000-0000-000000000000",
+      accountId: " tenant-live ",
+      fallbackAccountIds: ["tenant-a"],
+    });
+
+    expect(result).toEqual({
+      accountId: "tenant-live",
+      source: "env:account_id",
+      warnings: [],
+    });
+  });
+
   it("auto-resolves from admin_users when only one tenant exists", () => {
     const result = resolveBotAccountFromCandidates({
       fallbackAccountIds: ["tenant-a", "tenant-a", " tenant-a "],

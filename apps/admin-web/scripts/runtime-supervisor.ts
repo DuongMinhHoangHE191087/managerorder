@@ -31,16 +31,19 @@ try {
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(currentDir, "..");
+const repoRoot = path.resolve(projectRoot, "..", "..");
+
+// Load env files in increasing priority so app-local values can override repo defaults.
+loadLocalEnv(path.resolve(repoRoot, ".env"));
+loadLocalEnv(path.resolve(repoRoot, ".env.local"));
+loadLocalEnv(path.resolve(projectRoot, ".env"));
 loadLocalEnv(path.resolve(projectRoot, ".env.local"));
+
 const supervisorLockPath = path.resolve(projectRoot, ".next", "dev", "runtime-supervisor.lock.json");
 const registerLoaderPath = path.resolve(currentDir, "register-ts-loader.mjs");
 const registerLoaderUrl = pathToFileURL(registerLoaderPath).href;
 const modeArg = process.argv.find((arg) => arg.startsWith("--mode="));
 const mode = (modeArg?.split("=")[1] || process.argv[2] || "dev").trim();
-
-if (mode === "dev" && process.env.E2E_MOCK_SESSION === undefined) {
-  process.env.E2E_MOCK_SESSION = "1";
-}
 
 const logger = console;
 let shutdownRequested = false;

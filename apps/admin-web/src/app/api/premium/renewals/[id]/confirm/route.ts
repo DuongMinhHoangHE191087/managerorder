@@ -14,31 +14,17 @@ import { withAccount } from '@/lib/api/with-account';
 import { withErrorHandler } from '@/lib/api/with-error-handler';
 import {
   confirmRenewalRequest,
-  calculateExpiryDate,
-  getCycleMonths,
 } from '@/lib/utils/subscriptions-helpers';
-import { calculateRenewalFinanceSnapshot } from "@/lib/domain/premium-renewal-finance";
+import { isPremiumBillingCycle } from "@/lib/domain/premium-renewal-finance";
 
 interface ConfirmBody {
   renewal_price?: number;
-  new_billing_cycle?: '1month' | '3months' | '6months' | '1year';
+  new_billing_cycle?: string;
   cost_price?: number;
   collected_amount?: number;
   notes?: string;
+  product_id?: string;
 }
-
-type RenewalSubscriptionRow = {
-  id: string;
-  expiry_date: string;
-  billing_cycle: string;
-  status: string;
-};
-
-type RenewalWithSubscription = {
-  status: string;
-  customer_premium_subscriptions: RenewalSubscriptionRow | RenewalSubscriptionRow[] | null;
-  [key: string]: unknown;
-};
 
 export const POST = withErrorHandler(
   withAccount<{ id: string }>(async (request: NextRequest, { accountId, params }) => {
@@ -55,26 +41,12 @@ export const POST = withErrorHandler(
 
     if (findError || !renewal) return notFoundResponse('Renewal request');
 
-    const { data: subscription, error: subscriptionError } = await supabase
-      .from('customer_premium_subscriptions')
-      .select('id, expiry_date, billing_cycle, status')
-      .eq('id', renewal.original_subscription_id)
-      .single();
-
-    if (subscriptionError || !subscription) return notFoundResponse('Renewal request');
-
-    const normalizedRenewal = {
-      ...renewal,
-      customer_premium_subscriptions: subscription as RenewalSubscriptionRow,
-    } as RenewalWithSubscription;
-
-    if (normalizedRenewal.status !== 'pending') {
+    if (renewal.status !== 'pending') {
       return badRequestResponse(
-        `Cannot confirm a renewal that is already "${normalizedRenewal.status}"`
+        `Cannot confirm a renewal that is already "${renewal.status}"`
       );
     }
 
-    // Confirm via helper (updates renewal + subscription renewal_status)
     if (body.renewal_price !== undefined && Number(body.renewal_price) <= 0) {
       return badRequestResponse('renewal_price must be greater than 0');
     }
@@ -84,6 +56,9 @@ export const POST = withErrorHandler(
     if (body.collected_amount !== undefined && Number(body.collected_amount) < 0) {
       return badRequestResponse('collected_amount must be greater than or equal to 0');
     }
+    if (body.new_billing_cycle !== undefined && !isPremiumBillingCycle(body.new_billing_cycle)) {
+      return badRequestResponse('new_billing_cycle must be a valid premium billing cycle');
+    }
 
     const updated = await confirmRenewalRequest(id, accountId, {
       renewalPrice: body.renewal_price,
@@ -91,35 +66,8 @@ export const POST = withErrorHandler(
       costPrice: body.cost_price,
       collectedAmount: body.collected_amount,
       notes: body.notes,
+      productId: body.product_id,
     });
-
-    // Extend subscription expiry date
-    const sub = normalizedRenewal.customer_premium_subscriptions;
-    const subscriptionRow = Array.isArray(sub) ? sub[0] ?? null : sub;
-
-    if (subscriptionRow) {
-      const billingCycle =
-        body.new_billing_cycle ?? (updated.new_billing_cycle as '1month' | '3months' | '6months' | '1year') ?? (subscriptionRow.billing_cycle as '1month' | '3months' | '6months' | '1year');
-      const newExpiry = calculateExpiryDate(subscriptionRow.expiry_date, billingCycle);
-      const cycleMonths = getCycleMonths(billingCycle);
-      const finance = calculateRenewalFinanceSnapshot({
-        renewalPrice: Number(updated.renewal_price ?? body.renewal_price ?? 0),
-        collectedAmount: Number(updated.collected_amount ?? body.collected_amount ?? updated.renewal_price ?? body.renewal_price ?? 0),
-        costPrice: Number(updated.cost_price ?? body.cost_price ?? 0),
-      });
-
-      await supabase
-        .from('customer_premium_subscriptions')
-        .update({
-          expiry_date: newExpiry,
-          billing_cycle: billingCycle,
-          cycle_months: cycleMonths,
-          original_price: finance.renewalPrice,
-          final_price: finance.renewalPrice,
-          status: 'active',
-        })
-        .eq('id', subscriptionRow.id);
-    }
 
     return updatedResponse(updated, 'Renewal confirmed and subscription extended');
   })

@@ -20,7 +20,7 @@ type SupabaseResult<T> = {
 const VALID_PREMIUM_KEY = "a".repeat(64);
 const VALID_SERVICE_ID = "550e8400-e29b-41d4-a716-446655440000";
 const VALID_PACKAGE_ID = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
-const PREMIUM_ROUTE_TIMEOUT_MS = 15_000;
+const PREMIUM_ROUTE_TIMEOUT_MS = 25_000;
 
 function createSelectBuilder<T>(
   result: SupabaseResult<T>,
@@ -40,9 +40,20 @@ function createSelectBuilder<T>(
       error: result.error,
       count: result.count,
     });
+  let resolveOnEq = false;
   const chain = {
-    select: vi.fn(() => chain),
-    eq: vi.fn(() => chain),
+    select: vi.fn((_: unknown, options?: { head?: boolean }) => {
+      resolveOnEq = Boolean(options?.head);
+      return chain;
+    }),
+    eq: vi.fn(() => {
+      if (resolveOnEq) {
+        resolveOnEq = false;
+        return resolveMany();
+      }
+
+      return chain;
+    }),
     is: vi.fn(() => (terminal === "is" ? resolveMany() : chain)),
     in: vi.fn(() => (terminal === "in" ? resolveMany() : chain)),
     order: vi.fn(() => (terminal === "order" ? resolveMany() : chain)),
@@ -302,6 +313,64 @@ describe("premium API routes", () => {
         "id, name, slug, total_slots",
       );
     }, PREMIUM_ROUTE_TIMEOUT_MS);
+
+    it("still reads premium accounts from supabase in development unless local fallback is forced", async () => {
+      vi.stubEnv("NODE_ENV", "development");
+
+      const builder = createSelectBuilder({
+        data: [
+          {
+            id: "00000000-0000-4000-8000-000000000116",
+            account_id: TEST_ACCOUNT_ID,
+            service_type_id: VALID_SERVICE_ID,
+            package_id: VALID_PACKAGE_ID,
+            primary_email: "db-owner@example.com",
+            primary_password_encrypted: "encrypted",
+            total_slots: 6,
+            used_slots: 3,
+            subscription_start_date: "2026-04-01T00:00:00.000Z",
+            subscription_expiry_date: "2027-04-01T00:00:00.000Z",
+            status: "active",
+            connection_status: "working",
+            created_at: "2026-04-10T00:00:00.000Z",
+            updated_at: "2026-04-10T00:00:00.000Z",
+          },
+        ],
+        error: null,
+      });
+      const serviceBuilder = createSelectBuilder(
+        {
+          data: [{ id: VALID_SERVICE_ID, name: "Netflix", slug: "netflix", logo_url: null }],
+          error: null,
+        },
+        "in",
+      );
+      const packageBuilder = createSelectBuilder(
+        {
+          data: [{ id: VALID_PACKAGE_ID, name: "Premium", slug: "premium", total_slots: 6 }],
+          error: null,
+        },
+        "in",
+      );
+      const supabaseAdmin = createSupabaseAdminMock({
+        premium_accounts: builder,
+        premium_service_types: serviceBuilder,
+        premium_packages: packageBuilder,
+      });
+      const { GET } = await loadRoute("@/app/api/premium/accounts/route", {
+        supabaseAdmin,
+      });
+
+      const response = await GET(
+        createTestRequest("http://localhost/api/premium/accounts"),
+        { params: {} } as any,
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.data[0].primary_email).toBe("db-owner@example.com");
+      expect(builder.select).toHaveBeenCalled();
+    });
 
     it("rejects invalid premium account payloads", async () => {
       const builder = createInsertBuilder({ data: null, error: null });
@@ -660,6 +729,15 @@ describe("premium API routes", () => {
   });
 
   describe("GET /api/premium/subscriptions", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-07-10T00:00:00.000Z"));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it("hydrates subscriptions from base rows and lookup tables", async () => {
       const builder = createSelectBuilder({
         data: [
@@ -667,19 +745,29 @@ describe("premium API routes", () => {
             id: "00000000-0000-4000-8000-000000000017",
             account_id: TEST_ACCOUNT_ID,
             customer_id: "00000000-0000-4000-8000-000000000005",
+            order_id: "00000000-0000-4000-8000-000000000099",
             premium_account_id: "00000000-0000-4000-8000-000000000016",
             premium_account_user_id: "00000000-0000-4000-8000-000000000088",
             service_type_id: VALID_SERVICE_ID,
             package_id: VALID_PACKAGE_ID,
+            purchase_date: "2026-04-01T00:00:00.000Z",
             billing_cycle: "1year",
             cycle_months: 12,
             start_date: "2026-04-01T00:00:00.000Z",
             expiry_date: "2027-04-01T00:00:00.000Z",
+            days_remaining: 180,
             status: "active",
             renewal_status: "none",
             original_price: 100,
             final_price: 100,
+            discount: 0,
             notes: null,
+            refund_amount: null,
+            renewal_asked_at: null,
+            renewal_confirmed_at: null,
+            renewal_denied_at: null,
+            renewal_denied_reason: null,
+            deleted_at: null,
             created_at: "2026-04-10T00:00:00.000Z",
             updated_at: "2026-04-10T00:00:00.000Z",
           },
@@ -715,7 +803,31 @@ describe("premium API routes", () => {
       );
       const packagesBuilder = createSelectBuilder(
         {
-          data: [{ id: VALID_PACKAGE_ID, default_price: 80, renewal_price_factor: 1.05 }],
+          data: [{ id: VALID_PACKAGE_ID, name: "Premium", default_price: 80, renewal_price_factor: 1.05 }],
+          error: null,
+        },
+        "in",
+      );
+      const ordersBuilder = createSelectBuilder(
+        {
+          data: [
+            {
+              id: "00000000-0000-4000-8000-000000000099",
+              order_code: "DMH_A1B2C3",
+              contact_snapshot: "Zalo: 0909",
+              product_name_snapshot: "Netflix Premium",
+              sales_note: "CTV: Team A",
+              status: "active",
+              sales_channel_id: "00000000-0000-4000-8000-0000000000aa",
+            },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const salesChannelsBuilder = createSelectBuilder(
+        {
+          data: [{ id: "00000000-0000-4000-8000-0000000000aa", name: "CTV Team A" }],
           error: null,
         },
         "in",
@@ -727,13 +839,23 @@ describe("premium API routes", () => {
         },
         "in",
       );
+      const renewalsBuilder = createSelectBuilder(
+        {
+          data: [],
+          error: null,
+        },
+        "order",
+      );
       const supabaseAdmin = createSupabaseAdminMock({
         customer_premium_subscriptions: builder,
         customers: customersBuilder,
         premium_accounts: accountsBuilder,
         premium_packages: packagesBuilder,
         premium_account_users: usersBuilder,
+        orders: ordersBuilder,
+        sales_channels: salesChannelsBuilder,
         premium_service_types: serviceBuilder,
+        subscription_renewals: renewalsBuilder,
       });
       const { GET } = await loadRoute("@/app/api/premium/subscriptions/route", {
         supabaseAdmin,
@@ -750,19 +872,613 @@ describe("premium API routes", () => {
       expect(body.data[0].account_email).toBe("owner@example.com");
       expect(body.data[0].service_name).toBe("Netflix");
       expect(body.data[0].premium_account_users.user_email).toBe("owner-user@example.com");
+      expect(body.data[0].package_name).toBe("Premium");
+      expect(body.data[0].order_code).toBe("DMH_A1B2C3");
+      expect(body.data[0].sales_channel_name).toBe("CTV Team A");
       expect(body.data[0].package_default_price).toBe(80);
       expect(body.data[0].renewal_price_factor).toBe(1.05);
       expect(body.meta.total).toBe(1);
+      expect(body.meta.summary.eligibleCount).toBe(1);
+      expect(body.meta.filters.services[0].label).toBe("Netflix");
       expect(builder.select).toHaveBeenCalledWith("*");
       expect(customersBuilder.select).toHaveBeenCalledWith("id, full_name");
       expect(accountsBuilder.select).toHaveBeenCalledWith(
         "id, primary_email, service_type_id",
       );
       expect(packagesBuilder.select).toHaveBeenCalledWith(
-        "id, default_price, renewal_price_factor",
+        "id, name, default_price, renewal_price_factor",
       );
       expect(usersBuilder.select).toHaveBeenCalledWith("id, user_email, status");
+      expect(ordersBuilder.select).toHaveBeenCalledWith(
+        "id, order_code, contact_snapshot, product_name_snapshot, sales_note, status, sales_channel_id",
+      );
+      expect(salesChannelsBuilder.select).toHaveBeenCalledWith("id, name");
       expect(serviceBuilder.select).toHaveBeenCalledWith("id, name");
+    });
+
+    it("counts expired subscriptions as eligible for renewal handling", async () => {
+      const builder = createSelectBuilder({
+        data: [
+          {
+            id: "sub-active",
+            account_id: TEST_ACCOUNT_ID,
+            customer_id: "cus-active",
+            order_id: "ord-active",
+            premium_account_id: "acc-active",
+            premium_account_user_id: null,
+            service_type_id: VALID_SERVICE_ID,
+            package_id: "pkg-active",
+            purchase_date: "2026-04-01T00:00:00.000Z",
+            billing_cycle: "1month",
+            cycle_months: 1,
+            start_date: "2026-04-01T00:00:00.000Z",
+            expiry_date: "2026-08-01T00:00:00.000Z",
+            days_remaining: 22,
+            status: "active",
+            renewal_status: "none",
+            original_price: 100,
+            final_price: 100,
+            discount: 0,
+            notes: null,
+            refund_amount: null,
+            renewal_asked_at: null,
+            renewal_confirmed_at: null,
+            renewal_denied_at: null,
+            renewal_denied_reason: null,
+            deleted_at: null,
+            created_at: "2026-04-10T00:00:00.000Z",
+            updated_at: "2026-04-10T00:00:00.000Z",
+          },
+          {
+            id: "sub-expired",
+            account_id: TEST_ACCOUNT_ID,
+            customer_id: "cus-expired",
+            order_id: "ord-expired",
+            premium_account_id: "acc-expired",
+            premium_account_user_id: null,
+            service_type_id: VALID_SERVICE_ID,
+            package_id: "pkg-expired",
+            purchase_date: "2026-03-01T00:00:00.000Z",
+            billing_cycle: "1month",
+            cycle_months: 1,
+            start_date: "2026-03-01T00:00:00.000Z",
+            expiry_date: "2026-07-01T00:00:00.000Z",
+            days_remaining: -9,
+            status: "expired",
+            renewal_status: "none",
+            original_price: 100,
+            final_price: 100,
+            discount: 0,
+            notes: null,
+            refund_amount: null,
+            renewal_asked_at: null,
+            renewal_confirmed_at: null,
+            renewal_denied_at: null,
+            renewal_denied_reason: null,
+            deleted_at: null,
+            created_at: "2026-04-10T00:00:00.000Z",
+            updated_at: "2026-04-10T00:00:00.000Z",
+          },
+        ],
+        error: null,
+      });
+      const customersBuilder = createSelectBuilder(
+        {
+          data: [
+            { id: "cus-active", full_name: "Alice" },
+            { id: "cus-expired", full_name: "Bob" },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const accountsBuilder = createSelectBuilder(
+        {
+          data: [
+            { id: "acc-active", primary_email: "alice@example.com", service_type_id: VALID_SERVICE_ID },
+            { id: "acc-expired", primary_email: "bob@example.com", service_type_id: VALID_SERVICE_ID },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const packagesBuilder = createSelectBuilder(
+        {
+          data: [
+            { id: "pkg-active", name: "Package A", default_price: 100, renewal_price_factor: 1 },
+            { id: "pkg-expired", name: "Package B", default_price: 100, renewal_price_factor: 1 },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const ordersBuilder = createSelectBuilder(
+        {
+          data: [
+            {
+              id: "ord-active",
+              order_code: "ORDER-A",
+              contact_snapshot: null,
+              product_name_snapshot: "Netflix",
+              sales_note: null,
+              status: "active",
+              sales_channel_id: null,
+            },
+            {
+              id: "ord-expired",
+              order_code: "ORDER-B",
+              contact_snapshot: null,
+              product_name_snapshot: "Netflix",
+              sales_note: null,
+              status: "active",
+              sales_channel_id: null,
+            },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const serviceBuilder = createSelectBuilder(
+        {
+          data: [{ id: VALID_SERVICE_ID, name: "Netflix" }],
+          error: null,
+        },
+        "in",
+      );
+      const supabaseAdmin = createSupabaseAdminMock({
+        customer_premium_subscriptions: builder,
+        customers: customersBuilder,
+        premium_accounts: accountsBuilder,
+        premium_packages: packagesBuilder,
+        premium_account_users: createSelectBuilder({ data: [], error: null }, "in"),
+        orders: ordersBuilder,
+        sales_channels: createSelectBuilder({ data: [], error: null }, "in"),
+        premium_service_types: serviceBuilder,
+        subscription_renewals: createSelectBuilder({ data: [], error: null }, "order"),
+      });
+      const { GET } = await loadRoute("@/app/api/premium/subscriptions/route", {
+        supabaseAdmin,
+      });
+
+      const response = await GET(
+        createTestRequest("http://localhost/api/premium/subscriptions"),
+        { params: {} } as any,
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.meta.summary.total).toBe(2);
+      expect(body.meta.summary.eligibleCount).toBe(2);
+      expect(body.meta.summary.blockedCount).toBe(0);
+    });
+
+    it("filters subscriptions by package, sales channel, expiry month and search", async () => {
+      const builder = createSelectBuilder({
+        data: [
+          {
+            id: "sub-1",
+            account_id: TEST_ACCOUNT_ID,
+            customer_id: "cus-1",
+            order_id: "ord-1",
+            premium_account_id: "acc-1",
+            premium_account_user_id: "user-1",
+            service_type_id: VALID_SERVICE_ID,
+            package_id: "pkg-a",
+            purchase_date: "2026-04-01T00:00:00.000Z",
+            billing_cycle: "1year",
+            cycle_months: 12,
+            start_date: "2026-04-01T00:00:00.000Z",
+            expiry_date: "2026-07-15T00:00:00.000Z",
+            days_remaining: 5,
+            status: "active",
+            renewal_status: "none",
+            original_price: 100,
+            final_price: 100,
+            discount: 0,
+            notes: "ưu tiên team A",
+            refund_amount: null,
+            renewal_asked_at: null,
+            renewal_confirmed_at: null,
+            renewal_denied_at: null,
+            renewal_denied_reason: null,
+            deleted_at: null,
+            created_at: "2026-04-10T00:00:00.000Z",
+            updated_at: "2026-04-10T00:00:00.000Z",
+          },
+          {
+            id: "sub-2",
+            account_id: TEST_ACCOUNT_ID,
+            customer_id: "cus-2",
+            order_id: "ord-2",
+            premium_account_id: "acc-2",
+            premium_account_user_id: null,
+            service_type_id: VALID_SERVICE_ID,
+            package_id: "pkg-b",
+            purchase_date: "2026-03-01T00:00:00.000Z",
+            billing_cycle: "1month",
+            cycle_months: 1,
+            start_date: "2026-03-01T00:00:00.000Z",
+            expiry_date: "2026-08-15T00:00:00.000Z",
+            days_remaining: 35,
+            status: "active",
+            renewal_status: "pending",
+            original_price: 80,
+            final_price: 80,
+            discount: 0,
+            notes: null,
+            refund_amount: null,
+            renewal_asked_at: null,
+            renewal_confirmed_at: null,
+            renewal_denied_at: null,
+            renewal_denied_reason: null,
+            deleted_at: null,
+            created_at: "2026-04-10T00:00:00.000Z",
+            updated_at: "2026-04-10T00:00:00.000Z",
+          },
+        ],
+        error: null,
+      });
+      const customersBuilder = createSelectBuilder(
+        {
+          data: [
+            { id: "cus-1", full_name: "Alice A" },
+            { id: "cus-2", full_name: "Bob B" },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const accountsBuilder = createSelectBuilder(
+        {
+          data: [
+            { id: "acc-1", primary_email: "alice@example.com", service_type_id: VALID_SERVICE_ID },
+            { id: "acc-2", primary_email: "bob@example.com", service_type_id: VALID_SERVICE_ID },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const usersBuilder = createSelectBuilder(
+        {
+          data: [{ id: "user-1", user_email: "member-a@example.com", status: "active" }],
+          error: null,
+        },
+        "in",
+      );
+      const packagesBuilder = createSelectBuilder(
+        {
+          data: [
+            { id: "pkg-a", name: "Family A", default_price: 80, renewal_price_factor: 1 },
+            { id: "pkg-b", name: "Family B", default_price: 70, renewal_price_factor: 1 },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const ordersBuilder = createSelectBuilder(
+        {
+          data: [
+            {
+              id: "ord-1",
+              order_code: "ORDER-A",
+              contact_snapshot: "Zalo A",
+              product_name_snapshot: "Netflix Family",
+              sales_note: "CTV: Team A",
+              status: "active",
+              sales_channel_id: "channel-a",
+            },
+            {
+              id: "ord-2",
+              order_code: "ORDER-B",
+              contact_snapshot: "Zalo B",
+              product_name_snapshot: "Spotify",
+              sales_note: "CTV: Team B",
+              status: "active",
+              sales_channel_id: "channel-b",
+            },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const salesChannelsBuilder = createSelectBuilder(
+        {
+          data: [
+            { id: "channel-a", name: "CTV Team A" },
+            { id: "channel-b", name: "CTV Team B" },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const serviceBuilder = createSelectBuilder(
+        {
+          data: [{ id: VALID_SERVICE_ID, name: "Netflix" }],
+          error: null,
+        },
+        "in",
+      );
+      const renewalsBuilder = createSelectBuilder(
+        {
+          data: [],
+          error: null,
+        },
+        "order",
+      );
+      const supabaseAdmin = createSupabaseAdminMock({
+        customer_premium_subscriptions: builder,
+        customers: customersBuilder,
+        premium_accounts: accountsBuilder,
+        premium_packages: packagesBuilder,
+        premium_account_users: usersBuilder,
+        orders: ordersBuilder,
+        sales_channels: salesChannelsBuilder,
+        premium_service_types: serviceBuilder,
+        subscription_renewals: renewalsBuilder,
+      });
+      const { GET } = await loadRoute("@/app/api/premium/subscriptions/route", {
+        supabaseAdmin,
+      });
+
+      const response = await GET(
+        createTestRequest(
+          "http://localhost/api/premium/subscriptions?package_id=pkg-a&sales_channel_id=channel-a&expiry_month=2026-07&due_state=expiring&renewal_state=eligible&subscription_status=active&search=order-a",
+        ),
+        { params: {} } as any,
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].id).toBe("sub-1");
+      expect(body.meta.summary.total).toBe(1);
+      expect(body.meta.overallSummary.total).toBe(2);
+      expect(body.meta.filters.packages).toHaveLength(2);
+      expect(body.meta.filters.salesChannels).toHaveLength(2);
+      expect(body.meta.applied.packageId).toBe("pkg-a");
+      expect(body.meta.applied.salesChannelId).toBe("channel-a");
+      expect(body.meta.applied.expiryMonth).toBe("2026-07");
+    });
+
+    it("honors explicit page_size below the old hard minimum", async () => {
+      const subscriptions = Array.from({ length: 8 }, (_, index) => ({
+        id: `sub-${index + 1}`,
+        account_id: TEST_ACCOUNT_ID,
+        customer_id: `cus-${index + 1}`,
+        order_id: `ord-${index + 1}`,
+        premium_account_id: `acc-${index + 1}`,
+        premium_account_user_id: null,
+        service_type_id: VALID_SERVICE_ID,
+        package_id: `pkg-${index + 1}`,
+        purchase_date: "2026-04-01T00:00:00.000Z",
+        billing_cycle: "1month",
+        cycle_months: 1,
+        start_date: "2026-04-01T00:00:00.000Z",
+        expiry_date: `2026-07-${String(index + 11).padStart(2, "0")}T00:00:00.000Z`,
+        days_remaining: 10 - index,
+        status: "active",
+        renewal_status: "none",
+        original_price: 100,
+        final_price: 100,
+        discount: 0,
+        notes: null,
+        refund_amount: null,
+        renewal_asked_at: null,
+        renewal_confirmed_at: null,
+        renewal_denied_at: null,
+        renewal_denied_reason: null,
+        deleted_at: null,
+        created_at: "2026-04-10T00:00:00.000Z",
+        updated_at: "2026-04-10T00:00:00.000Z",
+      }));
+      const customers = subscriptions.map((item, index) => ({
+        id: `cus-${index + 1}`,
+        full_name: `Customer ${index + 1}`,
+      }));
+      const accounts = subscriptions.map((item, index) => ({
+        id: `acc-${index + 1}`,
+        primary_email: `owner${index + 1}@example.com`,
+        service_type_id: VALID_SERVICE_ID,
+      }));
+      const packages = subscriptions.map((item, index) => ({
+        id: `pkg-${index + 1}`,
+        name: `Package ${index + 1}`,
+        default_price: 100,
+        renewal_price_factor: 1,
+      }));
+      const orders = subscriptions.map((item, index) => ({
+        id: `ord-${index + 1}`,
+        order_code: `ORDER-${index + 1}`,
+        contact_snapshot: `Zalo ${index + 1}`,
+        product_name_snapshot: "Netflix Family",
+        sales_note: null,
+        status: "active",
+        sales_channel_id: null,
+      }));
+
+      const supabaseAdmin = createSupabaseAdminMock({
+        customer_premium_subscriptions: createSelectBuilder({ data: subscriptions, error: null }),
+        customers: createSelectBuilder({ data: customers, error: null }, "in"),
+        premium_accounts: createSelectBuilder({ data: accounts, error: null }, "in"),
+        premium_packages: createSelectBuilder({ data: packages, error: null }, "in"),
+        premium_account_users: createSelectBuilder({ data: [], error: null }, "in"),
+        orders: createSelectBuilder({ data: orders, error: null }, "in"),
+        sales_channels: createSelectBuilder({ data: [], error: null }, "in"),
+        premium_service_types: createSelectBuilder({ data: [{ id: VALID_SERVICE_ID, name: "Netflix" }], error: null }, "in"),
+        subscription_renewals: createSelectBuilder({ data: [], error: null }, "order"),
+      });
+      const { GET } = await loadRoute("@/app/api/premium/subscriptions/route", {
+        supabaseAdmin,
+      });
+
+      const response = await GET(
+        createTestRequest("http://localhost/api/premium/subscriptions?page_size=5&page=1"),
+        { params: {} } as any,
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.data).toHaveLength(5);
+      expect(body.meta.pagination.pageSize).toBe(5);
+      expect(body.meta.pagination.totalItems).toBe(8);
+      expect(body.meta.pagination.totalPages).toBe(2);
+    });
+
+    it("filters subscriptions by exact non-active status values", async () => {
+      const builder = createSelectBuilder({
+        data: [
+          {
+            id: "sub-active",
+            account_id: TEST_ACCOUNT_ID,
+            customer_id: "cus-1",
+            order_id: "ord-1",
+            premium_account_id: "acc-1",
+            premium_account_user_id: null,
+            service_type_id: VALID_SERVICE_ID,
+            package_id: "pkg-1",
+            purchase_date: "2026-04-01T00:00:00.000Z",
+            billing_cycle: "1month",
+            cycle_months: 1,
+            start_date: "2026-04-01T00:00:00.000Z",
+            expiry_date: "2026-07-20T00:00:00.000Z",
+            days_remaining: 10,
+            status: "active",
+            renewal_status: "none",
+            original_price: 100,
+            final_price: 100,
+            discount: 0,
+            notes: null,
+            refund_amount: null,
+            renewal_asked_at: null,
+            renewal_confirmed_at: null,
+            renewal_denied_at: null,
+            renewal_denied_reason: null,
+            deleted_at: null,
+            created_at: "2026-04-10T00:00:00.000Z",
+            updated_at: "2026-04-10T00:00:00.000Z",
+          },
+          {
+            id: "sub-expired",
+            account_id: TEST_ACCOUNT_ID,
+            customer_id: "cus-2",
+            order_id: "ord-2",
+            premium_account_id: "acc-2",
+            premium_account_user_id: null,
+            service_type_id: VALID_SERVICE_ID,
+            package_id: "pkg-2",
+            purchase_date: "2026-04-01T00:00:00.000Z",
+            billing_cycle: "1month",
+            cycle_months: 1,
+            start_date: "2026-04-01T00:00:00.000Z",
+            expiry_date: "2026-07-01T00:00:00.000Z",
+            days_remaining: -9,
+            status: "expired",
+            renewal_status: "none",
+            original_price: 100,
+            final_price: 100,
+            discount: 0,
+            notes: null,
+            refund_amount: null,
+            renewal_asked_at: null,
+            renewal_confirmed_at: null,
+            renewal_denied_at: null,
+            renewal_denied_reason: null,
+            deleted_at: null,
+            created_at: "2026-04-10T00:00:00.000Z",
+            updated_at: "2026-04-10T00:00:00.000Z",
+          },
+        ],
+        error: null,
+      });
+      const customersBuilder = createSelectBuilder(
+        {
+          data: [
+            { id: "cus-1", full_name: "Alice" },
+            { id: "cus-2", full_name: "Bob" },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const accountsBuilder = createSelectBuilder(
+        {
+          data: [
+            { id: "acc-1", primary_email: "alice@example.com", service_type_id: VALID_SERVICE_ID },
+            { id: "acc-2", primary_email: "bob@example.com", service_type_id: VALID_SERVICE_ID },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const packagesBuilder = createSelectBuilder(
+        {
+          data: [
+            { id: "pkg-1", name: "Package A", default_price: 100, renewal_price_factor: 1 },
+            { id: "pkg-2", name: "Package B", default_price: 100, renewal_price_factor: 1 },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const ordersBuilder = createSelectBuilder(
+        {
+          data: [
+            {
+              id: "ord-1",
+              order_code: "ORDER-1",
+              contact_snapshot: null,
+              product_name_snapshot: "Netflix",
+              sales_note: null,
+              status: "active",
+              sales_channel_id: null,
+            },
+            {
+              id: "ord-2",
+              order_code: "ORDER-2",
+              contact_snapshot: null,
+              product_name_snapshot: "Netflix",
+              sales_note: null,
+              status: "active",
+              sales_channel_id: null,
+            },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const serviceBuilder = createSelectBuilder(
+        {
+          data: [{ id: VALID_SERVICE_ID, name: "Netflix" }],
+          error: null,
+        },
+        "in",
+      );
+      const renewalsBuilder = createSelectBuilder({ data: [], error: null }, "order");
+      const supabaseAdmin = createSupabaseAdminMock({
+        customer_premium_subscriptions: builder,
+        customers: customersBuilder,
+        premium_accounts: accountsBuilder,
+        premium_packages: packagesBuilder,
+        premium_account_users: createSelectBuilder({ data: [], error: null }, "in"),
+        orders: ordersBuilder,
+        sales_channels: createSelectBuilder({ data: [], error: null }, "in"),
+        premium_service_types: serviceBuilder,
+        subscription_renewals: renewalsBuilder,
+      });
+      const { GET } = await loadRoute("@/app/api/premium/subscriptions/route", {
+        supabaseAdmin,
+      });
+
+      const response = await GET(
+        createTestRequest("http://localhost/api/premium/subscriptions?subscription_status=expired"),
+        { params: {} } as any,
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].id).toBe("sub-expired");
+      expect(body.meta.summary.total).toBe(1);
     });
 
     it("returns unauthorized for blocked subscription requests", async () => {
@@ -1033,7 +1749,7 @@ describe("premium API routes", () => {
         "id, default_price, renewal_price_factor",
       );
       expect(serviceTypesBuilder.select).toHaveBeenCalledWith("id, name");
-    });
+    }, PREMIUM_ROUTE_TIMEOUT_MS);
 
     it("hydrates denied renewals from base rows and lookup tables", async () => {
       const renewalsBuilder = createSelectBuilder({
@@ -1125,7 +1841,7 @@ describe("premium API routes", () => {
       expect(body.data[0].service_name).toBe("Spotify");
       expect(body.meta.status).toBe("denied");
       expect(renewalsBuilder.select).toHaveBeenCalledWith("*");
-    });
+    }, PREMIUM_ROUTE_TIMEOUT_MS);
 
     it("flattens renewal relation/query failures", async () => {
       const builder = createSelectBuilder({
@@ -1256,6 +1972,89 @@ describe("premium API routes", () => {
         "id, primary_email, service_type_id, total_slots, used_slots, status",
       );
       expect(premiumAccountsBuilder.select).toHaveBeenCalledTimes(2);
+    });
+
+    it("still reads migrations from supabase in development unless local fallback is forced", async () => {
+      vi.stubEnv("NODE_ENV", "development");
+
+      const migrationsBuilder = createSelectBuilder(
+        {
+          data: [
+            {
+              id: "00000000-0000-4000-8000-0000000000f1",
+              account_id: TEST_ACCOUNT_ID,
+              subscription_id: "sub-dev-1",
+              customer_id: "customer-dev-1",
+              source_account_id: "source-dev-1",
+              target_account_id: "target-dev-1",
+              source_account_email: null,
+              target_account_email: null,
+              reason: "DB migration row",
+              status: "pending",
+              initiated_by: null,
+              started_at: "2026-04-10T09:00:00.000Z",
+              completed_at: null,
+              details: null,
+              error_log: null,
+              notes: null,
+              created_at: "2026-04-10T09:00:00.000Z",
+              updated_at: "2026-04-10T09:00:00.000Z",
+            },
+          ],
+          error: null,
+          count: 1,
+        },
+        "range",
+      );
+      const customersBuilder = createSelectBuilder(
+        {
+          data: [{ id: "customer-dev-1", full_name: "DB Customer" }],
+          error: null,
+        },
+        "in",
+      );
+      const premiumAccountsBuilder = createSelectBuilder(
+        {
+          data: [
+            {
+              id: "source-dev-1",
+              primary_email: "source-dev@example.com",
+              service_type_id: VALID_SERVICE_ID,
+              total_slots: 5,
+              used_slots: 2,
+              status: "active",
+            },
+            {
+              id: "target-dev-1",
+              primary_email: "target-dev@example.com",
+              service_type_id: VALID_SERVICE_ID,
+              total_slots: 5,
+              used_slots: 1,
+              status: "active",
+            },
+          ],
+          error: null,
+        },
+        "in",
+      );
+      const supabaseAdmin = createSupabaseAdminMock({
+        account_migrations: migrationsBuilder,
+        customers: customersBuilder,
+        premium_accounts: premiumAccountsBuilder,
+      });
+      const { GET } = await loadRoute("@/app/api/premium/migrations/route", {
+        supabaseAdmin,
+      });
+
+      const response = await GET(
+        createTestRequest("http://localhost/api/premium/migrations?status=pending"),
+        { params: {} } as any,
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.data[0].customer_name).toBe("DB Customer");
+      expect(migrationsBuilder.select).toHaveBeenCalled();
     });
 
     it("returns hydrated rows for other migration statuses", async () => {

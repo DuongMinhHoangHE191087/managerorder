@@ -38,7 +38,7 @@ export function BotBroadcastSection({
           <button
             onClick={onBroadcast}
             disabled={broadcastPending || !broadcastMessage.trim() || !broadcastReady}
-            className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-2.5 text-sm font-bold text-white shadow-sm shadow-[var(--accent)]/20 transition-all disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-2.5 text-sm font-bold text-white shadow-sm shadow-[var(--accent)]/20 transition-[background-color,border-color,box-shadow,color,opacity,transform,width] disabled:opacity-50"
             type="button"
           >
             <Send className="size-4" />

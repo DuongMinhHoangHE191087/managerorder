@@ -6,7 +6,7 @@ import { appToast } from "@/shared/ui/app-toast";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
-import type { WarehouseCredential, WarehouseCredentialType } from "@/lib/domain/types";
+import type { WarehouseCredential, WarehouseCredentialFormat, WarehouseCredentialType } from "@/lib/domain/types";
 import { formatNumber } from "@/lib/utils";
 import { INVENTORY_COPY as copy } from "../copy";
 
@@ -215,7 +215,7 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
           type="button"
           onClick={handleDuolingoLogin}
           disabled={autoFillLoading}
-          className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border-2 border-dashed border-green-500/40 bg-gradient-to-r from-green-500/5 to-emerald-500/5 hover:from-green-500/10 hover:to-emerald-500/10 hover:border-green-500/60 text-green-600 text-[13px] font-bold transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed group"
+          className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border-2 border-dashed border-green-500/40 bg-gradient-to-r from-green-500/5 to-emerald-500/5 hover:from-green-500/10 hover:to-emerald-500/10 hover:border-green-500/60 text-green-600 text-[13px] font-bold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-300 disabled:opacity-60 disabled:cursor-not-allowed group"
         >
           {autoFillLoading ? (
             <><Loader2 className="size-4 animate-spin" /> {copy.dynamicCredentials.duolingoLogin.loading}</>
@@ -288,7 +288,7 @@ export function DynamicCredentialList({ credentials, onChange, baseUsername, bas
               </div>
               <div className="w-full h-2 bg-green-200/50 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${
+                  className={`h-full rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500 ${
                     freeSlots === 0 ? "bg-red-500" : freeSlots <= 2 ? "bg-amber-500" : "bg-green-500"
                   }`}
                   style={{ width: `${(usedSlots / maxSlots) * 100}%` }}
@@ -426,6 +426,7 @@ function CredentialRow({
   const isSensitive = typeInfo.sensitive;
   const isVisible = visibleIds.has(cred.id);
   const isDuolingoId = cred.type === "duolingo_id";
+  const showFormat = cred.type === "2fa" || cred.type === "2fa_backup";
 
   const handleFetchDuolingoId = async () => {
     // Only use value from this input field — strip leading @ if present
@@ -489,6 +490,26 @@ function CredentialRow({
 
         {/* Value input */}
         <div className="relative flex-1 flex gap-2">
+          {showFormat && (
+            <Select
+              className="h-9 !w-[130px] shrink-0 rounded-lg text-[12px]"
+              value={cred.format ?? (cred.type === "2fa_backup" ? "backup_codes" : "plain")}
+              onChange={(e) => updateCredential(cred.id, { format: e.target.value as WarehouseCredentialFormat })}
+            >
+              {cred.type === "2fa" && (
+                <>
+                  <option value="plain">Mã tĩnh</option>
+                  <option value="totp_secret">TOTP</option>
+                </>
+              )}
+              {cred.type === "2fa_backup" && (
+                <>
+                  <option value="backup_codes">Backup</option>
+                  <option value="plain">Mã tĩnh</option>
+                </>
+              )}
+            </Select>
+          )}
           <div className="relative flex-1">
             <Icon className={`absolute left-3 top-1/2 -translate-y-1/2 size-3.5 ${isDuolingoId ? "text-green-500" : "text-[var(--fg-muted)]"}`} />
             <Input

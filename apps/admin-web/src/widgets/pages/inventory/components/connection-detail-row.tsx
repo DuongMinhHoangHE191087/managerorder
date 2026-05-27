@@ -39,7 +39,7 @@ export const ConnectionDetailRow = memo(function ConnectionDetailRow({
   return (
     <div className={cn(
       "group relative rounded-[1.15rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.96)] p-3.5",
-      "shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)] hover:border-[var(--accent)]/30 transition-all duration-200",
+      "shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)] hover:border-[var(--accent)]/30 transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200",
       className
     )}>
       <div className="flex items-center justify-between gap-2 mb-2">

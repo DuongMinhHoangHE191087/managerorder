@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetcher } from "@/lib/api/fetcher";
-import type { SourceAccount, WarehouseCredentialType } from "@/lib/domain/types";
+import type { SourceAccount, WarehouseCredentialFormat, WarehouseCredentialType } from "@/lib/domain/types";
 import { queryKeys } from "@/shared/lib/react-query/query-keys";
 import type { SlotBreakdownData } from "@/shared/types/inventory";
 import { fetchRecoverableDetail } from "@/shared/lib/recoverable-detail";
@@ -10,6 +10,9 @@ export interface DecryptedSourceAccountCredential {
   type: WarehouseCredentialType;
   value: string;
   label?: string;
+  format?: WarehouseCredentialFormat;
+  shareable?: boolean;
+  masked?: boolean;
 }
 
 export interface DecryptedSourceAccountSecrets {
@@ -45,6 +48,20 @@ export function useSourceAccountDecrypt(id: string, enabled = true) {
     enabled: enabled && !!id,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
+  });
+}
+
+export function useSourceAccountTotp(id: string, credentialId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: [...queryKeys.sourceAccountTotp(id, credentialId ?? ""), enabled],
+    queryFn: () =>
+      fetcher<{ credentialId: string; code: string; remainingSeconds: number; period: number }>(
+        `/api/source-accounts/${id}/totp?credentialId=${encodeURIComponent(credentialId ?? "")}`,
+      ),
+    enabled: enabled && !!id && !!credentialId,
+    refetchInterval: 5_000,
+    staleTime: 1_000,
+    gcTime: 60_000,
   });
 }
 

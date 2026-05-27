@@ -90,7 +90,7 @@ export function ServiceEditModal({
                 <h2 className="text-white font-bold text-[16px]">Cập nhật Dịch Vụ</h2>
                 <p className="text-white/70 text-[12px] mt-0.5">Sửa đổi thông tin nền tảng</p>
               </div>
-              <button onClick={onClose} className="size-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors">
+              <button type="button" onClick={onClose} className="size-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors">
                 <X className="size-4" />
               </button>
             </div>
@@ -102,7 +102,7 @@ export function ServiceEditModal({
                 <div className="relative">
                   <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[var(--fg-muted)]" />
                   <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                    className="w-full pl-9 pr-4 py-3 bg-[#f8f9fa] border border-[var(--border-soft)] rounded-xl text-[14px] font-medium outline-none focus:border-[var(--accent)] focus:bg-white transition-all placeholder:text-[var(--fg-muted)]"
+                    className="w-full pl-9 pr-4 py-3 bg-[#f8f9fa] border border-[var(--border-soft)] rounded-xl text-[14px] font-medium outline-none focus:border-[var(--accent)] focus:bg-white transition-[background-color,border-color] placeholder:text-[var(--fg-muted)]"
                   />
                 </div>
               </div>
@@ -110,7 +110,7 @@ export function ServiceEditModal({
               <div className="space-y-1.5">
                 <label className="block text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-widest">Mã (Slug) <span className="text-[var(--danger)]">*</span></label>
                 <input value={slug} onChange={(e) => setSlug(e.target.value)} pattern="^[a-z0-9-]+$"
-                  className="w-full px-4 py-3 bg-[#f8f9fa] border border-[var(--border-soft)] rounded-xl text-[14px] font-medium outline-none focus:border-[var(--accent)] focus:bg-white transition-all"
+                  className="w-full px-4 py-3 bg-[#f8f9fa] border border-[var(--border-soft)] rounded-xl text-[14px] font-medium outline-none focus:border-[var(--accent)] focus:bg-white transition-[background-color,border-color]"
                 />
               </div>
 
@@ -136,7 +136,7 @@ export function ServiceEditModal({
               <div className="space-y-1.5">
                 <label className="block text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-widest">Mô tả ngắn</label>
                 <input value={description} onChange={(e) => setDescription(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                  className="w-full px-4 py-3 bg-[#f8f9fa] border border-[var(--border-soft)] rounded-xl text-[14px] font-medium outline-none focus:border-[var(--accent)] focus:bg-white transition-all"
+                  className="w-full px-4 py-3 bg-[#f8f9fa] border border-[var(--border-soft)] rounded-xl text-[14px] font-medium outline-none focus:border-[var(--accent)] focus:bg-white transition-[background-color,border-color]"
                 />
               </div>
             </div>
@@ -146,7 +146,7 @@ export function ServiceEditModal({
               <button type="button" onClick={onClose} className="flex-1 h-11 rounded-xl border border-[var(--border-soft)] text-[13px] font-bold text-[var(--fg-muted)] hover:bg-gray-50 transition-colors">
                 Hủy
               </button>
-              <button type="button" onClick={handleSave} disabled={saving || !name.trim() || !slug.trim()} className="flex-1 h-11 rounded-xl bg-[#1e293b] hover:bg-black text-white text-[13px] font-bold flex items-center justify-center gap-2 hover:shadow-md disabled:opacity-50 transition-all">
+              <button type="button" onClick={handleSave} disabled={saving || !name.trim() || !slug.trim()} className="flex-1 h-11 rounded-xl bg-[#1e293b] hover:bg-black text-white text-[13px] font-bold flex items-center justify-center gap-2 hover:shadow-md disabled:opacity-50 transition-[background-color,box-shadow,opacity]">
                 {saving && <Loader2 className="size-4 animate-spin" />}
                 {saving ? "Đang lưu..." : "Lưu Thay Đổi"}
               </button>

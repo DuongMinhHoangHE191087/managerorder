@@ -200,7 +200,7 @@ export function DuolingoFamilyPanel({ sourceAccountId, initialData }: DuolingoFa
         {/* Slot bar */}
         <div className="w-full h-2 bg-green-200/50 rounded-full overflow-hidden mb-2">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${
+            className={`h-full rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500 ${
               freeSlots === 0 ? "bg-red-500" : freeSlots <= 2 ? "bg-amber-500" : "bg-green-500"
             }`}
             style={{ width: `${(usedSlots / maxSlots) * 100}%` }}

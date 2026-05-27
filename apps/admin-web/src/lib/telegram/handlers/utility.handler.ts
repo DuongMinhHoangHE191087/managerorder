@@ -10,7 +10,7 @@ import {
   normalizeUsername, decryptNotes,
   type TelegramButton,
   type BotContext,
-  modernHeader, modernList, modernDetail, PAGE_SIZE,
+  modernHeader, modernList, modernDetail, PAGE_SIZE, ADMIN_CHAT_ID,
 } from '../shared';
 import { formatDateLabel, formatDateShort, formatNumber } from "@/lib/utils";
 import { getTelegramProductPage } from '@/domains/telegram';
@@ -537,7 +537,6 @@ export const handleProductsCommand: BotHandler = async (ctx) => {
 
 export const handleSecurityCommand: BotHandler = async (ctx) => {
   const { chatId, messageId } = ctx;
-  const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID ?? '';
   const now = formatDateLabel(new Date());
   const msg = [
     `<blockquote><b>🔒 BẢO MẬT v10.0</b>\n📅 ${now}</blockquote>`,

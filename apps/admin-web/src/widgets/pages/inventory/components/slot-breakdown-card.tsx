@@ -43,21 +43,21 @@ function BreakdownBar({ data }: { data: SlotBreakdownData }) {
       <div className="flex h-4 overflow-hidden rounded-full bg-[var(--border-soft)]">
         {connPct > 0 ? (
           <div
-            className="h-full bg-indigo-500 transition-all duration-500"
+            className="h-full bg-indigo-500 transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500"
             style={{ width: `${connPct}%` }}
             title={text.connectedTooltip(connectedCount)}
           />
         ) : null}
         {resPct > 0 ? (
           <div
-            className="h-full bg-purple-500 transition-all duration-500"
+            className="h-full bg-purple-500 transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500"
             style={{ width: `${resPct}%` }}
             title={text.reservedTooltip(reservedCount)}
           />
         ) : null}
         {availPct > 0 ? (
           <div
-            className="h-full bg-emerald-500/30 transition-all duration-500"
+            className="h-full bg-emerald-500/30 transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500"
             style={{ width: `${availPct}%` }}
             title={text.freeTooltip(availableCount)}
           />

@@ -21,13 +21,15 @@ import {
   useDeleteSourceAccount,
   useSourceAccount,
   useSourceAccountDecrypt,
+  useSourceAccountTotp,
   useUpdateSourceAccount,
+  type DecryptedSourceAccountCredential,
 } from "@/widgets/pages/inventory/hooks/use-source-accounts";
 import { useProducts } from "@/widgets/pages/products/hooks/use-products";
 import { useProviders } from "@/widgets/pages/providers/hooks/use-providers";
 import { usePurgeItems, useRestoreItems } from "@/widgets/pages/trash/hooks/use-trash";
 import { formatDateLabel, formatRelativeTime, cn } from "@/lib/utils";
-import type { SourceAccount } from "@/lib/domain/types";
+import type { SourceAccount, WarehouseCredential } from "@/lib/domain/types";
 import { INVENTORY_COPY as copy } from "../../copy";
 
 const sourceAccountText = copy.sourceAccountDetail;
@@ -91,6 +93,16 @@ const EditSourceAccountModal = dynamic(
   }
 );
 
+const AccountShareModal = dynamic(
+  () =>
+    import("@/widgets/pages/inventory/components/account-share-modal").then((mod) => ({
+      default: mod.AccountShareModal,
+    })),
+  {
+    ssr: false,
+  }
+);
+
 const ActivityTimeline = dynamic(
   () =>
     import("@/widgets/pages/activity-logs/components/activity-timeline").then((mod) => ({
@@ -100,6 +112,43 @@ const ActivityTimeline = dynamic(
     loading: () => <AsyncPanelFallback label={copy.sourceAccountDetailFallbacks.activityLog} />,
   }
 );
+
+function DecryptedCredentialRow({
+  sourceAccountId,
+  credential,
+  copiedField,
+  onCopy,
+}: {
+  sourceAccountId: string;
+  credential: DecryptedSourceAccountCredential;
+  copiedField: string | null;
+  onCopy: (text: string, field: string) => void;
+}) {
+  const isTotp = credential.type === "2fa"
+    && (credential.format === "totp_secret" || credential.value.startsWith("otpauth://") || credential.value.toLowerCase().startsWith("totp:"));
+  const totpQuery = useSourceAccountTotp(sourceAccountId, credential.id, isTotp);
+  const displayValue = isTotp ? (totpQuery.data?.code ?? "------") : credential.value;
+  const canCopy = !isTotp || Boolean(totpQuery.data?.code);
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-amber-200/50 bg-white p-2">
+      <div className="flex-1">
+        <span className="text-[10px] font-bold text-[var(--fg-muted)] uppercase">{credential.label?.trim() || credential.type}</span>
+        <p className="text-[14px] font-mono font-bold text-[var(--fg-base)] break-all">{displayValue}</p>
+        {isTotp && totpQuery.data ? (
+          <span className="text-[10px] font-bold text-amber-700">{totpQuery.data.remainingSeconds}s</span>
+        ) : null}
+      </div>
+      <button
+        onClick={() => canCopy ? onCopy(displayValue, credential.id) : undefined}
+        disabled={!canCopy}
+        className="size-8 flex items-center justify-center rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+      >
+        {copiedField === credential.id ? <Check className="size-4 text-green-500" /> : <Copy className="size-4 text-[var(--fg-muted)]" />}
+      </button>
+    </div>
+  );
+}
 
 
 export default function SourceAccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -128,13 +177,14 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
 
   // Decrypt state
   const [showDecrypted, setShowDecrypted] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const decryptQuery = useSourceAccountDecrypt(id, showDecrypted);
+  const decryptQuery = useSourceAccountDecrypt(id, showDecrypted || isShareOpen);
 
   // Reuse shared EditSourceAccountModal — pass account object to open, null to close
   const [editingAccount, setEditingAccount] = useState<SourceAccount | null>(null);
 
-  const handleEditSubmit = async (body: { id: string; email: string; provider: string; productIds: string[]; maxSlots: number; expiresAt: string; credentials?: Array<{ type: string; value: string; label?: string }>; purchaseCostVnd?: number; purchaseDate?: string; purchaseSource?: string }) => {
+  const handleEditSubmit = async (body: { id: string; email: string; provider: string; productIds: string[]; maxSlots: number; expiresAt: string; credentials?: WarehouseCredential[]; purchaseCostVnd?: number; purchaseDate?: string; purchaseSource?: string }) => {
     await updateSourceAccount(body as Parameters<typeof updateSourceAccount>[0]);
   };
 
@@ -283,7 +333,7 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
                   <button
                     type="button"
                     onClick={() => void handleRestoreFromTrash()}
-                    className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
+                    className="flex items-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-4 py-2 text-[13px] font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-[box-shadow,transform] hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
                   >
                     <RefreshCw className="size-4" /> {copy.sourceAccountTrash.restore}
                   </button>
@@ -297,6 +347,13 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
                 </>
               ) : (
                 <>
+                  <button
+                    type="button"
+                    onClick={() => setIsShareOpen(true)}
+                    className="flex items-center gap-2 rounded-[1rem] border border-lime-500/30 bg-lime-50 px-4 py-2 text-[13px] font-bold text-lime-700 shadow-sm transition-colors hover:bg-lime-100 active:scale-[0.98]"
+                  >
+                    <Link2 className="size-4" /> Share
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -487,15 +544,13 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
                       )}
                       {decryptQuery.data.credentials?.length > 0 && (
                         decryptQuery.data.credentials.map((cred) => (
-                          <div key={cred.id} className="flex items-center gap-2 rounded-lg border border-amber-200/50 bg-white p-2">
-                            <div className="flex-1">
-                              <span className="text-[10px] font-bold text-[var(--fg-muted)] uppercase">{cred.label?.trim() || cred.type}</span>
-                              <p className="text-[14px] font-mono font-bold text-[var(--fg-base)] break-all">{cred.value}</p>
-                            </div>
-                            <button onClick={() => handleCopy(cred.value, cred.id)} className="size-8 flex items-center justify-center rounded-lg hover:bg-amber-100 transition-colors">
-                              {copiedField === cred.id ? <Check className="size-4 text-green-500" /> : <Copy className="size-4 text-[var(--fg-muted)]" />}
-                            </button>
-                          </div>
+                          <DecryptedCredentialRow
+                            key={cred.id}
+                            sourceAccountId={account.id}
+                            credential={cred}
+                            copiedField={copiedField}
+                            onCopy={handleCopy}
+                          />
                         ))
                       )}
                     </div>
@@ -564,9 +619,11 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
                   {/* Tab buttons */}
                   <div className="flex items-center gap-1 bg-[var(--bg-app)] rounded-lg p-1 w-fit">
                     <button
+                      type="button"
                       onClick={() => setConnTab("manage")}
+                      aria-pressed={connTab === "manage"}
                       className={cn(
-                        "px-4 py-1.5 rounded-md text-[12px] font-bold transition-all",
+                        "px-4 py-1.5 rounded-md text-[12px] font-bold transition-[background-color,color,box-shadow]",
                         connTab === "manage"
                           ? "bg-white text-[var(--fg-base)] shadow-sm"
                           : "text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
@@ -576,9 +633,11 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
                       {sourceAccountText.manageTitle}
                     </button>
                     <button
+                      type="button"
                       onClick={() => setConnTab("detail")}
+                      aria-pressed={connTab === "detail"}
                       className={cn(
-                        "px-4 py-1.5 rounded-md text-[12px] font-bold transition-all",
+                        "px-4 py-1.5 rounded-md text-[12px] font-bold transition-[background-color,color,box-shadow]",
                         connTab === "detail"
                           ? "bg-white text-[var(--fg-base)] shadow-sm"
                           : "text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
@@ -590,9 +649,11 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
                     {/* Duolingo Family tab — only show if any product is Duolingo */}
                     {account.productIds.some(pid => (productMap.get(pid) ?? "").toLowerCase().includes("duolingo")) && (
                       <button
+                        type="button"
                         onClick={() => setConnTab("family")}
+                        aria-pressed={connTab === "family"}
                         className={cn(
-                          "px-4 py-1.5 rounded-md text-[12px] font-bold transition-all",
+                          "px-4 py-1.5 rounded-md text-[12px] font-bold transition-[background-color,color,box-shadow]",
                           connTab === "family"
                             ? "bg-white text-[var(--fg-base)] shadow-sm"
                             : "text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
@@ -667,6 +728,16 @@ export default function SourceAccountDetailPage({ params }: { params: Promise<{ 
           products={products}
           productMap={productMap}
           onSubmit={handleEditSubmit}
+        />
+      )}
+
+      {isShareOpen && (
+        <AccountShareModal
+          isOpen={isShareOpen}
+          onClose={() => setIsShareOpen(false)}
+          account={account}
+          secrets={decryptQuery.data}
+          loadingSecrets={decryptQuery.isLoading || decryptQuery.isFetching}
         />
       )}
 

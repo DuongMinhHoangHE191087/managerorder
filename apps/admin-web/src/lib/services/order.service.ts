@@ -8,8 +8,10 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createActivityLog } from "@/lib/supabase/repositories/activity-logs.repo";
 import { invalidate } from "@/lib/cache/db-cache";
+import { invalidateOrderFixtureState } from "@/lib/supabase/repositories/orders.local-fixtures";
 import { generateOrderCode } from "@/lib/utils/order-code";
 import { emitEvent } from "@/lib/services/event-bus.service";
+import { syncOrderToPremium } from "@/lib/services/premium-order-sync.service";
 import { createTenantQuery } from "@/lib/supabase/tenant-client";
 import type { Database } from "@/lib/supabase/database.types";
 import {
@@ -468,6 +470,7 @@ export async function createOrderWithItems(
 
   // Cache invalidation is synchronous (in-memory)
   invalidate(`orders:list:${accountId}`);
+  invalidateOrderFixtureState(accountId);
 
   // Run post-create effects explicitly so failures are visible to callers.
   const warning = await runPostCreateEffects(accountId, order, customerId, lineItems, currentNicksRegistry, {
@@ -557,6 +560,16 @@ async function runPostCreateEffects(
         items_count: meta.itemsCount,
       }),
     },
+    ...(meta.initialStatus === "paid" || meta.initialStatus === "active" || meta.initialStatus === "provisioning"
+      ? [
+          {
+            label: "premium sync",
+            promise: syncOrderToPremium(accountId, order.id, {
+              syncedBy: meta.createdBy,
+            }),
+          },
+        ]
+      : []),
   ];
 
   const results = await Promise.allSettled(jobs.map((job) => job.promise));

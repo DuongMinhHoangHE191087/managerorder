@@ -2,10 +2,10 @@ import type { BotMiddleware } from '../bot-router';
 import { isAuthorized, DEFAULT_BLOCK_CONFIG } from '@/lib/services/telegram-bot.helpers';
 import { resolveTelegramBotAccount } from "@/lib/bot-manager/runtime-account";
 import { setLegacyBotAccountId } from "@/lib/services/telegram-bot.service";
-import { sendTelegramMessage, escapeHtml } from '@/lib/utils/telegram';
+import { sendTelegramMessage, escapeHtml, resolveTelegramAdminChatId } from '@/lib/utils/telegram';
 import { incrementCounter, getCache, setCache } from '@/lib/redis/client';
 
-const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID ?? '';
+const ADMIN_CHAT_ID = resolveTelegramAdminChatId();
 const BOT_CONFIG_WARNING_TTL_SECONDS = 5 * 60;
 
 export const authMiddleware: BotMiddleware = async (ctx, next) => {

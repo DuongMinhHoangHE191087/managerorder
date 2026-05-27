@@ -49,9 +49,18 @@ export const GET = withErrorHandler(
         .limit(1),
     ]);
 
-    const customer = customerResult ?? null;
-    const paymentSource = paymentSourceResult.data ?? null;
-    const salesChannel = salesChannelResult ?? null;
+    const fallbackCustomer = order.customer
+      ? {
+          id: order.customer.id,
+          full_name: order.customer.full_name,
+          type: order.customer.type ?? null,
+          notes: null,
+          contacts: order.customer.customer_contacts ?? [],
+        }
+      : null;
+    const customer = customerResult ?? fallbackCustomer;
+    const paymentSource = paymentSourceResult.data ?? order.payment_source ?? null;
+    const salesChannel = salesChannelResult ?? order.sales_channel ?? null;
     const currentSettings = Array.isArray(systemSettingsResult.data)
       ? systemSettingsResult.data[0]
       : null;

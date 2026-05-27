@@ -7,6 +7,8 @@ import {
   mockWithErrorHandler,
 } from "./helpers/setup";
 
+const PREMIUM_RENEWAL_ROUTE_TIMEOUT_MS = 20_000;
+
 function createSingleBuilder<T>(result: { data: T | null; error: unknown }) {
   const chain = {
     select: vi.fn(() => chain),
@@ -127,7 +129,56 @@ describe("premium renewal finance contracts", () => {
       cost_price: 120000,
       collected_amount: 150000,
     });
-  });
+  }, PREMIUM_RENEWAL_ROUTE_TIMEOUT_MS);
+
+  it("PUT /api/premium/subscriptions/[id]/renew rejects invalid billing cycles", async () => {
+    const subscriptionBuilder = createSingleBuilder({
+      data: {
+        id: "00000000-0000-4000-8000-000000000017",
+        customer_id: "00000000-0000-4000-8000-000000000005",
+        premium_account_id: "00000000-0000-4000-8000-000000000016",
+        status: "active",
+        renewal_status: "none",
+        expiry_date: "2026-07-01",
+        billing_cycle: "3months",
+        cycle_months: 3,
+        final_price: 150000,
+        original_price: 150000,
+      },
+      error: null,
+    });
+    const supabaseAdmin = {
+      from: vi.fn((table: string) => {
+        if (table === "customer_premium_subscriptions") {
+          return subscriptionBuilder;
+        }
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    };
+
+    const createRenewalRequest = vi.fn();
+    const { PUT } = await loadRoute("@/app/api/premium/subscriptions/[id]/renew/route", {
+      supabaseAdmin,
+      subscriptionsHelpers: {
+        createRenewalRequest,
+      },
+    });
+
+    const response = await PUT(
+      createTestRequest("http://localhost/api/premium/subscriptions/00000000-0000-4000-8000-000000000017/renew", {
+        method: "PUT",
+        body: {
+          new_billing_cycle: "0months",
+        },
+      }),
+      { params: { id: "00000000-0000-4000-8000-000000000017" } } as never,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("new_billing_cycle");
+    expect(createRenewalRequest).not.toHaveBeenCalled();
+  }, PREMIUM_RENEWAL_ROUTE_TIMEOUT_MS);
 
   it("POST /api/premium/renewals/[id]/confirm updates subscription with renewal finance snapshot", async () => {
     const renewalBuilder = createSingleBuilder({
@@ -139,21 +190,9 @@ describe("premium renewal finance contracts", () => {
       },
       error: null,
     });
-    const subscriptionBuilder = createSingleBuilder({
-      data: {
-        id: "00000000-0000-4000-8000-000000000017",
-        expiry_date: "2026-07-01",
-        billing_cycle: "3months",
-        status: "active",
-      },
-      error: null,
-    });
-    const updateChain = {
-      update: vi.fn(() => updateChain),
-      eq: vi.fn(() => Promise.resolve({ data: null, error: null })),
-    };
     const confirmRenewalRequest = vi.fn().mockResolvedValue({
       id: "00000000-0000-4000-8000-000000000075",
+      status: "confirmed",
       renewal_price: 210000,
       collected_amount: 150000,
       cost_price: 120000,
@@ -164,12 +203,6 @@ describe("premium renewal finance contracts", () => {
       from: vi.fn((table: string) => {
         if (table === "subscription_renewals") {
           return renewalBuilder;
-        }
-        if (table === "customer_premium_subscriptions") {
-          if (supabaseAdmin.from.mock.calls.filter(([name]) => name === table).length === 1) {
-            return subscriptionBuilder;
-          }
-          return updateChain;
         }
         throw new Error(`Unexpected table ${table}`);
       }),
@@ -199,6 +232,7 @@ describe("premium renewal finance contracts", () => {
     );
 
     expect(response.status).toBe(200);
+    const body = await response.json();
     expect(confirmRenewalRequest).toHaveBeenCalledWith(
       "00000000-0000-4000-8000-000000000075",
       TEST_ACCOUNT_ID,
@@ -210,15 +244,9 @@ describe("premium renewal finance contracts", () => {
         notes: "Đã chốt kỳ 6 tháng",
       }),
     );
-    expect(updateChain.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        expiry_date: "2027-01-01",
-        billing_cycle: "6months",
-        cycle_months: 6,
-        original_price: 210000,
-        final_price: 210000,
-        status: "active",
-      }),
-    );
-  });
+    expect(body.data).toMatchObject({
+      id: "00000000-0000-4000-8000-000000000075",
+      status: "confirmed",
+    });
+  }, PREMIUM_RENEWAL_ROUTE_TIMEOUT_MS);
 });

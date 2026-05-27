@@ -132,7 +132,7 @@ export function OrderDetailModal({
           </button>
           <button
             onClick={onClose}
-            className="flex-1 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white font-bold py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all"
+            className="flex-1 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white font-bold py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-[background-color,border-color,box-shadow,color,opacity,transform,width]"
           >
             Đóng
           </button>
@@ -277,7 +277,7 @@ export function OrderDetailModal({
               return (
                 <div className="pt-1">
                   <div className="h-2 bg-[var(--border-soft)] rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all ${pct >= 100 ? 'bg-emerald-500' : 'bg-[var(--warning)]'}`} style={{ width: `${pct}%` }} />
+                    <div className={`h-full rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${pct >= 100 ? 'bg-emerald-500' : 'bg-[var(--warning)]'}`} style={{ width: `${pct}%` }} />
                   </div>
                   <div className="flex justify-between items-center mt-1.5">
                     <span className="text-[11px] text-[var(--fg-muted)]">Đã TT: <span className={`font-bold ${pct >= 100 ? 'text-emerald-500' : 'text-[var(--warning)]'}`}>{formatMoney(order.total_paid ?? 0)}</span></span>
@@ -355,7 +355,7 @@ export function OrderDetailModal({
               <button
                 key={s}
                 onClick={() => onStatusChange(order.id, s)}
-                className="px-3 py-2 rounded-lg text-[11px] font-bold border transition-all border-[var(--border-soft)] text-[var(--fg-muted)] hover:border-[var(--accent)]/40 bg-white"
+                className="px-3 py-2 rounded-lg text-[11px] font-bold border transition-[background-color,border-color,box-shadow,color,opacity,transform,width] border-[var(--border-soft)] text-[var(--fg-muted)] hover:border-[var(--accent)]/40 bg-white"
               >
                 → {getStatusLabel(s)}
               </button>

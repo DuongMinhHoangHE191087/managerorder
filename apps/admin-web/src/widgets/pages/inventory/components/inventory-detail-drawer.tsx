@@ -23,7 +23,11 @@ import {
 import { appToast } from "@/shared/ui/app-toast";
 import { formatDateLabel, formatMoney } from "@/lib/utils";
 import type { Provider, SourceAccount, WarehouseCredentialType } from "@/lib/domain/types";
-import { useSourceAccountDecrypt, type DecryptedSourceAccountCredential } from "@/widgets/pages/inventory/hooks/use-source-accounts";
+import {
+  useSourceAccountDecrypt,
+  useSourceAccountTotp,
+  type DecryptedSourceAccountCredential,
+} from "@/widgets/pages/inventory/hooks/use-source-accounts";
 import { INVENTORY_COPY as copy } from "../copy";
 
 const drawerText = copy.inventoryDetailDrawer;
@@ -60,6 +64,7 @@ type InventoryCredentialRowProps = {
   isSensitive: boolean;
   isRevealed: boolean;
   isCopied: boolean;
+  sourceAccountId: string;
   onToggleSensitive: (id: string) => void;
   onCopy: (value: string, id: string) => void;
 };
@@ -70,11 +75,16 @@ const InventoryCredentialRow = memo(function InventoryCredentialRow({
   isSensitive,
   isRevealed,
   isCopied,
+  sourceAccountId,
   onToggleSensitive,
   onCopy,
 }: InventoryCredentialRowProps) {
   const Icon = meta.icon;
-  const displayValue = isSensitive && !isRevealed ? MASKED_VALUE : cred.value;
+  const isTotp = cred.type === "2fa" && (cred.format === "totp_secret" || cred.value.startsWith("otpauth://") || cred.value.toLowerCase().startsWith("totp:"));
+  const totpQuery = useSourceAccountTotp(sourceAccountId, cred.id, isTotp);
+  const displayValue = isTotp
+    ? (totpQuery.data?.code ?? "------")
+    : isSensitive && !isRevealed ? MASKED_VALUE : cred.value;
   const isUrl = cred.type === "link_join" && cred.value?.startsWith("http");
 
   return (
@@ -114,7 +124,12 @@ const InventoryCredentialRow = memo(function InventoryCredentialRow({
         )}
       </div>
       <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-        {isSensitive ? (
+        {isTotp && totpQuery.data ? (
+          <span className="rounded bg-lime-100 px-1.5 py-0.5 text-[10px] font-bold text-lime-700">
+            {totpQuery.data.remainingSeconds}s
+          </span>
+        ) : null}
+        {isSensitive && !isTotp ? (
           <button
             type="button"
             onClick={() => onToggleSensitive(cred.id)}
@@ -126,7 +141,8 @@ const InventoryCredentialRow = memo(function InventoryCredentialRow({
         ) : null}
         <button
           type="button"
-          onClick={() => onCopy(cred.value, cred.id)}
+          onClick={() => onCopy(isTotp && totpQuery.data ? totpQuery.data.code : cred.value, cred.id)}
+          disabled={isTotp && !totpQuery.data}
           className="rounded p-1 transition-colors hover:bg-gray-100"
           title={drawerText.copy}
         >
@@ -223,7 +239,7 @@ export function InventoryDetailDrawer({
         <button
           type="button"
           onClick={onEdit}
-          className="flex-1 flex items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] py-2.5 text-[12px] font-bold text-[var(--fg-base)] transition-all hover:border-[var(--accent)]/30 hover:bg-white hover:text-[var(--accent)] active:scale-[0.98]"
+          className="flex-1 flex items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] py-2.5 text-[12px] font-bold text-[var(--fg-base)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:border-[var(--accent)]/30 hover:bg-white hover:text-[var(--accent)] active:scale-[0.98]"
         >
           <Edit2 className="size-3.5" /> {text.edit}
         </button>
@@ -231,7 +247,7 @@ export function InventoryDetailDrawer({
           type="button"
           onClick={onRecalculate}
           disabled={isRecalculating}
-          className="flex-1 flex items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] py-2.5 text-[12px] font-bold text-[var(--fg-base)] transition-all hover:border-blue-500/30 hover:bg-blue-500/5 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]"
+          className="flex-1 flex items-center justify-center gap-2 rounded-[1rem] border border-[var(--border-soft)] bg-[var(--surface-light)] py-2.5 text-[12px] font-bold text-[var(--fg-base)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:border-blue-500/30 hover:bg-blue-500/5 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]"
         >
           <RefreshCw className={`size-3.5 ${isRecalculating ? "animate-spin" : ""}`} />
           {isRecalculating ? text.syncing : text.sync}
@@ -300,7 +316,7 @@ export function InventoryDetailDrawer({
             </div>
             <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${
+                className={`h-full rounded-full transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-500 ${
                   isFull
                     ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
                     : slotsPercent > 80
@@ -382,6 +398,7 @@ export function InventoryDetailDrawer({
                     isSensitive={isSensitive}
                     isRevealed={isRevealed}
                     isCopied={copiedId === cred.id}
+                    sourceAccountId={account.id}
                     onToggleSensitive={toggleSensitive}
                     onCopy={handleCopy}
                   />

@@ -105,7 +105,7 @@ export interface CustomerPremiumSubscription {
   final_price: number;
   discount?: number | null;
   renewal_price: number | null;
-  renewal_status: "none" | "pending" | "confirmed" | "denied" | "migrated" | "refunded";
+  renewal_status: "none" | "pending" | "confirmed" | "denied" | "not_renewing" | "migrated" | "refunded";
   status: "active" | "waiting_renewal" | "renewed" | "expired" | "migrated" | "refunded" | "suspended";
   refund_amount?: number | null;
   renewal_asked_at?: string | null;
@@ -131,12 +131,17 @@ export interface SubscriptionRenewal {
   renewal_confirmed_date?: string | null;
   renewal_date?: string | null;
   new_expiry_date?: string | null;
-  status: "pending" | "confirmed" | "denied" | "completed" | "failed" | "refunded";
+  status: "pending" | "confirmed" | "denied" | "not_renewing" | "completed" | "failed" | "refunded";
   original_price: number | null;
   renewal_price: number | null;
   total_price?: number | null;
   new_billing_cycle?: string | null;
   new_cycle_months?: number | null;
+  new_product_id?: string | null;
+  new_product_name_snapshot?: string | null;
+  new_product_duration_months?: number | null;
+  new_product_sell_price_vnd?: number | null;
+  new_product_buy_price_vnd?: number | null;
   cost_price?: number | null;
   collected_amount?: number | null;
   profit_amount?: number | null;

@@ -29,7 +29,7 @@ export function DashboardInsightPanels({
 }: DashboardInsightPanelsProps) {
   return (
     <div className="grid grid-cols-1 gap-6 lg:col-span-2">
-      <div className="app-card flex min-w-0 flex-col overflow-hidden border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
+      <div className="app-card flex min-w-0 flex-col overflow-hidden border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
         <div className="border-b border-[var(--border-soft)] bg-[var(--bg-app)]/50 p-5 backdrop-blur-sm">
           <h3 className="text-[15px] font-bold tracking-tight text-[var(--fg-base)]">{vi.dashboard.insightPanels.productStockStatus}</h3>
         </div>
@@ -73,7 +73,7 @@ export function DashboardInsightPanels({
         </div>
       </div>
 
-      <div className="app-card flex min-w-0 flex-col overflow-hidden border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
+      <div className="app-card flex min-w-0 flex-col overflow-hidden border border-[var(--border-soft)] shadow-[0_18px_44px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] hover:shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
         <div className="border-b border-[var(--border-soft)] bg-[var(--bg-app)]/50 p-5 backdrop-blur-sm">
           <h3 className="text-[15px] font-bold tracking-tight text-[var(--fg-base)]">{vi.dashboard.insightPanels.revenueByProduct}</h3>
           <p className="mt-0.5 text-[12px] text-[var(--fg-muted)]">{vi.dashboard.insightPanels.topDisplay(timeShortLabel)}</p>

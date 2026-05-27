@@ -6,6 +6,7 @@
 // ============================================================
 
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import type { WarehouseCredential, WarehouseCredentialType } from "@/lib/domain/types";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12; // GCM standard
@@ -93,12 +94,12 @@ export function decryptCredential(encrypted: string): string {
  * Encrypts: password values, 2fa, 2fa_backup
  */
 export function encryptCredentials(
-  credentials: Array<{ type: string; value: string; label?: string }>
-): Array<{ type: string; value: string; label?: string }> {
-  const sensitiveTypes = new Set(["2fa", "2fa_backup"]);
+  credentials: Array<WarehouseCredential | { type: string; value: string; label?: string }>
+): Array<WarehouseCredential | { type: string; value: string; label?: string }> {
+  const sensitiveTypes = new Set<WarehouseCredentialType>(["2fa", "2fa_backup"]);
 
   return credentials.map((cred) => {
-    if (sensitiveTypes.has(cred.type) && cred.value) {
+    if (sensitiveTypes.has(cred.type as WarehouseCredentialType) && cred.value) {
       return { ...cred, value: encryptCredential(cred.value) };
     }
     return cred;
@@ -109,8 +110,8 @@ export function encryptCredentials(
  * Decrypt all sensitive fields in a credentials array.
  */
 export function decryptCredentials(
-  credentials: Array<{ type: string; value: string; label?: string }>
-): Array<{ type: string; value: string; label?: string }> {
+  credentials: Array<WarehouseCredential | { type: string; value: string; label?: string }>
+): Array<WarehouseCredential | { type: string; value: string; label?: string }> {
   return credentials.map((cred) => {
     if (cred.value && isEncrypted(cred.value)) {
       return { ...cred, value: decryptCredential(cred.value) };

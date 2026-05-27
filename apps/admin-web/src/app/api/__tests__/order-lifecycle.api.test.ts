@@ -24,6 +24,18 @@ import {
   TEST_USER_ID,
 } from "./helpers/setup";
 
+const premiumSyncMocks = vi.hoisted(() => ({
+  syncOrderToPremium: vi.fn().mockResolvedValue({
+    orderId: "00000000-0000-4000-8000-000000000057",
+    orderCode: "DMH_SYNC",
+    subscriptionId: "sub-sync",
+    premiumAccountId: "acct-sync",
+    status: "updated",
+    sourceAccountId: null,
+    placeholderAccount: false,
+  }),
+}));
+
 // ── Mocks ────────────────────────────────────────────────────
 vi.mock("@/lib/api/with-account", () => mockWithAccount());
 vi.mock("@/lib/api/with-error-handler", () => mockWithErrorHandler());
@@ -39,6 +51,9 @@ vi.mock("@/lib/domain/order-state-machine", () => ({
 vi.mock("@/lib/services/allocation.service", () => ({
   deallocateOrder: vi.fn(),
 }));
+vi.mock("@/lib/services/premium-order-sync.service", () => ({
+  syncOrderToPremium: premiumSyncMocks.syncOrderToPremium,
+}));
 vi.mock("@/lib/supabase/repositories/activity-logs.repo", () => ({
   createActivityLog: vi.fn().mockResolvedValue(undefined),
 }));
@@ -53,6 +68,7 @@ import {
 } from "@/lib/supabase/repositories/orders.repo";
 import { canTransitionOrder } from "@/lib/domain/order-state-machine";
 import { deallocateOrder } from "@/lib/services/allocation.service";
+import { syncOrderToPremium } from "@/lib/services/premium-order-sync.service";
 import { createActivityLog } from "@/lib/supabase/repositories/activity-logs.repo";
 import { createOrderStatusHistory } from "@/lib/supabase/repositories/order-status-history.repo";
 import { resolveUser } from "@/lib/api/rbac";
@@ -159,11 +175,12 @@ describe("PUT /api/orders/[id] — Status Transitions", () => {
           status: to,
         } as any);
 
-        const res = await putOrder(ORDER_ID, { status: to });
-        expect(res.status).toBe(200);
-        const body = await res.json();
-        expect(body.data.status).toBe(to);
-      }
+      const res = await putOrder(ORDER_ID, { status: to });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.status).toBe(to);
+      expect(body.premium_sync?.success).toBe(true);
+    }
     );
 
     it("logs activity and status history on transition", async () => {
@@ -190,6 +207,11 @@ describe("PUT /api/orders/[id] — Status Transitions", () => {
           action_type: "ORDER_UPDATED",
           order_id: ORDER_ID,
         })
+      );
+      expect(syncOrderToPremium).toHaveBeenCalledWith(
+        TEST_ACCOUNT_ID,
+        ORDER_ID,
+        { syncedBy: TEST_USER_EMAIL },
       );
     });
   });
@@ -296,6 +318,8 @@ describe("PUT /api/orders/[id] — Status Transitions", () => {
         payment_method: "bank_transfer",
       });
       expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.premium_sync).toBeUndefined();
       // No status history should be logged since status didn't change
       expect(createOrderStatusHistory).not.toHaveBeenCalled();
     });
@@ -312,6 +336,8 @@ describe("PUT /api/orders/[id] — Status Transitions", () => {
         sales_note: "Updated note",
       });
       expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.premium_sync?.success).toBe(true);
     });
 
     it("same status (no transition) does not trigger history", async () => {
@@ -323,6 +349,11 @@ describe("PUT /api/orders/[id] — Status Transitions", () => {
 
       // Same status → no history should be logged
       expect(createOrderStatusHistory).not.toHaveBeenCalled();
+      expect(syncOrderToPremium).toHaveBeenCalledWith(
+        TEST_ACCOUNT_ID,
+        ORDER_ID,
+        { syncedBy: TEST_USER_EMAIL },
+      );
     });
   });
 });

@@ -116,8 +116,10 @@ export function BatchTierModal({ isOpen, selectedCount, isPending, onClose, onCo
           {(["retail", "wholesale", "agency"] as const).map(t => (
             <button
               key={t}
+              type="button"
+              aria-pressed={value === t}
               onClick={() => setValue(t)}
-              className={`py-3 rounded-xl text-[13px] font-bold border transition-all ${
+              className={`py-3 rounded-xl text-[13px] font-bold border transition-[background-color,border-color,color,box-shadow] ${
                 value === t
               ? "bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/30 shadow-sm"
               : "bg-white text-[var(--fg-muted)] border-[var(--border-soft)] hover:bg-gray-50"
@@ -188,8 +190,10 @@ export function GroupAssignModal({ isOpen, selectedCount, groups, isAssigning, i
             {groups.map(g => (
               <button
                 key={g.id}
+                type="button"
+                aria-pressed={selectedGroupId === g.id}
                 onClick={() => setSelectedGroupId(g.id)}
-                className={`px-3 py-2 border rounded-xl text-left transition-all text-[13px] ${
+                className={`px-3 py-2 border rounded-xl text-left transition-[background-color,border-color,box-shadow] text-[13px] ${
                   selectedGroupId === g.id ? "bg-[var(--accent)]/10 border-[var(--accent)]/50 ring-1 ring-[var(--accent)]" : "hover:bg-gray-50 border-[var(--border-soft)]"
                 }`}
               >
@@ -225,8 +229,10 @@ export function GroupAssignModal({ isOpen, selectedCount, groups, isAssigning, i
                 <button
                   key={c}
                   type="button"
+                  aria-label={`Chọn màu ${c}`}
+                  aria-pressed={newColor === c}
                   onClick={() => setNewColor(c)}
-                  className={`size-5 rounded-full transition-all ${newColor === c ? "ring-2 ring-offset-1 ring-[var(--accent)] scale-110" : "hover:scale-110"}`}
+                  className={`size-5 rounded-full transition-[box-shadow,transform] ${newColor === c ? "ring-2 ring-offset-1 ring-[var(--accent)] scale-110" : "hover:scale-110"}`}
                   style={{ backgroundColor: c }}
                 />
               ))}
@@ -292,8 +298,10 @@ export function BatchTagModal({ isOpen, selectedCount, tags, isPending, onClose,
             {tags.map(tag => (
               <button
                 key={tag.id}
+                type="button"
+                aria-pressed={selectedTagId === tag.id}
                 onClick={() => setSelectedTagId(tag.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[13px] font-bold border transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[13px] font-bold border transition-[border-color,box-shadow,opacity] ${
                   selectedTagId === tag.id
                     ? "ring-2 ring-[var(--accent)] shadow-sm"
                     : "hover:opacity-80"
@@ -304,9 +312,9 @@ export function BatchTagModal({ isOpen, selectedCount, tags, isPending, onClose,
                   borderColor: selectedTagId === tag.id ? tag.color : `${tag.color}30`,
                 }}
               >
-                <span className="size-2.5 rounded-full" style={{ backgroundColor: tag.color }} />
+                <span aria-hidden="true" className="size-2.5 rounded-full" style={{ backgroundColor: tag.color }} />
                 {tag.name}
-                {selectedTagId === tag.id && <Check className="size-3.5 ml-1" />}
+                {selectedTagId === tag.id && <Check aria-hidden="true" className="size-3.5 ml-1" />}
               </button>
             ))}
           </div>

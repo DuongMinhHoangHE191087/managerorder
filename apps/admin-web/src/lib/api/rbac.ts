@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isMockSessionEnabled, isMockSessionTokenAllowed } from "@/lib/auth/mock-session";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { verifyToken } from "@/lib/utils/jwt";
 
@@ -43,7 +44,11 @@ export type Permission =
   | "calendar:read"
   | "calendar:write"
   // Users
-  | "user:manage";
+  | "user:manage"
+  // Credentials
+  | "credentials:read"
+  | "credentials:manage"
+  | "credentials:share";
 
 // ── Permission Matrix ───────────────────────────────────────────────────────
 
@@ -58,6 +63,7 @@ const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "logs:read",
     "calendar:read", "calendar:write",
     "user:manage",
+    "credentials:read", "credentials:manage", "credentials:share",
   ],
   sales_staff: [
     "order:create", "order:read", "order:update",
@@ -65,12 +71,14 @@ const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "dashboard:read",
     "payment:record",
     "calendar:read", "calendar:write",
+    "credentials:share",
   ],
   inventory_staff: [
     "inventory:read", "inventory:allocate", "inventory:adjust",
     "order:read",
     "customer:read",
     "dashboard:read",
+    "credentials:read", "credentials:manage", "credentials:share",
   ],
   customer_support: [
     "order:read", "order:update",
@@ -166,7 +174,7 @@ export async function resolveUser(
   const lookupUserId = isUuid(headerUserId) ? headerUserId : null;
   const identityValue = lookupUserId ?? userEmail ?? null;
   const identityColumn = lookupUserId ? "id" : "email";
-  const isE2EMockSession = process.env.E2E_MOCK_SESSION === "1";
+  const isE2EMockSession = isMockSessionEnabled(req.nextUrl.hostname);
   const mockSessionHeader = req.headers.get(E2E_MOCK_SESSION_HEADER);
 
   if (isE2EMockSession && mockSessionHeader === "1") {
@@ -190,12 +198,15 @@ export async function resolveUser(
       return null;
     }
 
-    const { data: adminUser, error } = await supabaseAdmin
+    const query = supabaseAdmin
       .from("admin_users")
       .select("id, email, role, full_name")
-      .eq("account_id", accountId)
-      .eq(identity.column, identity.value)
-      .maybeSingle();
+      .eq("account_id", accountId);
+
+    const { data: adminUser, error } = await (identity.column === "email"
+      ? query.ilike("email", identity.value)
+      : query.eq("id", identity.value)
+    ).maybeSingle();
 
     if (error || !adminUser) {
       if (error) {
@@ -245,6 +256,9 @@ export async function resolveUser(
 
   try {
     const decoded = verifyToken(token);
+    if (!isMockSessionTokenAllowed(decoded, req.nextUrl.hostname)) {
+      return null;
+    }
     if (decoded.accountId !== accountId) {
       return null;
     }

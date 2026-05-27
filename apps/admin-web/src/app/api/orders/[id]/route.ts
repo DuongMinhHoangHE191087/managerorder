@@ -6,6 +6,7 @@ import { withErrorHandler } from "@/lib/api/with-error-handler";
 import { createActivityLog } from "@/lib/supabase/repositories/activity-logs.repo";
 import { createOrderStatusHistory } from "@/lib/supabase/repositories/order-status-history.repo";
 import { deallocateOrder } from "@/lib/services/allocation.service";
+import { syncOrderToPremium } from "@/lib/services/premium-order-sync.service";
 import { canTransitionOrder } from "@/lib/domain/order-state-machine";
 import { hasPermission, resolveUser } from "@/lib/api/rbac";
 import { updateOrderInputSchema } from "@/lib/domain/schemas";
@@ -172,7 +173,26 @@ export const PUT = withErrorHandler(withAccount<{ id: string }>(async (request, 
     await Promise.all(sideEffects);
   }
 
-  return NextResponse.json({ data: withFinancialSummary(result) });
+  let premiumSync: { success: boolean; detail?: unknown; error?: string } | undefined;
+  if (result && ["paid", "active", "provisioning", "expired", "refunded"].includes(String(result.status ?? ""))) {
+    try {
+      premiumSync = {
+        success: true,
+        detail: await syncOrderToPremium(accountId, id, { syncedBy: user.email }),
+      };
+    } catch (syncError) {
+      console.error("[Order PUT] premium sync failed:", syncError);
+      premiumSync = {
+        success: false,
+        error: syncError instanceof Error ? syncError.message : "Premium sync failed",
+      };
+    }
+  }
+
+  return NextResponse.json({
+    data: withFinancialSummary(result),
+    premium_sync: premiumSync,
+  });
 }));
 
 export const DELETE = withErrorHandler(withAccount<{ id: string }>(async (_request, { accountId, params }) => {
@@ -208,4 +228,3 @@ export const DELETE = withErrorHandler(withAccount<{ id: string }>(async (_reque
   });
   return NextResponse.json({ success: true });
 }));
-

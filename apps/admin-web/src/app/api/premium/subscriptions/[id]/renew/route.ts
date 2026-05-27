@@ -15,14 +15,35 @@ import { withAccount } from '@/lib/api/with-account';
 import { withErrorHandler } from '@/lib/api/with-error-handler';
 import { createRenewalRequest } from '@/lib/utils/subscriptions-helpers';
 import { ensurePremiumSubscriptionRenewalAllowed } from '@/lib/domain/sales-workflow-guards';
-import { getCycleMonths } from "@/lib/domain/premium-renewal-finance";
+import { getCycleMonths, isPremiumBillingCycle } from "@/lib/domain/premium-renewal-finance";
 
 interface RenewalRequestBody {
   renewal_price?: number;
-  new_billing_cycle?: '1month' | '3months' | '6months' | '1year';
+  new_billing_cycle?: string;
   cost_price?: number;
   collected_amount?: number;
   notes?: string;
+  product_id?: string;
+}
+
+const RENEWAL_DETAIL_SELECT =
+  "id, status, account_id, original_subscription_id, renewal_price, total_price, new_billing_cycle, new_cycle_months, new_product_id, new_product_name_snapshot, new_product_duration_months, new_product_sell_price_vnd, new_product_buy_price_vnd, cost_price, collected_amount, profit_amount, notes";
+
+const LEGACY_RENEWAL_DETAIL_SELECT =
+  "id, status, account_id, original_subscription_id, renewal_price, total_price, new_billing_cycle, new_cycle_months, cost_price, collected_amount, profit_amount, notes";
+
+function isMissingRenewalProductSnapshotColumn(error: unknown) {
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === "object" && error !== null && "message" in error
+      ? String((error as { message?: unknown }).message)
+      : String(error ?? "");
+
+  return message.includes("new_product_") && (
+    message.includes("column")
+    || message.includes("schema cache")
+    || message.includes("Could not find")
+  );
 }
 
 // ============================================
@@ -58,6 +79,9 @@ export const PUT = withErrorHandler(
     if (body.collected_amount !== undefined && Number(body.collected_amount) < 0) {
       return badRequestResponse('collected_amount must be greater than or equal to 0');
     }
+    if (body.new_billing_cycle !== undefined && !isPremiumBillingCycle(body.new_billing_cycle)) {
+      return badRequestResponse('new_billing_cycle must be a valid premium billing cycle');
+    }
 
     // Create renewal request
     const renewalData = await createRenewalRequest(
@@ -65,20 +89,40 @@ export const PUT = withErrorHandler(
       id,
       subscription.customer_id,
       {
-        renewalPrice: body.renewal_price ?? Number(subscription.final_price ?? subscription.original_price ?? 0),
-        newBillingCycle: body.new_billing_cycle ?? String(subscription.billing_cycle ?? '1month'),
-        costPrice: body.cost_price ?? 0,
-        collectedAmount: body.collected_amount ?? 0,
+        renewalPrice: body.renewal_price,
+        newBillingCycle: body.new_billing_cycle,
+        costPrice: body.cost_price,
+        collectedAmount: body.collected_amount,
         notes: body.notes,
+        productId: body.product_id,
       },
     );
 
     // Get full renewal details
-    const { data: fullRenewal, error: renewalError } = await supabase
+    let { data: fullRenewal, error: renewalError } = await supabase
       .from('subscription_renewals')
-      .select('id, status, account_id, original_subscription_id')
+      .select(RENEWAL_DETAIL_SELECT)
       .eq('id', (renewalData as { id: string } | null)?.id ?? id)
       .single();
+
+    if (renewalError && isMissingRenewalProductSnapshotColumn(renewalError)) {
+      const legacyResult = await supabase
+        .from('subscription_renewals')
+        .select(LEGACY_RENEWAL_DETAIL_SELECT)
+        .eq('id', (renewalData as { id: string } | null)?.id ?? id)
+        .single();
+      fullRenewal = legacyResult.data
+        ? {
+            ...legacyResult.data,
+            new_product_id: null,
+            new_product_name_snapshot: null,
+            new_product_duration_months: null,
+            new_product_sell_price_vnd: null,
+            new_product_buy_price_vnd: null,
+          }
+        : null;
+      renewalError = legacyResult.error;
+    }
 
     if (renewalError || !fullRenewal) {
       throw renewalError ?? new Error('Failed to load renewal');
@@ -98,12 +142,18 @@ export const PUT = withErrorHandler(
       ...fullRenewal,
       customer_premium_subscriptions: renewedSubscription,
       finance_snapshot: {
-        cycle_months: getCycleMonths(
-          body.new_billing_cycle ?? String(subscription.billing_cycle ?? '1month'),
+        cycle_months: Number(
+          fullRenewal.new_cycle_months
+          ?? getCycleMonths(
+            fullRenewal.new_billing_cycle
+              ?? body.new_billing_cycle
+              ?? String(subscription.billing_cycle ?? '1month'),
+          )
         ),
-        renewal_price: Number(body.renewal_price ?? subscription.final_price ?? subscription.original_price ?? 0),
-        cost_price: Number(body.cost_price ?? 0),
-        collected_amount: Number(body.collected_amount ?? 0),
+        renewal_price: Number(fullRenewal.renewal_price ?? body.renewal_price ?? subscription.final_price ?? subscription.original_price ?? 0),
+        cost_price: Number(fullRenewal.cost_price ?? body.cost_price ?? 0),
+        collected_amount: Number(fullRenewal.collected_amount ?? body.collected_amount ?? fullRenewal.renewal_price ?? body.renewal_price ?? subscription.final_price ?? subscription.original_price ?? 0),
+        profit_amount: Number(fullRenewal.profit_amount ?? 0),
       },
     };
 

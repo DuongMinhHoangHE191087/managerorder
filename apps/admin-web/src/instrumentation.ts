@@ -9,6 +9,7 @@
 export async function register() {
   // Only run in Node.js runtime (not Edge)
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+  validateAccountSharingRuntime();
   const { shouldAutoRegisterTelegramWebhook } = await import(
     "@/lib/bot-manager/runtime-mode"
   );
@@ -25,4 +26,19 @@ export async function register() {
       console.error('[Instrumentation] Failed to auto-register Telegram webhook:', err);
     }
   }, 3000);
+}
+
+function validateAccountSharingRuntime() {
+  const missing = [
+    "CREDENTIAL_ENCRYPTION_KEY",
+    "SHARE_UNLOCK_SECRET",
+    "NEXT_PUBLIC_SITE_URL",
+  ].filter((key) => !process.env[key]);
+
+  if (missing.length > 0) {
+    console.warn(
+      `[Instrumentation] Account sharing is missing env vars: ${missing.join(", ")}. ` +
+      "Sharing routes will fail closed or fall back where possible.",
+    );
+  }
 }

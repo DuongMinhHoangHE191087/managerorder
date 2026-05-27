@@ -20,7 +20,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       <select
         ref={ref}
         className={cn(
-          "flex h-10 w-full cursor-pointer appearance-none rounded-[1rem] border bg-[rgba(255,255,255,0.88)] px-3 py-2 pr-9 text-[13px] font-medium text-[var(--fg-base)] shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-10 w-full cursor-pointer appearance-none rounded-[1rem] border bg-[rgba(255,255,255,0.88)] px-3 py-2 pr-9 text-[13px] font-medium text-[var(--fg-base)] shadow-sm transition-[background-color,border-color,box-shadow,color,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50",
           error
             ? "border-[var(--danger)] focus-visible:border-[var(--danger)] focus-visible:ring-[var(--danger)]/50"
             : "border-[var(--border-soft)] focus-visible:border-[var(--accent)] focus-visible:ring-[var(--ring)] hover:border-[var(--border-strong)]",

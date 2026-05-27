@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 
 import { formatMoney } from "@/lib/utils";
-import { getBillingCycleLabel } from "@/lib/domain/premium-renewal-finance";
+import { durationToMonths, getBillingCycleLabel } from "@/lib/domain/premium-renewal-finance";
 import { CreateActionFooter, CreateFlowDialog, CreateFormSection } from "@/shared/ui/create-flow-shell";
 import { appToast } from "@/shared/lib/toast";
 import { readApiEnvelope } from "@/shared/lib/api-client";
 import {
   buildRenewalFormDefaults,
   PremiumRenewalForm,
+  type PremiumRenewalProductOption,
   type RenewalDefaultsSource,
   type RenewalFormValue,
 } from "@/widgets/pages/premium/shared/premium-renewal-form";
@@ -26,6 +27,16 @@ type SubscriptionRenewalRequestRow = {
   package_default_price?: number | null;
 };
 
+type ProductApiRow = {
+  id: string;
+  name: string;
+  buyPriceVnd?: number | null;
+  sellPriceVnd?: number | null;
+  durationType?: string | null;
+  durationValue?: number | null;
+  isActive?: boolean | null;
+};
+
 export function RenewalRequestModal({
   subscription,
   onClose,
@@ -37,6 +48,8 @@ export function RenewalRequestModal({
 }) {
   const [form, setForm] = useState<RenewalFormValue | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [productOptions, setProductOptions] = useState<PremiumRenewalProductOption[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
   useEffect(() => {
     if (!subscription) {
@@ -52,6 +65,57 @@ export function RenewalRequestModal({
       packageDefaultPrice: subscription.package_default_price ?? 0,
     };
     setForm(buildRenewalFormDefaults(defaultsSource));
+  }, [subscription]);
+
+  useEffect(() => {
+    if (!subscription) {
+      setProductOptions([]);
+      return;
+    }
+
+    let isStale = false;
+    async function loadProducts() {
+      setIsLoadingProducts(true);
+      try {
+        const response = await fetch("/api/products");
+        const payload = await readApiEnvelope<ProductApiRow[]>(response);
+
+        if (!response.ok) {
+          appToast.error(payload.error ?? "Không thể tải sản phẩm gia hạn");
+          return;
+        }
+
+        if (isStale) {
+          return;
+        }
+
+        setProductOptions(
+          (payload.data ?? [])
+            .filter((product) => product.isActive !== false)
+            .map((product) => ({
+              id: product.id,
+              name: product.name,
+              durationMonths: durationToMonths(product.durationType, product.durationValue),
+              sellPriceVnd: Number(product.sellPriceVnd ?? 0),
+              buyPriceVnd: Number(product.buyPriceVnd ?? 0),
+            }))
+            .sort((left, right) => left.name.localeCompare(right.name, "vi")),
+        );
+      } catch (error) {
+        console.error("[RenewalRequestModal] loadProducts", error);
+        appToast.error("Không thể tải sản phẩm gia hạn");
+      } finally {
+        if (!isStale) {
+          setIsLoadingProducts(false);
+        }
+      }
+    }
+
+    void loadProducts();
+
+    return () => {
+      isStale = true;
+    };
   }, [subscription]);
 
   async function handleSubmit() {
@@ -71,6 +135,7 @@ export function RenewalRequestModal({
           renewal_price: form.renewalPrice,
           cost_price: form.costPrice,
           collected_amount: form.collectedAmount,
+          product_id: form.productId || undefined,
           notes: form.notes.trim() || undefined,
         }),
       });
@@ -127,6 +192,8 @@ export function RenewalRequestModal({
               Number(subscription.final_price ?? subscription.original_price ?? 0),
             )}
             packageDefaultPrice={subscription.package_default_price ?? 0}
+            productOptions={productOptions}
+            isLoadingProducts={isLoadingProducts}
           />
         </CreateFormSection>
       ) : null}
