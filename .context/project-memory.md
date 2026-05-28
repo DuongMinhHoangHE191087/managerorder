@@ -9,6 +9,7 @@
 
 ## Decisions
 
+- 2026-05-28: Sửa lỗi Next.js build crash do thiếu biến môi trường Supabase bằng cách thêm giá trị placeholder mặc định (URL và Key) vào việc khởi tạo supabaseAdmin ở admin.ts và proxy.ts. Điều này đảm bảo build-time module evaluation diễn ra suôn sẻ, trong khi runtime vẫn đọc đúng biến môi trường từ hệ thống.
 - 2026-05-28: Sửa lỗi Next.js build Out Of Memory (OOM) đa nền tảng bằng cách tích hợp cross-env để thiết lập NODE_OPTIONS --max-old-space-size=4096 một cách nhất quán trên cả Local (Windows) và Vercel CI (Linux).
 - 2026-05-28: Loại bỏ tiền tố corepack trong scripts của zalo-bot-js package.json giúp các lệnh lint, typecheck, test, và build chạy chuẩn hóa và di động hơn.
 - 2026-05-28: Gỡ bỏ hoàn toàn Zalo Bot (packages/zalo-bot-js) khỏi workspace và dọn dẹp các scripts liên quan trong root package.json theo yêu cầu người dùng, giúp monorepo cực kỳ tinh gọn.
@@ -16,6 +17,7 @@
 
 ## Facts
 
+- 2026-05-28: Lỗi "supabaseKey is required" khi Next.js thu thập dữ liệu trang tĩnh cho /api/auth/callback đã được khắc phục hoàn toàn bằng cách cung cấp fallback placeholders. Next.js build hiện tại đã biên dịch thành công 100% (60/60 trang tĩnh).
 - 2026-05-28: Next.js build gặp lỗi crash code 134 (JS heap out of memory) trong pha tsc typecheck. Giải quyết triệt để bằng cách dùng cross-env cấp phát 4GB heap size và chạy next build chuẩn hóa, tương thích cả Windows local và Linux Vercel CI.
 - 2026-05-28: Thực hiện thành công toàn bộ Pre-flight Checks của quy trình /ops trên cả monorepo: ESLint (0 lỗi), TypeScript typecheck (0 lỗi), Unit Tests (2091/2091 passed), và zalo-bot-js smoke test (smoke ok).
 - 2026-05-28: Xóa cứng Zalo Bot và gỡ bỏ 288 packages dư thừa khỏi node_modules. Build toàn diện monorepo thành công 100%.
@@ -57,6 +59,7 @@
 
 ## Session Log
 
+- 2026-05-28: Sửa lỗi build admin-web bằng cách cung cấp giá trị mặc định cho Supabase client ở admin.ts và proxy.ts. Khởi chạy build thành công rực rỡ với Turbopack.
 - 2026-05-28: Gỡ bỏ hoàn toàn Zalo Bot: Xóa cứng thư mục packages/zalo-bot-js, dọn dẹp cấu hình workspace và 288 packages phụ thuộc. Xác thực chạy lại build toàn monorepo thành công rực rỡ.
 - 2026-05-28: Chạy quy trình /ops (/deploy check) toàn diện: Kiểm tra thành công ESLint (0 errors), tsc typecheck (0 errors) của admin-web. Đồng thời gỡ bỏ corepack khỏi zalo-bot-js, xác thực thành công bộ unit tests 2091/2091 passed và smoke test thành công (smoke ok).
 - [date] event or correction

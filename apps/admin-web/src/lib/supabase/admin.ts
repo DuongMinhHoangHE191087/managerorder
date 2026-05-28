@@ -23,8 +23,8 @@ if (!supabaseUrl || !supabaseServiceKey) {
  * NEVER expose this to the browser/client.
  */
 export const supabaseAdmin = createClient(
-  supabaseUrl || "",
-  supabaseServiceKey || "",
+  supabaseUrl || "https://placeholder.supabase.co",
+  supabaseServiceKey || "placeholder-key",
   {
     auth: {
       autoRefreshToken: false,

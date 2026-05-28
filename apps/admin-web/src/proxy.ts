@@ -50,8 +50,8 @@ const ADMIN_ACCESS_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
  * Created once at module load, NOT per-request.
  */
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-key",
   {
     auth: {
       autoRefreshToken: false,

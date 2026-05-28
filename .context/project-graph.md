@@ -69,7 +69,7 @@
 
 | time | event | evidence |
 | --- | --- | --- |
-| [date] | command / structural change | README.md or task evidence |
+| 2026-05-28 | Sửa lỗi Next.js build crash do thiếu biến môi trường Supabase bằng cách thêm fallback placeholders vào admin.ts và proxy.ts | `apps/admin-web/src/lib/supabase/admin.ts`, `apps/admin-web/src/proxy.ts` |
 | 2026-05-28 | Next.js build Out Of Memory fixed globally by integrating cross-env and setting NODE_OPTIONS max heap limit to 4GB | `apps/admin-web/package.json` |
 | 2026-05-28 | Zalo Bot (zalo-bot-js) completely removed from the workspace and monorepo scripts pruned | `packages/zalo-bot-js` |
 | 2026-05-28 | Pre-flight Checks successfully verified ESLint (0 errors), tsc typecheck (0 errors), 2091/2091 unit tests passed, and zalo-bot-js normalized by removing corepack | `packages/zalo-bot-js/package.json` |
