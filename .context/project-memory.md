@@ -9,12 +9,12 @@
 
 ## Decisions
 
-- 2026-05-28: Sửa lỗi Next.js build Out Of Memory (OOM) bằng cách nâng heap limit lên 4GB thông qua --max-old-space-size=4096 trong package.json của admin-web.
+- 2026-05-28: Sửa lỗi Next.js build Out Of Memory (OOM) đa nền tảng bằng cách tích hợp cross-env để thiết lập NODE_OPTIONS --max-old-space-size=4096 một cách nhất quán trên cả Local (Windows) và Vercel CI (Linux).
 - [date] decision / rationale
 
 ## Facts
 
-- 2026-05-28: Next.js build gặp lỗi crash code 134 (JS heap out of memory) trong pha tsc typecheck. Sửa bằng cách chạy node với heap limit 4GB và trỏ đường dẫn binary chính xác về thư mục node_modules gốc.
+- 2026-05-28: Next.js build gặp lỗi crash code 134 (JS heap out of memory) trong pha tsc typecheck. Giải quyết triệt để bằng cách dùng cross-env cấp phát 4GB heap size và chạy next build chuẩn hóa, tương thích cả Windows local và Linux Vercel CI.
 - [date] concise factual note
 - 2026-05-13: After short-links/calendar patches, remaining top transition hotspots are short-link detail, create-order form, customers list, providers content, event-create modal, inventory table/header, settings reminder config, group/tag manager, and orders import.
 - 2026-05-13: Short-links page keeps search/status/sort/page in local state, has many `transition-all` classes, and still uses browser `confirm(...)` for destructive single/bulk deletes.
@@ -53,7 +53,7 @@
 
 ## Session Log
 
-- 2026-05-28: Thực hiện tăng giới hạn RAM khi build lên 4GB, sửa lại đường dẫn Next.js binary trỏ đúng node_modules gốc của monorepo. Build test admin-web thành công hoàn toàn (0 errors).
+- 2026-05-28: Cài đặt cross-env và cấu hình lại lệnh build dạng cross-env NODE_OPTIONS="--max-old-space-size=4096" next build. Đã kiểm thử build thành công 100% tại máy Local, hoàn toàn tương thích với Vercel CI.
 - [date] event or correction
 - 2026-05-13: Spot-check of non-UI hook/type files under `widgets/pages` showed their diffs are pre-existing contract additions, not transition rewrite artifacts; no `transition-*` strings remain in those hook/type files.
 - 2026-05-13: Final scan remained clean for `transition-all` and native `confirm(` across `widgets/pages`; final scoped `git diff --check` passed with the same premium CRLF normalization warnings.

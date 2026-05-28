@@ -70,7 +70,7 @@
 | time | event | evidence |
 | --- | --- | --- |
 | [date] | command / structural change | README.md or task evidence |
-| 2026-05-28 | Next.js build Out Of Memory fixed by increasing heap size limit to 4GB and resolving node_modules binary path | `apps/admin-web/package.json` |
+| 2026-05-28 | Next.js build Out Of Memory fixed globally by integrating cross-env and setting NODE_OPTIONS max heap limit to 4GB | `apps/admin-web/package.json` |
 | 2026-05-08 | premium health-check summary contract moved server-side; account detail audit page size raised; migration catalog batch size increased | `apps/admin-web/src/app/api/premium/health-checks/route.ts`, `apps/admin-web/src/widgets/pages/premium/health-checks/page-client.tsx`, `apps/admin-web/src/widgets/pages/premium/accounts/[id]/page-client.tsx`, `apps/admin-web/src/widgets/pages/premium/migrations/page-client.tsx` |
 | 2026-05-08 | migration modal switched target-user loading to the dedicated users endpoint to avoid fetching full account detail | `apps/admin-web/src/widgets/pages/premium/migrations/components/migration-modals.tsx` |
 | 2026-05-08 | added regression coverage for account audit limit default and dedicated account users route | `apps/admin-web/src/app/api/__tests__/premium-admin-contracts.api.test.ts` |
