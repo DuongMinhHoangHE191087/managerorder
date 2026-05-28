@@ -25,6 +25,7 @@
 - 2026-05-28: Next.js build gặp lỗi crash code 134 (JS heap out of memory) trong pha tsc typecheck. Giải quyết triệt để bằng cách dùng cross-env cấp phát 4GB heap size và chạy next build chuẩn hóa, tương thích cả Windows local và Linux Vercel CI.
 - 2026-05-28: Thực hiện thành công toàn bộ Pre-flight Checks của quy trình /ops trên cả monorepo: ESLint (0 lỗi), TypeScript typecheck (0 lỗi), Unit Tests (2091/2091 passed), và zalo-bot-js smoke test (smoke ok).
 - 2026-05-28: Xóa cứng Zalo Bot và gỡ bỏ 288 packages dư thừa khỏi node_modules. Build toàn diện monorepo thành công 100%.
+- 2026-05-29: Đã thêm route `/api/webhooks/landing-page` vào `PUBLIC_ROUTES` trong `proxy.ts` và xác thực thành công thông qua tsc type check và linter.
 - [date] concise factual note
 - 2026-05-13: After short-links/calendar patches, remaining top transition hotspots are short-link detail, create-order form, customers list, providers content, event-create modal, inventory table/header, settings reminder config, group/tag manager, and orders import.
 - 2026-05-13: Short-links page keeps search/status/sort/page in local state, has many `transition-all` classes, and still uses browser `confirm(...)` for destructive single/bulk deletes.
