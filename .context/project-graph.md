@@ -71,6 +71,7 @@
 | --- | --- | --- |
 | [date] | command / structural change | README.md or task evidence |
 | 2026-05-28 | Next.js build Out Of Memory fixed globally by integrating cross-env and setting NODE_OPTIONS max heap limit to 4GB | `apps/admin-web/package.json` |
+| 2026-05-28 | Zalo Bot (zalo-bot-js) completely removed from the workspace and monorepo scripts pruned | `packages/zalo-bot-js` |
 | 2026-05-28 | Pre-flight Checks successfully verified ESLint (0 errors), tsc typecheck (0 errors), 2091/2091 unit tests passed, and zalo-bot-js normalized by removing corepack | `packages/zalo-bot-js/package.json` |
 | 2026-05-08 | premium health-check summary contract moved server-side; account detail audit page size raised; migration catalog batch size increased | `apps/admin-web/src/app/api/premium/health-checks/route.ts`, `apps/admin-web/src/widgets/pages/premium/health-checks/page-client.tsx`, `apps/admin-web/src/widgets/pages/premium/accounts/[id]/page-client.tsx`, `apps/admin-web/src/widgets/pages/premium/migrations/page-client.tsx` |
 | 2026-05-08 | migration modal switched target-user loading to the dedicated users endpoint to avoid fetching full account detail | `apps/admin-web/src/widgets/pages/premium/migrations/components/migration-modals.tsx` |
