@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Báo cáo Triển Khai Azure qua VS Code Extension - ManagerOrder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0B0F19;
+      --card-bg: #161D30;
+      --card-border: #24304F;
+      --primary: #4FACFE;
+      --primary-glow: rgba(79, 172, 254, 0.4);
+      --secondary: #00F2FE;
+      --text-main: #E2E8F0;
+      --text-muted: #94A3B8;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --gradient: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+      --gradient-hover: linear-gradient(135deg, #00F2FE 0%, #4FACFE 100%);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Progress bar */
+    .progress-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,0.05);
+      z-index: 1000;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--gradient);
+      width: 0%;
+      transition: width 0.1s ease;
+    }
+
+    /* Container layout */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    /* Header section */
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+      position: relative;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 4px;
+      background: var(--gradient);
+      border-radius: 2px;
+    }
+    .logo-container {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .logo-icon {
+      font-size: 2.5rem;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: float 4s ease-in-out infinite;
+    }
+    h1 {
+      font-size: 2.3rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      background: linear-gradient(to right, #FFFFFF, #94A3B8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      font-weight: 400;
+    }
+
+    /* Floating summary bar */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .summary-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: var(--gradient);
+      opacity: 0;
+      transition: var(--transition);
+    }
+    .summary-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), 0 0 15px var(--primary-glow);
+      border-color: var(--primary);
+    }
+    .summary-card:hover::before {
+      opacity: 1;
+    }
+    .summary-num {
+      font-size: 1.8rem;
+      font-weight: 800;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .summary-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Main Sections */
+    section {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 40px;
+      transition: var(--transition);
+    }
+    section:hover {
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+    }
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 12px;
+    }
+    h2 svg {
+      width: 28px;
+      height: 28px;
+      color: var(--primary);
+    }
+
+    /* Steps list */
+    .steps {
+      list-style: none;
+      position: relative;
+      padding-left: 32px;
+    }
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 2px;
+      height: calc(100% - 24px);
+      background: var(--card-border);
+    }
+    .step-item {
+      position: relative;
+      margin-bottom: 30px;
+    }
+    .step-num {
+      position: absolute;
+      left: -32px;
+      top: 0;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--bg-dark);
+      border: 2px solid var(--primary);
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step-item:hover .step-num {
+      background: var(--primary);
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+    .step-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #FFFFFF;
+      margin-bottom: 8px;
+    }
+    .step-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Custom visual boxes */
+    .vscode-action-box {
+      background: #080C14;
+      border: 1px dashed var(--primary);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+    .vscode-action-box h4 {
+      color: var(--primary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Animations */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container { padding: 20px 16px; }
+      section { padding: 24px; }
+      h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div class="container">
+    
+    <header>
+      <div class="logo-container">
+        <span class="logo-icon">⚡</span>
+      </div>
+      <h1>Hướng Dẫn Deploy Qua VS Code Azure Extension</h1>
+      <p class="subtitle">Quy trình đồ họa (GUI) trực quan 100% không dùng dòng lệnh phức tạp</p>
+    </header>
+
+    <!-- FLOATING SUMMARY BAR -->
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-num">Azure for Students</div>
+        <div class="summary-label">Môi Trường Kích Hoạt</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-num">Container Apps</div>
+        <div class="summary-label">Mục Tiêu Triển Khai</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-num">Docker Extension</div>
+        <div class="summary-label">Tự Động Build Cloud</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-num">100% GUI</div>
+        <div class="summary-label">Bấm Chuột Trực Quan</div>
+      </div>
+    </div>
+
+    <!-- HƯỚNG DẪN VS CODE EXTENSION -->
+    <section>
+      <h2>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
+        </svg>
+        Quy Trình Deploy Bằng Giao Diện VS Code
+      </h2>
+      <p style="margin-bottom: 25px;">Dựa trên hình ảnh bạn vừa chụp, tài khoản **Azure for Students** của bạn đã liên kết thành công. Bạn hãy thực hiện deploy theo các bước trực quan bằng chuột sau:</p>
+
+      <ul class="steps">
+        <li class="step-item">
+          <div class="step-num"></div>
+          <div class="step-title">Bước 1: Build Docker Image lên Azure Container Registry (ACR)</div>
+          <div class="step-desc">
+            Bạn không cần tự chạy lệnh CLI hay cài đặt Docker cục bộ:
+            <div class="vscode-action-box">
+              <h4>🖱️ Thao tác chuột:</h4>
+              <p style="color: var(--text-main); font-size: 0.95rem;">
+                1. Trong danh sách file dự án bên trái VS Code, tìm tệp <strong>Dockerfile</strong> (nằm ở thư mục gốc).<br>
+                2. <strong>Nhấp chuột phải</strong> vào file <code>Dockerfile</code> và chọn <strong>"Build Image in Azure..."</strong>.<br>
+                3. VS Code sẽ hiện thanh thông báo ở trên:
+                   <ul style="padding-left: 20px; margin-top: 5px; color: var(--text-muted);">
+                     <li>Chọn Subscription: <code style="color:var(--primary)">Azure for Students</code>.</li>
+                     <li>Chọn hoặc tạo mới Azure Container Registry (ACR): Đặt tên bất kỳ (Ví dụ: <code>acrmanagerorder</code>).</li>
+                     <li>Chọn tag: <code>latest</code>.</li>
+                   </ul>
+                4. Nhấn Enter để Azure tự động build trực tiếp trên cloud. Sau khi xong, Image sẽ xuất hiện trong kho lưu trữ của bạn.
+              </p>
+            </div>
+          </div>
+        </li>
+
+        <li class="step-item">
+          <div class="step-num"></div>
+          <div class="step-title">Bước 2: Tạo Mới Azure Container App từ Extension</div>
+          <div class="step-desc">
+            Khởi tạo môi trường vận hành trực tiếp từ menu bạn đang chụp ảnh:
+            <div class="vscode-action-box">
+              <h4>🖱️ Thao tác chuột:</h4>
+              <p style="color: var(--text-main); font-size: 0.95rem;">
+                1. Mở tab **Azure Resources** (như ảnh bạn chụp).<br>
+                2. Tìm dòng <strong>Container Apps</strong>, bấm vào biểu tượng <strong>dấu cộng (+)</strong> ở góc trên thanh công cụ hoặc click chuột phải chọn <strong>"Create Container App..."</strong>.<br>
+                3. Điền các thông số theo hướng dẫn ở thanh trên cùng của VS Code:
+                   <ul style="padding-left: 20px; margin-top: 5px; color: var(--text-muted);">
+                     <li>Tên Container App: <code>managerorder-app</code>.</li>
+                     <li>Chọn Registry: Chọn kho ACR bạn đã tạo ở Bước 1.</li>
+                     <li>Chọn Image và Tag: Chọn <code>managerorder:latest</code>.</li>
+                     <li>Cấu hình cổng (Port): Nhập <strong>8080</strong> (vì Dockerfile gốc expose cổng 8080).</li>
+                     <li>Chế độ Ingress: Chọn <strong>External</strong> (để mở cổng HTTPS công khai truy cập website).</li>
+                   </ul>
+                4. Nhấn Enter để khởi tạo. Azure sẽ mất khoảng 1-2 phút để dựng server.
+              </p>
+            </div>
+          </div>
+        </li>
+
+        <li class="step-item">
+          <div class="step-num"></div>
+          <div class="step-title">Bước 3: Nhập Cấu Hình Biến Môi Trường (Environment Variables)</div>
+          <div class="step-desc">
+            Không cần gõ lệnh dài dòng, thêm trực tiếp các khóa API:
+            <div class="vscode-action-box">
+              <h4>🖱️ Thao tác chuột:</h4>
+              <p style="color: var(--text-main); font-size: 0.95rem;">
+                1. Trên cây thư mục Azure Extension, bấm mở rộng mục <strong>Container Apps</strong>.<br>
+                2. Tìm Container App <code>managerorder-app</code> vừa tạo, click chuột phải và chọn <strong>"Edit Container App Configuration..."</strong> (hoặc mở trực tiếp trên cổng Azure Portal).<br>
+                3. Thêm các biến môi trường thiết yếu để kích hoạt hệ thống Web & Telegram Bot:
+                   <ul style="padding-left: 20px; margin-top: 5px; font-family: monospace; color: var(--secondary);">
+                     <li>NODE_ENV = production</li>
+                     <li>PORT = 8080</li>
+                     <li>SUPABASE_URL = &lt;đường-dẫn-supabase-của-bạn&gt;</li>
+                     <li>SUPABASE_SERVICE_ROLE_KEY = &lt;key-dịch-vụ-supabase&gt;</li>
+                     <li>TELEGRAM_BOT_TOKEN = &lt;token-bot-telegram-của-bạn&gt;</li>
+                     <li>TELEGRAM_RUNTIME_MODE = polling</li>
+                   </ul>
+                4. Lưu cấu hình, Container App sẽ tự động khởi động lại (restart) cực kỳ mượt mà.
+              </p>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- KIỂM TRA LOGS -->
+    <section>
+      <h2>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+        </svg>
+        Xem Log Hoạt Động Trực Tiếp
+      </h2>
+      <p style="margin-bottom: 15px;">Để kiểm tra xem Telegram Bot và Next.js đã chạy thành công chưa:</p>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">
+        Click chuột phải vào Container App <code>managerorder-app</code> trong extension, chọn <strong>"Start Streaming Logs"</strong>. Toàn bộ log server sẽ hiển thị trực tiếp tại cửa sổ Output của VS Code vô cùng tiện lợi!
+      </p>
+    </section>
+
+    <!-- FOOTER -->
+    <footer style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 60px; border-top: 1px solid var(--card-border); padding-top: 20px;">
+      <p>© 2026 ManagerOrder Development Orchestrator. Được phân tích và tối ưu hóa tự động bởi <strong>Antigravity Engine</strong>.</p>
+    </footer>
+
+  </div>
+
+  <script>
+    // Progress bar animation on scroll
+    window.addEventListener('scroll', () => {
+      const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = (winScroll / height) * 100;
+      document.getElementById('progressBar').style.width = scrolled + '%';
+    });
+  </script>
+</body>
+</html>
