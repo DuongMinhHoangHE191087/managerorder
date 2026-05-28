@@ -18,7 +18,7 @@
     "pretypecheck": "node ./scripts/check-legacy-imports.mjs && node ./scripts/check-client-boundaries.mjs && node ./scripts/check-css-tokens.mjs && node ./scripts/check-ui-copy-vi.mjs",
     "pretest": "node ./scripts/check-legacy-imports.mjs && node ./scripts/check-client-boundaries.mjs && node ./scripts/check-css-tokens.mjs && node ./scripts/check-ui-copy-vi.mjs",
     "prebuild": "node ./scripts/check-legacy-imports.mjs && node ./scripts/check-client-boundaries.mjs && node ./scripts/check-css-tokens.mjs && node ./scripts/check-ui-copy-vi.mjs",
-    "build": "next build",
+    "build": "node --max-old-space-size=4096 ../../node_modules/next/dist/bin/next build",
     "analyze:build": "node ./scripts/analyze-next-build.mjs",
     "build:ci": "next build",
     "check:telegram-runtime": "node --experimental-strip-types --import ./scripts/register-ts-loader.mjs ./scripts/check-telegram-runtime.ts",
