@@ -18,6 +18,9 @@ on:
     - cron: '15 3 * * *'
   workflow_dispatch: # Cho phép sếp bấm kích hoạt thủ công từ giao diện GitHub để test/debug
 
+env:
+  APP_URL: ${{ secrets.VERCEL_APP_URL || 'https://duongminhhoang.id.vn' }}
+
 jobs:
   trigger-crons:
     runs-on: ubuntu-latest
@@ -26,7 +29,7 @@ jobs:
       - name: Trigger Webhook Retry
         if: github.event.schedule == '*/5 * * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/webhook-retry" \
+          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/webhook-retry" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --fail --show-error
@@ -35,7 +38,7 @@ jobs:
       - name: Trigger Telegram Reminder
         if: github.event.schedule == '0 23 * * *' || github.event_schedule == '0 14 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/telegram-reminder" \
+          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/telegram-reminder" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --fail --show-error
@@ -44,7 +47,7 @@ jobs:
       - name: Trigger Order Expiry Reminder
         if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/order-expiry-reminder" \
+          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/order-expiry-reminder" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --fail --show-error
@@ -53,7 +56,7 @@ jobs:
       - name: Trigger Revenue Report (Daily)
         if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/revenue-report" \
+          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/revenue-report" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --fail --show-error
@@ -62,7 +65,7 @@ jobs:
       - name: Trigger Best Super Link
         if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/best-super-link" \
+          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/best-super-link" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --fail --show-error
@@ -71,7 +74,7 @@ jobs:
       - name: Trigger Revenue Report (Weekly)
         if: github.event.schedule == '0 1 * * 1' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/revenue-report?type=weekly" \
+          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/revenue-report?type=weekly" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --fail --show-error
@@ -80,7 +83,7 @@ jobs:
       - name: Trigger Auto Escalation
         if: github.event.schedule == '0 2 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/auto-escalation" \
+          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/auto-escalation" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --fail --show-error
@@ -89,7 +92,7 @@ jobs:
       - name: Trigger Premium Renewal Reminder
         if: github.event.schedule == '0 2 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/premium-renewal-reminder" \
+          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/premium-renewal-reminder" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --fail --show-error
@@ -98,7 +101,7 @@ jobs:
       - name: Trigger Premium Health Checks
         if: github.event.schedule == '15 3 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/premium-health-checks" \
+          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/premium-health-checks" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --fail --show-error
