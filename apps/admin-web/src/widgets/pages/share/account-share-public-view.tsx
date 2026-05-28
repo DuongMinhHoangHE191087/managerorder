@@ -522,11 +522,20 @@ const shareStyles = `
 
   .share-root {
     min-height: 100vh;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    background: radial-gradient(circle at top left, rgba(16, 185, 129, 0.08), transparent 40%),
+                radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.08), transparent 45%),
+                #07110c;
+    background-image: 
+      radial-gradient(circle at 20% 20%, rgba(132, 204, 22, 0.05) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.06) 0%, transparent 45%),
+      linear-gradient(180deg, #050c08 0%, #081610 50%, #050c08 100%),
+      linear-gradient(rgba(255,255,255,0.005) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.005) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 32px 32px, 32px 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem 1rem;
+    padding: 2rem 1rem;
     position: relative;
     overflow: hidden;
     font-family: 'Inter', system-ui, sans-serif;
@@ -535,24 +544,37 @@ const shareStyles = `
   .share-bg-orb {
     position: absolute;
     border-radius: 50%;
-    filter: blur(80px);
+    filter: blur(120px);
     pointer-events: none;
+    opacity: 0.6;
+    animation: orb-pulse 8s infinite ease-in-out alternate;
   }
 
   .share-bg-orb-1 {
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
-    top: -100px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(132, 204, 22, 0.15) 0%, transparent 70%);
+    top: -150px;
     right: -100px;
+    animation-delay: 0s;
   }
 
   .share-bg-orb-2 {
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%);
-    bottom: -80px;
-    left: -80px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+    bottom: -100px;
+    left: -100px;
+    animation-delay: -4s;
+  }
+
+  @keyframes orb-pulse {
+    0% {
+      transform: scale(1) translate(0, 0);
+    }
+    100% {
+      transform: scale(1.1) translate(20px, -20px);
+    }
   }
 
   .share-container {
@@ -564,23 +586,32 @@ const shareStyles = `
 
   /* Card */
   .share-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 24px;
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
     overflow: hidden;
     box-shadow:
-      0 0 0 1px rgba(255,255,255,0.05) inset,
-      0 32px 80px rgba(0,0,0,0.5),
-      0 8px 32px rgba(0,0,0,0.3);
+      0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+      0 4px 24px rgba(0, 0, 0, 0.4),
+      0 32px 80px rgba(0, 0, 0, 0.6);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .share-card:hover {
+    border-color: rgba(132, 204, 22, 0.2);
+    box-shadow:
+      0 0 0 1px rgba(132, 204, 22, 0.05) inset,
+      0 4px 32px rgba(132, 204, 22, 0.05),
+      0 32px 80px rgba(0, 0, 0, 0.7);
   }
 
   /* Header */
   .share-card-header {
-    padding: 1.25rem 1.5rem;
+    padding: 1.5rem 1.75rem;
     border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: rgba(255,255,255,0.02);
+    background: rgba(255,255,255,0.01);
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -595,32 +626,32 @@ const shareStyles = `
   }
 
   .share-brand-icon {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #84cc16, #10b981);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #07130d;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
   }
 
   .share-brand-label {
     font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
+    font-weight: 800;
+    letter-spacing: 0.15em;
     text-transform: uppercase;
-    color: rgba(148,163,184,0.8);
+    color: rgba(163, 230, 53, 0.9);
     margin-bottom: 2px;
   }
 
   .share-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #f1f5f9;
-    line-height: 1.3;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #f8fafc;
+    line-height: 1.35;
     word-break: break-word;
   }
 

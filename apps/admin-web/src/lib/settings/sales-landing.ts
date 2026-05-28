@@ -28,8 +28,15 @@ export function normalizeSalesLandingConfig(
 ): SalesLandingConfig {
   const offers = extractOffers(value);
 
+  const normalizedOffers = offers.length > 0
+    ? offers.map((offer, index) => {
+        const fallback = DEFAULT_OFFER_CONFIGS[index % DEFAULT_OFFER_CONFIGS.length] || DEFAULT_OFFER_CONFIGS[0];
+        return normalizeOffer(offer, fallback, index);
+      })
+    : DEFAULT_OFFER_CONFIGS;
+
   return {
-    offers: DEFAULT_OFFER_CONFIGS.map((fallback, index) => normalizeOffer(offers[index], fallback, index)),
+    offers: normalizedOffers,
     shortLinkFailureDefaults: normalizeShortLinkFailureDefaults(value),
   };
 }
@@ -39,13 +46,18 @@ export function buildSalesLandingOffers(
 ): OfferCard[] {
   const normalized = normalizeSalesLandingConfig(config);
 
-  return normalized.offers.map((offer, index) => ({
-    ...PREMIUM_OFFERS[index],
-    href: offer.href || PREMIUM_OFFERS[index].href,
-    label: offer.label || PREMIUM_OFFERS[index].label,
-    price: offer.price || PREMIUM_OFFERS[index].price,
-    desc: offer.desc || PREMIUM_OFFERS[index].desc,
-  }));
+  return normalized.offers.map((offer, index) => {
+    const style = PREMIUM_OFFERS[index % PREMIUM_OFFERS.length] || PREMIUM_OFFERS[0];
+    return {
+      icon: style.icon,
+      gradient: style.gradient,
+      tag: style.tag,
+      href: offer.href || style.href,
+      label: offer.label || style.label,
+      price: offer.price || style.price,
+      desc: offer.desc || style.desc,
+    };
+  });
 }
 
 export function buildSalesLandingConfigFromProducts(
@@ -67,7 +79,7 @@ export function buildSalesLandingConfigFromProducts(
         product_id: product.id,
         label: product.name,
         price: formatMarketingPrice(product.sellPriceVnd, product.durationValue, product.durationType),
-        desc: offer.desc || DEFAULT_OFFER_CONFIGS[index].desc,
+        desc: offer.desc || (DEFAULT_OFFER_CONFIGS[index % DEFAULT_OFFER_CONFIGS.length]?.desc ?? DEFAULT_OFFER_CONFIGS[0].desc),
       };
     }),
     shortLinkFailureDefaults: normalized.shortLinkFailureDefaults,

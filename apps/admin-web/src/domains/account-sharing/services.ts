@@ -139,7 +139,7 @@ function getAllowedShareCredentialType(
   return exposurePolicy.fields.includes(credentialType) ? credentialType : null;
 }
 
-function parseExposurePolicy(value: unknown): AccountShareExposurePolicy {
+export function parseExposurePolicy(value: unknown): AccountShareExposurePolicy {
   if (!value || typeof value !== "object") {
     return normalizeExposurePolicy(undefined);
   }

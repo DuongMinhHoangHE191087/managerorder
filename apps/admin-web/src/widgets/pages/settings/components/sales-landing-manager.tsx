@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Link2, LockKeyhole, MessageCircle, Sparkles } from "lucide-react";
+import { ExternalLink, Link2, LockKeyhole, MessageCircle, Sparkles, Trash2, Plus } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -64,6 +64,39 @@ export function SalesLandingManager() {
     setSettings((current) => {
       const nextOffers = [...current.sales_landing_config.offers];
       nextOffers[index] = updater(nextOffers[index] ?? DEFAULT_SALES_LANDING_CONFIG.offers[index]);
+      return {
+        ...current,
+        sales_landing_config: { ...current.sales_landing_config, offers: nextOffers },
+      };
+    });
+  }
+
+  function addOffer() {
+    setSettings((current) => {
+      const nextOffers = [...current.sales_landing_config.offers];
+      const index = nextOffers.length;
+      const fallback = PREMIUM_OFFERS[index % PREMIUM_OFFERS.length] || PREMIUM_OFFERS[0];
+      nextOffers.push({
+        product_id: null,
+        href: fallback.href,
+        label: fallback.label,
+        price: fallback.price,
+        desc: fallback.desc,
+      });
+      return {
+        ...current,
+        sales_landing_config: { ...current.sales_landing_config, offers: nextOffers },
+      };
+    });
+  }
+
+  function removeOffer(index: number) {
+    if (settings.sales_landing_config.offers.length <= 1) {
+      appToast.error("Phải giữ lại ít nhất 1 sản phẩm hiển thị");
+      return;
+    }
+    setSettings((current) => {
+      const nextOffers = current.sales_landing_config.offers.filter((_, i) => i !== index);
       return {
         ...current,
         sales_landing_config: { ...current.sales_landing_config, offers: nextOffers },
@@ -243,11 +276,11 @@ export function SalesLandingManager() {
           />
         </div>
 
-        {offers.map((offer, index) => {
-          const style = PREMIUM_OFFERS[index] ?? PREMIUM_OFFERS[0];
+    {offers.map((offer, index) => {
+          const style = PREMIUM_OFFERS[index % PREMIUM_OFFERS.length] || PREMIUM_OFFERS[0];
 
           return (
-            <div key={`${index}-${style.label}`} className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-sm">
+            <div key={`${index}-${style.label}`} className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-sm relative group">
               <div className="flex items-start gap-4">
                 <div
                   className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br ${style.gradient} shadow-inner`}
@@ -255,13 +288,23 @@ export function SalesLandingManager() {
                   <style.icon className="size-6 text-white" strokeWidth={2} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--fg-muted)]">
-                      Slot {index + 1}
-                    </p>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-700">
-                      {style.tag}
-                    </span>
+                  <div className="flex items-center justify-between w-full gap-2">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--fg-muted)]">
+                        Slot {index + 1}
+                      </p>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-700">
+                        {style.tag}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeOffer(index)}
+                      className="p-1 rounded-lg text-red-500 hover:bg-red-50 transition border border-transparent hover:border-red-200 cursor-pointer"
+                      title="Xóa slot này"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
                   </div>
                   <h4 className="mt-1 text-[15px] font-black tracking-tight text-[var(--fg-base)]">
                     {offer.label || style.label}
@@ -347,6 +390,20 @@ export function SalesLandingManager() {
             </div>
           );
         })}
+
+        <button
+          type="button"
+          onClick={addOffer}
+          className="flex h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border-soft)] bg-slate-50/50 p-6 text-center transition hover:border-[var(--accent)] hover:bg-slate-50 cursor-pointer"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-light)] text-[var(--fg-muted)]">
+            <Plus className="size-6" />
+          </div>
+          <div>
+            <p className="text-sm font-black text-[var(--fg-base)]">Thêm sản phẩm hiển thị</p>
+            <p className="mt-1 text-xs text-[var(--fg-muted)] max-w-[200px]">Tạo thêm một offer card hiển thị trên public landing</p>
+          </div>
+        </button>
       </div>
 
       <div className="flex justify-end pt-2">

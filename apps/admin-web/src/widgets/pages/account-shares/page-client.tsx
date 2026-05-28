@@ -4,6 +4,7 @@ import { useDeferredValue, useEffect, useMemo, useState, type ComponentType } fr
 import Link from "next/link";
 import {
   Activity,
+  AlertTriangle,
   Ban,
   Check,
   CheckCircle2,
@@ -11,9 +12,11 @@ import {
   Copy,
   ExternalLink,
   Eye,
+  EyeOff,
   Filter,
   KeyRound,
   Link2,
+  Loader2,
   Lock,
   RefreshCw,
   Search,
@@ -65,6 +68,7 @@ export default function AccountSharesPageClient() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [expandedLogsId, setExpandedLogsId] = useState<string | null>(null);
+  const [expandedPayloadId, setExpandedPayloadId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(0);
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -238,11 +242,19 @@ export default function AccountSharesPageClient() {
                   nowMs={nowMs}
                   copied={copiedId === share.id}
                   expanded={expandedLogsId === share.id}
+                  expandedPayload={expandedPayloadId === share.id}
                   isMutating={updateShare.isPending || deleteShare.isPending}
                   onCopy={() => void handleCopy(share)}
                   onToggleStatus={() => void handleToggleStatus(share)}
                   onDelete={() => void handleDelete(share)}
-                  onToggleLogs={() => setExpandedLogsId((current) => current === share.id ? null : share.id)}
+                  onToggleLogs={() => {
+                    setExpandedLogsId((current) => current === share.id ? null : share.id);
+                    if (expandedPayloadId === share.id) setExpandedPayloadId(null);
+                  }}
+                  onTogglePayload={() => {
+                    setExpandedPayloadId((current) => current === share.id ? null : share.id);
+                    if (expandedLogsId === share.id) setExpandedLogsId(null);
+                  }}
                 />
               ))}
             </div>
@@ -258,21 +270,25 @@ function ShareRow({
   nowMs,
   copied,
   expanded,
+  expandedPayload,
   isMutating,
   onCopy,
   onToggleStatus,
   onDelete,
   onToggleLogs,
+  onTogglePayload,
 }: {
   share: AccountShareLink;
   nowMs: number;
   copied: boolean;
   expanded: boolean;
+  expandedPayload: boolean;
   isMutating: boolean;
   onCopy: () => void;
   onToggleStatus: () => void;
   onDelete: () => void;
   onToggleLogs: () => void;
+  onTogglePayload: () => void;
 }) {
   const status = getStatusMeta(share, nowMs);
 
@@ -365,6 +381,9 @@ function ShareRow({
           <IconButton title={share.status === "active" ? "Tắt link" : "Bật link"} onClick={onToggleStatus} disabled={isMutating}>
             {share.status === "active" ? <Ban className="size-4" /> : <CheckCircle2 className="size-4" />}
           </IconButton>
+          <IconButton title="Xem dữ liệu" onClick={onTogglePayload} disabled={isMutating}>
+            <KeyRound className="size-4" />
+          </IconButton>
           <IconButton title="Nhật ký" onClick={onToggleLogs} disabled={isMutating}>
             <Activity className="size-4" />
           </IconButton>
@@ -375,6 +394,7 @@ function ShareRow({
       </div>
 
       {expanded ? <ShareLogs shareId={share.id} /> : null}
+      {expandedPayload ? <SharePayloadPanel shareId={share.id} /> : null}
     </div>
   );
 }
@@ -580,4 +600,324 @@ function formatOptionalDate(value: string | null) {
 
 function shortId(value: string) {
   return value.length > 12 ? `${value.slice(0, 8)}...${value.slice(-4)}` : value;
+}
+
+// ─── Subcomponents for Admin Decryption & TOTP 2FA ─────────────
+
+type ShareCredential = {
+  id: string;
+  type: string;
+  label: string;
+  value: string | null;
+  format?: string;
+  masked: boolean;
+  totpAvailable: boolean;
+};
+
+type SharePayload = {
+  id: string;
+  slug: string;
+  title: string | null;
+  email: string | null;
+  password: string | null;
+  credentials: ShareCredential[];
+  expiresAt: string | null;
+  remainingViews: number | null;
+};
+
+function SharePayloadPanel({ shareId }: { shareId: string }) {
+  const [payload, setPayload] = useState<SharePayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`/api/account-shares/${shareId}/payload`, { cache: "no-store" });
+        if (!res.ok) throw new Error("Không thể tải dữ liệu share");
+        const json = await res.json() as { data: SharePayload };
+        if (!cancelled) {
+          setPayload(json.data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [shareId]);
+
+  const handleCopy = async (value: string, id: string) => {
+    await appToast.copy(value, "Đã sao chép dữ liệu");
+    setCopiedId(id);
+    window.setTimeout(() => setCopiedId(null), 1600);
+  };
+
+  if (loading) {
+    return (
+      <div className="mt-4 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-4 flex items-center justify-center gap-2">
+        <Loader2 className="size-4 animate-spin text-[var(--fg-muted)]" />
+        <span className="text-[12px] font-semibold text-[var(--fg-muted)]">Đang giải mã dữ liệu an toàn...</span>
+      </div>
+    );
+  }
+
+  if (error || !payload) {
+    return (
+      <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 flex items-center gap-2 text-red-600">
+        <AlertTriangle className="size-4 shrink-0" />
+        <span className="text-[12px] font-semibold">{error || "Không thể giải mã dữ liệu."}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-4 space-y-4">
+      <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-2">
+        <p className="text-[11px] font-black uppercase tracking-widest text-[var(--fg-muted)] flex items-center gap-1.5">
+          <KeyRound className="size-3.5 text-[var(--accent)]" /> Dữ liệu giải mã (Bản rõ)
+        </p>
+        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+          Chế độ Admin giải mã an toàn
+        </span>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {payload.email && (
+          <AdminFieldRow
+            label="Tài khoản (Email)"
+            value={payload.email}
+            copied={copiedId === "email"}
+            onCopy={() => handleCopy(payload.email!, "email")}
+          />
+        )}
+        {payload.password && (
+          <AdminFieldRow
+            label="Mật khẩu"
+            value={payload.password}
+            copied={copiedId === "password"}
+            onCopy={() => handleCopy(payload.password!, "password")}
+            sensitive
+          />
+        )}
+      </div>
+
+      {payload.credentials && payload.credentials.length > 0 && (
+        <div className="space-y-3 pt-2 border-t border-[var(--border-soft)]">
+          <p className="text-[10px] font-black uppercase tracking-wider text-[var(--fg-muted)]">Credentials bổ sung</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {payload.credentials.map((cred) => (
+              cred.totpAvailable ? (
+                <AdminTotpRow
+                  key={cred.id}
+                  shareId={shareId}
+                  credential={cred}
+                  copied={copiedId === cred.id}
+                  onCopy={(val) => handleCopy(val, cred.id)}
+                  copiedSecret={copiedId === `${cred.id}_secret`}
+                  onCopySecret={(val) => handleCopy(val, `${cred.id}_secret`)}
+                />
+              ) : cred.value ? (
+                <AdminFieldRow
+                  key={cred.id}
+                  label={cred.label}
+                  value={cred.value}
+                  copied={copiedId === cred.id}
+                  onCopy={() => handleCopy(cred.value!, cred.id)}
+                  sensitive={cred.masked}
+                />
+              ) : null
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminFieldRow({
+  label,
+  value,
+  copied,
+  onCopy,
+  sensitive,
+}: {
+  label: string;
+  value: string;
+  copied: boolean;
+  onCopy: () => void;
+  sensitive?: boolean;
+}) {
+  const [revealed, setRevealed] = useState(!sensitive);
+  const displayValue = sensitive && !revealed ? "•".repeat(Math.min(value.length, 12)) : value;
+
+  return (
+    <div className="rounded-xl border border-[var(--border-soft)] bg-white p-3 shadow-sm flex flex-col justify-between gap-1">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-bold text-[var(--fg-muted)]">{label}</span>
+        {sensitive && (
+          <button
+            type="button"
+            onClick={() => setRevealed((v) => !v)}
+            className="text-[10px] font-bold text-[var(--accent)] hover:underline"
+          >
+            {revealed ? "Ẩn" : "Hiện"}
+          </button>
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-2 mt-1">
+        <span className={cn("text-[13px] font-black break-all select-all", sensitive && !revealed ? "text-gray-400" : "text-[var(--fg-base)]")}>
+          {displayValue}
+        </span>
+        <button
+          type="button"
+          onClick={onCopy}
+          className={cn(
+            "p-1.5 rounded-lg border border-[var(--border-soft)] transition",
+            copied ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-[var(--surface-light)] text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
+          )}
+        >
+          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+type TotpState = {
+  code: string;
+  remainingSeconds: number;
+  period: number;
+};
+
+function AdminTotpRow({
+  shareId,
+  credential,
+  copied,
+  onCopy,
+  copiedSecret,
+  onCopySecret,
+}: {
+  shareId: string;
+  credential: ShareCredential;
+  copied: boolean;
+  onCopy: (value: string) => void;
+  copiedSecret: boolean;
+  onCopySecret: (value: string) => void;
+}) {
+  const [totp, setTotp] = useState<TotpState | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    async function load() {
+      try {
+        const res = await fetch(`/api/account-shares/${shareId}/totp?credentialId=${encodeURIComponent(credential.id)}`, { cache: "no-store" });
+        if (res.ok) {
+          const json = await res.json() as { data: TotpState };
+          if (!cancelled) {
+            setTotp(json.data);
+            timer = setTimeout(load, Math.max(1, json.data.remainingSeconds) * 1000);
+          }
+        }
+      } catch (err) {
+        // Silently retry or ignore
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [credential.id, shareId]);
+
+  useEffect(() => {
+    if (!totp?.code) return;
+    const interval = setInterval(() => {
+      setTotp((current) => current ? { ...current, remainingSeconds: Math.max(0, current.remainingSeconds - 1) } : current);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [totp?.code]);
+
+  const code = totp?.code ?? "------";
+  const period = totp?.period ?? 30;
+  const remaining = totp?.remainingSeconds ?? 0;
+  const progress = Math.round((remaining / period) * 100);
+  const isUrgent = remaining <= 5;
+
+  return (
+    <div className="rounded-xl border border-[var(--border-soft)] bg-white p-3 shadow-sm space-y-3 md:col-span-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="text-[11px] font-bold text-[var(--fg-muted)]">{credential.label} (TOTP 2FA)</span>
+          <div className="mt-1 flex items-center gap-4">
+            <span className={cn("text-[20px] font-black tracking-wider font-mono", isUrgent ? "text-red-600 animate-pulse" : "text-[var(--fg-base)]")}>
+              {code.slice(0, 3)} {code.slice(3)}
+            </span>
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--fg-muted)]">
+              <div className="relative size-4">
+                <svg className="size-full -rotate-90" viewBox="0 0 32 32">
+                  <circle cx="16" cy="16" r="14" className="stroke-gray-100 fill-none stroke-[3]" />
+                  <circle
+                    cx="16"
+                    cy="16"
+                    r="14"
+                    className={cn("fill-none stroke-[3] stroke-[var(--accent)]", isUrgent && "stroke-red-500")}
+                    strokeDasharray={`${(progress / 100) * 87.96} 87.96`}
+                  />
+                </svg>
+              </div>
+              <span>{remaining} giây</span>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          disabled={!totp}
+          onClick={() => totp && onCopy(totp.code)}
+          className={cn(
+            "p-2 rounded-lg border border-[var(--border-soft)] transition",
+            copied ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-[var(--surface-light)] text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
+          )}
+          title="Copy mã 2FA 6 số"
+        >
+          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+        </button>
+      </div>
+
+      {credential.value && (
+        <div className="pt-2 border-t border-dashed border-[var(--border-soft)] flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <span className="block text-[9px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">Khóa gốc 2FA (Key Secret)</span>
+            <code className="text-[11px] font-black truncate block text-gray-500 max-w-xs">{credential.value}</code>
+          </div>
+          <button
+            type="button"
+            onClick={() => onCopySecret(credential.value!)}
+            className={cn(
+              "p-1.5 rounded-lg border border-[var(--border-soft)] transition",
+              copiedSecret ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-[var(--surface-light)] text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
+            )}
+            title="Copy Key Secret"
+          >
+            {copiedSecret ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
