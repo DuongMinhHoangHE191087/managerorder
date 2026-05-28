@@ -2,6 +2,7 @@
 // INBOUND WEBHOOK → Landing Page & Seepay Auto provisioning
 // Method: POST /api/webhooks/landing-page
 // Secures endpoint using X-Webhook-Secret header
+// Returns join links or license keys directly in response
 // ============================================================
 
 import { NextRequest, NextResponse } from "next/server";
@@ -10,6 +11,7 @@ import { createCustomer } from "@/lib/supabase/repositories/customers.repo";
 import { createOrder } from "@/lib/supabase/repositories/orders.repo";
 import { confirmAllocation } from "@/lib/services/allocation.service";
 import { sendTelegramMessage } from "@/lib/utils/telegram";
+import { getDecryptedSourceAccountSecretsForAccount } from "@/domains/source-accounts";
 
 const WEBHOOK_SECRET = process.env.WEBHOOK_LANDING_PAGE_SECRET ?? "";
 const DEFAULT_ACCOUNT_ID = "550e8400-e29b-41d4-a716-446655440000";
@@ -43,6 +45,47 @@ interface WebhookPayload {
   };
 }
 
+/** Helper to retrieve invite join link of an already allocated slot */
+async function getInviteLinkForOrder(orderId: string, accountId: string): Promise<string | null> {
+  try {
+    const { data: orderItems } = await supabaseAdmin
+      .from("order_items")
+      .select("assigned_source_account_id")
+      .eq("order_id", orderId)
+      .not("assigned_source_account_id", "is", null);
+
+    if (orderItems && orderItems.length > 0) {
+      const sourceAccountId = orderItems[0].assigned_source_account_id;
+      if (sourceAccountId) {
+        const secrets = await getDecryptedSourceAccountSecretsForAccount(sourceAccountId, accountId);
+        const joinLinkObj = secrets?.credentials?.find(c => c.type === "link_join");
+        return joinLinkObj?.value ?? null;
+      }
+    }
+  } catch (err) {
+    console.error(`[Webhook Seepay] Failed to decrypt invite link for order ${orderId}:`, err);
+  }
+  return null;
+}
+
+/** Helper to retrieve license key of an already allocated key product */
+async function getLicenseKeyForOrder(orderId: string): Promise<string | null> {
+  try {
+    const { data: keys } = await supabaseAdmin
+      .from("license_keys")
+      .select("key_code")
+      .eq("order_id", orderId)
+      .limit(1);
+
+    if (keys && keys.length > 0) {
+      return keys[0].key_code;
+    }
+  } catch (err) {
+    console.error(`[Webhook Seepay] Failed to retrieve license key for order ${orderId}:`, err);
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   // 1. Verify Webhook Secret to prevent spam/fake transactions
   const requestSecret = request.headers.get("X-Webhook-Secret");
@@ -64,7 +107,36 @@ export async function POST(request: NextRequest) {
     const email = customer.email?.trim().toLowerCase() ?? "";
     const phone = customer.phone?.trim() ?? "";
 
-    console.log(`[Webhook Seepay] Processing order for customer: ${customer.full_name} (${email || phone})`);
+    // Generate readable order code using transaction details
+    const orderCode = `ORD-${payment.transaction_id || Date.now().toString().slice(-8)}`;
+
+    // ── Idempotency Guard (Only allocate ONCE per transaction) ──
+    const { data: existingOrder } = await supabaseAdmin
+      .from("orders")
+      .select("id, status")
+      .eq("order_code", orderCode)
+      .eq("account_id", accountId)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (existingOrder) {
+      console.log(`[Webhook Seepay] Order ${orderCode} already exists (Idempotency triggered). Fetching credentials...`);
+      
+      const inviteLink = await getInviteLinkForOrder(existingOrder.id, accountId);
+      const licenseKey = await getLicenseKeyForOrder(existingOrder.id);
+
+      return NextResponse.json({
+        success: true,
+        orderCode,
+        orderId: existingOrder.id,
+        allocated: !!(inviteLink || licenseKey),
+        inviteLink,
+        licenseKey,
+        message: "Order already processed. Allocation skipped to prevent duplicates.",
+      });
+    }
+
+    console.log(`[Webhook Seepay] Processing new order for customer: ${customer.full_name} (${email || phone})`);
 
     // 2. Resolve Customer (Find existing contact or Create new)
     let customerId = "";
@@ -137,9 +209,6 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setMonth(expiresAt.getMonth() + (order.duration_months || 1));
 
-    // Generate readable order code using transaction details
-    const orderCode = `ORD-${payment.transaction_id || Date.now().toString().slice(-8)}`;
-
     // 4. Create Order
     const newOrder = await createOrder(accountId, {
       order_code: orderCode,
@@ -191,7 +260,16 @@ export async function POST(request: NextRequest) {
       allocationMsg = allocError instanceof Error ? allocError.message : "Allocation engine error";
     }
 
-    // 7. Send beautiful Telegram notification HTML template to admin group
+    // 7. Get the allocated invite join link or license key
+    let inviteLink: string | null = null;
+    let licenseKey: string | null = null;
+
+    if (allocationSuccess) {
+      inviteLink = await getInviteLinkForOrder(newOrder.id, accountId);
+      licenseKey = await getLicenseKeyForOrder(newOrder.id);
+    }
+
+    // 8. Send beautiful Telegram notification HTML template to admin group
     let telegramMsg = `<b>🚀 ĐƠN HÀNG TỰ ĐỘNG MỚI (WEBHOOK)</b>\n`;
     telegramMsg += `━━━━━━━━━━━━━━━━━━━━\n`;
     telegramMsg += `👤 <b>Khách hàng:</b> <code>${customer.full_name}</code>\n`;
@@ -204,7 +282,14 @@ export async function POST(request: NextRequest) {
     telegramMsg += `━━━━━━━━━━━━━━━━━━━━\n`;
 
     if (allocationSuccess) {
-      telegramMsg += `✅ <b>Cấp phát tài khoản:</b> THÀNH CÔNG! Đơn hàng tự động kích hoạt trạng thái <b>Active</b>.`;
+      telegramMsg += `✅ <b>Cấp phát tài khoản:</b> THÀNH CÔNG! Đơn hàng tự động kích hoạt trạng thái <b>Active</b>.\n`;
+      if (inviteLink) {
+        telegramMsg += `🔗 <b>Link Join:</b> <code>${inviteLink}</code>`;
+      } else if (licenseKey) {
+        telegramMsg += `🔑 <b>License Key:</b> <code>${licenseKey}</code>`;
+      } else {
+        telegramMsg += `ℹ️ <i>Đã phân phối slot tài khoản nguồn.</i>`;
+      }
     } else {
       telegramMsg += `⚠️ <b>Cấp phát tài khoản:</b> THẤT BẠI (Cần xử lý thủ công!)\n`;
       telegramMsg += `❌ <b>Lý do:</b> <i>${allocationMsg}</i>`;
@@ -217,6 +302,8 @@ export async function POST(request: NextRequest) {
       orderCode,
       orderId: newOrder.id,
       allocated: allocationSuccess,
+      inviteLink,
+      licenseKey,
       message: allocationSuccess ? "Order created and activated successfully" : `Order created. Allocation failed: ${allocationMsg}`,
     });
 
