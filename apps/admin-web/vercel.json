@@ -5,10 +5,6 @@
       "schedule": "0 0 * * *"
     },
     {
-      "path": "/api/cron/telegram-reminder",
-      "schedule": "0 0 * * *"
-    },
-    {
       "path": "/api/cron/order-expiry-reminder",
       "schedule": "0 0 * * *"
     },

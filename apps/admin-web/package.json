@@ -2,9 +2,9 @@
   "name": "@managerorder/admin-web",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@10.0.0",
   "engines": {
-    "node": "22.x",
+    "node": ">=22.0.0",
     "pnpm": ">=9 <11"
   },
   "scripts": {
