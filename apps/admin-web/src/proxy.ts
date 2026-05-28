@@ -36,6 +36,7 @@ const PUBLIC_ROUTES = [
   "/api/cron",          // Cron jobs (auth handled by CRON_SECRET)
   "/api/s/",            // Public short link API redirect (NO auth)
   "/api/share/",
+  "/api/webhooks/landing-page",
 ];
 
 /**
