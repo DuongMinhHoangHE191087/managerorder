@@ -399,15 +399,18 @@ export const handleCreateMenu: BotHandler = async (ctx) => {
 // ─── Web App ────────────────────────────────────────────────
 export const handleWebApp: BotHandler = async (ctx) => {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://duongminhhoang.id.vn';
+  const key = process.env.ADMIN_SECRET_KEY;
+  const targetUrl = key ? `${siteUrl}/login?key=${key}` : siteUrl;
+  
   await sendKb(ctx.chatId, [
     `💎 <b>CỔNG WEB APP</b> 💎`,
     MODERN_SEPARATOR,
     ``,
     modernHeader('MỞ TRÌNH DUYỆT', '🌐'),
     `<i>Sử dụng toàn bộ công cụ với giao diện tối ưu nhất cho desktop và iPad:</i>`,
-    `👉 <a href="${siteUrl}">${siteUrl}</a>`,
+    `👉 <a href="${targetUrl}">${targetUrl}</a>`,
   ].join('\n'), [
-    [{ text: '🌐 Mở Web App ngay', url: siteUrl }],
+    [{ text: '🌐 Mở Web App ngay', url: targetUrl }],
     [{ text: '🏠 Trở về Menu', callback_data: 'cmd:start' }],
   ]);
 };

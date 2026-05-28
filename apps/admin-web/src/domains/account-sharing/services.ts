@@ -65,7 +65,12 @@ function generateSlug(length = 12) {
 }
 
 function getPublicBaseUrl(origin?: string | null) {
-  return (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || origin || "").replace(/\/$/, "");
+  // Priority: request origin (actual deploy domain) > env var > empty
+  // This ensures share links always use the correct domain regardless of env config
+  const requestOrigin = (origin || '').replace(/\/$/, '');
+  const envBase = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+  // Prefer request origin so deployed URL auto-adapts to production domain
+  return requestOrigin || envBase;
 }
 
 function toPublicUrl(slug: string, origin?: string | null) {

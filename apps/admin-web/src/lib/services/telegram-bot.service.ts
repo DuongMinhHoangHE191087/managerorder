@@ -564,15 +564,17 @@ async function processCallbackQuery(chatId: number, data: string, msgId?: number
         case 'recent': return await handleRecent(chatId, msgId);
         case 'webapp': {
           const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://duongminhhoang.id.vn';
+          const key = process.env.ADMIN_SECRET_KEY;
+          const targetUrl = key ? `${appUrl}/login?key=${key}` : appUrl;
           return await sendKb(chatId, [
             `🌐 <b>Web App — ManagerOrder</b>`,
             `━━━━━━━━━━━━━━━━━━━━━━━━━`,
             ``,
             `👇 Nhấn nút bên dưới để mở:`,
             ``,
-            `📋 Link copy: <code>${escapeHtml(appUrl)}</code>`,
+            `📋 Link copy: <code>${escapeHtml(targetUrl)}</code>`,
           ].join('\n'), [
-            [{ text: '🌐 Mở Web App', web_app: { url: appUrl } }],
+            [{ text: '🌐 Mở Web App', web_app: { url: targetUrl } }],
             [{ text: '📊 Dashboard', url: `${appUrl}/dashboard` }, { text: '📦 Đơn hàng', url: `${appUrl}/orders` }],
             [{ text: '🏠 Menu', callback_data: 'cmd:start' }],
           ]);

@@ -1,7 +1,9 @@
-import { redirect } from "next/navigation";
+import AccountSharesPageClient from "@/widgets/pages/account-shares/page-client";
 
-// Trang /account-shares đã được tích hợp vào kho hàng (/inventory).
-// Redirect về trang kho hàng.
-export default function AccountSharesRedirectPage() {
-  redirect("/inventory");
+export const metadata = {
+  title: "Quản lý Chia sẻ tài khoản",
+};
+
+export default function AccountSharesPage() {
+  return <AccountSharesPageClient />;
 }

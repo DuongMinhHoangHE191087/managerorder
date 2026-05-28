@@ -16,133 +16,186 @@ on:
     - cron: '0 2 * * *'
     # 7. Hằng ngày lúc 03:15 UTC: Premium Health Checks (10:15 sáng VN)
     - cron: '15 3 * * *'
-  workflow_dispatch: # Cho phép sếp bấm kích hoạt thủ công từ giao diện GitHub để test/debug
-
-env:
-  APP_URL: ${{ secrets.VERCEL_APP_URL || 'https://duongminhhoang.id.vn' }}
+  workflow_dispatch: # Cho phép kích hoạt thủ công từ GitHub Actions UI để test/debug
 
 jobs:
   trigger-crons:
     runs-on: ubuntu-latest
     steps:
-      # ─── 1. Webhook Retry (Mỗi 5 phút) ───
+      # ─── Resolve APP_URL ─────────────────────────────────────────────────────
+      # IMPORTANT: GitHub Actions does NOT support || fallback in ${{ secrets.* }} expressions.
+      # Always set VERCEL_APP_URL secret in repo settings. Fallback is handled in bash below.
+      - name: Resolve APP_URL
+        id: resolve-url
+        run: |
+          APP_URL="${{ secrets.VERCEL_APP_URL }}"
+          if [ -z "$APP_URL" ]; then
+            APP_URL="https://duongminhhoang.id.vn"
+            echo "⚠️ VERCEL_APP_URL secret not set — falling back to default domain"
+          fi
+          echo "APP_URL=${APP_URL}" >> "$GITHUB_ENV"
+          echo "Resolved APP_URL=${APP_URL}"
+
+      # ─── 1. Webhook Retry (Mỗi 5 phút) ───────────────────────────────────────
       - name: Trigger Webhook Retry
         if: github.event.schedule == '*/5 * * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/webhook-retry" \
+          echo "→ Triggering webhook-retry at ${APP_URL}/api/cron/webhook-retry"
+          curl --retry 3 --retry-delay 8 --retry-connrefused \
+            -X GET "${APP_URL}/api/cron/webhook-retry" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error
+            --fail --show-error --max-time 30
 
-      # ─── 2. Telegram Reminder (06:00 sáng & 21:00 tối VN) ───
+      # ─── 2. Telegram Reminder (06:00 sáng & 21:00 tối VN) ───────────────────
       - name: Trigger Telegram Reminder
-        if: github.event.schedule == '0 23 * * *' || github.event_schedule == '0 14 * * *' || github.event_name == 'workflow_dispatch'
+        if: github.event.schedule == '0 23 * * *' || github.event.schedule == '0 14 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/telegram-reminder" \
+          echo "→ Triggering telegram-reminder"
+          curl --retry 3 --retry-delay 8 --retry-connrefused \
+            -X GET "${APP_URL}/api/cron/telegram-reminder" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error
+            --fail --show-error --max-time 30
 
-      # ─── 3. Group 01:00 UTC (08:00 sáng VN): Order Expiry, Revenue Report, Best Super Link ───
+      # ─── 3. Group 01:00 UTC (08:00 sáng VN): Order Expiry + Revenue + Best Link ───
       - name: Trigger Order Expiry Reminder
         if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/order-expiry-reminder" \
+          echo "→ Triggering order-expiry-reminder"
+          curl --retry 3 --retry-delay 8 --retry-connrefused \
+            -X GET "${APP_URL}/api/cron/order-expiry-reminder" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error
+            --fail --show-error --max-time 30
           sleep 10
 
       - name: Trigger Revenue Report (Daily)
         if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/revenue-report" \
+          echo "→ Triggering revenue-report (daily)"
+          curl --retry 3 --retry-delay 8 --retry-connrefused \
+            -X GET "${APP_URL}/api/cron/revenue-report" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error
+            --fail --show-error --max-time 30
           sleep 10
 
       - name: Trigger Best Super Link
         if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/best-super-link" \
+          echo "→ Triggering best-super-link"
+          curl --retry 3 --retry-delay 8 --retry-connrefused \
+            -X GET "${APP_URL}/api/cron/best-super-link" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error
+            --fail --show-error --max-time 30
 
-      # ─── 4. Group 01:00 UTC Thứ 2 (08:00 sáng thứ 2 VN): Revenue Report Weekly ───
+      # ─── 4. Thứ 2 lúc 01:00 UTC (08:00 sáng thứ 2 VN): Revenue Report Weekly ───
       - name: Trigger Revenue Report (Weekly)
         if: github.event.schedule == '0 1 * * 1' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/revenue-report?type=weekly" \
+          echo "→ Triggering revenue-report (weekly)"
+          curl --retry 3 --retry-delay 8 --retry-connrefused \
+            -X GET "${APP_URL}/api/cron/revenue-report?type=weekly" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error
+            --fail --show-error --max-time 30
 
-      # ─── 5. Group 02:00 UTC (09:00 sáng VN): Auto Escalation, Premium Renewal Reminder ───
+      # ─── 5. Group 02:00 UTC (09:00 sáng VN): Auto Escalation + Premium Renewal ───
       - name: Trigger Auto Escalation
         if: github.event.schedule == '0 2 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/auto-escalation" \
+          echo "→ Triggering auto-escalation"
+          curl --retry 3 --retry-delay 8 --retry-connrefused \
+            -X GET "${APP_URL}/api/cron/auto-escalation" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error
+            --fail --show-error --max-time 30
           sleep 10
 
       - name: Trigger Premium Renewal Reminder
         if: github.event.schedule == '0 2 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/premium-renewal-reminder" \
+          echo "→ Triggering premium-renewal-reminder"
+          curl --retry 3 --retry-delay 8 --retry-connrefused \
+            -X GET "${APP_URL}/api/cron/premium-renewal-reminder" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error
+            --fail --show-error --max-time 30
 
-      # ─── 6. Premium Health Checks (10:15 sáng VN) ───
+      # ─── 6. Premium Health Checks (10:15 sáng VN) ────────────────────────────
       - name: Trigger Premium Health Checks
         if: github.event.schedule == '15 3 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl --retry 3 --retry-delay 8 -X GET "${{ env.APP_URL }}/api/cron/premium-health-checks" \
+          echo "→ Triggering premium-health-checks"
+          curl --retry 3 --retry-delay 8 --retry-connrefused \
+            -X GET "${APP_URL}/api/cron/premium-health-checks" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error
+            --fail --show-error --max-time 30
 
-      # ─── 7. Gửi thông báo Telegram khi kết thúc Workflow ───
+      # ─── 7. Telegram Notification ─────────────────────────────────────────────
       - name: Send Telegram Notification (Success)
-        if: success() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 2 * * *' || github.event.schedule == '15 3 * * *')
+        if: |
+          success() && (
+            github.event_name == 'workflow_dispatch' ||
+            github.event.schedule == '0 1 * * *' ||
+            github.event.schedule == '0 2 * * *' ||
+            github.event.schedule == '15 3 * * *'
+          )
         run: |
-          if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ] && [ -n "${{ secrets.TELEGRAM_ADMIN_CHAT_ID || secrets.TELEGRAM_CHAT_ID }}" ]; then
-            CHAT_ID="${{ secrets.TELEGRAM_ADMIN_CHAT_ID || secrets.TELEGRAM_CHAT_ID }}"
-            MESSAGE="🤖 <b>[GitHub Actions] Vercel Cron Scheduler</b>Vietnamese time: $(date -d '+7 hours' +'%d/%m/%Y %H:%M:%S')
-
-            ✅ Kích hoạt thành công toàn bộ chu kỳ Cron của hệ thống!
-            📅 Thời gian: $(date +'%d/%m/%Y %H:%M:%S') (UTC)
-            🔗 Workflow: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            
-            curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-              -d "chat_id=${CHAT_ID}" \
-              -d "text=${MESSAGE}" \
-              -d "parse_mode=HTML" \
-              -d "disable_web_page_preview=true"
-          else
-            echo "Thiếu TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID để gửi thông báo."
+          BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
+          CHAT_ID="${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}"
+          if [ -z "$CHAT_ID" ]; then
+            CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}"
           fi
+
+          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
+            echo "⚠️ Thiếu TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID — bỏ qua thông báo"
+            exit 0
+          fi
+
+          VN_TIME=$(TZ="Asia/Ho_Chi_Minh" date +'%d/%m/%Y %H:%M:%S')
+          SCHEDULE="${{ github.event.schedule }}"
+          TRIGGER="${{ github.event_name }}"
+
+          MESSAGE="✅ <b>[GitHub Actions] Cron Scheduler</b>
+
+⏰ ${VN_TIME} (VN)
+📋 Trigger: ${TRIGGER}${SCHEDULE:+ / Schedule: ${SCHEDULE}}
+🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Xem workflow</a>"
+
+          curl -s --fail -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${CHAT_ID}" \
+            --data-urlencode "text=${MESSAGE}" \
+            -d "parse_mode=HTML" \
+            -d "disable_web_page_preview=true" || echo "Telegram gửi không thành công"
 
       - name: Send Telegram Notification (Failure)
         if: failure()
         run: |
-          if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ] && [ -n "${{ secrets.TELEGRAM_ADMIN_CHAT_ID || secrets.TELEGRAM_CHAT_ID }}" ]; then
-            CHAT_ID="${{ secrets.TELEGRAM_ADMIN_CHAT_ID || secrets.TELEGRAM_CHAT_ID }}"
-            MESSAGE="🚨 <b>[GitHub Actions] Vercel Cron Scheduler THẤT BẠI!</b>
-
-            ❌ Job đã gặp lỗi trong quá trình trigger Cron!
-            📅 Thời gian: $(date +'%d/%m/%Y %H:%M:%S') (UTC)
-            🔗 Link lỗi: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            
-            curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-              -d "chat_id=${CHAT_ID}" \
-              -d "text=${MESSAGE}" \
-              -d "parse_mode=HTML" \
-              -d "disable_web_page_preview=true"
-          else
-            echo "Thiếu TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID để gửi thông báo."
+          BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
+          CHAT_ID="${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}"
+          if [ -z "$CHAT_ID" ]; then
+            CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}"
           fi
+
+          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
+            echo "⚠️ Thiếu TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID — bỏ qua thông báo"
+            exit 0
+          fi
+
+          VN_TIME=$(TZ="Asia/Ho_Chi_Minh" date +'%d/%m/%Y %H:%M:%S')
+
+          MESSAGE="🚨 <b>[GitHub Actions] Cron Scheduler THẤT BẠI!</b>
+
+❌ Có lỗi xảy ra trong quá trình trigger Cron Jobs.
+⏰ ${VN_TIME} (VN)
+🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Xem log lỗi</a>"
+
+          curl -s --fail -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${CHAT_ID}" \
+            --data-urlencode "text=${MESSAGE}" \
+            -d "parse_mode=HTML" \
+            -d "disable_web_page_preview=true" || echo "Telegram gửi không thành công"

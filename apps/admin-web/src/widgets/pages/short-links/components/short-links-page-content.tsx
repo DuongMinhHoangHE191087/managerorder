@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import NextLink from "next/link";
+import { AccountSharesTab } from "./account-shares-tab";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppLayout } from "@/widgets/layout/app-layout";
 import {
@@ -227,6 +228,8 @@ const FAILURE_TEMPLATE_OPTIONS: Array<{ value: ShortLinkFailureTemplateKey; labe
 
 // â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+type PageTab = "short-links" | "account-shares";
+
 export default function ShortLinksPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -237,6 +240,7 @@ export default function ShortLinksPage() {
   const updateMut = useUpdateShortLink();
   const deleteMut = useDeleteShortLink();
 
+  const [activeTab, setActiveTab] = useState<PageTab>("short-links");
   const [showCreate, setShowCreate] = useState(false);
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const [form, setForm] = useState<CreateShortLinkFormState>(DEFAULT_CREATE_FORM);
@@ -637,8 +641,43 @@ export default function ShortLinksPage() {
           ))}
         </div>
 
-        {/* Create Form */}
-        {showCreate && (
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1 rounded-2xl border border-[var(--border-soft)] bg-white p-1 w-fit">
+          <button
+            type="button"
+            onClick={() => setActiveTab("short-links")}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-bold transition",
+              activeTab === "short-links"
+                ? "bg-[var(--accent)] text-white shadow-sm"
+                : "text-[var(--fg-muted)] hover:bg-[var(--surface-light)] hover:text-[var(--fg-base)]",
+            )}
+          >
+            <Link2 className="size-3.5" />
+            Link rút gọn
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("account-shares")}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-bold transition",
+              activeTab === "account-shares"
+                ? "bg-[var(--accent)] text-white shadow-sm"
+                : "text-[var(--fg-muted)] hover:bg-[var(--surface-light)] hover:text-[var(--fg-base)]",
+            )}
+          >
+            <ShieldCheck className="size-3.5" />
+            Chia sẻ tài khoản
+          </button>
+        </div>
+
+        {/* Tab: Account Shares */}
+        {activeTab === "account-shares" ? (
+          <AccountSharesTab />
+        ) : null}
+
+        {/* Create Form - only when on short-links tab */}
+        {activeTab === "short-links" && showCreate && (
           createdSlug ? (
             <SectionCard title={vi.shortLinks.page.createTitle} description={vi.shortLinks.page.createDescription}>
               <CreatedSuccess
@@ -935,8 +974,8 @@ export default function ShortLinksPage() {
           )
         )}
 
-        {/* Links Table */}
-        <SectionCard title={vi.shortLinks.page.listTitle} description={vi.shortLinks.page.listDescription(filteredLinks.length)}>
+        {/* Links Table - only when on short-links tab */}
+        {activeTab === "short-links" && <SectionCard title={vi.shortLinks.page.listTitle} description={vi.shortLinks.page.listDescription(filteredLinks.length)}>
           {/* Search, Sort & Filter */}
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 mb-4">
             <button
@@ -1082,7 +1121,7 @@ export default function ShortLinksPage() {
               </div>
             </div>
           )}
-        </SectionCard>
+        </SectionCard>}
 
         {/* Floating Bulk Action Bar (Matches Inventory style) */}
         {selectedIds.size > 0 && (

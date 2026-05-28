@@ -9,11 +9,27 @@
 // ============================================================
 
 import { config } from 'dotenv';
-config({ path: '.env.local' });
+import { existsSync } from 'fs';
+import { join } from 'path';
+
+// Cơ chế tìm kiếm file .env thông minh (fallback về thư mục gốc dự án nếu cần)
+const localEnvPath = join(process.cwd(), '.env.local');
+const rootEnvPath = join(process.cwd(), '..', '..', '.env');
+const currentEnvPath = join(process.cwd(), '.env');
+
+if (existsSync(localEnvPath)) {
+  config({ path: localEnvPath });
+} else if (existsSync(rootEnvPath)) {
+  config({ path: rootEnvPath });
+} else if (existsSync(currentEnvPath)) {
+  config({ path: currentEnvPath });
+} else {
+  config();
+}
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET!;
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://celadon-vacherin-3723d0.netlify.app';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.duongminhhoang.id.vn';
 const WEBHOOK_URL = `${SITE_URL}/api/telegram/webhook`;
 
 async function main() {
