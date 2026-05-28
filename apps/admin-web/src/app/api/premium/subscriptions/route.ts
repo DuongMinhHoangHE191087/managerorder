@@ -234,6 +234,13 @@ function buildReminderMessage(row: {
   return `Chào ${row.customer_name}, gói ${row.service_name}${row.package_name ? ` - ${row.package_name}` : ""}${orderText} sẽ hết hạn ${expiryLabel} (${dueText}). Anh/chị xác nhận giúp em gói và số tháng muốn gia hạn để em xử lý tiếp.`;
 }
 
+function getSortWeight(row: SubscriptionApiRow) {
+  if (row.renewal_status === "not_renewing" || row.status === "refunded" || row.status === "migrated") {
+    return 2;
+  }
+  return 1;
+}
+
 function compareSubscriptions(left: SubscriptionApiRow, right: SubscriptionApiRow, sortBy: SortMode) {
   if (sortBy === "customer_asc") {
     return left.customer_name.localeCompare(right.customer_name, "vi");
@@ -241,6 +248,12 @@ function compareSubscriptions(left: SubscriptionApiRow, right: SubscriptionApiRo
 
   if (sortBy === "purchase_desc") {
     return new Date(right.purchase_date).getTime() - new Date(left.purchase_date).getTime();
+  }
+
+  const weightLeft = getSortWeight(left);
+  const weightRight = getSortWeight(right);
+  if (weightLeft !== weightRight) {
+    return weightLeft - weightRight;
   }
 
   if (sortBy === "expiry_desc") {

@@ -1260,16 +1260,41 @@ export default function PremiumSubscriptionsPage() {
                             <Copy className="size-3.5" />
                           </Button>
 
-                          {primaryAction ? (
+                          {/* Gia hạn button */}
+                          {canRenew && (
                             <Button
                               type="button"
-                              onClick={primaryAction.onClick}
-                              title={!canRenew && renewalBlockReason ? renewalBlockReason : undefined}
-                              className={`inline-flex items-center justify-center size-8 rounded-full p-0 ${primaryAction.className}`}
+                              onClick={() => setRenewingSubscription(sub)}
+                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20"
+                              title="Gia hạn thuê bao"
                             >
-                              {primaryAction.icon}
+                              <Sparkles className="size-3.5" />
                             </Button>
-                          ) : null}
+                          )}
+
+                          {/* Không gia hạn button */}
+                          {canNoRenew && (
+                            <Button
+                              type="button"
+                              onClick={() => void handleMarkNoRenew(sub)}
+                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-rose-500/10 text-rose-700 hover:bg-rose-500/20"
+                              title="Đánh dấu không gia hạn"
+                            >
+                              <XCircle className="size-3.5" />
+                            </Button>
+                          )}
+
+                          {/* Hoàn tiền button */}
+                          {canRefund && (
+                            <Button
+                              type="button"
+                              onClick={() => void handleRefund(sub)}
+                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-rose-500/10 text-rose-700 hover:bg-rose-500/20"
+                              title="Tính hoàn tiền"
+                            >
+                              <HandCoins className="size-3.5" />
+                            </Button>
+                          )}
 
                           {((sub.status === "active" || sub.status === "expired" || sub.status === "waiting_renewal") && sub.premium_account_id) && (
                             <Button
