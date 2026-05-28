@@ -15,6 +15,7 @@
 - 2026-05-28: Sửa lỗi Next.js build Out Of Memory (OOM) đa nền tảng bằng cách tích hợp cross-env để thiết lập NODE_OPTIONS --max-old-space-size=4096 một cách nhất quán trên cả Local (Windows) và Vercel CI (Linux).
 - 2026-05-28: Loại bỏ tiền tố corepack trong scripts của zalo-bot-js package.json giúp các lệnh lint, typecheck, test, và build chạy chuẩn hóa và di động hơn.
 - 2026-05-28: Gỡ bỏ hoàn toàn Zalo Bot (packages/zalo-bot-js) khỏi workspace và dọn dẹp các scripts liên quan trong root package.json theo yêu cầu người dùng, giúp monorepo cực kỳ tinh gọn.
+- 2026-05-29: Thêm route `/api/webhooks/landing-page` vào `PUBLIC_ROUTES` trong `apps/admin-web/src/proxy.ts` để cho phép webhook nhận đơn hàng từ Landing Page bỏ qua kiểm tra đăng nhập của Next.js Middleware.
 - [date] decision / rationale
 
 ## Facts
