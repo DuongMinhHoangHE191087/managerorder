@@ -21,6 +21,7 @@ import {
   logAccountShareAccess,
   softDeleteAccountShareLink,
   updateAccountShareLink,
+  countRecentFailedUnlocks,
 } from "./repository";
 import { generateTotp, isTotpCredentialValue } from "./totp";
 import type {
@@ -372,6 +373,16 @@ export async function unlockAccountShare(
   }
 
   const accessPolicy = parseAccessPolicy(row.access_policy, Boolean(row.passcode_hash));
+  
+  // Chống brute force passcode dò mật khẩu (Tối đa 5 lần thử sai / 10 phút từ 1 IP)
+  if (row.passcode_hash && visitor.ipAddress) {
+    const failedCount = await countRecentFailedUnlocks(row.id, visitor.ipAddress);
+    if (failedCount >= 5) {
+      await logBlocked(row, visitor, "brute_force_blocked");
+      return { ok: false, status: 429, error: "Thử sai quá nhiều lần. Vui lòng thử lại sau 10 phút." };
+    }
+  }
+
   if (row.passcode_hash && !verifyPasscode(passcode ?? "", row.passcode_hash)) {
     await logBlocked(row, visitor, passcode ? "invalid_passcode" : "missing_passcode");
     return { ok: false, status: 401, error: "Invalid unlock code" };

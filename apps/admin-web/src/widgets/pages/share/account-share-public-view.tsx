@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition, type FormEvent } from "react";
-import { Check, Copy, KeyRound, Loader2, Lock, ShieldCheck, Eye, Clock, AlertTriangle } from "lucide-react";
+import { Check, Copy, KeyRound, Loader2, Lock, ShieldCheck, Eye, Clock, AlertTriangle, MessageCircle, Users, Sparkles } from "lucide-react";
+import { PublicPageSecurityGuard } from "@/widgets/marketing/public-page-security-guard";
 
 type ShareSummary = {
   slug: string;
@@ -48,6 +49,18 @@ export function AccountSharePublicView({ slug }: { slug: string }) {
   const [copied, setCopied] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, startTransition] = useTransition();
+
+  const [template, setTemplate] = useState<"owner_intro" | "ctv_neutral">("owner_intro");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const t = params.get("template");
+      if (t === "ctv_neutral") {
+        setTemplate("ctv_neutral");
+      }
+    }
+  }, []);
 
   const loadPayload = useCallback(async () => {
     const result = await fetchJson<SharePayload>(`/api/share/${slug}/payload`);
@@ -133,7 +146,7 @@ export function AccountSharePublicView({ slug }: { slug: string }) {
   }
 
   return (
-    <ShareLayout>
+    <ShareLayout template={template}>
       <div className="share-card">
         {/* Header */}
         <div className="share-card-header">
@@ -142,7 +155,9 @@ export function AccountSharePublicView({ slug }: { slug: string }) {
               <ShieldCheck className="size-5" />
             </div>
             <div>
-              <p className="share-brand-label">ManagerOrder · Chia sẻ bảo mật</p>
+              <p className="share-brand-label">
+                {template === "ctv_neutral" ? "Bảo mật liên kết" : "ManagerOrder · Chia sẻ bảo mật"}
+              </p>
               <h1 className="share-title">
                 {summary.title || payload?.title || "Thông tin tài khoản"}
               </h1>
@@ -188,6 +203,7 @@ export function AccountSharePublicView({ slug }: { slug: string }) {
                     autoComplete="one-time-code"
                     placeholder="Nhập mã mở khóa..."
                     className="share-input"
+                    autoFocus
                   />
                 </div>
               </div>
@@ -252,10 +268,47 @@ export function AccountSharePublicView({ slug }: { slug: string }) {
 
         {/* Footer */}
         <div className="share-card-footer">
-          <ShieldCheck className="size-3.5 shrink-0 text-emerald-400" />
-          <span>Nội dung được mã hóa · Truy cập có giới hạn · ManagerOrder</span>
+          <ShieldCheck className={`size-3.5 shrink-0 ${template === "ctv_neutral" ? "text-sky-400" : "text-emerald-400"}`} />
+          <span>
+            {template === "ctv_neutral"
+              ? "Nội dung được mã hóa · Truy cập có giới hạn · Hệ thống bảo mật"
+              : "Nội dung được mã hóa · Truy cập có giới hạn · ManagerOrder"}
+          </span>
         </div>
       </div>
+
+      {/* Support Section for Customers (Regular Customers / owner_intro) */}
+      {template === "owner_intro" && (
+        <div className="share-support-section">
+          <div className="share-support-header">
+            <Sparkles className="size-4 text-emerald-400 animate-pulse" />
+            <span>HỖ TRỢ & BẢO HÀNH 24/7</span>
+          </div>
+          <p className="share-support-desc">
+            Tài khoản được bảo hành trọn đời gói mua. Nếu gặp lỗi mật khẩu, hết hạn hoặc cần hỗ trợ kích hoạt, vui lòng liên hệ nhanh qua các kênh bên dưới.
+          </p>
+          <div className="share-support-actions">
+            <a
+              href="https://zalo.me/0394497949"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="share-support-btn share-support-btn--zalo"
+            >
+              <MessageCircle className="size-4" />
+              Zalo cá nhân
+            </a>
+            <a
+              href="https://zalo.me/g/ioinvk167"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="share-support-btn share-support-btn--group"
+            >
+              <Users className="size-4" />
+              Nhóm hỗ trợ
+            </a>
+          </div>
+        </div>
+      )}
 
       <style>{shareStyles}</style>
     </ShareLayout>
@@ -264,9 +317,10 @@ export function AccountSharePublicView({ slug }: { slug: string }) {
 
 // ─── Layout & Shell ───────────────────────────────────────────
 
-function ShareLayout({ children }: { children: React.ReactNode }) {
+function ShareLayout({ children, template = "owner_intro" }: { children: React.ReactNode; template?: "owner_intro" | "ctv_neutral" }) {
   return (
-    <main className="share-root">
+    <main className={`share-root${template === "ctv_neutral" ? " share-root--ctv" : ""}`}>
+      <PublicPageSecurityGuard />
       <div className="share-bg-orb share-bg-orb-1" />
       <div className="share-bg-orb share-bg-orb-2" />
       <div className="share-container">
@@ -425,7 +479,11 @@ function TotpRow({
       <div className="share-totp-header">
         <div>
           <span className="share-field-label">{credential.label}</span>
-          <div className="share-totp-code">
+          <div
+            onClick={() => totp ? onCopy(totp.code, credential.id) : undefined}
+            className={`share-totp-code cursor-pointer select-all active:scale-95 transition-transform duration-100 ${isCopiedTotp ? "opacity-80" : ""}`}
+            title="Click để sao chép mã 2FA nhanh"
+          >
             <span className={`share-totp-digits${isUrgent ? " share-totp-digits--urgent" : ""}`}>
               {code.slice(0, 3)} {code.slice(3)}
             </span>
@@ -1139,5 +1197,128 @@ const shareStyles = `
     color: rgba(148,163,184,0.8);
     max-width: 280px;
     line-height: 1.6;
+  }
+
+  /* Support Section for owner_intro */
+  .share-support-section {
+    margin-top: 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 24px;
+    padding: 1.25rem 1.5rem;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .share-support-section:hover {
+    border-color: rgba(132, 204, 22, 0.15);
+    box-shadow: 0 8px 32px rgba(132, 204, 22, 0.05);
+  }
+
+  .share-support-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    color: #a3e635;
+    margin-bottom: 0.5rem;
+  }
+
+  .share-support-desc {
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+
+  .share-support-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .share-support-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.15s, opacity 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+  }
+
+  .share-support-btn:hover {
+    transform: translateY(-1.5px);
+    opacity: 0.95;
+  }
+
+  .share-support-btn--zalo {
+    background: linear-gradient(135deg, #0068ff, #0052cc);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 104, 255, 0.25);
+  }
+
+  .share-support-btn--zalo:hover {
+    box-shadow: 0 6px 16px rgba(0, 104, 255, 0.35);
+  }
+
+  .share-support-btn--group {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    color: #f1f5f9;
+  }
+
+  .share-support-btn--group:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  /* CTV Neutral layout differences */
+  .share-root--ctv {
+    background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.05), transparent 40%),
+                radial-gradient(circle at bottom right, rgba(100, 116, 139, 0.05), transparent 45%),
+                #0b0f19 !important;
+    background-image: 
+      radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.03) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(148, 163, 184, 0.04) 0%, transparent 45%),
+      linear-gradient(180deg, #090d16 0%, #0d1322 50%, #090d16 100%),
+      linear-gradient(rgba(255,255,255,0.003) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.003) 1px, transparent 1px) !important;
+  }
+
+  .share-root--ctv .share-bg-orb-1 {
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, transparent 70%);
+  }
+
+  .share-root--ctv .share-bg-orb-2 {
+    background: radial-gradient(circle, rgba(148, 163, 184, 0.06) 0%, transparent 70%);
+  }
+
+  .share-root--ctv .share-brand-icon {
+    background: linear-gradient(135deg, #38bdf8, #64748b) !important;
+    color: #0b0f19 !important;
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.2) !important;
+  }
+
+  .share-root--ctv .share-brand-label {
+    color: rgba(56, 189, 248, 0.9) !important;
+  }
+
+  .share-root--ctv .share-card:hover {
+    border-color: rgba(56, 189, 248, 0.2) !important;
+    box-shadow:
+      0 0 0 1px rgba(56, 189, 248, 0.05) inset,
+      0 4px 32px rgba(56, 189, 248, 0.05),
+      0 32px 80px rgba(0, 0, 0, 0.7) !important;
   }
 `;

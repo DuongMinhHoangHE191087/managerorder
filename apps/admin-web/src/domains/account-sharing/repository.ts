@@ -260,3 +260,29 @@ export async function logAccountShareAccess(input: {
     console.warn("[AccountShare] failed to write access log:", error.message);
   }
 }
+
+export async function countRecentFailedUnlocks(
+  linkId: string,
+  ipAddress: string | null,
+  minutes = 10,
+): Promise<number> {
+  if (!ipAddress) return 0;
+  
+  const since = new Date(Date.now() - minutes * 60 * 1000).toISOString();
+  
+  const { count, error } = await supabase
+    .from("account_share_access_logs")
+    .select("*", { count: "exact", head: true })
+    .eq("account_share_link_id", linkId)
+    .eq("event_type", "blocked")
+    .eq("reason", "invalid_passcode")
+    .eq("ip_address", ipAddress)
+    .gte("created_at", since);
+
+  if (error) {
+    console.warn("[AccountShare] count failed unlocks error:", error.message);
+    return 0;
+  }
+  
+  return count ?? 0;
+}
