@@ -5,7 +5,20 @@ import { withErrorHandler } from "@/lib/api/with-error-handler";
 import { restoreItems, type TrashEntityType } from "@/lib/supabase/repositories/trash.repo";
 
 const schema = z.object({
-  type: z.enum(["customers", "orders", "products", "providers", "source_accounts", "license_keys", "short_links"]),
+  type: z.enum([
+    "customers",
+    "orders",
+    "products",
+    "providers",
+    "source_accounts",
+    "license_keys",
+    "short_links",
+    "reminder_events",
+    "premium_accounts",
+    "subscription_renewals",
+    "account_migrations",
+    "account_share_links",
+  ]),
   ids: z.array(z.string().uuid()).min(1).max(500),
 });
 

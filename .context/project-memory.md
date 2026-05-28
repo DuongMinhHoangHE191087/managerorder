@@ -16,6 +16,9 @@
 - 2026-05-28: Loại bỏ tiền tố corepack trong scripts của zalo-bot-js package.json giúp các lệnh lint, typecheck, test, và build chạy chuẩn hóa và di động hơn.
 - 2026-05-28: Gỡ bỏ hoàn toàn Zalo Bot (packages/zalo-bot-js) khỏi workspace và dọn dẹp các scripts liên quan trong root package.json theo yêu cầu người dùng, giúp monorepo cực kỳ tinh gọn.
 - 2026-05-29: Thêm route `/api/webhooks/landing-page` vào `PUBLIC_ROUTES` trong `apps/admin-web/src/proxy.ts` để cho phép webhook nhận đơn hàng từ Landing Page bỏ qua kiểm tra đăng nhập của Next.js Middleware.
+- 2026-05-29: Sửa lỗi 500 khi xóa vĩnh viễn (purge) Khách hàng và Sản phẩm trong thùng rác do ràng buộc khóa ngoại (FK constraints). Tự động xóa các đơn hàng liên quan của khách hàng trước (vì orders.customer_id là NOT NULL), và chặn xóa sản phẩm nếu có đơn hàng đang sử dụng (order_items.product_id là NOT NULL) bằng cách ném ra lỗi thân thiện, đồng thời nullify các tham chiếu sản phẩm hợp lệ khác.
+- 2026-05-29: Hỗ trợ xóa mềm (Soft-delete) và xóa vĩnh viễn (Purge) đồng bộ cho 5 thực thể mới trong Thùng rác: Lịch sự kiện (`reminder_events`), Tài khoản thuê bao (`premium_accounts`), Yêu cầu gia hạn (`subscription_renewals`), Chuyển đổi thuê bao (`account_migrations`), và Liên kết chia sẻ (`account_share_links`).
+- 2026-05-29: Triển khai cơ chế cascade delete tự động cho `premium_accounts` (xóa subscriptions -> renewals -> migrations -> users -> health check logs -> migrations refs) và `account_migrations` / `account_share_links` khi thực hiện xóa vĩnh viễn (purge) để tránh lỗi ràng buộc khóa ngoại (Foreign Key constraint error 500).
 - [date] decision / rationale
 
 ## Facts
@@ -26,6 +29,11 @@
 - 2026-05-28: Thực hiện thành công toàn bộ Pre-flight Checks của quy trình /ops trên cả monorepo: ESLint (0 lỗi), TypeScript typecheck (0 lỗi), Unit Tests (2091/2091 passed), và zalo-bot-js smoke test (smoke ok).
 - 2026-05-28: Xóa cứng Zalo Bot và gỡ bỏ 288 packages dư thừa khỏi node_modules. Build toàn diện monorepo thành công 100%.
 - 2026-05-29: Đã thêm route `/api/webhooks/landing-page` vào `PUBLIC_ROUTES` trong `proxy.ts` và xác thực thành công thông qua tsc type check và linter.
+- 2026-05-29: Khắc phục lỗi 500 khi xoá vĩnh viễn khách hàng bằng cách thêm đệ quy gọi xóa toàn bộ đơn hàng liên quan trước, và sửa lỗi xóa sản phẩm bằng cách ném lỗi thân thiện báo người dùng cần xóa đơn hàng thay vì crash DB. Đồng thời cập nhật trạng thái license_keys về available khi xóa đơn hàng tương ứng.
+- 2026-05-29: Đã thực thi SQL migration thêm cột `deleted_at` cho các bảng `reminder_events`, `subscription_renewals`, và `account_migrations` thông qua Supabase.
+- 2026-05-29: Cập nhật repo `trash.repo.ts`, `calendar.repo.ts`, và các route API DELETE (soft-delete) / GET tương ứng cho các thực thể gia hạn, chuyển đổi, lịch, tài khoản, chia sẻ.
+- 2026-05-29: Tích hợp hoàn hảo giao diện và hook Trash trên frontend (`page-client.tsx`, `use-trash.ts`) để hiển thị tab, số lượng rác của 5 thực thể mới.
+- 2026-05-29: Chạy toàn bộ 34 tests trong Vitest thành công (100% pass) và ESLint linting đạt 0 errors (10 warnings không ảnh hưởng).
 - [date] concise factual note
 - 2026-05-13: After short-links/calendar patches, remaining top transition hotspots are short-link detail, create-order form, customers list, providers content, event-create modal, inventory table/header, settings reminder config, group/tag manager, and orders import.
 - 2026-05-13: Short-links page keeps search/status/sort/page in local state, has many `transition-all` classes, and still uses browser `confirm(...)` for destructive single/bulk deletes.
@@ -68,6 +76,7 @@
 - 2026-05-28: Sửa lỗi build admin-web bằng cách cung cấp giá trị mặc định cho Supabase client ở admin.ts và proxy.ts. Khởi chạy build thành công rực rỡ với Turbopack.
 - 2026-05-28: Gỡ bỏ hoàn toàn Zalo Bot: Xóa cứng thư mục packages/zalo-bot-js, dọn dẹp cấu hình workspace và 288 packages phụ thuộc. Xác thực chạy lại build toàn monorepo thành công rực rỡ.
 - 2026-05-28: Chạy quy trình /ops (/deploy check) toàn diện: Kiểm tra thành công ESLint (0 errors), tsc typecheck (0 errors) của admin-web. Đồng thời gỡ bỏ corepack khỏi zalo-bot-js, xác thực thành công bộ unit tests 2091/2091 passed và smoke test thành công (smoke ok).
+- 2026-05-29: Sửa lỗi 500 khi xoá vĩnh viễn khách hàng và sản phẩm trong thùng rác do ràng buộc khoá ngoại (FK constraint). Cập nhật `trash.repo.ts` để cascade/nullify các liên kết đơn hàng, sản phẩm, và license_keys tương ứng một cách an toàn và ném lỗi thân thiện khi cần.
 - [date] event or correction
 - 2026-05-13: Spot-check of non-UI hook/type files under `widgets/pages` showed their diffs are pre-existing contract additions, not transition rewrite artifacts; no `transition-*` strings remain in those hook/type files.
 - 2026-05-13: Final scan remained clean for `transition-all` and native `confirm(` across `widgets/pages`; final scoped `git diff --check` passed with the same premium CRLF normalization warnings.

@@ -41,6 +41,7 @@ type MigrationRow = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 };
 
 type SubscriptionRow = {
@@ -217,6 +218,7 @@ async function loadMigrationOr404(accountId: string, migrationId: string) {
     .select("*")
     .eq("id", migrationId)
     .eq("account_id", accountId)
+    .is("deleted_at", null)
     .single();
 
   if (dbError || !baseMigration) {
@@ -660,4 +662,36 @@ export const PATCH = withErrorHandler(
 
     return successResponse(await hydrateMigration(accountId, reloaded));
   }),
+);
+
+export const DELETE = withErrorHandler(
+  withAccount<{ id: string }>(async (request: NextRequest, { accountId, params }) => {
+    const { id } = await params;
+
+    const migration = await loadMigrationOr404(accountId, id);
+    if (!migration) return notFoundResponse("Migration");
+
+    const { error: updateError } = await supabase
+      .from("account_migrations")
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("account_id", accountId);
+
+    if (updateError) throw updateError;
+
+    // Log activity
+    await createActivityLog({
+      account_id: accountId,
+      source_account_id: migration.source_account_id,
+      customer_id: migration.customer_id,
+      action_type: "PREMIUM_MIGRATION_DELETED",
+      details: {
+        migration_id: id,
+        source_account_id: migration.source_account_id,
+        target_account_id: migration.target_account_id,
+      },
+    });
+
+    return successResponse({ deleted: true }, "Migration soft-deleted successfully");
+  })
 );

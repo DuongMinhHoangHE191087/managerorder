@@ -92,6 +92,7 @@ export async function listCalendarEvents(accountId: string): Promise<ReminderRow
     .from('reminder_events')
     .select('*')
     .eq('account_id', accountId)
+    .is('deleted_at', null)
     .order('due_at', { ascending: true });
   if (error) throw new Error(error.message);
   if (!events || events.length === 0) return [];
@@ -110,6 +111,7 @@ export async function listAllTodayReminderEvents(dateStr: string): Promise<Remin
     .select('*')
     .eq('has_reminder', true)
     .eq('is_done', false)
+    .is('deleted_at', null)
     .gte('due_at', dayStart)
     .lte('due_at', dayEnd)
     .order('due_at', { ascending: true });
@@ -190,7 +192,7 @@ export async function updateCalendarEvent(
 export async function deleteCalendarEvent(id: string, accountId: string): Promise<void> {
   const { error } = await supabase
     .from('reminder_events')
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
     .eq('account_id', accountId);
   if (error) throw new Error(error.message);

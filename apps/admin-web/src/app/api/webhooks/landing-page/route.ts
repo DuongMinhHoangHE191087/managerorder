@@ -13,7 +13,11 @@ import { confirmAllocation } from "@/lib/services/allocation.service";
 import { sendTelegramMessage } from "@/lib/utils/telegram";
 import { getDecryptedSourceAccountSecretsForAccount } from "@/domains/source-accounts";
 
-const WEBHOOK_SECRET = process.env.WEBHOOK_LANDING_PAGE_SECRET ?? "";
+const WEBHOOK_SECRET = (
+  process.env.WEBHOOK_LANDING_PAGE_SECRET ||
+  process.env["WEBHOOK_LANDING_PAGE_SECRET "] ||
+  ""
+).trim();
 const DEFAULT_ACCOUNT_ID = "550e8400-e29b-41d4-a716-446655440000";
 
 interface WebhookPayload {
@@ -88,9 +92,9 @@ async function getLicenseKeyForOrder(orderId: string): Promise<string | null> {
 
 export async function POST(request: NextRequest) {
   // 1. Verify Webhook Secret to prevent spam/fake transactions
-  const requestSecret = request.headers.get("X-Webhook-Secret");
+  const requestSecret = request.headers.get("X-Webhook-Secret")?.trim();
   if (!WEBHOOK_SECRET || requestSecret !== WEBHOOK_SECRET) {
-    console.warn(`[Webhook Seepay] Unauthorized request. Secret mismatch.`);
+    console.warn(`[Webhook Seepay] Unauthorized request. Secret mismatch. Got: "${requestSecret}", Expected: "${WEBHOOK_SECRET}"`);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

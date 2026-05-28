@@ -16,6 +16,7 @@ export const GET = withFlatAccountHandler(async (request, { accountId }) => {
       .select("*")
       .eq("account_id", accountId)
       .eq("status", status)
+      .is("deleted_at", null)
       .order("renewal_requested_date", { ascending: false });
 
     if (error) {

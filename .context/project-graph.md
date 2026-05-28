@@ -69,6 +69,8 @@
 
 | time | event | evidence |
 | --- | --- | --- |
+| 2026-05-29 | Triển khai soft-delete và cascade purge đồng bộ cho 5 thực thể mới trong Thùng rác (lịch, thuê bao, gia hạn, chuyển đổi, chia sẻ) | `apps/admin-web/src/lib/supabase/repositories/trash.repo.ts`, `apps/admin-web/src/widgets/pages/trash/page-client.tsx` |
+| 2026-05-29 | Khắc phục lỗi 500 khi xoá vĩnh viễn khách hàng/sản phẩm bằng cascade đơn hàng/contacts và xử lý chặn lỗi FK sản phẩm thân thiện | `apps/admin-web/src/lib/supabase/repositories/trash.repo.ts` |
 | 2026-05-29 | Bổ sung API Webhook landing-page vào danh sách route công khai để không bị chặn đăng nhập | `apps/admin-web/src/proxy.ts` |
 | 2026-05-28 | Loại bỏ cron job trùng lặp cho telegram-reminder và nới rộng dải Node.js engine lên ">=22.0.0", đồng bộ packageManager lên pnpm@10.0.0 | `apps/admin-web/vercel.json`, `package.json`, `apps/admin-web/package.json` |
 | 2026-05-28 | Sửa lỗi Next.js build crash do thiếu biến môi trường Supabase bằng cách thêm fallback placeholders vào admin.ts và proxy.ts | `apps/admin-web/src/lib/supabase/admin.ts`, `apps/admin-web/src/proxy.ts` |

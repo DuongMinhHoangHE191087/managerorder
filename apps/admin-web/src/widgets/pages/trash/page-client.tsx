@@ -60,7 +60,12 @@ type EntityType =
   | "providers"
   | "source_accounts"
   | "license_keys"
-  | "short_links";
+  | "short_links"
+  | "reminder_events"
+  | "premium_accounts"
+  | "subscription_renewals"
+  | "account_migrations"
+  | "account_share_links";
 
 type TrashRecord = Record<string, unknown> & {
   id: string;
@@ -140,6 +145,51 @@ const ENTITY_CONFIG: Record<EntityType, EntityConfig> = {
       { label: copy.fields.shortLinks.slug, keys: ["slug"] },
       { label: copy.fields.shortLinks.targetUrl, keys: ["target_url"] },
       { label: copy.fields.shortLinks.currentClicks, keys: ["current_clicks"], kind: "badge" },
+    ],
+  },
+  reminder_events: {
+    label: "Sự kiện lịch",
+    icon: Clock3,
+    summary: [
+      { label: "Tiêu đề", keys: ["title"] },
+      { label: "Loại sự kiện", keys: ["type"], kind: "badge" },
+      { label: "Ngày đến hạn", keys: ["due_at"], kind: "date" },
+    ],
+  },
+  premium_accounts: {
+    label: "Tài khoản thuê bao",
+    icon: Users,
+    summary: [
+      { label: "Email chính", keys: ["primary_email", "email"] },
+      { label: "Trạng thái", keys: ["status"], kind: "badge" },
+      { label: "Ngày hết hạn", keys: ["subscription_expiry_date"], kind: "date" },
+    ],
+  },
+  subscription_renewals: {
+    label: "Gia hạn thuê bao",
+    icon: RotateCcw,
+    summary: [
+      { label: "ID gia hạn", keys: ["id"] },
+      { label: "Trạng thái", keys: ["status"], kind: "badge" },
+      { label: "Ngày yêu cầu", keys: ["created_at"], kind: "date" },
+    ],
+  },
+  account_migrations: {
+    label: "Chuyển đổi thuê bao",
+    icon: ArrowDownUp,
+    summary: [
+      { label: "ID chuyển đổi", keys: ["id"] },
+      { label: "Trạng thái", keys: ["status"], kind: "badge" },
+      { label: "Ngày bắt đầu", keys: ["started_at"], kind: "date" },
+    ],
+  },
+  account_share_links: {
+    label: "Chia sẻ tài khoản",
+    icon: LinkIcon,
+    summary: [
+      { label: "Tiêu đề", keys: ["title"] },
+      { label: "Trạng thái", keys: ["status"], kind: "badge" },
+      { label: "Đường dẫn (slug)", keys: ["slug"] },
     ],
   },
 };
@@ -232,8 +282,18 @@ function getTrashDetailHref(type: EntityType, item: TrashRecord) {
       return `/short-links/${id}?trash=1`;
     case "license_keys":
       return `/inventory?key=${id}&trash=1`;
+    case "reminder_events":
+      return `/calendar?event=${id}&trash=1`;
+    case "premium_accounts":
+      return `/premium/accounts/${id}?trash=1`;
+    case "subscription_renewals":
+      return `/premium/renewals?id=${id}&trash=1`;
+    case "account_migrations":
+      return `/premium/migrations?id=${id}&trash=1`;
+    case "account_share_links":
+      return `/account-shares?id=${id}&trash=1`;
     default:
-      return "/inventory";
+      return "/";
   }
 }
 

@@ -4,7 +4,19 @@ import { queryKeys } from "@/shared/lib/react-query/query-keys";
 import { TRASH_COPY as copy } from "../copy";
 
 // Types matching trash.repo.ts
-type TrashEntityType = "customers" | "orders" | "products" | "providers" | "source_accounts" | "license_keys" | "short_links";
+type TrashEntityType =
+  | "customers"
+  | "orders"
+  | "products"
+  | "providers"
+  | "source_accounts"
+  | "license_keys"
+  | "short_links"
+  | "reminder_events"
+  | "premium_accounts"
+  | "subscription_renewals"
+  | "account_migrations"
+  | "account_share_links";
 
 const TRASH_INVALIDATION_TARGETS: Record<TrashEntityType, readonly (readonly unknown[])[]> = {
   customers: [
@@ -35,6 +47,21 @@ const TRASH_INVALIDATION_TARGETS: Record<TrashEntityType, readonly (readonly unk
     ["short-links"],
     ["short-link-detail"],
     queryKeys.salesChannels,
+  ],
+  reminder_events: [
+    queryKeys.calendarEvents,
+  ],
+  premium_accounts: [
+    queryKeys.premiumAccounts,
+  ],
+  subscription_renewals: [
+    ["premium", "renewals"],
+  ],
+  account_migrations: [
+    ["premium", "migrations"],
+  ],
+  account_share_links: [
+    queryKeys.accountShares,
   ],
 };
 
@@ -68,6 +95,19 @@ const TRASH_DETAIL_INVALIDATION_TARGETS: Record<TrashEntityType, (id: string) =>
   ],
   short_links: (id) => [
     ["short-link-detail", id],
+  ],
+  reminder_events: (id) => [],
+  premium_accounts: (id) => [
+    ["premium", "accounts", id],
+  ],
+  subscription_renewals: (id) => [
+    ["premium", "renewals", id],
+  ],
+  account_migrations: (id) => [
+    ["premium", "migrations", id],
+  ],
+  account_share_links: (id) => [
+    queryKeys.accountShareLogs(id),
   ],
 };
 

@@ -676,17 +676,12 @@ export const DELETE = withFlatAccountHandler<{ id: string }>(
 
     const { error } = await supabaseAdmin
       .from("premium_accounts")
-      .delete()
+      .update({
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
       .eq("account_id", accountId);
-
-    if ((error as { code?: string } | null)?.code === "23503") {
-      throw new ApplicationError(
-        "Tài khoản đang được liên kết dữ liệu khác, không thể xóa.",
-        409,
-        "PREMIUM_ACCOUNT_IN_USE",
-      );
-    }
 
     if (error) {
       throw error;
