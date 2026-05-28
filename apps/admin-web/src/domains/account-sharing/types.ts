@@ -11,6 +11,7 @@ export interface AccountShareExposurePolicy {
   fields: AccountShareFieldType[];
   credentialIds?: string[];
   includeLabels?: boolean;
+  shareTotpSecret?: boolean;
 }
 
 export interface AccountShareAccessPolicy {

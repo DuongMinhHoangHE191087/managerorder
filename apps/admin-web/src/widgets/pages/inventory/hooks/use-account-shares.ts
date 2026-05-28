@@ -30,6 +30,7 @@ export interface AccountShareLink {
     fields: AccountShareFieldType[];
     credentialIds?: string[];
     includeLabels?: boolean;
+    shareTotpSecret?: boolean;
   };
   accessPolicy: {
     requirePasscode: boolean;
@@ -69,6 +70,7 @@ export interface CreateAccountShareInput {
     fields: AccountShareFieldType[];
     credentialIds?: string[];
     includeLabels?: boolean;
+    shareTotpSecret?: boolean;
   };
 }
 
@@ -86,6 +88,7 @@ export interface UpdateAccountShareInput {
     fields: AccountShareFieldType[];
     credentialIds?: string[];
     includeLabels?: boolean;
+    shareTotpSecret?: boolean;
   };
 }
 

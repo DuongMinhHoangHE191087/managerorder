@@ -18,6 +18,7 @@ const exposurePolicySchema = z.object({
   fields: z.array(z.enum(["email", "password", "link_join", "2fa", "2fa_backup", "duolingo_id", "other"])).min(1),
   credentialIds: z.array(z.string()).optional(),
   includeLabels: z.boolean().optional(),
+  shareTotpSecret: z.boolean().optional(),
 });
 
 const createAccountShareSchema = z.object({

@@ -105,156 +105,157 @@ export function MigrationsList({
           <p className="mt-1 text-[13px] text-[var(--fg-muted)]">{copy.list.emptyDescription}</p>
         </div>
       ) : (
-        <div className="space-y-3 p-4 sm:p-5">
-          <div className="hidden grid-cols-12 gap-4 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)] px-5 py-4 lg:grid">
-            <div className="col-span-3 text-[11px] font-black uppercase tracking-widest text-[var(--fg-muted)]">{copy.list.columns.customerStatus}</div>
-            <div className="col-span-3 text-[11px] font-black uppercase tracking-widest text-[var(--fg-muted)]">{copy.list.columns.sourceTarget}</div>
-            <div className="col-span-3 text-[11px] font-black uppercase tracking-widest text-[var(--fg-muted)]">{copy.list.columns.reasonNotes}</div>
-            <div className="col-span-2 text-[11px] font-black uppercase tracking-widest text-[var(--fg-muted)]">{copy.list.columns.createdAt}</div>
-            <div className="col-span-1 text-right text-[11px] font-black uppercase tracking-widest text-[var(--fg-muted)]">{copy.list.columns.actions}</div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 p-4 sm:p-5">
+          {migrations.map((migration) => {
+            const sourceSlotsRemaining = calculateAvailableSlots(
+              migration.source_account?.total_slots ?? 0,
+              migration.source_account?.used_slots ?? 0,
+            );
+            const targetSlotsRemaining = calculateAvailableSlots(
+              migration.target_account?.total_slots ?? 0,
+              migration.target_account?.used_slots ?? 0,
+            );
 
-          {migrations.map((migration) => (
-            <article
-              key={migration.id}
-              className="rounded-2xl border border-[var(--border-soft)] bg-[var(--bg-surface)] transition-shadow hover:shadow-sm"
-            >
-              <div className="grid grid-cols-1 gap-4 p-4 lg:grid-cols-12 lg:items-center lg:px-5 lg:py-4">
-                <div className="col-span-1 lg:col-span-3">
-                  <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-[var(--fg-muted)] lg:hidden">{copy.list.mobileColumns.customerStatus}</p>
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)] text-[var(--accent)]">
-                      <User className="size-5" />
+            return (
+              <article
+                key={migration.id}
+                className="group relative overflow-hidden rounded-[1.5rem] border border-[var(--border-soft)] bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.03)] transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.07)]"
+              >
+                {/* Header card: Customer & Status */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-lime-100 text-lime-700">
+                      <User className="size-4.5" />
                     </div>
-                    <div className="min-w-0 space-y-1">
-                      <p className="truncate text-[14px] font-extrabold text-[var(--fg-base)]">{migration.customer_name}</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {renderStatusPill(getMigrationStatusLabel(migration), "bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20")}
-                        {getMigrationPhaseLabel(typeof migration.details?.phase === "string" ? migration.details.phase : null)
-                          ? renderStatusPill(
-                              getMigrationPhaseLabel(
-                                typeof migration.details?.phase === "string" ? migration.details.phase : null,
-                              ) ?? "",
-                            )
-                          : null}
-                        {getTerminalReasonLabel(
-                          migration.terminal_reason ??
-                            (typeof migration.details?.terminal_reason === "string" ? migration.details.terminal_reason : null),
-                        )
-                          ? renderStatusPill(
-                              getTerminalReasonLabel(
-                                migration.terminal_reason ??
-                                  (typeof migration.details?.terminal_reason === "string"
-                                    ? migration.details.terminal_reason
-                                    : null),
-                              ) ?? "",
-                            )
-                          : null}
-                      </div>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-[14px] font-black text-[var(--fg-base)]">
+                        {migration.customer_name}
+                      </h3>
+                      <p className="mt-0.5 flex items-center gap-1 text-[10px] font-bold text-[var(--fg-muted)]">
+                        <CalendarClock className="size-3.5" />
+                        {formatDateTime(migration.created_at)}
+                      </p>
                     </div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    {renderStatusPill(
+                      getMigrationStatusLabel(migration),
+                      "bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20 font-black"
+                    )}
                   </div>
                 </div>
 
-                <div className="col-span-1 lg:col-span-3">
-                  <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-[var(--fg-muted)] lg:hidden">{copy.list.mobileColumns.sourceTarget}</p>
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center gap-2 text-[13px] font-bold text-[var(--fg-base)]">
-                      <Warehouse className="size-4 text-[var(--accent)]" />
-                      <span className="truncate">{migration.source_account_email ?? "N/A"}</span>
-                    </div>
-                    <p className="truncate text-[11px] font-medium text-[var(--fg-muted)]">
-                      {migration.source_account?.used_slots ?? 0}/
-                      {migration.source_account?.total_slots ?? 0} slot · còn{" "}
-                      {calculateAvailableSlots(
-                        migration.source_account?.total_slots ?? 0,
-                        migration.source_account?.used_slots ?? 0,
-                      )} slot
+                {/* Body card: Flow Source -> Target */}
+                <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)]/50 p-3">
+                  {/* Source account */}
+                  <div className="min-w-0 text-center">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Nguồn</p>
+                    <p className="mt-1 truncate text-[12px] font-extrabold text-[var(--fg-base)]" title={migration.source_account_email ?? "N/A"}>
+                      {migration.source_account_email ?? "N/A"}
                     </p>
-                    <div className="flex items-center gap-2 text-[13px] font-bold text-[var(--fg-base)]">
-                      <ArrowRightLeft className="size-4 text-[var(--fg-muted)]" />
-                      <span className="truncate">{migration.target_account_email ?? "N/A"}</span>
-                    </div>
-                    <p className="truncate text-[11px] font-medium text-[var(--fg-muted)]">
-                      {migration.target_account?.used_slots ?? 0}/
-                      {migration.target_account?.total_slots ?? 0} slot · còn{" "}
-                      {calculateAvailableSlots(
-                        migration.target_account?.total_slots ?? 0,
-                        migration.target_account?.used_slots ?? 0,
-                      )} slot
+                    <span className="mt-1 inline-flex rounded-lg bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-600 border border-slate-200">
+                      còn {sourceSlotsRemaining} slot
+                    </span>
+                  </div>
+
+                  {/* Flow Arrow */}
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white shadow-sm border border-[var(--border-soft)] text-[var(--fg-muted)] group-hover:text-[var(--accent)] transition-colors">
+                    <ArrowRightLeft className="size-3.5" />
+                  </div>
+
+                  {/* Target account */}
+                  <div className="min-w-0 text-center">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Đích</p>
+                    <p className="mt-1 truncate text-[12px] font-extrabold text-[var(--fg-base)]" title={migration.target_account_email ?? "N/A"}>
+                      {migration.target_account_email ?? "N/A"}
                     </p>
+                    <span className="mt-1 inline-flex rounded-lg bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 border border-emerald-100">
+                      còn {targetSlotsRemaining} slot
+                    </span>
                   </div>
                 </div>
 
-                <div className="col-span-1 lg:col-span-3">
-                  <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-[var(--fg-muted)] lg:hidden">{copy.list.mobileColumns.reasonNotes}</p>
-                  <p className="line-clamp-2 text-[13px] font-medium text-[var(--fg-base)]">{migration.reason ?? "N/A"}</p>
+                {/* Reason / Notes block */}
+                <div className="mt-3.5 rounded-xl border border-[var(--border-soft)] bg-white px-3.5 py-2.5">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Lý do chuyển</p>
+                  <p className="mt-1 line-clamp-2 text-[12px] font-medium text-[var(--fg-base)] leading-relaxed">
+                    {migration.reason ?? "Không có lý do ghi nhận."}
+                  </p>
                   {migration.notes ? (
-                    <p className="mt-2 line-clamp-1 text-[12px] text-[var(--fg-muted)]">{migration.notes}</p>
+                    <p className="mt-1.5 line-clamp-1 border-t border-[var(--border-soft)] pt-1.5 text-[11px] text-[var(--fg-muted)] italic">
+                      Ghi chú: {migration.notes}
+                    </p>
                   ) : null}
                 </div>
 
-                <div className="col-span-1 lg:col-span-2">
-                  <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-[var(--fg-muted)] lg:hidden">{copy.list.mobileColumns.createdAt}</p>
-                  <div className="flex items-center gap-2 text-[13px] font-bold text-[var(--fg-base)]">
-                    <CalendarClock className="size-4 text-[var(--fg-muted)]" />
-                    <span>{formatDateTime(migration.created_at)}</span>
-                  </div>
-                </div>
-
-                <div className="col-span-1 flex flex-wrap items-center gap-2 lg:col-span-1 lg:justify-end">
+                {/* Actions footer */}
+                <div className="mt-4 flex items-center justify-between border-t border-[var(--border-soft)] pt-3.5">
                   <Button
                     type="button"
                     variant="secondary"
                     onClick={() => {
                       void onOpenDetail(migration.id);
                     }}
-                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-bold"
+                    className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-bold h-8"
                   >
-                    <ClipboardList className="size-4" />
+                    <ClipboardList className="size-3.5" />
                     {copy.list.viewDetail}
                   </Button>
-                  <ActionMenu
-                    items={[
-                      {
-                        label: copy.list.viewCustomer,
-                        icon: <User className="size-4" />,
-                        onClick: () => router.push(`/customers/${migration.customer_id}`),
-                      },
-                      ...(migration.source_account?.id
-                        ? [
-                            {
-                            label: copy.list.openSource,
-                              icon: <Warehouse className="size-4" />,
-                              onClick: () => router.push(`/premium/accounts/${migration.source_account?.id}`),
-                            },
-                          ]
-                        : []),
-                      ...(migration.target_account?.id
-                        ? [
-                            {
-                            label: copy.list.openTarget,
-                              icon: <ExternalLink className="size-4" />,
-                              onClick: () => router.push(`/premium/accounts/${migration.target_account?.id}`),
-                            },
-                          ]
-                        : []),
-                      {
-                        label: copy.list.copyId,
-                        icon: <Copy className="size-4" />,
-                        onClick: () => void copyToClipboard(migration.id, copy.list.copyIdSuccess),
-                        dividerBefore: true,
-                      },
-                      {
-                        label: copy.list.copySubscription,
-                        icon: <Copy className="size-4" />,
-                        onClick: () => void copyToClipboard(migration.subscription_id, copy.list.copySubscriptionSuccess),
-                      },
-                    ]}
-                  />
+
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => router.push(`/customers/${migration.customer_id}`)}
+                      className="inline-flex items-center justify-center size-8 rounded-full p-0"
+                      title={copy.list.viewCustomer}
+                    >
+                      <User className="size-4 text-[var(--fg-muted)]" />
+                    </Button>
+                    <ActionMenu
+                      items={[
+                        {
+                          label: copy.list.viewCustomer,
+                          icon: <User className="size-4" />,
+                          onClick: () => router.push(`/customers/${migration.customer_id}`),
+                        },
+                        ...(migration.source_account?.id
+                          ? [
+                              {
+                                label: copy.list.openSource,
+                                icon: <Warehouse className="size-4" />,
+                                onClick: () => router.push(`/premium/accounts/${migration.source_account?.id}`),
+                              },
+                            ]
+                          : []),
+                        ...(migration.target_account?.id
+                          ? [
+                              {
+                                label: copy.list.openTarget,
+                                icon: <ExternalLink className="size-4" />,
+                                onClick: () => router.push(`/premium/accounts/${migration.target_account?.id}`),
+                              },
+                            ]
+                          : []),
+                        {
+                          label: copy.list.copyId,
+                          icon: <Copy className="size-4" />,
+                          onClick: () => void copyToClipboard(migration.id, copy.list.copyIdSuccess),
+                          dividerBefore: true,
+                        },
+                        {
+                          label: copy.list.copySubscription,
+                          icon: <Copy className="size-4" />,
+                          onClick: () => void copyToClipboard(migration.subscription_id, copy.list.copySubscriptionSuccess),
+                        },
+                      ]}
+                    />
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
     </div>

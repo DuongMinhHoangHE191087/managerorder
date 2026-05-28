@@ -80,6 +80,7 @@ function normalizeExposurePolicy(input: AccountShareExposurePolicy | undefined):
     fields: uniqueFields.length ? uniqueFields : DEFAULT_FIELDS,
     credentialIds: input?.credentialIds?.filter(Boolean),
     includeLabels: input?.includeLabels ?? true,
+    shareTotpSecret: input?.shareTotpSecret === true,
   };
 }
 
@@ -142,6 +143,7 @@ function parseExposurePolicy(value: unknown): AccountShareExposurePolicy {
     fields: Array.isArray(raw.fields) ? raw.fields.filter((item): item is AccountShareFieldType => typeof item === "string" && isShareField(item)) : [],
     credentialIds: Array.isArray(raw.credentialIds) ? raw.credentialIds.filter((item): item is string => typeof item === "string") : undefined,
     includeLabels: typeof raw.includeLabels === "boolean" ? raw.includeLabels : undefined,
+    shareTotpSecret: typeof raw.shareTotpSecret === "boolean" ? raw.shareTotpSecret : undefined,
   });
 }
 
@@ -698,11 +700,12 @@ export function buildSharePayload(
     }
 
     const totpAvailable = isTotpCredentialValue(credential.value, credential.format);
+    const shouldShareSecret = exposurePolicy.shareTotpSecret === true;
     credentials.push({
       id: credential.id,
       type: credentialType,
       label: credential.label || credential.type,
-      value: totpAvailable ? null : credential.value,
+      value: (totpAvailable && !shouldShareSecret) ? null : credential.value,
       format: credential.format,
       masked: credential.masked ?? (credential.type === "2fa" || credential.type === "2fa_backup"),
       totpAvailable,

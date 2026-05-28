@@ -80,6 +80,7 @@ export function AccountShareModal({
   const [copied, setCopied] = useState<string | null>(null);
   const [expandedLogsId, setExpandedLogsId] = useState<string | null>(null);
   const [deletingShareLink, setDeletingShareLink] = useState<AccountShareLink | null>(null);
+  const [shareTotpSecret, setShareTotpSecret] = useState(false);
 
   const credentialTypes = useMemo(
     () => new Set((secrets?.credentials ?? []).map((credential) => credential.type)),
@@ -125,6 +126,7 @@ export function AccountShareModal({
     setCreatedShare(null);
     setCopied(null);
     setExpandedLogsId(null);
+    setShareTotpSecret(false);
   }, [account.email, isOpen]);
 
   useEffect(() => {
@@ -180,6 +182,7 @@ export function AccountShareModal({
       exposurePolicy: {
         fields,
         credentialIds: selectedCredentialIds.size ? [...selectedCredentialIds] : undefined,
+        shareTotpSecret,
       },
     });
 
@@ -292,6 +295,24 @@ export function AccountShareModal({
             ))}
           </div>
         </div>
+
+        {selectedFields.has("2fa") ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 space-y-2">
+            <label className="flex items-center gap-2 text-[12px] font-bold text-[var(--fg-base)]">
+              <input
+                type="checkbox"
+                checked={shareTotpSecret}
+                onChange={(event) => setShareTotpSecret(event.target.checked)}
+                className="size-4 rounded border-[var(--border-soft)]"
+              />
+              Chia sẻ cả Key Secret 2FA gốc (Mã QR/Khóa thiết lập gốc)
+            </label>
+            <p className="text-[11px] font-medium text-[var(--fg-muted)] pl-6 leading-relaxed">
+              Mặc định khi chia sẻ 2FA, hệ thống chỉ hiển thị mã 6 số thay đổi liên tục trên trang khách hàng. 
+              Nếu tích chọn ô này, khách hàng sẽ xem được và sao chép được cả Key Secret gốc để tự quét mã vào Google Authenticator.
+            </p>
+          </div>
+        ) : null}
 
         {shareableCredentials.length > 0 ? (
           <div className="space-y-2 rounded-2xl border border-[var(--border-soft)] bg-white p-4">

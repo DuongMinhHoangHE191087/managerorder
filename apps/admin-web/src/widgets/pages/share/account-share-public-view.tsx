@@ -189,7 +189,7 @@ export function AccountSharePublicView({ slug }: { slug: string }) {
                 ) : null}
                 {payload.credentials.map((credential) => (
                   credential.totpAvailable ? (
-                    <TotpRow key={credential.id} slug={slug} credential={credential} onCopy={copyValue} copied={copied === credential.id} />
+                    <TotpRow key={credential.id} slug={slug} credential={credential} onCopy={copyValue} copiedState={copied} />
                   ) : credential.value ? (
                     <FieldRow
                       key={credential.id}
@@ -266,12 +266,12 @@ function FieldRow({
 function TotpRow({
   slug,
   credential,
-  copied,
+  copiedState,
   onCopy,
 }: {
   slug: string;
   credential: ShareCredential;
-  copied: boolean;
+  copiedState: string | null;
   onCopy: (value: string, id: string) => void;
 }) {
   const [totp, setTotp] = useState<TotpState | null>(null);
@@ -304,23 +304,47 @@ function TotpRow({
     return () => clearInterval(interval);
   }, [totpCode]);
 
+  const isCopiedTotp = copiedState === credential.id;
+  const isCopiedSecret = copiedState === `${credential.id}_secret`;
   const value = totp?.code ?? "------";
+
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-lime-200 bg-lime-50 px-3 py-3">
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-black uppercase tracking-widest text-lime-700">{credential.label}</p>
-        <p className="mt-1 font-mono text-[22px] font-black tracking-[0.2em] text-slate-950">{value}</p>
-        <p className="text-[11px] font-semibold text-lime-700">{totp ? `${totp.remainingSeconds}s` : "Đang tạo mã"}</p>
+    <div className="flex flex-col gap-3 rounded-2xl border border-lime-200 bg-lime-50 px-4 py-4">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-black uppercase tracking-widest text-lime-700">{credential.label}</p>
+          <p className="mt-1 font-mono text-[22px] font-black tracking-[0.2em] text-slate-950">{value}</p>
+          <p className="text-[11px] font-semibold text-lime-700">{totp ? `${totp.remainingSeconds}s` : "Đang tạo mã"}</p>
+        </div>
+        <button
+          type="button"
+          disabled={!totp}
+          onClick={() => totp ? onCopy(totp.code, credential.id) : undefined}
+          className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm transition hover:text-lime-700 disabled:opacity-50"
+          title="Sao chép mã 2FA nhanh"
+        >
+          {isCopiedTotp ? <Check className="size-4 text-lime-700" /> : <Copy className="size-4" />}
+        </button>
       </div>
-      <button
-        type="button"
-        disabled={!totp}
-        onClick={() => totp ? onCopy(totp.code, credential.id) : undefined}
-        className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm transition hover:text-lime-700 disabled:opacity-50"
-        title="Sao chép"
-      >
-        {copied ? <Check className="size-4 text-lime-700" /> : <Copy className="size-4" />}
-      </button>
+
+      {credential.value ? (
+        <div className="mt-2.5 border-t border-lime-200/60 pt-2.5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-lime-700">Khóa thiết lập 2FA gốc (Key Secret)</p>
+          <div className="mt-1.5 flex items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded-xl bg-white px-3 py-2 text-[12px] font-mono font-bold text-slate-800">
+              {credential.value}
+            </code>
+            <button
+              type="button"
+              onClick={() => onCopy(credential.value!, `${credential.id}_secret`)}
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm transition hover:text-lime-700"
+              title="Sao chép khóa thiết lập 2FA"
+            >
+              {isCopiedSecret ? <Check className="size-4 text-lime-700" /> : <Copy className="size-4" />}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

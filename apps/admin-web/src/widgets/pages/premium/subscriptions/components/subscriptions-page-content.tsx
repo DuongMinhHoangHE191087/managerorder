@@ -34,6 +34,7 @@ import type { CustomerPremiumSubscription } from "@/lib/domain/premium-types";
 import { formatMoney } from "@/lib/utils";
 import { getBillingCycleLabel } from "@/lib/domain/premium-renewal-finance";
 import { RenewalRequestModal } from "./renewal-request-modal";
+import { QuickMigrationModal } from "./quick-migration-modal";
 import { Modal } from "@/shared/ui/modal";
 
 type SubscriptionRow = CustomerPremiumSubscription & {
@@ -373,6 +374,8 @@ function buildReminderMessage(subscription: SubscriptionRow) {
   return `Chào ${subscription.customer_name}, gói ${subscription.service_name}${subscription.package_name ? ` - ${subscription.package_name}` : ""}${orderText} sẽ hết hạn ${expiryLabel} (${dueText}). Anh/chị xác nhận giúp em gói và số tháng muốn gia hạn để em xử lý tiếp.`;
 }
 
+
+
 export default function PremiumSubscriptionsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -389,6 +392,7 @@ export default function PremiumSubscriptionsPage() {
   const [pageSize, setPageSize] = useState(initialListState.pageSize);
   const [isLoading, setIsLoading] = useState(true);
   const [renewingSubscription, setRenewingSubscription] = useState<SubscriptionRow | null>(null);
+  const [migratingSubscription, setMigratingSubscription] = useState<SubscriptionRow | null>(null);
   const [noRenewSub, setNoRenewSub] = useState<SubscriptionRow | null>(null);
   const [noRenewReason, setNoRenewReason] = useState("");
   const deferredSearch = useDeferredValue(search);
@@ -614,6 +618,14 @@ export default function PremiumSubscriptionsPage() {
               ),
             );
           }
+          await fetchSubscriptions();
+        }}
+      />
+
+      <QuickMigrationModal
+        subscription={migratingSubscription}
+        onClose={() => setMigratingSubscription(null)}
+        onSubmitted={async () => {
           await fetchSubscriptions();
         }}
       />
@@ -1009,7 +1021,7 @@ export default function PremiumSubscriptionsPage() {
               />
             </div>
           ) : (
-            <div className="space-y-3 p-4 sm:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 p-4 sm:p-6">
               {subs.map((sub) => {
                 const isExpired = sub.days_remaining <= 0;
                 const isExpiring = sub.days_remaining > 0 && sub.days_remaining <= 7;
@@ -1071,6 +1083,15 @@ export default function PremiumSubscriptionsPage() {
                         },
                       ]
                     : []),
+                  ...(sub.premium_account_id
+                    ? [
+                        {
+                          label: "Chuyển Family nhanh",
+                          icon: <ArrowRightLeft className="size-4" />,
+                          onClick: () => setMigratingSubscription(sub),
+                        },
+                      ]
+                    : []),
                   {
                     label: "Sao chép ID thuê bao",
                     icon: <Copy className="size-4" />,
@@ -1095,7 +1116,7 @@ export default function PremiumSubscriptionsPage() {
                 return (
                   <article
                     key={sub.id}
-                    className="group relative overflow-hidden rounded-[1.5rem] border border-[var(--border-soft)] bg-white shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)]"
+                    className="group relative overflow-hidden rounded-[1.5rem] border border-[var(--border-soft)] bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.03)] transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.07)] flex flex-col justify-between"
                     onContextMenu={(event) => {
                       openContextMenu(event, [
                         ...quickActions,
@@ -1126,35 +1147,49 @@ export default function PremiumSubscriptionsPage() {
                               },
                             ]
                           : []),
+                        ...(sub.premium_account_id
+                          ? [
+                              {
+                                label: "Chuyển Family nhanh",
+                                icon: <ArrowRightLeft className="size-4" />,
+                                onClick: () => setMigratingSubscription(sub),
+                              },
+                            ]
+                          : []),
                       ]);
                     }}
                   >
-                    <div className="grid grid-cols-1 gap-5 p-4 lg:grid-cols-[1.2fr_1fr_0.95fr] lg:px-6 lg:py-5">
-                      <div className="min-w-0">
-                        <div className="flex items-start gap-3">
-                          <div className="flex size-10 items-center justify-center rounded-[1rem] border border-[var(--accent)]/10 bg-[linear-gradient(135deg,rgba(var(--accent-rgb),0.12),rgba(255,255,255,0.9))] text-[var(--accent)] shadow-sm">
-                            <User className="size-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <Link
-                              href={`/customers/${sub.customer_id}`}
-                              className="block truncate text-base font-extrabold tracking-tight text-[var(--fg-base)] transition-colors hover:text-[var(--accent)]"
-                            >
-                              {sub.customer_name}
-                            </Link>
-                            <p className="mt-0.5 text-[12px] text-[var(--fg-muted)]">{sub.service_name}</p>
-                            <p className="mt-2 flex items-center gap-2 text-[12px] text-[var(--fg-muted)]">
-                              <Link2 className="size-3.5" />
-                              <span className="truncate font-mono">{sub.account_email}</span>
-                            </p>
-                            <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
-                              Trạng thái đơn: <span className="font-bold text-[var(--fg-base)]">{sub.order_status ?? "Chưa rõ"}</span>
-                            </p>
-                          </div>
+                    <div className="space-y-4">
+                      {/* Header Section: Customer Info & Service Type */}
+                      <div className="flex items-start gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent)]/10 to-[var(--accent)]/5 text-[var(--accent)] transition-transform group-hover:rotate-12">
+                          <User className="size-4.5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <Link
+                            href={`/customers/${sub.customer_id}`}
+                            className="block truncate text-[14px] font-black text-[var(--fg-base)] transition-colors hover:text-[var(--accent)]"
+                          >
+                            {sub.customer_name}
+                          </Link>
+                          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                            {sub.service_name}
+                          </p>
                         </div>
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-2">
+                      {/* Mono email container */}
+                      <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)]/50 p-3 flex items-center justify-between gap-2">
+                        <span className="truncate font-mono text-[12px] font-extrabold text-[var(--fg-base)]">
+                          {sub.account_email}
+                        </span>
+                        <span className="text-[9px] font-bold text-[var(--fg-muted)] tracking-wider shrink-0 uppercase">
+                          Đơn: {sub.order_status ?? "Chưa rõ"}
+                        </span>
+                      </div>
+
+                      {/* Info Pills Grid 2x2 */}
+                      <div className="grid grid-cols-2 gap-2.5">
                         <InfoPill
                           label="Chu kỳ"
                           value={getBillingCycleLabel(sub.billing_cycle)}
@@ -1173,66 +1208,83 @@ export default function PremiumSubscriptionsPage() {
                           value={getRenewalStatusLabel(sub.renewal_status)}
                         />
                       </div>
+                    </div>
 
-                      <div className="flex flex-col justify-between gap-4">
-                        <div className="rounded-[1.2rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/50 p-3">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
-                            Theo dõi hạn
-                          </p>
-                          <div className="mt-2 flex items-center gap-2">
-                            <CalendarClock
-                              className={`size-4 ${isExpired ? "text-rose-500" : isExpiring ? "text-amber-500" : "text-emerald-500"}`}
-                            />
-                            <span className="text-[13px] font-black text-[var(--fg-base)]">
-                              {isExpired ? "Đã hết hạn" : `Còn ${Math.max(0, sub.days_remaining)} ngày`}
-                            </span>
-                          </div>
+                    <div className="mt-4 pt-3.5 border-t border-[var(--border-soft)] space-y-3.5">
+                      {/* Follow-up slot or reasons */}
+                      <div className="rounded-xl border border-[var(--border-soft)] bg-white px-3.5 py-2 flex items-center justify-between text-[11px] font-semibold text-[var(--fg-muted)]">
+                        <div className="flex items-center gap-1.5">
+                          <CalendarClock
+                            className={`size-3.5 ${isExpired ? "text-rose-500" : isExpiring ? "text-amber-500" : "text-emerald-500"}`}
+                          />
+                          <span className="font-extrabold text-[var(--fg-base)]">
+                            {isExpired ? "Đã hết hạn" : `Còn ${Math.max(0, sub.days_remaining)} ngày`}
+                          </span>
                         </div>
-
-                        {!canRenew && renewalBlockReason ? (
-                          <div className="rounded-[1.2rem] border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] leading-5 text-amber-800">
-                            <span className="font-black">Không thể gia hạn:</span> {renewalBlockReason}
-                          </div>
+                        {sub.order_code ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Mã: {sub.order_code}</span>
                         ) : null}
+                      </div>
 
-                        {!canNoRenew && noRenewBlockReason ? (
-                          <div className="rounded-[1.2rem] border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] leading-5 text-rose-800">
-                            <span className="font-black">Không gia hạn:</span> {noRenewBlockReason}
-                          </div>
-                        ) : null}
+                      {!canRenew && renewalBlockReason ? (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-[11px] leading-relaxed text-amber-800">
+                          <span className="font-bold">Không thể gia hạn:</span> {renewalBlockReason}
+                        </div>
+                      ) : null}
 
-                        <div className="flex flex-wrap items-center gap-2">
+                      {!canNoRenew && noRenewBlockReason ? (
+                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-[11px] leading-relaxed text-rose-800">
+                          <span className="font-bold">Không gia hạn:</span> {noRenewBlockReason}
+                        </div>
+                      ) : null}
+
+                      {/* Action buttons row */}
+                      <div className="flex flex-wrap items-center gap-1.5 justify-between">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <Button
                             type="button"
                             variant="secondary"
                             onClick={() => void copyToClipboard(buildReminderMessage(sub), "Đã sao chép mẫu nhắc gia hạn")}
-                            className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-bold"
+                            className="inline-flex items-center justify-center size-8 rounded-full p-0"
+                            title="Sao chép mẫu nhắc gia hạn"
                           >
-                            <Copy className="size-4" />
-                            Mẫu nhắc
+                            <Copy className="size-3.5" />
                           </Button>
+
                           {primaryAction ? (
                             <Button
                               type="button"
                               onClick={primaryAction.onClick}
                               title={!canRenew && renewalBlockReason ? renewalBlockReason : undefined}
-                              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-bold ${primaryAction.className}`}
+                              className={`inline-flex items-center justify-center size-8 rounded-full p-0 ${primaryAction.className}`}
                             >
                               {primaryAction.icon}
-                              {primaryAction.label}
                             </Button>
                           ) : null}
+
+                          {((sub.status === "active" || sub.status === "expired" || sub.status === "waiting_renewal") && sub.premium_account_id) && (
+                            <Button
+                              type="button"
+                              onClick={() => setMigratingSubscription(sub)}
+                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20"
+                              title="Chuyển Family nhanh"
+                            >
+                              <ArrowRightLeft className="size-3.5" />
+                            </Button>
+                          )}
+
                           <Button
                             type="button"
                             variant="secondary"
                             onClick={() => router.push(`/customers/${sub.customer_id}`)}
-                            className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-bold"
+                            className="inline-flex items-center justify-center size-8 rounded-full p-0"
+                            title="Đi tới chi tiết khách hàng"
                           >
-                            <User className="size-4" />
-                            Khách hàng
+                            <User className="size-3.5" />
                           </Button>
-                          <ActionMenu items={quickActions} />
                         </div>
+
+                        <ActionMenu items={quickActions} />
                       </div>
                     </div>
                   </article>

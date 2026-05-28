@@ -35,6 +35,8 @@ import type {
   PremiumAccountDetailViewModel,
   PremiumAccountUpdatePayload,
 } from "@/lib/types/premium-admin";
+import { QuickMigrationModal } from "@/widgets/pages/premium/subscriptions/components/quick-migration-modal";
+import type { QuickMigrationSubscription } from "@/widgets/pages/premium/subscriptions/components/quick-migration-modal";
 
 type AccountConfigFormState = {
   primary_email: string;
@@ -153,6 +155,7 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
   const [auditPage, setAuditPage] = useState(1);
+  const [migratingSubscription, setMigratingSubscription] = useState<QuickMigrationSubscription | null>(null);
 
   async function fetchDetail(nextAuditPage = auditPage, options?: { silent?: boolean }) {
     const silent = options?.silent ?? false;
@@ -367,6 +370,21 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Button variant="secondary" onClick={() => router.push(`/customers/${subscription.customer_id}`)}>Khách hàng</Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => setMigratingSubscription({
+                            id: subscription.id,
+                            customer_name: subscription.customer_name,
+                            service_type_id: subscription.service_type_id,
+                            service_name: detail.service?.name ?? "Dịch vụ",
+                            account_email: subscription.premium_account_user_email ?? detail.primary_email,
+                            premium_account_id: detail.id,
+                          })}
+                          className="bg-amber-500/10 text-amber-700 hover:bg-amber-500/20"
+                        >
+                          <ArrowRightLeft className="size-4" />
+                          Chuyển Family
+                        </Button>
                         <Button variant="secondary" onClick={() => router.push("/premium/subscriptions")}><ClipboardList className="size-4" />Mở subscriptions</Button>
                         {subscription.migration_id ? <Button variant="secondary" onClick={() => router.push("/premium/migrations")}><ArrowRightLeft className="size-4" />Migration liên quan</Button> : null}
                       </div>
@@ -431,6 +449,13 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
           </div>
         </div>
       </PageContainer>
+      <QuickMigrationModal
+        subscription={migratingSubscription}
+        onClose={() => setMigratingSubscription(null)}
+        onSubmitted={async () => {
+          await fetchDetail(auditPage, { silent: true });
+        }}
+      />
     </AppLayout>
   );
 }
