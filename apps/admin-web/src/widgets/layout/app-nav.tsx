@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { memo, type ComponentType, useMemo, useState } from "react";
 import {
-  Activity,
   Bell,
   Bot,
   Boxes,
@@ -64,9 +63,7 @@ const navSections: NavSection[] = [
     label: vi.navigation.sections.premiumAccounts,
     items: [
       { href: "/premium/accounts", label: vi.navigation.items.premiumAccounts, icon: Package },
-      { href: "/premium/health-checks", label: vi.navigation.items.healthChecks, icon: Activity },
       { href: "/premium/subscriptions", label: vi.navigation.items.subscriptions, icon: ClipboardList },
-      { href: "/premium/services", label: vi.navigation.items.services, icon: Settings2 },
       { href: "/premium/renewals", label: vi.navigation.items.renewals, icon: CalendarDays },
       { href: "/premium/migrations", label: vi.navigation.items.migrations, icon: ChevronRight },
     ],
@@ -77,7 +74,6 @@ const navSections: NavSection[] = [
       { href: "/calendar", label: vi.navigation.items.calendar, icon: CalendarDays },
       { href: "/activity-logs", label: vi.navigation.items.activityLogs, icon: ClipboardList },
       { href: "/short-links", label: vi.navigation.items.shortLinks, icon: Link2 },
-      { href: "/account-shares", label: vi.navigation.items.accountShares, icon: ShieldCheck },
       { href: "/trash", label: vi.navigation.items.trash, icon: Trash2 },
       { href: "/settings", label: vi.navigation.items.settings, icon: Settings2 },
       { href: "/settings/bot", label: vi.navigation.items.botManagement, icon: Bot },

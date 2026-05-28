@@ -1,10 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Clock, Link2, Trash2 } from "lucide-react";
+import { Clock, Link2, ShieldCheck, Trash2 } from "lucide-react";
 import type { LicenseKey, ProductService, Provider, SourceAccount } from "@/lib/domain/types";
 import { Modal } from "@/shared/ui/modal";
 import { Button } from "@/shared/ui/button";
+import { AccountShareLauncher } from "@/widgets/pages/inventory/components/account-share-launcher";
 import { INVENTORY_COPY as copy } from "../copy";
 
 const SlideOverDrawer = dynamic(() => import("@/shared/ui/slide-over-drawer").then((m) => ({ default: m.SlideOverDrawer })), { ssr: false });
@@ -131,6 +132,24 @@ export function InventoryPageOverlays({
             onRecalculate={onRecalculateSelectedAccount}
             isRecalculating={isRecalculating}
           >
+            <div className="overflow-hidden rounded-xl border border-[var(--border-soft)] bg-white">
+              <div className="border-b border-[var(--border-soft)] bg-gray-50/50 px-4 py-3">
+                <h3 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                  <ShieldCheck className="size-3.5 text-[var(--accent)]" />
+                  Chia sẻ tài khoản
+                </h3>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <p className="text-[12px] text-[var(--fg-muted)]">Tạo link chia sẻ bảo mật cho khách hàng</p>
+                <AccountShareLauncher
+                  account={{ id: selectedAccount.id, email: selectedAccount.email }}
+                  label="Quản lý chia sẻ"
+                  variant="secondary"
+                  size="sm"
+                />
+              </div>
+            </div>
+
             <div className="overflow-hidden rounded-xl border border-[var(--border-soft)] bg-white">
               <div className="border-b border-[var(--border-soft)] bg-gray-50/50 px-4 py-3">
                 <h3 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">

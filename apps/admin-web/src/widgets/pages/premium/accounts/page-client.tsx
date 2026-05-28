@@ -47,9 +47,8 @@ export default function PremiumAccountsPage() {
   const [accountSearch, setAccountSearch] = useState("");
   const [accountStatus, setAccountStatus] = useState("all");
   const [accountServiceId, setAccountServiceId] = useState("all");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRunningHealthCheck, setIsRunningHealthCheck] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [deletingAccount, setDeletingAccount] = useState<PremiumAccountRow | null>(null);
 
@@ -209,48 +208,6 @@ export default function PremiumAccountsPage() {
     }
   }
 
-  async function handleRunHealthCheck() {
-    if (isRunningHealthCheck) return;
-
-    setIsRunningHealthCheck(true);
-
-    try {
-      const response = await fetch("/api/premium/health-checks/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          check_type: "manual",
-          notes: "Chạy từ màn premium accounts",
-        }),
-      });
-      const payload = await readApiEnvelope<{
-        checked: number;
-        failed: number;
-        results: Array<{ premium_account_id: string }>;
-        errors?: Array<{ premium_account_id: string; error: string }>;
-      }>(response);
-
-      if (response.ok) {
-        await fetchAccounts();
-        const checkedCount = payload.data?.checked ?? 0;
-        const failedCount = payload.data?.failed ?? 0;
-        appToast.success(
-          failedCount > 0
-            ? `Đã kiểm tra ${checkedCount} tài khoản, ${failedCount} lỗi`
-            : `Đã kiểm tra ${checkedCount} tài khoản`,
-        );
-        return;
-      }
-
-      appToast.error(payload.error || "Không thể chạy health check");
-    } catch (error) {
-      console.error("[handleRunHealthCheck]", error);
-      appToast.error("Lỗi mạng khi chạy health check");
-    } finally {
-      setIsRunningHealthCheck(false);
-    }
-  }
-
   const totalSlots = accounts.reduce((accumulator, current) => accumulator + current.total_slots, 0);
   const totalUsed = accounts.reduce((accumulator, current) => accumulator + current.used_slots, 0);
   const workingConnections = accounts.filter((item) => item.connection_status === "working").length;
@@ -289,11 +246,8 @@ export default function PremiumAccountsPage() {
     <AppLayout>
       <PageContainer className="relative">
         <AccountsPageHeader
-          isRunningHealthCheck={isRunningHealthCheck}
           onCreate={() => setIsCreateOpen(true)}
-          onOpenHealthChecks={() => router.push("/premium/health-checks")}
           onOpenMigrations={() => router.push("/premium/migrations")}
-          onRunHealthCheck={handleRunHealthCheck}
         />
         <AccountsSummaryCards
           totalAccounts={accounts.length}

@@ -1,5 +1,7 @@
-import PageClient from "@/widgets/pages/account-shares/page-client";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return <PageClient />;
+// Trang /account-shares đã được tích hợp vào kho hàng (/inventory).
+// Redirect về trang kho hàng.
+export default function AccountSharesRedirectPage() {
+  redirect("/inventory");
 }

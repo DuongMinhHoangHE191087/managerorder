@@ -10,7 +10,6 @@ import {
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import {
-  Activity,
   Boxes,
   Calendar,
   LayoutDashboard,
@@ -88,13 +87,6 @@ const shortcuts: ShortcutItem[] = [
     description: vi.commandPalette.shortcutDescriptions.premiumAccounts,
     href: "/premium/accounts",
     icon: Package,
-  },
-  {
-    id: "premium-health-checks",
-    label: vi.navigation.items.healthChecks,
-    description: "Xem log health check và chạy lại tài khoản premium",
-    href: "/premium/health-checks",
-    icon: Activity,
   },
   {
     id: "calendar",

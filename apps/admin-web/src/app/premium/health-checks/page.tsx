@@ -1,5 +1,5 @@
-import PremiumHealthChecksPage from "@/widgets/pages/premium/health-checks/page-client";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <PremiumHealthChecksPage />;
+  redirect("/premium/accounts");
 }

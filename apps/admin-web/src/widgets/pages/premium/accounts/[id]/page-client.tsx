@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
-  Activity,
   ArrowLeft,
   ArrowRightLeft,
   CalendarClock,
@@ -149,7 +148,6 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isRunningHealthCheck, setIsRunningHealthCheck] = useState(false);
   const [creatingUserEmail, setCreatingUserEmail] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
@@ -242,32 +240,6 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
     }
   }
 
-  async function handleRunHealthCheck() {
-    setIsRunningHealthCheck(true);
-    try {
-      const response = await fetch("/api/premium/health-checks/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          premium_account_id: accountId,
-          notes: "Chạy từ premium account detail",
-        }),
-      });
-      const payload = await readApiEnvelope<{ checked: number }>(response);
-      if (!response.ok) {
-        appToast.error(payload.error ?? "Không thể chạy health check");
-        return;
-      }
-      appToast.success(`Đã chạy health check cho ${payload.data?.checked ?? 0} account`);
-      await fetchDetail(auditPage, { silent: true });
-    } catch (error) {
-      console.error("[runPremiumAccountHealthCheck]", error);
-      appToast.error("Lỗi mạng khi chạy health check");
-    } finally {
-      setIsRunningHealthCheck(false);
-    }
-  }
-
   async function mutateUser(
     url: string,
     options: RequestInit,
@@ -337,10 +309,6 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
                 <RefreshCw className="size-4" />
                 Làm mới
               </Button>
-              <Button variant="secondary" onClick={() => void handleRunHealthCheck()} isLoading={isRunningHealthCheck}>
-                <Activity className="size-4" />
-                Chạy health check
-              </Button>
               <Button onClick={() => void handleSaveConfig()} isLoading={isSaving}>
                 <Save className="size-4" />
                 Lưu cấu hình
@@ -365,7 +333,6 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" onClick={() => router.push("/premium/migrations")}><ArrowRightLeft className="size-4" />Mở migrations</Button>
-            <Button variant="secondary" onClick={() => router.push("/premium/health-checks")}><ClipboardList className="size-4" />Xem health logs</Button>
           </div>
         </FiltersBar>
 
@@ -443,20 +410,6 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
                     </div>
                   );
                 })}
-              </div>
-            </SurfaceCard>
-
-            <SurfaceCard>
-              <SectionHeader title="Recent health checks" description="Các lần kiểm tra kết nối gần nhất của account." />
-              <div className="space-y-3 p-5">
-                {detail.healthChecks.length === 0 ? <EmptyState icon={<Activity className="size-6" />} title="Chưa có health log" description="Chạy health check để bắt đầu ghi timeline." /> : detail.healthChecks.map((log) => (
-                  <div key={log.id} className="rounded-[1.3rem] border border-[var(--border-soft)] bg-white p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div><p className="text-[13px] font-bold text-[var(--fg-base)]">{formatDateTimeLabel(log.check_timestamp)}</p><p className="mt-1 text-[12px] text-[var(--fg-muted)]">{log.check_type} • previous: {log.previous_status ?? "n/a"}</p>{log.error_message ? <p className="mt-2 text-[12px] text-[var(--danger)]">{log.error_message}</p> : null}</div>
-                      <span className={`rounded-full border border-transparent px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${log.current_status === "working" ? "bg-emerald-500/10 text-emerald-700" : log.current_status === "error" ? "bg-[var(--danger)]/10 text-[var(--danger)]" : "bg-amber-500/10 text-amber-700"}`}>{log.current_status}</span>
-                    </div>
-                  </div>
-                ))}
               </div>
             </SurfaceCard>
 

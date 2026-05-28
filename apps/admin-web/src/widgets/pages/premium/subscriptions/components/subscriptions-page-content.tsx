@@ -34,6 +34,7 @@ import type { CustomerPremiumSubscription } from "@/lib/domain/premium-types";
 import { formatMoney } from "@/lib/utils";
 import { getBillingCycleLabel } from "@/lib/domain/premium-renewal-finance";
 import { RenewalRequestModal } from "./renewal-request-modal";
+import { Modal } from "@/shared/ui/modal";
 
 type SubscriptionRow = CustomerPremiumSubscription & {
   customer_name: string;
@@ -388,6 +389,8 @@ export default function PremiumSubscriptionsPage() {
   const [pageSize, setPageSize] = useState(initialListState.pageSize);
   const [isLoading, setIsLoading] = useState(true);
   const [renewingSubscription, setRenewingSubscription] = useState<SubscriptionRow | null>(null);
+  const [noRenewSub, setNoRenewSub] = useState<SubscriptionRow | null>(null);
+  const [noRenewReason, setNoRenewReason] = useState("");
   const deferredSearch = useDeferredValue(search);
   const requestUrl = useMemo(
     () =>
@@ -509,26 +512,22 @@ export default function PremiumSubscriptionsPage() {
     }
   }
 
-  async function handleMarkNoRenew(subscription: SubscriptionRow) {
+  function handleMarkNoRenew(subscription: SubscriptionRow) {
     if (!canMarkNoRenew(subscription)) {
       appToast.error("Thuê bao này đã ở trạng thái không gia hạn hoặc không còn active.");
       return;
     }
+    setNoRenewSub(subscription);
+    setNoRenewReason(subscription.renewal_denied_reason ?? "");
+  }
 
-    const reason = window.prompt(
-      `Lý do đánh dấu không gia hạn cho ${subscription.customer_name}?`,
-      subscription.renewal_denied_reason ?? "",
-    );
-
-    if (reason === null) {
-      return;
-    }
-
+  async function submitNoRenew() {
+    if (!noRenewSub) return;
     try {
-      const response = await fetch(`/api/premium/subscriptions/${subscription.id}/no-renew`, {
+      const response = await fetch(`/api/premium/subscriptions/${noRenewSub.id}/no-renew`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reason.trim() || undefined }),
+        body: JSON.stringify({ reason: noRenewReason.trim() || undefined }),
       });
       const payload = await readApiEnvelope(response);
 
@@ -538,6 +537,7 @@ export default function PremiumSubscriptionsPage() {
       }
 
       appToast.success("Đã chuyển thuê bao sang không gia hạn");
+      setNoRenewSub(null);
       await fetchSubscriptions();
     } catch (error) {
       console.error("[PremiumSubscriptionsPage] handleMarkNoRenew", error);
@@ -617,6 +617,40 @@ export default function PremiumSubscriptionsPage() {
           await fetchSubscriptions();
         }}
       />
+
+      <Modal
+        isOpen={!!noRenewSub}
+        onClose={() => setNoRenewSub(null)}
+        title="Đánh dấu không gia hạn"
+        size="md"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setNoRenewSub(null)}>
+              Huỷ
+            </Button>
+            <Button
+              variant="primary"
+              onClick={submitNoRenew}
+              disabled={!noRenewReason.trim()}
+              className="!bg-[var(--danger)] hover:!bg-[var(--danger)]/90 !shadow-none"
+            >
+              Xác nhận
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-[13px] text-[var(--fg-muted)]">
+            Nhập lý do đánh dấu không gia hạn cho thuê bao của khách hàng <span className="font-bold text-[var(--fg-base)]">{noRenewSub?.customer_name}</span>:
+          </p>
+          <Input
+            value={noRenewReason}
+            onChange={(e) => setNoRenewReason(e.target.value)}
+            placeholder="Nhập lý do không gia hạn..."
+            autoFocus
+          />
+        </div>
+      </Modal>
 
       <PageContainer className="relative">
           <PageHeader

@@ -79,6 +79,7 @@ export function AccountShareModal({
   const [createdShare, setCreatedShare] = useState<AccountShareLink | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [expandedLogsId, setExpandedLogsId] = useState<string | null>(null);
+  const [deletingShareLink, setDeletingShareLink] = useState<AccountShareLink | null>(null);
 
   const credentialTypes = useMemo(
     () => new Set((secrets?.credentials ?? []).map((credential) => credential.type)),
@@ -198,15 +199,21 @@ export function AccountShareModal({
     appToast.success(status === "active" ? "Đã bật lại link" : "Đã tắt link");
   };
 
-  const handleDelete = async (share: AccountShareLink) => {
-    if (!window.confirm("Thu hồi link share này?")) return;
-    await deleteShare.mutateAsync(share);
-    if (expandedLogsId === share.id) setExpandedLogsId(null);
+  const handleDelete = (share: AccountShareLink) => {
+    setDeletingShareLink(share);
+  };
+
+  const submitDeleteShare = async () => {
+    if (!deletingShareLink) return;
+    await deleteShare.mutateAsync(deletingShareLink);
+    if (expandedLogsId === deletingShareLink.id) setExpandedLogsId(null);
+    setDeletingShareLink(null);
     appToast.success("Đã thu hồi link share");
   };
 
   return (
-    <Modal
+    <>
+      <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Chia sẻ tài khoản"
@@ -379,6 +386,39 @@ export function AccountShareModal({
         ) : null}
       </div>
     </Modal>
+
+    <Modal
+      isOpen={!!deletingShareLink}
+      onClose={() => setDeletingShareLink(null)}
+      title="Thu hồi link chia sẻ"
+      size="sm"
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => setDeletingShareLink(null)}>
+            Huỷ
+          </Button>
+          <Button
+            variant="primary"
+            onClick={submitDeleteShare}
+            isLoading={deleteShare.isPending}
+            className="!bg-[var(--danger)] hover:!bg-[var(--danger)]/90 !shadow-none"
+          >
+            Thu hồi
+          </Button>
+        </div>
+      }
+    >
+      <div className="text-center py-4">
+        <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-[var(--danger)]/10">
+          <Trash2 className="size-6 text-[var(--danger)]" />
+        </div>
+        <p className="mb-2 text-[14px] font-bold text-[var(--fg-base)]">Thu hồi link chia sẻ này?</p>
+        <p className="text-[12px] text-[var(--fg-muted)]">
+          Khách hàng sẽ không thể mở hoặc truy cập thông tin tài khoản qua link này nữa.
+        </p>
+      </div>
+    </Modal>
+    </>
   );
 }
 

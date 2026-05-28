@@ -1,0 +1,104 @@
+name: Vercel Cron Scheduler
+
+on:
+  schedule:
+    # 1. Webhook Retry (Chạy mỗi 5 phút)
+    - cron: '*/5 * * * *'
+    # 2. Telegram Reminder - Buổi sáng (23:00 UTC = 06:00 sáng VN)
+    - cron: '0 23 * * *'
+    # 3. Telegram Reminder - Buổi tối (14:00 UTC = 21:00 tối VN)
+    - cron: '0 14 * * *'
+    # 4. Hằng ngày lúc 01:00 UTC: Order Expiry, Revenue Report (Daily), Best Super Link (08:00 sáng VN)
+    - cron: '0 1 * * *'
+    # 5. Hằng tuần lúc 01:00 UTC ngày thứ 2: Revenue Report (Weekly) (08:00 sáng thứ 2 VN)
+    - cron: '0 1 * * 1'
+    # 6. Hằng ngày lúc 02:00 UTC: Auto Escalation, Premium Renewal Reminder (09:00 sáng VN)
+    - cron: '0 2 * * *'
+    # 7. Hằng ngày lúc 03:15 UTC: Premium Health Checks (10:15 sáng VN)
+    - cron: '15 3 * * *'
+  workflow_dispatch: # Cho phép sếp bấm kích hoạt thủ công từ giao diện GitHub để test/debug
+
+jobs:
+  trigger-crons:
+    runs-on: ubuntu-latest
+    steps:
+      # ─── 1. Webhook Retry (Mỗi 5 phút) ───
+      - name: Trigger Webhook Retry
+        if: github.event.schedule == '*/5 * * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/webhook-retry" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --show-error
+
+      # ─── 2. Telegram Reminder (06:00 sáng & 21:00 tối VN) ───
+      - name: Trigger Telegram Reminder
+        if: github.event.schedule == '0 23 * * *' || github.event_schedule == '0 14 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/telegram-reminder" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --show-error
+
+      # ─── 3. Group 01:00 UTC (08:00 sáng VN): Order Expiry, Revenue Report, Best Super Link ───
+      - name: Trigger Order Expiry Reminder
+        if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/order-expiry-reminder" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --show-error
+          sleep 10
+
+      - name: Trigger Revenue Report (Daily)
+        if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/revenue-report" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --show-error
+          sleep 10
+
+      - name: Trigger Best Super Link
+        if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/best-super-link" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --show-error
+
+      # ─── 4. Group 01:00 UTC Thứ 2 (08:00 sáng thứ 2 VN): Revenue Report Weekly ───
+      - name: Trigger Revenue Report (Weekly)
+        if: github.event.schedule == '0 1 * * 1' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/revenue-report?type=weekly" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --show-error
+
+      # ─── 5. Group 02:00 UTC (09:00 sáng VN): Auto Escalation, Premium Renewal Reminder ───
+      - name: Trigger Auto Escalation
+        if: github.event.schedule == '0 2 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/auto-escalation" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --show-error
+          sleep 10
+
+      - name: Trigger Premium Renewal Reminder
+        if: github.event.schedule == '0 2 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/premium-renewal-reminder" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --show-error
+
+      # ─── 6. Premium Health Checks (10:15 sáng VN) ───
+      - name: Trigger Premium Health Checks
+        if: github.event.schedule == '15 3 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl --retry 3 --retry-delay 8 -X GET "${{ secrets.VERCEL_APP_URL }}/api/cron/premium-health-checks" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --show-error
