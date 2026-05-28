@@ -161,10 +161,10 @@ jobs:
           TRIGGER="${{ github.event_name }}"
 
           MESSAGE="✅ <b>[GitHub Actions] Cron Scheduler</b>
-
-⏰ ${VN_TIME} (VN)
-📋 Trigger: ${TRIGGER}${SCHEDULE:+ / Schedule: ${SCHEDULE}}
-🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Xem workflow</a>"
+          
+          ⏰ ${VN_TIME} (VN)
+          📋 Trigger: ${TRIGGER}${SCHEDULE:+ / Schedule: ${SCHEDULE}}
+          🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Xem workflow</a>"
 
           curl -s --fail -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
             -d "chat_id=${CHAT_ID}" \
@@ -189,10 +189,10 @@ jobs:
           VN_TIME=$(TZ="Asia/Ho_Chi_Minh" date +'%d/%m/%Y %H:%M:%S')
 
           MESSAGE="🚨 <b>[GitHub Actions] Cron Scheduler THẤT BẠI!</b>
-
-❌ Có lỗi xảy ra trong quá trình trigger Cron Jobs.
-⏰ ${VN_TIME} (VN)
-🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Xem log lỗi</a>"
+          
+          ❌ Có lỗi xảy ra trong quá trình trigger Cron Jobs.
+          ⏰ ${VN_TIME} (VN)
+          🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Xem log lỗi</a>"
 
           curl -s --fail -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
             -d "chat_id=${CHAT_ID}" \

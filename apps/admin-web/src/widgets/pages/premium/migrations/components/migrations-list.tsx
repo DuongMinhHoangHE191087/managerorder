@@ -65,6 +65,20 @@ export function MigrationsList({
     );
   }
 
+  function getStatusClass(status: string) {
+    switch (status) {
+      case "completed":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200/50 font-black";
+      case "in_progress":
+        return "bg-blue-50 text-blue-700 border-blue-200/50 font-black animate-pulse";
+      case "failed":
+        return "bg-red-50 text-red-700 border-red-200/50 font-black";
+      case "pending":
+      default:
+        return "bg-amber-50 text-amber-700 border-amber-200/50 font-black";
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-[var(--border-soft)] bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-[var(--border-soft)] p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -141,7 +155,7 @@ export function MigrationsList({
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
                     {renderStatusPill(
                       getMigrationStatusLabel(migration),
-                      "bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20 font-black"
+                      getStatusClass(migration.status)
                     )}
                   </div>
                 </div>

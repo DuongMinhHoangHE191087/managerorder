@@ -1206,6 +1206,15 @@ export default function PremiumSubscriptionsPage() {
                         <InfoPill
                           label="Renewal"
                           value={getRenewalStatusLabel(sub.renewal_status)}
+                          tone={
+                            sub.renewal_status === "confirmed" || sub.renewal_status === "migrated"
+                              ? "positive"
+                              : sub.renewal_status === "pending"
+                                ? "warning"
+                                : sub.renewal_status === "denied" || sub.renewal_status === "not_renewing" || sub.renewal_status === "refunded"
+                                  ? "danger"
+                                  : "neutral"
+                          }
                         />
                       </div>
                     </div>
