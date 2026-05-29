@@ -35,9 +35,11 @@
 - 2026-05-30: Nâng cấp thiết kế UI/UX Premium (Giai đoạn Bổ sung) cho các trang: Kho hàng (Inventory), Thùng rác (Trash) và Bảng điều khiển (Dashboard) theo chuẩn Taste Skill / Redesign Skill / Modern Web Architect. Tích hợp active-scale đàn hồi và font chữ monospace (`font-mono`) cho các thông số đo lường (dung lượng, số lượng, thời gian hết hạn và số liệu tài chính).
 - 2026-05-30: Khắc phục lỗi đăng nhập bằng Google (State mismatch) trên môi trường development cục bộ bằng cách tự động bypass việc đối khớp state khi phát hiện NODE_ENV là development, giúp ngăn chặn lỗi do mismatch cookie domain giữa localhost và 127.0.0.1.
 - 2026-05-30: Chuyển đổi cơ chế thiết lập Redirect URI của Google OAuth sang dạng động (dynamic) bằng cách tự động phân tích headers x-forwarded-proto và host/x-forwarded-host từ NextRequest. Giải pháp này giúp hỗ trợ chạy mượt mà trên mọi tên miền (như duongminhhoang.id.vn) hoặc các đường hầm phát triển (như ngrok) mà không bị bó cứng (hardcoded) vào localhost.
+- 2026-05-30: Khắc phục triệt để lỗi `redirect_uri_mismatch` (lỗi 400) bằng cách ưu tiên sử dụng cấu hình canonical URL từ môi trường như `NEXT_PUBLIC_APP_URL` hoặc `NEXT_PUBLIC_SITE_URL` khi chạy trên production. Vẫn giữ cơ chế dynamic localhost fallback khi phát triển ở máy cục bộ (localhost) để nhà phát triển không cần chỉnh sửa `.env` thủ công.
 
 ## Facts
 
+- 2026-05-30: Sửa lỗi Google OAuth callback `redirect_uri_mismatch` bằng cách tích hợp và ưu tiên các biến môi trường cấu hình URL (`NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`) trong hàm sinh redirect URI, vượt qua 100% typecheck và unit tests.
 - 2026-05-30: Khắc phục lỗi Google Login Callback (State mismatch) trên localhost/dev bằng cách bypass việc so khớp nonce cookie khi chạy ở development mode, vượt qua 100% typecheck và unit tests.
 - 2026-05-30: Sửa đổi các route xử lý login và callback của Google Auth để tự động cấu trúc Redirect URI động theo domain đang truy cập thực tế, vượt qua 100% typecheck và unit tests.
 - 2026-05-28: Tối ưu hóa cấu hình vercel.json, xóa bỏ hoàn toàn dòng khai báo trùng lặp cho cron job telegram-reminder.

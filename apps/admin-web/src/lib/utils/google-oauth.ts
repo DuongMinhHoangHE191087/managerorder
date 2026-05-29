@@ -44,11 +44,38 @@ export const GOOGLE_CALENDAR_SCOPES: string[] = [
 // ─── Redirect URI Resolution ──────────────────────────────────────────────────
 
 /**
- * Resolves the OAuth redirect URI dynamically from request headers.
- * Supports Vercel, Cloudflare, and custom reverse proxies that set
- * `x-forwarded-proto` and `x-forwarded-host`.
+ * Resolves the OAuth redirect URI.
+ * Prioritizes canonical environment variables (e.g., NEXT_PUBLIC_APP_URL) in production
+ * to prevent mismatch errors due to reverse proxies/tunnels not forwarding headers correctly.
+ * Dynamically falls back to request headers for localhost development and Vercel previews.
  */
 export function getRedirectUri(request: NextRequest): string {
+  const configuredUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    process.env.APP_URL;
+
+  if (configuredUrl) {
+    try {
+      const parsed = new URL(configuredUrl);
+      const requestUrl = new URL(request.url);
+
+      // Local development auto-fallback: if request is local, use dynamic localhost origin
+      // so developers don't have to manually swap .env values between dev and prod.
+      const isLocalhostRequest =
+        requestUrl.hostname === "localhost" ||
+        requestUrl.hostname === "127.0.0.1" ||
+        requestUrl.hostname.startsWith("192.168.");
+
+      if (!isLocalhostRequest && parsed.protocol.startsWith("http")) {
+        return `${parsed.protocol}//${parsed.host}/api/auth/google/callback`;
+      }
+    } catch {
+      // Safely ignore parsing issues and fall back
+    }
+  }
+
   const url = new URL(request.url);
   const proto =
     request.headers.get("x-forwarded-proto") ||
