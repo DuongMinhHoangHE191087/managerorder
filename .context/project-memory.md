@@ -28,6 +28,9 @@
 - 2026-05-29: Loại bỏ hoàn toàn Zalo Bot khỏi giao diện Cài đặt và quản lý Bot (StatusGrid, Contacts, ReminderConfig), tinh gọn lưới hiển thị và các bộ lọc để tập trung 100% vào Telegram Bot chuyên môn.
 - 2026-05-29: Rút gọn các văn bản mô tả hướng dẫn dài dòng trong phần Cài đặt Bot, Cấu hình nhắc hẹn và trang Public Share để đạt chuẩn tối giản, chuyên nghiệp.
 - 2026-05-29: Khắc phục triệt để lỗi mã hóa tiếng Việt (Mojibake) trong tệp dịch thuật `vi.ts` ở các module `marketing`, `bot`, và `shortLinks` và cấu hình các hàm dynamic string để vượt qua 100% unit tests.
+- 2026-05-30: Tối ưu hóa nút bấm dùng chung `Button` trong `shared/ui/button.tsx` (sizes, colors, active scale-down transform) và đồng bộ thiết kế trên toàn bộ các trang (Share public, Login, local dev panel, và các nút của AuthErrorPanel), loại bỏ các nút custom.
+- 2026-05-30: Khắc phục lỗi TypeScript `any` trong `route.ts` của cron notify và cập nhật cấu hình typecheck tăng giới hạn bộ nhớ đệm `max-old-space-size=4096` trong `package.json` của admin-web.
+- 2026-05-30: Đồng bộ hóa toàn bộ nút và tương tác của Short Link detail (`short-link-detail-page-content.tsx`), Short Links list (`short-links-page-content.tsx`), Account Shares tab (`account-shares-tab.tsx`) và Account Shares list (`account-shares/page-client.tsx`), thay thế hoàn toàn default `window.confirm` bằng custom modal overlay (`deleteConfirmShare`) và bổ sung micro-scale active click và transition.
 
 ## Facts
 
@@ -46,6 +49,8 @@
 - 2026-05-29: Triển khai cơ chế Edge-Signed Headers bằng HMAC bảo mật để khắc phục triệt để lỗi 401 cho Google Auth và tăng tốc API. Sửa đổi `proxy.ts`, `with-account.ts`, `unauthorized-client.tsx`, `page-client.tsx` và `sales-landing.ts`.
 - 2026-05-29: Đã chạy thành công 2091 unit tests trong Vitest (100% pass) và hoàn thành biên dịch (next build) thành công 100% dự án.
 - 2026-05-29: Chạy thành công 2091 unit tests của 183 files (100% passed) và hoàn tất build Turbopack thành công 100% dự án sau khi dọn dẹp Zalo Bot và làm sạch Mojibake.
+- 2026-05-30: Đã chạy thành công 2091 unit tests trong Vitest (100% pass) và hoàn thành biên dịch dự án (`npx pnpm check`) thành công 100% sau khi sửa các lỗi TypeScript 'any' trong endpoint cron notify và dọn dẹp các warnings unused imports.
+- 2026-05-30: Hoàn thành refactor toàn bộ các trang, tab liên quan đến Short Link / Share (bao gồm `short-link-detail-page-content.tsx`, `short-links-page-content.tsx`, `account-shares-tab.tsx` và `account-shares/page-client.tsx`), loại bỏ triệt để alert/confirm mặc định, tối ưu hóa các thuộc tính `transition` cụ thể và tích hợp click micro-animations (`active:scale`). Toàn bộ hệ thống biên dịch (`next build`) và kiểm thử unit test thành công 100%.
 - 2026-05-13: After short-links/calendar patches, remaining top transition hotspots are short-link detail, create-order form, customers list, providers content, event-create modal, inventory table/header, settings reminder config, group/tag manager, and orders import.
 - 2026-05-13: Short-links page keeps search/status/sort/page in local state, has many `transition-all` classes, and still uses browser `confirm(...)` for destructive single/bulk deletes.
 - 2026-05-13: Remaining widgets scan ranks `short-links/components/short-links-page-content.tsx` as the largest untouched UI hotspot (18 `transition-all`, no `useSearchParams`), followed by short-link detail, calendar page, create-order form, customers list, and providers content.
@@ -89,6 +94,7 @@
 - 2026-05-28: Chạy quy trình /ops (/deploy check) toàn diện: Kiểm tra thành công ESLint (0 errors), tsc typecheck (0 errors) của admin-web. Đồng thời gỡ bỏ corepack khỏi zalo-bot-js, xác thực thành công bộ unit tests 2091/2091 passed và smoke test thành công (smoke ok).
 - 2026-05-29: Sửa lỗi 500 khi xoá vĩnh viễn khách hàng và sản phẩm trong thùng rác do ràng buộc khoá ngoại (FK constraint). Cập nhật `trash.repo.ts` để cascade/nullify các liên kết đơn hàng, sản phẩm, và license_keys tương ứng một cách an toàn và ném lỗi thân thiện khi cần.
 - 2026-05-29: Thay thế logic bash script trong GitHub Actions bằng cách viết trực tiếp mã JavaScript/TypeScript trong route `/api/cron/notify` trên Vercel để query cơ sở dữ liệu và gửi thông báo Telegram tổng hợp chi tiết nhất.
+- 2026-05-30: Đồng bộ hóa và làm gọn đẹp các nút bấm, thiết lập gradient, glassmorphic và click micro-animations trên toàn bộ các trang (Share public, login, error panel), sửa đổi các tệp typescript, giải quyết các lỗi lint và compile, chạy `npx pnpm check` biên dịch thành công 100%.
 - [date] event or correction
 - 2026-05-13: Spot-check of non-UI hook/type files under `widgets/pages` showed their diffs are pre-existing contract additions, not transition rewrite artifacts; no `transition-*` strings remain in those hook/type files.
 - 2026-05-13: Final scan remained clean for `transition-all` and native `confirm(` across `widgets/pages`; final scoped `git diff --check` passed with the same premium CRLF normalization warnings.

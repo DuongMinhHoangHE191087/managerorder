@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { appToast } from "@/shared/ui/app-toast";
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { PageContainer } from "@/shared/ui/page-layout";
+import { Button } from "@/shared/ui/button";
 import {
   useShortLinkDetail,
   useUpdateShortLink,
@@ -361,45 +362,72 @@ export default function ShortLinkDetailPage() {
           <div className="flex gap-2 flex-wrap">
             {isTrashView ? (
               <>
-                <button
+                <Button
                   type="button"
                   onClick={() => void handleRestoreFromTrash()}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] border border-transparent rounded-xl text-[13px] font-bold text-white hover:opacity-95 transition-[opacity,box-shadow] shadow-sm cursor-pointer"
+                  variant="primary"
+                  className="rounded-xl font-bold"
                 >
                   <RefreshCw aria-hidden="true" className="size-4" /> Khôi phục
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => void handlePurgeFromTrash()}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-100 transition-colors shadow-sm cursor-pointer"
+                  variant="danger"
+                  className="rounded-xl font-bold"
                 >
                   <Trash2 aria-hidden="true" className="size-4" /> Xóa vĩnh viễn
-                </button>
+                </Button>
               </>
             ) : (
               <>
-                <button type="button" onClick={handleCopy} className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-soft)] rounded-xl text-[13px] font-bold hover:bg-[var(--accent)]/5 hover:border-[var(--accent)]/30 transition-[background-color,border-color] shadow-sm text-[var(--fg-base)] cursor-pointer">
+                <Button
+                  type="button"
+                  onClick={handleCopy}
+                  variant="default"
+                  className="rounded-xl font-bold border border-[var(--border-soft)]"
+                >
                   <Copy aria-hidden="true" className="size-4" /> {vi.shortLinks.detail.copyLink}
-                </button>
+                </Button>
                 {publicUrl ? (
-                  <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[var(--border-soft)] rounded-xl text-[13px] font-bold text-[var(--fg-base)] hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5 transition-[background-color,border-color] shadow-sm cursor-pointer">
+                  <Button
+                    type="button"
+                    onClick={() => window.open(publicUrl, "_blank", "noopener,noreferrer")}
+                    variant="default"
+                    className="rounded-xl font-bold border border-[var(--border-soft)]"
+                  >
                     <Globe aria-hidden="true" className="size-4" /> Xem trang chia sẻ
-                  </a>
+                  </Button>
                 ) : null}
-                <a href={link.target_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-[13px] font-bold text-blue-600 hover:bg-blue-100 transition-colors shadow-sm cursor-pointer">
+                <Button
+                  type="button"
+                  onClick={() => window.open(link.target_url, "_blank", "noopener,noreferrer")}
+                  variant="default"
+                  className="rounded-xl font-bold border border-blue-200 bg-blue-50/40 text-blue-600 hover:bg-blue-100/50"
+                >
                   <ExternalLink aria-hidden="true" className="size-4" /> {vi.shortLinks.detail.openTarget}
-                </a>
-                <button type="button" onClick={handleToggleStatus} className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-colors shadow-sm cursor-pointer border",
-                  link.status === "active"
-                    ? "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100"
-                    : "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
-                )}>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleToggleStatus}
+                  variant="default"
+                  className={cn(
+                    "rounded-xl font-bold border",
+                    link.status === "active"
+                      ? "bg-amber-50/40 border-amber-200 text-amber-600 hover:bg-amber-100/50"
+                      : "bg-emerald-50/40 border-emerald-200 text-emerald-600 hover:bg-emerald-100/50"
+                  )}
+                >
                   <Power aria-hidden="true" className="size-4" /> {link.status === "active" ? vi.shortLinks.detail.toggleOff : vi.shortLinks.detail.toggleOn}
-                </button>
-                <button type="button" onClick={handleDelete} className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-100 transition-colors shadow-sm cursor-pointer">
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleDelete}
+                  variant="default"
+                  className="rounded-xl font-bold border border-red-200 bg-red-50/40 text-red-600 hover:bg-red-100/50 hover:text-red-700"
+                >
                   <Trash2 aria-hidden="true" className="size-4" /> {vi.shortLinks.detail.delete}
-                </button>
+                </Button>
               </>
             )}
           </div>
@@ -544,9 +572,14 @@ export default function ShortLinkDetailPage() {
                       <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider block">{vi.shortLinks.card.ipLocked}</span>
                       <span className="text-[13px] font-bold text-blue-700 font-mono">{link.locked_ip}</span>
                     </div>
-                    <button type="button" onClick={handleUnlockIP} className="px-2.5 py-1 bg-blue-500 text-white text-[10px] font-bold rounded-lg cursor-pointer hover:bg-blue-600 transition-colors flex items-center gap-1">
+                    <Button
+                      type="button"
+                      onClick={handleUnlockIP}
+                      variant="secondary"
+                      className="bg-blue-500 hover:bg-blue-600 border-transparent text-white text-[10px] h-7 px-2.5 rounded-lg active:scale-[0.95]"
+                    >
                       <Unlock aria-hidden="true" className="size-3" /> {vi.shortLinks.card.unlockIp}
-                    </button>
+                    </Button>
                   </div>
                 )}
                 <InfoRow icon={<Clock className="size-4" />} iconColor="gray" label={vi.shortLinks.detail.createdAt} value={formatDate(link.created_at)} />
@@ -621,7 +654,7 @@ export default function ShortLinkDetailPage() {
                   type="button"
                   aria-pressed={activeTab === tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-[12px] font-bold rounded-lg transition-[background-color,color,box-shadow] cursor-pointer flex-1 justify-center ${
+                  className={`flex items-center gap-2 px-4 py-2.5 text-[12px] font-bold rounded-lg transition-[background-color,color,box-shadow,transform] duration-200 ease-out active:scale-[0.97] active:duration-75 cursor-pointer flex-1 justify-center ${
                     activeTab === tab.id
                       ? "bg-[var(--accent)] text-white shadow-sm"
                       : "text-[var(--fg-muted)] hover:bg-[var(--surface-light)]"

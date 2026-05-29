@@ -70,6 +70,7 @@ export default function AccountSharesPageClient() {
   const [expandedLogsId, setExpandedLogsId] = useState<string | null>(null);
   const [expandedPayloadId, setExpandedPayloadId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [deleteConfirmShare, setDeleteConfirmShare] = useState<AccountShareLink | null>(null);
   const [nowMs, setNowMs] = useState(0);
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
@@ -134,20 +135,71 @@ export default function AccountSharesPageClient() {
     appToast.success(nextStatus === "active" ? "Đã bật lại link share" : "Đã tắt link share");
   };
 
-  const handleDelete = async (share: AccountShareLink) => {
-    if (!window.confirm("Thu hồi link share này? Khách sẽ không mở được link nữa.")) {
-      return;
-    }
-    await deleteShare.mutateAsync(share);
-    if (expandedLogsId === share.id) {
+  const handleDelete = (share: AccountShareLink) => {
+    setDeleteConfirmShare(share);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmShare) return;
+    await deleteShare.mutateAsync(deleteConfirmShare);
+    if (expandedLogsId === deleteConfirmShare.id) {
       setExpandedLogsId(null);
     }
     appToast.success("Đã thu hồi link share");
+    setDeleteConfirmShare(null);
   };
 
   return (
     <AppLayout>
       <PageContainer variant="wide" className="pb-20">
+        {deleteConfirmShare ? (
+          <div className="fixed inset-0 flex items-center justify-center px-4" style={{ zIndex: "var(--z-modal)" }}>
+            <button
+              type="button"
+              aria-label="Đóng xác nhận"
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setDeleteConfirmShare(null)}
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="confirm-delete-title"
+              className="relative w-full max-w-md rounded-[1.5rem] border border-[var(--border-soft)] bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.22)]"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+                  <AlertTriangle aria-hidden="true" className="size-5" />
+                </div>
+                <div className="min-w-0">
+                  <h2 id="confirm-delete-title" className="text-base font-black text-[var(--fg-base)]">
+                    Thu hồi link share
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-[var(--fg-muted)]">
+                    Thu hồi link share này? Khách sẽ không mở được link nữa.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmShare(null)}
+                  className="rounded-xl border border-[var(--border-soft)] px-4 py-2 text-sm font-bold text-[var(--fg-base)] transition-colors hover:bg-[var(--surface-light)]"
+                >
+                  Huỷ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmDelete()}
+                  disabled={deleteShare.isPending}
+                  className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition-[background-color,opacity] hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {deleteShare.isPending ? <Loader2 aria-hidden="true" className="size-4 animate-spin" /> : null}
+                  Thu hồi
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
         <PageHeader
           eyebrow={<><ShieldCheck className="size-4" /> Kho share bảo mật</>}
           title="Chia sẻ tài khoản"
@@ -200,7 +252,7 @@ export default function AccountSharesPageClient() {
                     type="button"
                     onClick={() => setStatusFilter(filter.id)}
                     className={cn(
-                      "rounded-xl px-3 py-1.5 text-[12px] font-bold transition",
+                      "rounded-xl px-3 py-1.5 text-[12px] font-bold transition-[background-color,color,box-shadow,transform] duration-200 ease-out active:scale-[0.95] active:duration-75 cursor-pointer",
                       statusFilter === filter.id
                         ? "bg-[var(--accent)] text-white"
                         : "text-[var(--fg-muted)] hover:bg-[var(--surface-light)] hover:text-[var(--fg-base)]",
@@ -531,7 +583,7 @@ function IconButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex size-9 items-center justify-center rounded-xl border transition disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex size-9 items-center justify-center rounded-xl border transition-[background-color,border-color,box-shadow,color,transform] duration-200 ease-out active:scale-[0.92] active:duration-75 cursor-pointer disabled:pointer-events-none disabled:opacity-50",
         danger
           ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
           : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:text-[var(--fg-base)]",
@@ -785,7 +837,7 @@ function AdminFieldRow({
           type="button"
           onClick={onCopy}
           className={cn(
-            "p-1.5 rounded-lg border border-[var(--border-soft)] transition",
+            "p-1.5 rounded-lg border border-[var(--border-soft)] transition-[background-color,border-color,box-shadow,color,transform] duration-200 ease-out active:scale-[0.92] active:duration-75 cursor-pointer",
             copied ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-[var(--surface-light)] text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
           )}
         >
@@ -890,7 +942,7 @@ function AdminTotpRow({
           disabled={!totp}
           onClick={() => totp && onCopy(totp.code)}
           className={cn(
-            "p-2 rounded-lg border border-[var(--border-soft)] transition",
+            "p-2 rounded-lg border border-[var(--border-soft)] transition-[background-color,border-color,box-shadow,color,transform] duration-200 ease-out active:scale-[0.92] active:duration-75 cursor-pointer",
             copied ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-[var(--surface-light)] text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
           )}
           title="Copy mã 2FA 6 số"
@@ -909,7 +961,7 @@ function AdminTotpRow({
             type="button"
             onClick={() => onCopySecret(credential.value!)}
             className={cn(
-              "p-1.5 rounded-lg border border-[var(--border-soft)] transition",
+              "p-1.5 rounded-lg border border-[var(--border-soft)] transition-[background-color,border-color,box-shadow,color,transform] duration-200 ease-out active:scale-[0.92] active:duration-75 cursor-pointer",
               copiedSecret ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-[var(--surface-light)] text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
             )}
             title="Copy Key Secret"

@@ -984,7 +984,7 @@ export default function ShortLinksPage() {
                   onClick={() => handleFilterChange(opt.value)}
                   data-testid={`short-links-filter-${opt.value}`}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-[background-color,box-shadow,color] cursor-pointer",
+                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-[background-color,box-shadow,color,transform] duration-200 ease-out active:scale-[0.95] active:duration-75 cursor-pointer",
                     statusFilter === opt.value
                       ? "bg-[var(--bg-surface)] text-[var(--fg-base)] shadow-sm"
                       : "text-[var(--fg-muted)] hover:text-[var(--fg-base)]"
@@ -1068,7 +1068,7 @@ export default function ShortLinksPage() {
                     key={i}
                     onClick={() => setCurrentPage(i)}
                     className={cn(
-                      "px-2.5 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer",
+                      "px-2.5 py-1 rounded-lg text-xs font-bold transition-[background-color,color,box-shadow,transform] duration-200 ease-out active:scale-[0.93] active:duration-75 cursor-pointer",
                       currentPage === i
                         ? "bg-[var(--accent)] text-white shadow-sm"
                         : "text-[var(--fg-muted)] hover:bg-[var(--border-soft)]"
@@ -1330,25 +1330,25 @@ function LinkCard({
           {/* Actions */}
           {!isEditing && (
             <div className="flex items-center gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0">
-              <button onClick={() => onCopy(link.slug, link.access_token)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[var(--accent)] bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 rounded-lg transition-colors cursor-pointer" title={vi.shortLinks.card.copyLinkTitle}>
+              <button onClick={() => onCopy(link.slug, link.access_token)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[var(--accent)] bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 rounded-lg transition-[background-color,transform] duration-200 ease-out active:scale-[0.95] active:duration-75 cursor-pointer" title={vi.shortLinks.card.copyLinkTitle}>
                 <Copy className="size-3.5" /> {vi.shortLinks.card.copyLink}
               </button>
-              <button onClick={() => appToast.copy(link.target_url, vi.shortLinks.shared.copiedUrl)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-orange-600 bg-orange-500/10 hover:bg-orange-500/20 rounded-lg transition-colors cursor-pointer" title={vi.shortLinks.card.copyOriginUrlTitle}>
+              <button onClick={() => appToast.copy(link.target_url, vi.shortLinks.shared.copiedUrl)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-orange-600 bg-orange-500/10 hover:bg-orange-500/20 rounded-lg transition-[background-color,transform] duration-200 ease-out active:scale-[0.95] active:duration-75 cursor-pointer" title={vi.shortLinks.card.copyOriginUrlTitle}>
                 <ExternalLink className="size-3.5" /> {vi.shortLinks.card.copyOriginUrl}
               </button>
-              <NextLink href={`/short-links/${link.id}`} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition-colors cursor-pointer" title={vi.shortLinks.card.detailsTitle}>
+              <NextLink href={`/short-links/${link.id}`} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition-[background-color,transform] duration-200 ease-out active:scale-[0.95] active:duration-75 cursor-pointer" title={vi.shortLinks.card.detailsTitle}>
                 <Eye className="size-3.5" /> {vi.shortLinks.card.details}
               </NextLink>
-              <button onClick={() => onQuickRenew(1)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-teal-600 bg-teal-500/10 hover:bg-teal-500/20 rounded-lg transition-colors cursor-pointer" title={vi.shortLinks.card.quickRenewTitle(1)}>
+              <button onClick={() => onQuickRenew(1)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-teal-600 bg-teal-500/10 hover:bg-teal-500/20 rounded-lg transition-[background-color,transform] duration-200 ease-out active:scale-[0.95] active:duration-75 cursor-pointer" title={vi.shortLinks.card.quickRenewTitle(1)}>
                 <CalendarPlus className="size-3.5" /> {vi.shortLinks.card.quickRenew(1)}
               </button>
-              <button onClick={onToggleAnalytics} className={cn("flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer", showAnalytics ? "text-purple-700 bg-purple-500/20" : "text-purple-600 bg-purple-500/10 hover:bg-purple-500/20")} title={vi.shortLinks.card.analytics}>
+              <button onClick={onToggleAnalytics} className={cn("flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-[background-color,transform] duration-200 ease-out active:scale-[0.95] active:duration-75 cursor-pointer", showAnalytics ? "text-purple-700 bg-purple-500/20" : "text-purple-600 bg-purple-500/10 hover:bg-purple-500/20")} title={vi.shortLinks.card.analytics}>
                 <BarChart3 className="size-3.5" />
               </button>
-              <button onClick={onEdit} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors cursor-pointer" title={vi.shortLinks.card.edit}>
+              <button onClick={onEdit} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-[background-color,transform] duration-200 ease-out active:scale-[0.95] active:duration-75 cursor-pointer" title={vi.shortLinks.card.edit}>
                 <Pencil className="size-3.5" />
               </button>
-              <button onClick={onDelete} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors cursor-pointer" title={vi.shortLinks.card.delete}>
+              <button onClick={onDelete} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-[background-color,transform] duration-200 ease-out active:scale-[0.95] active:duration-75 cursor-pointer" title={vi.shortLinks.card.delete}>
                 <Trash2 className="size-3.5" />
               </button>
             </div>
@@ -1426,7 +1426,7 @@ function LinkCard({
                 <div className="flex-1">
                   <p className="text-xs font-bold text-blue-700">{vi.shortLinks.card.ipLocked} <span className="font-mono">{link.locked_ip}</span></p>
                 </div>
-                <button onClick={onUnlockIP} className="px-3 py-1 bg-blue-500 text-white text-[11px] font-bold rounded-lg cursor-pointer hover:bg-blue-600 transition-colors flex items-center gap-1">
+                <button onClick={onUnlockIP} className="px-3 py-1 bg-blue-500 text-white text-[11px] font-bold rounded-lg cursor-pointer hover:bg-blue-600 active:scale-[0.95] active:duration-75 transition-[background-color,transform] duration-200 ease-out flex items-center gap-1">
                   <Unlock className="size-3" /> {vi.shortLinks.card.unlockIp}
                 </button>
               </div>

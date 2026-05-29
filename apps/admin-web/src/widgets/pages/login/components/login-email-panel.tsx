@@ -4,6 +4,7 @@ import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { Button } from "@/shared/ui/button";
 
 type LoginFieldErrors = {
   email?: string;
@@ -116,20 +117,16 @@ export function LoginEmailPanel({ redirectUrl, onErrorChange }: LoginEmailPanelP
         {errors.password && <p className="mt-1 text-xs text-[var(--danger)]">{errors.password}</p>}
       </div>
 
-      <button
+      <Button
         type="submit"
-        disabled={isLoading}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-6 py-3.5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(85,202,2,0.3)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+        variant="primary"
+        size="lg"
+        isLoading={isLoading}
+        className="w-full"
       >
-        {isLoading ? (
-          <div className="size-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-        ) : (
-          <>
-            <ArrowRight className="size-4" />
-      <span>Đăng nhập</span>
-          </>
-        )}
-      </button>
+        {!isLoading && <ArrowRight className="size-4" />}
+        <span>Đăng nhập</span>
+      </Button>
     </form>
   );
 }

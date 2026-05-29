@@ -71,8 +71,9 @@ export async function GET(request: NextRequest) {
         } else {
           lines.push(`├ ⏰ Nhắc hạn đơn: ❌ <i>Lỗi HTTP ${res.status}</i>`);
         }
-      } catch (err: any) {
-        lines.push(`├ ⏰ Nhắc hạn đơn: ❌ <i>Lỗi: ${err.message}</i>`);
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        lines.push(`├ ⏰ Nhắc hạn đơn: ❌ <i>Lỗi: ${errMsg}</i>`);
       }
 
       // 2. Revenue Report (daily)
@@ -117,8 +118,9 @@ export async function GET(request: NextRequest) {
         } else {
           lines.push(`├ 📊 Doanh thu ngày: ❌ <i>Lỗi HTTP ${res.status}</i>`);
         }
-      } catch (err: any) {
-        lines.push(`├ 📊 Doanh thu ngày: ❌ <i>Lỗi: ${err.message}</i>`);
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        lines.push(`├ 📊 Doanh thu ngày: ❌ <i>Lỗi: ${errMsg}</i>`);
       }
 
       // 3. Best Super Link
@@ -150,8 +152,9 @@ export async function GET(request: NextRequest) {
         } else {
           lines.push(`└ 🔗 Super Link: ❌ <i>Lỗi HTTP ${res.status}</i>`);
         }
-      } catch (err: any) {
-        lines.push(`└ 🔗 Super Link: ❌ <i>Lỗi: ${err.message}</i>`);
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        lines.push(`└ 🔗 Super Link: ❌ <i>Lỗi: ${errMsg}</i>`);
       }
 
     } else if (schedule === "weekly-01") {
@@ -168,8 +171,9 @@ export async function GET(request: NextRequest) {
         } else {
           lines.push(`└ 📅 Doanh thu tuần: ❌ <i>Lỗi HTTP ${res.status}</i>`);
         }
-      } catch (err: any) {
-        lines.push(`└ 📅 Doanh thu tuần: ❌ <i>Lỗi: ${err.message}</i>`);
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        lines.push(`└ 📅 Doanh thu tuần: ❌ <i>Lỗi: ${errMsg}</i>`);
       }
 
     } else if (schedule === "daily-02") {
@@ -212,8 +216,9 @@ export async function GET(request: NextRequest) {
         } else {
           lines.push(`├ ⚡ Escalation: ❌ <i>Lỗi HTTP ${res.status}</i>`);
         }
-      } catch (err: any) {
-        lines.push(`├ ⚡ Escalation: ❌ <i>Lỗi: ${err.message}</i>`);
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        lines.push(`├ ⚡ Escalation: ❌ <i>Lỗi: ${errMsg}</i>`);
       }
 
       // 2. Premium Renewal Reminder
@@ -252,8 +257,9 @@ export async function GET(request: NextRequest) {
         } else {
           lines.push(`└ ⏳ Nhắc gia hạn Premium: ❌ <i>Lỗi HTTP ${res.status}</i>`);
         }
-      } catch (err: any) {
-        lines.push(`└ ⏳ Nhắc gia hạn Premium: ❌ <i>Lỗi: ${err.message}</i>`);
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        lines.push(`└ ⏳ Nhắc gia hạn Premium: ❌ <i>Lỗi: ${errMsg}</i>`);
       }
 
     } else if (schedule === "daily-03") {
@@ -286,8 +292,9 @@ export async function GET(request: NextRequest) {
         } else {
           lines.push(`└ 🏥 Premium Health: ❌ <i>Lỗi HTTP ${res.status}</i>`);
         }
-      } catch (err: any) {
-        lines.push(`└ 🏥 Premium Health: ❌ <i>Lỗi: ${err.message}</i>`);
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        lines.push(`└ 🏥 Premium Health: ❌ <i>Lỗi: ${errMsg}</i>`);
       }
 
     } else {
@@ -326,8 +333,9 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
       details: lines,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[Cron notify error]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const errMsg = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }

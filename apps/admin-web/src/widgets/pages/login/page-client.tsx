@@ -1,12 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { Globe, LogIn, Mail, Shield, Wrench } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CONTACTS, getAuthErrorMessage } from "@/widgets/marketing/sales-landing-config";
 import { resolveInternalRedirectPath } from "./login-routing";
+import { Button } from "@/shared/ui/button";
 
 type AuthTab = "email" | "google";
 
@@ -184,19 +184,17 @@ export default function LoginPage() {
                   <p className="mt-1 text-sm leading-6 text-slate-600">
                     Dùng mock session cho môi trường localhost/dev để vào thẳng trang đang test.
                   </p>
-                  <button
+                  <Button
                     type="button"
                     onClick={() => void handleLocalDevLogin()}
-                    disabled={isSigningInLocally}
-                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    isLoading={isSigningInLocally}
+                    variant="primary"
+                    size="lg"
+                    className="mt-4 w-full bg-gradient-to-br from-sky-500 to-sky-700 hover:from-sky-600 hover:to-sky-800 shadow-[0_6px_16px_rgba(14,165,233,0.2)]"
                   >
-                    {isSigningInLocally ? (
-                      <div className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    ) : (
-                      <LogIn className="size-4" />
-                    )}
+                    {!isSigningInLocally && <LogIn className="size-4" />}
                     Vào nhanh trang đang yêu cầu
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -236,27 +234,28 @@ function AuthErrorPanel({
           <p className="text-sm font-extrabold text-slate-900">Xác thực chưa hoàn tất</p>
           <p className="mt-1 text-sm leading-6 text-slate-600">{message}</p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <button
+            <Button
               type="button"
               onClick={onRetry}
-              className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800"
+              variant="primary"
+              size="sm"
             >
               Thử lại
-            </button>
-            <a
-              href={CONTACTS.zaloPersonal}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-white px-4 py-2.5 text-sm font-bold text-amber-700 transition-colors hover:border-amber-300 hover:text-amber-800"
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => window.open(CONTACTS.zaloPersonal, "_blank")}
             >
               Nhắn Zalo hỗ trợ
-            </a>
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:border-blue-500 hover:text-slate-900"
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => window.location.assign("/login")}
             >
               Quay về đăng nhập
-            </Link>
+            </Button>
           </div>
         </div>
       </div>

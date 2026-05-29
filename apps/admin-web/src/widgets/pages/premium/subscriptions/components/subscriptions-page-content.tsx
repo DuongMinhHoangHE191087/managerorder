@@ -668,14 +668,14 @@ export default function PremiumSubscriptionsPage() {
           <PageHeader
             eyebrow={<span>Premium / Subscriptions</span>}
             title="Thuê bao premium"
-            description="Theo dõi danh sách thuê bao đang hoạt động, tạo yêu cầu gia hạn có đủ dữ liệu tài chính và xử lý hoàn tiền ngay trên cùng một màn."
+            description="Danh sách thuê bao premium đang hoạt động, gia hạn tài chính và hoàn tiền nhanh chóng."
             actions={
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 variant="secondary"
                 onClick={() => router.push("/premium/renewals")}
-                className="rounded-[1rem] px-5 py-2.5 text-sm font-bold"
+                className="rounded-[1rem] px-5 py-2.5 text-sm font-bold active:scale-[0.98] transition-all"
               >
                 <ArrowRightLeft className="size-5" />
                 Mở renewals
@@ -683,7 +683,7 @@ export default function PremiumSubscriptionsPage() {
               <Button
                 type="button"
                 onClick={() => router.push("/premium/accounts")}
-                className="rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-5 py-2.5 text-sm font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-[box-shadow] hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)]"
+                className="rounded-[1rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-5 py-2.5 text-sm font-bold text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)] transition-all hover:shadow-[0_20px_36px_rgba(var(--accent-rgb),0.28)] active:scale-[0.98]"
               >
                 <Plus className="size-5" />
                 Mở kho tài khoản
@@ -696,25 +696,25 @@ export default function PremiumSubscriptionsPage() {
           <MetricCard
             label="Đang hoạt động"
             value={activeSubs}
-            icon={<RefreshCw className="size-6" />}
+            icon={<RefreshCw className="size-5" />}
             tone="positive"
           />
           <MetricCard
             label="Sắp hết hạn"
             value={expiringSubs}
-            icon={<AlertTriangle className="size-6" />}
+            icon={<AlertTriangle className="size-5" />}
             tone="warning"
           />
           <MetricCard
             label="Đang chờ gia hạn"
             value={pendingRenewals}
-            icon={<HandCoins className="size-6" />}
+            icon={<HandCoins className="size-5" />}
             tone="accent"
           />
           <MetricCard
             label="Không gia hạn"
             value={notRenewingSubs}
-            icon={<XCircle className="size-6" />}
+            icon={<XCircle className="size-5" />}
             tone="danger"
           />
         </StatsGrid>
@@ -1116,7 +1116,7 @@ export default function PremiumSubscriptionsPage() {
                 return (
                   <article
                     key={sub.id}
-                    className="group relative overflow-hidden rounded-[1.5rem] border border-[var(--border-soft)] bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.03)] transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.07)] flex flex-col justify-between"
+                    className="group relative overflow-hidden rounded-[1.5rem] border border-[var(--border-soft)] bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.02)] transition-all duration-300 hover:shadow-[0_18px_42px_rgba(15,23,42,0.06)] hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between"
                     onContextMenu={(event) => {
                       openContextMenu(event, [
                         ...quickActions,
@@ -1162,8 +1162,8 @@ export default function PremiumSubscriptionsPage() {
                     <div className="space-y-4">
                       {/* Header Section: Customer Info & Service Type */}
                       <div className="flex items-start gap-3">
-                        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent)]/10 to-[var(--accent)]/5 text-[var(--accent)] transition-transform group-hover:rotate-12">
-                          <User className="size-4.5" />
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent)]/10 to-[var(--accent)]/5 text-[var(--accent)] transition-transform group-hover:rotate-6">
+                          <User className="size-4" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <Link
@@ -1172,36 +1172,38 @@ export default function PremiumSubscriptionsPage() {
                           >
                             {sub.customer_name}
                           </Link>
-                          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                          <p className="mt-0.5 text-[9px] font-extrabold uppercase tracking-wider text-[var(--fg-muted)]">
                             {sub.service_name}
                           </p>
                         </div>
                       </div>
 
                       {/* Mono email container */}
-                      <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)]/50 p-3 flex items-center justify-between gap-2">
-                        <span className="truncate font-mono text-[12px] font-extrabold text-[var(--fg-base)]">
+                      <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)]/40 p-2.5 flex items-center justify-between gap-2">
+                        <span className="truncate font-mono text-[11px] font-extrabold text-[var(--fg-base)]">
                           {sub.account_email}
                         </span>
                         <span className="text-[9px] font-bold text-[var(--fg-muted)] tracking-wider shrink-0 uppercase">
-                          Đơn: {sub.order_status ?? "Chưa rõ"}
+                          {sub.order_status ?? "Chưa rõ"}
                         </span>
                       </div>
 
                       {/* Info Pills Grid 2x2 */}
-                      <div className="grid grid-cols-2 gap-2.5">
+                      <div className="grid grid-cols-2 gap-2">
                         <InfoPill
                           label="Chu kỳ"
                           value={getBillingCycleLabel(sub.billing_cycle)}
                         />
                         <InfoPill
-                          label="Giá hiện tại"
+                          label="Giá"
                           value={formatMoney(currentPrice)}
+                          isMono
                         />
                         <InfoPill
                           label="Hạn dùng"
                           value={format(new Date(sub.expiry_date), "dd/MM/yyyy")}
                           tone={isExpired ? "danger" : isExpiring ? "warning" : "positive"}
+                          isMono
                         />
                         <InfoPill
                           label="Renewal"
@@ -1219,30 +1221,30 @@ export default function PremiumSubscriptionsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-3.5 border-t border-[var(--border-soft)] space-y-3.5">
+                    <div className="mt-4 pt-3.5 border-t border-[var(--border-soft)] space-y-3">
                       {/* Follow-up slot or reasons */}
-                      <div className="rounded-xl border border-[var(--border-soft)] bg-white px-3.5 py-2 flex items-center justify-between text-[11px] font-semibold text-[var(--fg-muted)]">
+                      <div className="rounded-xl border border-[var(--border-soft)] bg-white/50 px-3.5 py-1.5 flex items-center justify-between text-[11px] font-semibold text-[var(--fg-muted)]">
                         <div className="flex items-center gap-1.5">
                           <CalendarClock
                             className={`size-3.5 ${isExpired ? "text-rose-500" : isExpiring ? "text-amber-500" : "text-emerald-500"}`}
                           />
                           <span className="font-extrabold text-[var(--fg-base)]">
-                            {isExpired ? "Đã hết hạn" : `Còn ${Math.max(0, sub.days_remaining)} ngày`}
+                            {isExpired ? "Đã hết hạn" : <>Còn <span className="font-mono text-[var(--accent)] font-black">{Math.max(0, sub.days_remaining)}</span> ngày</>}
                           </span>
                         </div>
                         {sub.order_code ? (
-                          <span className="text-[10px] font-bold uppercase tracking-wider">Mã: {sub.order_code}</span>
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Mã: {sub.order_code}</span>
                         ) : null}
                       </div>
 
                       {!canRenew && renewalBlockReason ? (
-                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-[11px] leading-relaxed text-amber-800">
-                          <span className="font-bold">Không thể gia hạn:</span> {renewalBlockReason}
+                        <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-3 py-1.5 text-[10px] leading-relaxed text-amber-800 font-medium">
+                          <span className="font-bold">Không gia hạn:</span> {renewalBlockReason}
                         </div>
                       ) : null}
 
                       {!canNoRenew && noRenewBlockReason ? (
-                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-[11px] leading-relaxed text-rose-800">
+                        <div className="rounded-xl border border-rose-200 bg-rose-50/50 px-3 py-1.5 text-[10px] leading-relaxed text-rose-800 font-medium">
                           <span className="font-bold">Không gia hạn:</span> {noRenewBlockReason}
                         </div>
                       ) : null}
@@ -1254,7 +1256,7 @@ export default function PremiumSubscriptionsPage() {
                             type="button"
                             variant="secondary"
                             onClick={() => void copyToClipboard(buildReminderMessage(sub), "Đã sao chép mẫu nhắc gia hạn")}
-                            className="inline-flex items-center justify-center size-8 rounded-full p-0"
+                            className="inline-flex items-center justify-center size-8 rounded-full p-0 transition-transform active:scale-90"
                             title="Sao chép mẫu nhắc gia hạn"
                           >
                             <Copy className="size-3.5" />
@@ -1265,7 +1267,7 @@ export default function PremiumSubscriptionsPage() {
                             <Button
                               type="button"
                               onClick={() => setRenewingSubscription(sub)}
-                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20"
+                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 border border-emerald-100 transition-transform active:scale-90"
                               title="Gia hạn thuê bao"
                             >
                               <Sparkles className="size-3.5" />
@@ -1277,7 +1279,7 @@ export default function PremiumSubscriptionsPage() {
                             <Button
                               type="button"
                               onClick={() => void handleMarkNoRenew(sub)}
-                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-rose-500/10 text-rose-700 hover:bg-rose-500/20"
+                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-rose-500/10 text-rose-700 hover:bg-rose-500/20 border border-rose-100 transition-transform active:scale-90"
                               title="Đánh dấu không gia hạn"
                             >
                               <XCircle className="size-3.5" />
@@ -1289,7 +1291,7 @@ export default function PremiumSubscriptionsPage() {
                             <Button
                               type="button"
                               onClick={() => void handleRefund(sub)}
-                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-rose-500/10 text-rose-700 hover:bg-rose-500/20"
+                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 border border-amber-100 transition-transform active:scale-90"
                               title="Tính hoàn tiền"
                             >
                               <HandCoins className="size-3.5" />
@@ -1300,7 +1302,7 @@ export default function PremiumSubscriptionsPage() {
                             <Button
                               type="button"
                               onClick={() => setMigratingSubscription(sub)}
-                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20"
+                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 border border-blue-100 transition-transform active:scale-90"
                               title="Chuyển Family nhanh"
                             >
                               <ArrowRightLeft className="size-3.5" />
@@ -1311,7 +1313,7 @@ export default function PremiumSubscriptionsPage() {
                             type="button"
                             variant="secondary"
                             onClick={() => router.push(`/customers/${sub.customer_id}`)}
-                            className="inline-flex items-center justify-center size-8 rounded-full p-0"
+                            className="inline-flex items-center justify-center size-8 rounded-full p-0 transition-transform active:scale-90"
                             title="Đi tới chi tiết khách hàng"
                           >
                             <User className="size-3.5" />
@@ -1406,12 +1408,12 @@ function MetricCard({
           : "bg-[var(--accent)]/10 text-[var(--accent)]";
 
   return (
-    <div className="app-card flex h-full items-center justify-between gap-4 p-6">
+    <div className="app-card flex h-full items-center justify-between gap-4 p-6 border border-[var(--border-soft)] bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[1.5rem] transition-all duration-300 hover:shadow-[0_18px_38px_rgba(0,0,0,0.05)] hover:-translate-y-0.5 active:scale-[0.98] cursor-default">
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{label}</p>
-        <p className="mt-2 text-3xl font-black text-[var(--fg-base)]">{value}</p>
+        <p className="text-[11px] font-extrabold uppercase tracking-widest text-[var(--fg-muted)]">{label}</p>
+        <p className="mt-2 text-3xl font-black text-[var(--fg-base)] font-mono tracking-tight">{value}</p>
       </div>
-      <div className={`flex size-12 items-center justify-center rounded-[1rem] ${toneClass}`}>{icon}</div>
+      <div className={`flex size-11 items-center justify-center rounded-xl ${toneClass}`}>{icon}</div>
     </div>
   );
 }
@@ -1465,10 +1467,12 @@ function InfoPill({
   label,
   value,
   tone = "neutral",
+  isMono = false,
 }: {
   label: string;
   value: string;
   tone?: "neutral" | "positive" | "warning" | "danger";
+  isMono?: boolean;
 }) {
   const toneClass =
     tone === "positive"
@@ -1480,9 +1484,9 @@ function InfoPill({
           : "text-[var(--fg-base)]";
 
   return (
-    <div className="rounded-[1.2rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/50 p-3">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{label}</p>
-      <p className={`mt-1 text-[13px] font-black ${toneClass}`}>{value}</p>
+    <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)]/40 p-2.5">
+      <p className="text-[9px] font-extrabold uppercase tracking-widest text-[var(--fg-muted)]">{label}</p>
+      <p className={`mt-1 text-[12px] font-extrabold ${toneClass} ${isMono ? "font-mono" : ""}`}>{value}</p>
     </div>
   );
 }

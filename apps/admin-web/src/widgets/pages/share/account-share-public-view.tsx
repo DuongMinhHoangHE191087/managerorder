@@ -127,14 +127,47 @@ export function AccountSharePublicView({ slug }: { slug: string }) {
   }
 
   async function copyValue(value: string, id: string) {
-    await navigator.clipboard.writeText(value);
-    setCopied(id);
-    setTimeout(() => setCopied(null), 1800);
-    void fetch(`/api/share/${slug}/events`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ eventType: "copy", metadata: { field: id } }),
-    });
+    if (!value) return;
+    let success = false;
+    const textStr = String(value);
+
+    // 1. Try modern Clipboard API
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(textStr);
+        success = true;
+      } catch {
+        success = false;
+      }
+    }
+
+    // 2. Fallback to execCommand
+    if (!success && typeof document !== "undefined") {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = textStr;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        success = document.execCommand("copy");
+        document.body.removeChild(textArea);
+      } catch {
+        success = false;
+      }
+    }
+
+    if (success) {
+      setCopied(id);
+      setTimeout(() => setCopied(null), 1800);
+      void fetch(`/api/share/${slug}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventType: "copy", metadata: { field: id } }),
+      });
+    }
   }
 
   if (loading && !summary) {
@@ -868,7 +901,7 @@ const shareStyles = `
     font-weight: 700;
     color: white;
     cursor: pointer;
-    transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+    transition: opacity 0.15s, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s;
     box-shadow: 0 4px 16px rgba(59,130,246,0.3);
     font-family: inherit;
   }
@@ -876,11 +909,11 @@ const shareStyles = `
   .share-unlock-btn:hover:not(:disabled) {
     opacity: 0.92;
     box-shadow: 0 6px 20px rgba(59,130,246,0.4);
-    transform: translateY(-1px);
+    transform: scale(1.02) translateY(-1px);
   }
 
   .share-unlock-btn:active:not(:disabled) {
-    transform: translateY(0);
+    transform: scale(0.97);
   }
 
   .share-unlock-btn:disabled {
@@ -983,13 +1016,18 @@ const shareStyles = `
     border: 1px solid rgba(255,255,255,0.08);
     color: rgba(148,163,184,0.7);
     cursor: pointer;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .share-copy-btn:hover:not(:disabled) {
     background: rgba(59,130,246,0.15);
     color: #60a5fa;
     border-color: rgba(59,130,246,0.3);
+    transform: scale(1.05);
+  }
+
+  .share-copy-btn:active:not(:disabled) {
+    transform: scale(0.92);
   }
 
   .share-copy-btn:disabled {
@@ -1257,13 +1295,17 @@ const shareStyles = `
     font-size: 13px;
     font-weight: 700;
     text-decoration: none;
-    transition: transform 0.15s, opacity 0.15s, box-shadow 0.15s;
+    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s, box-shadow 0.15s;
     font-family: inherit;
   }
 
   .share-support-btn:hover {
-    transform: translateY(-1.5px);
+    transform: scale(1.03) translateY(-1px);
     opacity: 0.95;
+  }
+
+  .share-support-btn:active {
+    transform: scale(0.97);
   }
 
   .share-support-btn--zalo {

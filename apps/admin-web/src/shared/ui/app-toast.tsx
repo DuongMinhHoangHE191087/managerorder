@@ -163,37 +163,47 @@ export const appToast = {
   },
 
   async copy(text: string, label?: string) {
-    let success = false;
+    if (!text) {
+      return renderToast("error", vi.common.copyFailed, {
+        description: vi.common.copyManual,
+        duration: 2000,
+      });
+    }
 
-    try {
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
+    let success = false;
+    const textStr = String(text);
+
+    // 1. Try modern Clipboard API
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(textStr);
         success = true;
-      } else {
+      } catch {
+        success = false;
+      }
+    }
+
+    // 2. Fallback to execCommand if Clipboard API failed or is not available
+    if (!success && typeof document !== "undefined") {
+      try {
         const textArea = document.createElement("textarea");
-        textArea.value = text;
+        textArea.value = textStr;
         textArea.style.position = "fixed";
         textArea.style.left = "-9999px";
         textArea.style.top = "-9999px";
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-
-        try {
-          success = document.execCommand("copy");
-        } catch {
-          success = false;
-        }
-
+        success = document.execCommand("copy");
         document.body.removeChild(textArea);
+      } catch {
+        success = false;
       }
-    } catch {
-      success = false;
     }
 
     if (success) {
       return renderToast("success", label ?? vi.common.copySuccess, {
-        description: text.length > 50 ? `${text.slice(0, 47)}...` : text,
+        description: textStr.length > 50 ? `${textStr.slice(0, 47)}...` : textStr,
         duration: 2000,
         customIcon: Copy,
       });

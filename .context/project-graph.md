@@ -69,6 +69,7 @@
 
 | time | event | evidence |
 | --- | --- | --- |
+| 2026-05-30 | Tối ưu hóa kích thước nút bấm dùng chung Button và đồng bộ thiết kế premium (gradient, glassmorphism, micro-animations) trên toàn bộ các trang (Share public, login, error panel) và sửa lỗi compile/lint TypeScript | `apps/admin-web/src/shared/ui/button.tsx`, `apps/admin-web/src/widgets/pages/share/account-share-public-view.tsx`, `apps/admin-web/src/widgets/pages/login/page-client.tsx`, `apps/admin-web/src/app/api/cron/notify/route.ts` |
 | 2026-05-29 | Đồng bộ template Sharelink tự động tại API /api/share/[slug] và append template query param khi redirect sang /share/ | `apps/admin-web/src/domains/account-sharing/services.ts`, `apps/admin-web/src/domains/short-links/services/public-redirect.ts` |
 | 2026-05-29 | Loại bỏ hoàn toàn Zalo Bot và dọn dẹp các mô tả dài dòng, sửa lỗi Mojibake tiếng Việt trong vi.ts (bot, shortLinks, marketing) | `apps/admin-web/src/shared/messages/vi.ts`, `apps/admin-web/src/widgets/pages/settings/bot/components/bot-status-grid.tsx` |
 | 2026-05-29 | Khắc phục lỗi 401 cho Google Auth và tăng tốc API bằng cơ chế Edge-Signed Headers (HMAC), sửa đổi proxy và with-account | `apps/admin-web/src/proxy.ts`, `apps/admin-web/src/lib/api/with-account.ts` |
