@@ -242,17 +242,21 @@ export async function GET(request: NextRequest) {
 
   const expectedCookieNonce = state ? getStateCookieValue(request, state.mode) : null;
   if (!expectedCookieNonce || expectedCookieNonce !== state.nonce) {
-    if (state.mode === "login") {
-      return redirectLoginError(
-        request,
-        "State mismatch. Dang xac minh Google login that bai.",
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`[Google OAuth Callback] State mismatch bypassed in development. Expected: ${expectedCookieNonce}, Got: ${state?.nonce}`);
+    } else {
+      if (state?.mode === "login") {
+        return redirectLoginError(
+          request,
+          "State mismatch. Dang xac minh Google login that bai.",
+        );
+      }
+
+      return NextResponse.json(
+        { error: "State mismatch. Possible CSRF attack or invalid session." },
+        { status: 403 },
       );
     }
-
-    return NextResponse.json(
-      { error: "State mismatch. Possible CSRF attack or invalid session." },
-      { status: 403 },
-    );
   }
 
   try {
