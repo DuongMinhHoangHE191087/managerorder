@@ -381,14 +381,14 @@ export default function CalendarPage() {
         <div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: calendarText.stats.renewalsSoon, value: stats.total, color: "text-[var(--accent)]", bg: "bg-[var(--accent)]/8" },
-                { label: calendarText.stats.expired, value: stats.expired, color: "text-[var(--danger)]", bg: "bg-[var(--danger)]/8" },
-                { label: calendarText.stats.urgent3, value: stats.urgent, color: "text-[#ff3b30]", bg: "bg-[#ff3b30]/8" },
-                { label: calendarText.stats.urgent7, value: stats.soon, color: "text-[#ff9500]", bg: "bg-[#ff9500]/8" },
+                { label: calendarText.stats.renewalsSoon, value: stats.total, color: "text-[var(--accent)]", bg: "bg-[var(--accent)]/[0.04] border-[var(--accent)]/20" },
+                { label: calendarText.stats.expired, value: stats.expired, color: "text-[var(--danger)]", bg: "bg-[var(--danger)]/[0.04] border-[var(--danger)]/20" },
+                { label: calendarText.stats.urgent3, value: stats.urgent, color: "text-[#ff3b30]", bg: "bg-[#ff3b30]/[0.04] border-[#ff3b30]/20" },
+                { label: calendarText.stats.urgent7, value: stats.soon, color: "text-[#ff9500]", bg: "bg-[#ff9500]/[0.04] border-[#ff9500]/20" },
               ].map(s => (
-              <div key={s.label} className={`${s.bg} rounded-xl p-4 border border-[var(--border-soft)]`}>
-                <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
-                <p className="text-[11px] text-[var(--fg-muted)] font-medium mt-0.5">{s.label}</p>
+              <div key={s.label} className={`${s.bg} rounded-2xl p-4 border shadow-[0_8px_30px_rgb(0,0,0,0.01)] backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]`}>
+                <p className={`text-2xl font-black font-mono tracking-tight ${s.color}`}>{s.value}</p>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--fg-muted)] mt-1">{s.label}</p>
               </div>
             ))}
           </div>
@@ -428,14 +428,14 @@ export default function CalendarPage() {
                   </button>
                 </div>
                 {/* View Toggles */}
-                <div className="flex bg-[var(--surface-light)] p-1 rounded-lg border border-[var(--border-soft)]">
+                <div className="flex bg-[var(--surface-light)] p-1 rounded-xl border border-[var(--border-soft)]">
                   {(["month", "week", "day"] as const).map(view => (
                     <button
                       type="button"
                       key={view}
                       onClick={() => setCalendarView(view)}
                       aria-pressed={calendarView === view}
-                      className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md transition-[background-color,box-shadow,color] cursor-pointer ${
+                      className={`px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider rounded-lg transition-all active:scale-95 cursor-pointer ${
                         calendarView === view 
                           ? "bg-[var(--accent)] text-white shadow-sm" 
                           : "text-[var(--fg-muted)] hover:text-[var(--fg-base)] hover:bg-[var(--bg-app)]/50"

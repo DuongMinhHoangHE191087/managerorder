@@ -204,7 +204,7 @@ const CustomerListRow = React.memo(function CustomerListRow({
 
       className={cn(
 
-        "group relative flex cursor-pointer flex-col gap-5 rounded-[1.5rem] border bg-[rgba(255,255,255,0.96)] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)] md:flex-row md:p-5",
+        "group relative flex cursor-pointer flex-col gap-5 rounded-[1.5rem] border bg-[rgba(255,255,255,0.96)] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)] active:scale-[0.99] md:flex-row md:p-5",
 
         isSelected
 
@@ -366,7 +366,7 @@ const CustomerListRow = React.memo(function CustomerListRow({
 
           <span className="text-[var(--fg-muted)]">{vi.customers.list.totalSpent}</span>
 
-          <span className="font-bold text-[var(--fg-base)]">{formatMoney(customer.totalSpentVnd || 0)}</span>
+          <span className="font-bold text-[var(--fg-base)] font-mono">{formatMoney(customer.totalSpentVnd || 0)}</span>
 
         </div>
 
@@ -374,7 +374,7 @@ const CustomerListRow = React.memo(function CustomerListRow({
 
           <span className="text-[var(--fg-muted)]">{vi.customers.list.wallet}</span>
 
-          <span className="font-bold text-[var(--accent)]">{formatMoney(customer.balanceVnd || 0)}</span>
+          <span className="font-bold text-[var(--accent)] font-mono">{formatMoney(customer.balanceVnd || 0)}</span>
 
         </div>
 
@@ -382,7 +382,7 @@ const CustomerListRow = React.memo(function CustomerListRow({
 
           <span className="text-[var(--fg-muted)]">{vi.customers.list.debt}</span>
 
-          <span className={cn("text-[14px] font-bold", customer.debtAmountVnd > 0 ? "text-[var(--danger)]" : "text-emerald-500")}>
+          <span className={cn("text-[14px] font-bold font-mono", customer.debtAmountVnd > 0 ? "text-[var(--danger)]" : "text-emerald-500")}>
 
             {customer.debtAmountVnd > 0 ? formatMoney(customer.debtAmountVnd) : vi.common.zeroMoney}
 

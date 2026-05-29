@@ -26,7 +26,7 @@ function KPIStyleCard({
 }) {
   return (
     <div
-      className={`app-card flex h-full flex-col justify-between border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(246,250,244,0.86))] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(15,23,42,0.08)] ${className}`}
+      className={`app-card flex h-full flex-col justify-between border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(246,250,244,0.86))] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(15,23,42,0.08)] active:scale-[0.98] ${className}`}
     >
       {children}
     </div>
@@ -61,7 +61,7 @@ export function DashboardKPIs({
             {vi.dashboard.kpis.totalRevenueMonth}
           </p>
         </div>
-        <h3 className="mt-2 text-3xl font-black tracking-tight text-[var(--fg-base)]" data-testid="dashboard-kpi-value">
+        <h3 className="mt-2 text-3xl font-black tracking-tight text-[var(--fg-base)] font-mono" data-testid="dashboard-kpi-value">
           {formatMoney(totalRevenue)}
         </h3>
       </KPIStyleCard>
@@ -77,7 +77,7 @@ export function DashboardKPIs({
             {vi.dashboard.kpis.collected(timeLabel)}
           </p>
         </div>
-        <h3 className="mt-2 text-3xl font-black tracking-tight text-emerald-600" data-testid="dashboard-kpi-value">
+        <h3 className="mt-2 text-3xl font-black tracking-tight text-emerald-600 font-mono" data-testid="dashboard-kpi-value">
           {formatMoney(totalCollected)}
         </h3>
       </KPIStyleCard>
@@ -96,7 +96,7 @@ export function DashboardKPIs({
             {vi.dashboard.kpis.totalProfit(timeLabel)}
           </p>
         </div>
-        <h3 className="mt-2 text-3xl font-black tracking-tight text-[var(--fg-base)]" data-testid="dashboard-kpi-value">
+        <h3 className="mt-2 text-3xl font-black tracking-tight text-[var(--fg-base)] font-mono" data-testid="dashboard-kpi-value">
           {formatMoney(totalProfit)}
         </h3>
       </KPIStyleCard>
@@ -104,7 +104,7 @@ export function DashboardKPIs({
       <KPIStyleCard>
         <div className="flex items-center justify-between gap-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{vi.dashboard.kpis.fillRate}</p>
-          <span className="text-lg font-bold text-[var(--accent)]" data-testid="dashboard-kpi-value">
+          <span className="text-lg font-bold text-[var(--accent)] font-mono" data-testid="dashboard-kpi-value">
             {fillRate}%
           </span>
         </div>
@@ -121,26 +121,26 @@ export function DashboardKPIs({
         <p className="mb-3 border-b border-[var(--border-soft)] pb-3 text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
           {vi.dashboard.kpis.serviceStatus}
         </p>
-        <div className="mt-auto flex items-center justify-between gap-2">
+        <div className="mt-auto flex items-center justify-between gap-2 font-mono">
           <div className="flex-1 text-center">
             <p className="text-2xl font-black text-[var(--accent)]" data-testid="dashboard-kpi-value">
               {availableKeys}
             </p>
-            <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{vi.dashboard.kpis.active}</p>
+            <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[var(--fg-muted)] font-sans">{vi.dashboard.kpis.active}</p>
           </div>
           <div className="h-8 w-px bg-[var(--border-soft)]" />
           <div className="flex-1 text-center">
             <p className="text-2xl font-black text-[var(--warning)]" data-testid="dashboard-kpi-value">
               {reservedKeys}
             </p>
-            <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{vi.dashboard.kpis.expiring}</p>
+            <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[var(--fg-muted)] font-sans">{vi.dashboard.kpis.expiring}</p>
           </div>
           <div className="h-8 w-px bg-[var(--border-soft)]" />
           <div className="flex-1 text-center">
             <p className="text-2xl font-black text-[var(--danger)]" data-testid="dashboard-kpi-value">
               {consumedKeys}
             </p>
-            <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{vi.dashboard.kpis.used}</p>
+            <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[var(--fg-muted)] font-sans">{vi.dashboard.kpis.used}</p>
           </div>
         </div>
       </KPIStyleCard>
@@ -154,18 +154,18 @@ export function DashboardKPIs({
           </div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--danger)]">{vi.dashboard.kpis.actionRequired}</p>
         </div>
-        <div className="mt-2 text-[var(--fg-base)]">
+        <div className="mt-2 text-[var(--fg-base)] font-mono">
           <p className="text-xl font-black tracking-tight">
             <span className="text-[var(--danger)]" data-testid="dashboard-kpi-value">
               {overdueCustomersCount}
             </span>{" "}
-            {vi.dashboard.kpis.debtCustomerSuffix}
+            <span className="font-sans font-bold text-[13px] text-[var(--fg-muted)]">{vi.dashboard.kpis.debtCustomerSuffix}</span>
           </p>
           <p className="mt-1 text-xl font-black tracking-tight">
             <span className="text-[var(--warning)]" data-testid="dashboard-kpi-value">
               {pendingCount}
             </span>{" "}
-            {vi.dashboard.kpis.pendingOrderSuffix}
+            <span className="font-sans font-bold text-[13px] text-[var(--fg-muted)]">{vi.dashboard.kpis.pendingOrderSuffix}</span>
           </p>
         </div>
       </KPIStyleCard>

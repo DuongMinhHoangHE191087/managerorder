@@ -383,10 +383,10 @@ function TrashPreview({
                   {config.label}
                 </span>
                 <SoftDeletedBadge />
-                <span className="inline-flex items-center rounded-full border border-[var(--border-soft)] bg-white/90 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+                <span className="inline-flex items-center rounded-full border border-[var(--border-soft)] bg-white/90 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)] font-mono">
                   {item.id.slice(0, 8)}
                 </span>
-                <span className="inline-flex items-center rounded-full border border-[var(--border-soft)] bg-white/90 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+                <span className="inline-flex items-center rounded-full border border-[var(--border-soft)] bg-white/90 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)] font-mono">
                   {getDeletedAgo(item.deleted_at)}
                 </span>
               </div>
@@ -431,11 +431,11 @@ function TrashPreview({
           <div className="mt-3 space-y-3 text-[13px] font-medium text-[var(--fg-base)]">
             <div className="flex items-center justify-between gap-3">
               <span>{vi.trash.page.deletedAt}</span>
-              <span>{formatFieldValue("date", item.deleted_at)}</span>
+              <span className="font-mono">{formatFieldValue("date", item.deleted_at)}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span>Độ trễ</span>
-              <span>{getDeletedAgo(item.deleted_at)}</span>
+              <span className="font-mono">{getDeletedAgo(item.deleted_at)}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span>{vi.trash.page.deletedBy}</span>
@@ -572,7 +572,7 @@ export default function TrashPage() {
           }
 
           return (
-            <span className="block max-w-[280px] truncate">
+            <span className={cn("block max-w-[280px] truncate", (field.kind === "money" || field.kind === "date") && "font-mono")}>
               {formatFieldValue(field.kind, value)}
             </span>
           );
@@ -583,10 +583,10 @@ export default function TrashPage() {
         header: vi.trash.page.deletedLabel,
         cell: ({ row }) => (
           <div className="space-y-1">
-            <div className="font-semibold text-[var(--fg-base)]">
+            <div className="font-semibold text-[var(--fg-base)] font-mono">
               {getDeletedAgo(row.original.deleted_at)}
             </div>
-            <div className="text-[12px] text-[var(--fg-muted)]">
+            <div className="text-[12px] text-[var(--fg-muted)] font-mono">
               {formatFieldValue("date", row.original.deleted_at)}
             </div>
           </div>
@@ -696,7 +696,7 @@ export default function TrashPage() {
                   setActiveType(entityKey);
                   router.replace(`/trash?type=${entityKey}`);
                 }}
-                className="text-left"
+                className="text-left active:scale-[0.98] transition-transform duration-200"
               >
                 <WorkspaceMetricCard
                   label={entity.label}

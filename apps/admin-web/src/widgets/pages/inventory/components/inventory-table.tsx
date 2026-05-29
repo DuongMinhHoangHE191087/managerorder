@@ -341,7 +341,7 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
       className={cn(
 
-        "group relative flex cursor-pointer flex-col gap-4 px-4 py-4 transition-colors hover:bg-[var(--surface-light)]/40 lg:grid lg:items-center lg:gap-4 lg:pr-12",
+        "group relative flex cursor-pointer flex-col gap-4 px-4 py-4 transition-[background-color,transform] duration-200 hover:bg-[var(--surface-light)]/40 active:scale-[0.99] lg:grid lg:items-center lg:gap-4 lg:pr-12",
 
         hasBulk ? "lg:grid-cols-[48px_minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_140px_140px_100px]" : "lg:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_140px_140px_100px]",
 
@@ -451,13 +451,13 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
             <span className="text-[var(--fg-muted)] lg:hidden">{copy.inventoryTable.slotsLabel}</span>
 
-            <span className={cn("text-[12px]", percent >= 100 ? "font-bold text-red-500" : "font-bold text-[var(--fg-base)]")}>
+            <span className={cn("text-[12px] font-mono", percent >= 100 ? "font-bold text-red-500" : "font-bold text-[var(--fg-base)]")}>
 
               {account.usedSlots} / {account.maxSlots}
 
             </span>
 
-            <span className={cn("text-[12px] lg:hidden", percent >= 100 ? "font-bold text-red-500" : "font-bold text-[var(--fg-base)]")}>
+            <span className={cn("text-[12px] font-mono lg:hidden", percent >= 100 ? "font-bold text-red-500" : "font-bold text-[var(--fg-base)]")}>
 
               {Math.round(percent)}%
 
@@ -531,7 +531,7 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
                 className={cn(
 
-                  "text-[13px] font-medium",
+                  "text-[13px] font-medium font-mono",
 
                   expiryInfo.level === "danger"
 
@@ -553,7 +553,7 @@ const InventoryTableRow = React.memo(function InventoryTableRow({
 
               {expiryInfo.level !== "ok" ? (
 
-                <span className={cn("mt-0.5 text-[10px] font-bold", expiryInfo.level === "danger" ? "text-red-500" : "text-yellow-500")}>
+                <span className={cn("mt-0.5 text-[10px] font-bold font-mono", expiryInfo.level === "danger" ? "text-red-500" : "text-yellow-500")}>
 
                   {expiryInfo.daysLeft === 0 ? copy.inventoryTable.expired : copy.inventoryTable.daysLeft(expiryInfo.daysLeft)}
 

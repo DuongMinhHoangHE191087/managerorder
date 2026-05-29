@@ -208,7 +208,7 @@ export default function ProvidersPage() {
                     onClick={() => router.push(`/providers/${provider.id}`)}
                     data-testid="provider-row"
                     data-provider-id={provider.id}
-                    className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.96)] shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-[background-color,border-color,box-shadow,transform] duration-300 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)] hover:border-[var(--accent)]/40 hover:bg-[var(--surface-light)]/40"
+                    className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.96)] shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-[background-color,border-color,box-shadow,transform] duration-300 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)] hover:border-[var(--accent)]/40 hover:bg-[var(--surface-light)]/40 active:scale-[0.99]"
                     onContextMenu={(e) => {
                     openContextMenu(e, actionMenuItems.map(item => ({
                       ...item,
@@ -274,7 +274,7 @@ export default function ProvidersPage() {
                               <div className="flex items-center gap-2 mt-1 w-fit">
                                 <div className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--accent)] bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-2 py-1 rounded-md">
                                    <Package className="size-3.5" />
-                                   <span><strong className="font-black">{provider.purchaseOrderCount || 0}</strong> {text.productCountSuffix}</span>
+                                   <span><strong className="font-black font-mono">{provider.purchaseOrderCount || 0}</strong> {text.productCountSuffix}</span>
                                 </div>
                               </div>
                             </div>
@@ -292,7 +292,7 @@ export default function ProvidersPage() {
                           <Star className="size-3.5 fill-amber-500 text-amber-500" /> {detailText.cards.trust}
                         </span>
                         <div className="flex items-center">
-                           <span className={`text-[15px] md:text-[16px] font-black ${
+                           <span className={`text-[15px] md:text-[16px] font-black font-mono ${
                             provider.reliabilityScore < 50 ? 'text-rose-500' : provider.reliabilityScore < 80 ? 'text-amber-500' : 'text-emerald-500'
                           }`}>{provider.reliabilityScore}</span>
                           <span className="text-[10px] md:text-[11px] text-[var(--fg-muted)] font-bold ml-0.5">/100</span>
@@ -305,14 +305,14 @@ export default function ProvidersPage() {
                       <div className="flex flex-col gap-2">
                         <div className="flex justify-between items-center">
                           <span className="text-[10px] md:text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-wider">{text.summary.totalInput}</span>
-                          <span className="text-[13px] md:text-[14px] font-black text-blue-500">
+                          <span className="text-[13px] md:text-[14px] font-black text-blue-500 font-mono">
                              {formatMoney(provider.totalImportAmountVnd || 0)}
                           </span>
                         </div>
                         
                         <div className="flex justify-between items-center rounded-lg p-2 md:p-2.5 -mx-2 bg-red-50/50 border border-red-100">
                           <span className="text-[10px] md:text-[11px] font-bold text-red-500 uppercase tracking-wider">{text.summary.debt}</span>
-                          <span className={`text-[14px] md:text-[15px] font-black ${provider.debtAmountVnd && provider.debtAmountVnd > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                          <span className={`text-[14px] md:text-[15px] font-black font-mono ${provider.debtAmountVnd && provider.debtAmountVnd > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
                             {provider.debtAmountVnd && provider.debtAmountVnd > 0 ? formatMoney(provider.debtAmountVnd) : '0đ'}
                           </span>
                         </div>

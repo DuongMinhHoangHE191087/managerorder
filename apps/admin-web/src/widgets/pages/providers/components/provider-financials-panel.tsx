@@ -43,19 +43,19 @@ export function ProviderFinancialsPanel({
         <div className="grid grid-cols-2 gap-3 p-5">
           <div className="rounded-[1.15rem] border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">
             <p className="mb-1 text-[10px] font-bold uppercase text-[var(--fg-muted)]">{text.stats.totalPurchases}</p>
-            <p className="text-xl font-black text-[var(--fg-base)]">{formatMoney(stats.totalPurchases)}</p>
+            <p className="text-xl font-black text-[var(--fg-base)] font-mono">{formatMoney(stats.totalPurchases)}</p>
           </div>
           <div className="rounded-[1.15rem] border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">
             <p className="mb-1 text-[10px] font-bold uppercase text-[var(--fg-muted)]">{text.stats.totalPaid}</p>
-            <p className="text-xl font-black text-emerald-500">{formatMoney(stats.totalPaid)}</p>
+            <p className="text-xl font-black text-emerald-500 font-mono">{formatMoney(stats.totalPaid)}</p>
           </div>
           <div className="rounded-[1.15rem] border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">
             <p className="mb-1 text-[10px] font-bold uppercase text-[var(--fg-muted)]">{text.stats.totalDebt}</p>
-            <p className="text-xl font-black text-red-500">{formatMoney(stats.totalDebt)}</p>
+            <p className="text-xl font-black text-red-500 font-mono">{formatMoney(stats.totalDebt)}</p>
           </div>
           <div className="rounded-[1.15rem] border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">
             <p className="mb-1 text-[10px] font-bold uppercase text-[var(--fg-muted)]">{text.stats.completed}</p>
-            <p className="text-xl font-black text-[var(--accent)]">
+            <p className="text-xl font-black text-[var(--accent)] font-mono">
               {stats.completedPOs}/{purchaseOrders.length}
             </p>
           </div>
@@ -79,8 +79,8 @@ export function ProviderFinancialsPanel({
                 <p className="mt-1 text-[11px] text-[var(--fg-muted)]">{formatDateLabel(order.created_at)}</p>
               </div>
               <div className="text-right">
-                <p className="text-[13px] font-black text-[var(--fg-base)]">{formatMoney(order.total_amount)}</p>
-                <p className="text-[11px] font-bold text-emerald-500">
+                <p className="text-[13px] font-black text-[var(--fg-base)] font-mono">{formatMoney(order.total_amount)}</p>
+                <p className="text-[11px] font-bold text-emerald-500 font-mono">
                   {text.paymentPrefix}: {formatMoney(order.total_paid)}
                 </p>
               </div>

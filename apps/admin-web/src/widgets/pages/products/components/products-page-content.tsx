@@ -155,31 +155,37 @@ export default function ProductsPage() {
 
         {/* Stat Cards */}
         <StatsGrid className="mb-8 md:grid-cols-3">
-          <SurfaceCard className="p-6">
+          <SurfaceCard className="p-6 border border-[var(--border-soft)] bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[1.5rem] transition-all duration-300 hover:shadow-[0_18px_38px_rgba(0,0,0,0.05)] hover:-translate-y-0.5 active:scale-[0.98] cursor-default h-full flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{productText.stats.total}</p>
-              <span className="material-symbols-outlined text-[var(--accent)]">inventory_2</span>
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--fg-muted)]">{productText.stats.total}</p>
+              <span className="bg-[var(--accent)]/10 text-[var(--accent)] p-1.5 rounded-xl">
+                <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+              </span>
             </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-3xl font-black tracking-tight text-[var(--fg-base)]">{totalProducts}</span>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-3xl font-black tracking-tight text-[var(--fg-base)] font-mono">{totalProducts}</span>
             </div>
           </SurfaceCard>
-          <SurfaceCard className="p-6">
+          <SurfaceCard className="p-6 border border-[var(--border-soft)] bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[1.5rem] transition-all duration-300 hover:shadow-[0_18px_38px_rgba(0,0,0,0.05)] hover:-translate-y-0.5 active:scale-[0.98] cursor-default h-full flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{productText.stats.active}</p>
-              <CheckCircle className="size-5 text-[var(--accent)]" />
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--fg-muted)]">{productText.stats.active}</p>
+              <span className="bg-emerald-500/10 text-emerald-500 p-1.5 rounded-xl">
+                <CheckCircle className="size-4" />
+              </span>
             </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-3xl font-black tracking-tight text-[var(--fg-base)]">{activeProducts}</span>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-3xl font-black tracking-tight text-[var(--fg-base)] font-mono">{activeProducts}</span>
             </div>
           </SurfaceCard>
-          <SurfaceCard className="p-6">
+          <SurfaceCard className="p-6 border border-[var(--border-soft)] bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[1.5rem] transition-all duration-300 hover:shadow-[0_18px_38px_rgba(0,0,0,0.05)] hover:-translate-y-0.5 active:scale-[0.98] cursor-default h-full flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{productText.stats.avgMargin}</p>
-              <CircleDollarSign className="size-5 text-[var(--accent)]" />
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--fg-muted)]">{productText.stats.avgMargin}</p>
+              <span className="bg-[var(--accent)]/10 text-[var(--accent)] p-1.5 rounded-xl">
+                <CircleDollarSign className="size-4" />
+              </span>
             </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-3xl font-black tracking-tight text-[var(--fg-base)]">{avgMargin}%</span>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-3xl font-black tracking-tight text-[var(--fg-base)] font-mono">{avgMargin}%</span>
             </div>
           </SurfaceCard>
         </StatsGrid>
@@ -262,7 +268,7 @@ export default function ProductsPage() {
                     onClick={() => setViewingProduct(product)}
                     data-testid="product-row"
                     data-product-id={product.id}
-                    className="group flex flex-col lg:grid lg:grid-cols-[minmax(0,3.5fr)_minmax(0,2fr)_minmax(0,3fr)_140px_100px] gap-4 items-center p-5 bg-[var(--surface-light)] border border-[var(--border-soft)] rounded-2xl hover:border-[var(--accent)]/50 hover:shadow-md transition-[border-color,box-shadow] cursor-pointer relative"
+                    className="group flex flex-col lg:grid lg:grid-cols-[minmax(0,3.5fr)_minmax(0,2fr)_minmax(0,3fr)_140px_100px] gap-4 items-center p-5 bg-[var(--surface-light)] border border-[var(--border-soft)] rounded-2xl hover:border-[var(--accent)]/50 hover:shadow-md transition-[border-color,box-shadow,transform] duration-200 active:scale-[0.99] cursor-pointer relative"
                   >
                     {/* name & Icon */}
                     <div className="flex items-center gap-4 w-full min-w-0">
@@ -299,14 +305,14 @@ export default function ProductsPage() {
                     <div className="flex flex-col gap-1.5 w-full min-w-0 mt-2 lg:mt-0 pt-3 border-t border-[var(--border-soft)] lg:pt-0 lg:border-none">
                       <span className="lg:hidden text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] block mb-1">{productText.tableHeaders.priceMargin}</span>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-[16px] font-black tracking-tight text-[var(--accent)]">{formatMoney(product.sellPriceVnd)}</span>
-                        <span className="text-[11px] font-bold text-[var(--fg-muted)] line-through opacity-70">{formatMoney(product.buyPriceVnd)}</span>
+                        <span className="text-[16px] font-black tracking-tight text-[var(--accent)] font-mono">{formatMoney(product.sellPriceVnd)}</span>
+                        <span className="text-[11px] font-bold text-[var(--fg-muted)] line-through opacity-70 font-mono">{formatMoney(product.buyPriceVnd)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-black text-emerald-600 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
+                        <span className="text-[12px] font-black text-emerald-600 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20 font-mono">
                           {productText.marginLabel} {formatMoney(margin)}
                         </span>
-                        <span className="text-[11px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded border border-[var(--accent)]/20">
+                        <span className="text-[11px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded border border-[var(--accent)]/20 font-mono">
                           {marginPercent}% {productText.marginSuffix}
                         </span>
                       </div>
@@ -439,22 +445,22 @@ export default function ProductsPage() {
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
                   {productText.detailModal.buyPrice}
                 </p>
-                <p className="text-lg font-black text-[var(--fg-base)]">{formatMoney(activeViewingProduct.buyPriceVnd)}</p>
+                <p className="text-lg font-black text-[var(--fg-base)] font-mono">{formatMoney(activeViewingProduct.buyPriceVnd)}</p>
               </div>
               <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
                   {productText.detailModal.sellPrice}
                 </p>
-                <p className="text-lg font-black text-[var(--accent)]">{formatMoney(activeViewingProduct.sellPriceVnd)}</p>
+                <p className="text-lg font-black text-[var(--accent)] font-mono">{formatMoney(activeViewingProduct.sellPriceVnd)}</p>
               </div>
             </div>
             <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4">
               <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
                 {productText.detailModal.profit}
               </p>
-              <p className="text-2xl font-black text-[var(--accent)]">
+              <p className="text-2xl font-black text-[var(--accent)] font-mono">
                 {formatMoney(activeViewingProduct.sellPriceVnd - activeViewingProduct.buyPriceVnd)}
-                <span className="ml-2 text-sm font-bold opacity-70">
+                <span className="ml-2 text-sm font-bold opacity-70 font-mono">
                   (
                   {activeViewingProduct.sellPriceVnd > 0
                     ? Math.round(
