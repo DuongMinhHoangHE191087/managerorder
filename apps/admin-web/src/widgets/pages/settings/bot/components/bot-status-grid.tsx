@@ -137,7 +137,7 @@ export function BotStatusGrid({
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatusCard
           title={vi.bot.statusGrid.telegramTitle}
           description={
@@ -163,15 +163,6 @@ export function BotStatusGrid({
               ? `${status.telegram.adminChatConfigured ? vi.bot.statusGrid.telegram.linkedChat : vi.bot.statusGrid.telegram.missingChat} • ${status.telegram.accountResolutionSource ?? vi.bot.statusGrid.telegram.sourceUnknown}`
               : vi.bot.statusGrid.telegram.missingAccountId
           }
-          loading={loading}
-        />
-        <StatusCard
-          title={vi.bot.statusGrid.zaloTitle}
-          description={status?.zalo.tokenConfigured ? vi.bot.statusGrid.zalo.runtimeReady : vi.bot.statusGrid.zalo.missingToken}
-          accent={status?.zalo.tokenConfigured ? "blue" : "amber"}
-          icon={MessageCircle}
-          stat={`${status?.contacts.zalo ?? 0} liên hệ`}
-          subStat={status?.zalo.accountBound ? vi.bot.statusGrid.zalo.linkedAccount : vi.bot.statusGrid.zalo.unlinkedAccount}
           loading={loading}
         />
         <StatusCard
@@ -206,7 +197,7 @@ export function BotStatusGrid({
         ))}
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4">
         {[
           {
             title: "Telegram runtime",
@@ -219,18 +210,6 @@ export function BotStatusGrid({
             lastReplyAt: status?.telegram.runtime.lastReplyAt,
             lastErrorAt: status?.telegram.runtime.lastErrorAt,
             lastErrorMessage: status?.telegram.runtime.lastErrorMessage,
-          },
-          {
-            title: "Zalo runtime",
-            transport: status?.zalo.runtime.actualTransport ?? "inactive",
-            healthy: status?.zalo.runtime.healthy ?? false,
-            webhookUrl: null,
-            pendingUpdateCount: null,
-            lastHeartbeatAt: status?.zalo.runtime.lastHeartbeatAt,
-            lastInboundAt: status?.zalo.runtime.lastInboundAt,
-            lastReplyAt: status?.zalo.runtime.lastReplyAt,
-            lastErrorAt: status?.zalo.runtime.lastErrorAt,
-            lastErrorMessage: status?.zalo.runtime.lastErrorMessage,
           },
         ].map((runtime) => (
           <div

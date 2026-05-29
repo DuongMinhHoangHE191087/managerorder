@@ -156,6 +156,7 @@ export interface AccountSharePublicSummary {
   expiresAt: string | null;
   locked: boolean;
   reason?: string;
+  template?: "owner_intro" | "ctv_neutral";
 }
 
 export interface ShareVisitorContext {

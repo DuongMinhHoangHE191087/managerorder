@@ -65,15 +65,7 @@ export function BotContactsSection({
       title={vi.bot.contacts.title}
       description={vi.bot.contacts.description}
     >
-      <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-[180px_180px_minmax(0,1fr)]">
-        <select
-          value={contactChannel}
-          onChange={(event) => onContactChannelChange(event.target.value as "zalo" | "telegram")}
-          className="rounded-xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm outline-none"
-        >
-          <option value="zalo">{vi.bot.contacts.channelZalo}</option>
-          <option value="telegram">{vi.bot.contacts.channelTelegram}</option>
-        </select>
+      <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-[180px_minmax(0,1fr)]">
         <select
           value={matchFilter}
           onChange={(event) => onMatchFilterChange(event.target.value as MatchFilter)}

@@ -194,6 +194,30 @@ async function verifyJwtEdge(token: string, secret: string) {
   return claims;
 }
 
+async function generateAuthSignature(
+  accountId: string,
+  userId: string,
+  email: string,
+  role: string,
+  secret: string
+): Promise<string> {
+  const data = `${accountId}:${userId}:${email}:${role}`;
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(data));
+  const binary = String.fromCharCode(...new Uint8Array(signature));
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
 async function resolveValidJwtTokenFromRequest(request: NextRequest): Promise<string | null> {
   const jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) {
@@ -257,6 +281,18 @@ async function buildE2EMockRequestHeaders(request: NextRequest): Promise<Headers
   requestHeaders.set("x-user-email", E2E_MOCK_EMAIL);
   requestHeaders.set("x-user-role", E2E_MOCK_ROLE);
   requestHeaders.set("x-user-id", E2E_MOCK_USER_ID);
+
+  const jwtSecret = process.env.JWT_SECRET;
+  if (jwtSecret) {
+    const sig = await generateAuthSignature(
+      accountId,
+      E2E_MOCK_USER_ID,
+      E2E_MOCK_EMAIL,
+      E2E_MOCK_ROLE,
+      jwtSecret
+    );
+    requestHeaders.set("x-auth-signature", sig);
+  }
 
   return requestHeaders;
 }
@@ -762,10 +798,40 @@ export default async function proxy(request: NextRequest) {
 
     // Check Supabase session (Google OAuth users)
     const { user, supabaseResponse } = await updateSession(request);
-    if (user) {
-      const dashboardUrl = request.nextUrl.clone();
-      dashboardUrl.pathname = "/dashboard";
-      return NextResponse.redirect(dashboardUrl);
+    if (user && user.email) {
+      const email = user.email.trim().toLowerCase();
+      let adminUser = getCachedAdmin(email);
+
+      if (adminUser === undefined) {
+        const { data } = await supabaseAdmin
+          .from("admin_users")
+          .select("id, email, role, account_id")
+          .ilike("email", email)
+          .single();
+        adminUser = data;
+        setCachedAdmin(email, adminUser);
+      }
+
+      if (adminUser) {
+        const dashboardUrl = request.nextUrl.clone();
+        dashboardUrl.pathname = "/dashboard";
+        return NextResponse.redirect(dashboardUrl);
+      } else {
+        const unauthorizedUrl = request.nextUrl.clone();
+        unauthorizedUrl.pathname = "/unauthorized";
+        const response = NextResponse.redirect(unauthorizedUrl);
+        // Clear all Supabase auth cookies to prevent redirect loop & session retention
+        supabaseResponse.cookies.getAll().forEach((cookie) => {
+          if (cookie.name.startsWith("sb-")) {
+            response.cookies.set(cookie.name, "", {
+              path: "/",
+              expires: new Date(0),
+              maxAge: 0,
+            });
+          }
+        });
+        return withPrivateNoStore(response);
+      }
     }
     return supabaseResponse;
   }
@@ -817,6 +883,15 @@ export default async function proxy(request: NextRequest) {
       if (payload.sub) {
         requestHeaders.set("x-user-id", payload.sub);
       }
+
+      const sig = await generateAuthSignature(
+        payload.accountId || "",
+        payload.sub || "",
+        payload.email || "",
+        payload.role || "",
+        jwtSecret
+      );
+      requestHeaders.set("x-auth-signature", sig);
 
       const response = NextResponse.next({
         request: { headers: requestHeaders },
@@ -914,6 +989,18 @@ export default async function proxy(request: NextRequest) {
     requestHeaders.set("x-user-email", adminUser.email ?? normalizedEmail);
     requestHeaders.set("x-user-role", adminUser.role);
     requestHeaders.set("x-user-id", adminUser.id);
+
+    const jwtSecret = process.env.JWT_SECRET;
+    if (jwtSecret) {
+      const sig = await generateAuthSignature(
+        adminUser.account_id,
+        adminUser.id,
+        adminUser.email ?? normalizedEmail,
+        adminUser.role,
+        jwtSecret
+      );
+      requestHeaders.set("x-auth-signature", sig);
+    }
 
     // Create a new response that forwards the modified request headers
     const response = NextResponse.next({

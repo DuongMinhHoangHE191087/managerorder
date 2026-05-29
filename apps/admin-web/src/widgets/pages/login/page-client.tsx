@@ -202,14 +202,11 @@ export default function LoginPage() {
             </div>
           ) : null}
 
-          <div className="mt-8 flex flex-col items-center gap-2">
-            <div className="flex items-center gap-1.5 text-xs text-[var(--fg-muted)]">
+          {/* Minimal security footer */}
+          <div className="mt-8 flex flex-col items-center gap-1">
+            <div className="flex items-center gap-1.5 text-[11px] text-[var(--fg-muted)]">
               <Shield className="size-3" />
-              <span>Bao mat boi ma hoa end-to-end</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-[var(--fg-muted)]">
-              <LogIn className="size-3" />
-              <span>Chi tai khoan duoc cap quyen moi co the truy cap</span>
+              <span>Chỉ tài khoản admin được cấp quyền mới có thể truy cập</span>
             </div>
           </div>
         </div>

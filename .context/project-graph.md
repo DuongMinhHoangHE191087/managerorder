@@ -69,6 +69,12 @@
 
 | time | event | evidence |
 | --- | --- | --- |
+| 2026-05-29 | Đồng bộ template Sharelink tự động tại API /api/share/[slug] và append template query param khi redirect sang /share/ | `apps/admin-web/src/domains/account-sharing/services.ts`, `apps/admin-web/src/domains/short-links/services/public-redirect.ts` |
+| 2026-05-29 | Loại bỏ hoàn toàn Zalo Bot và dọn dẹp các mô tả dài dòng, sửa lỗi Mojibake tiếng Việt trong vi.ts (bot, shortLinks, marketing) | `apps/admin-web/src/shared/messages/vi.ts`, `apps/admin-web/src/widgets/pages/settings/bot/components/bot-status-grid.tsx` |
+| 2026-05-29 | Khắc phục lỗi 401 cho Google Auth và tăng tốc API bằng cơ chế Edge-Signed Headers (HMAC), sửa đổi proxy và with-account | `apps/admin-web/src/proxy.ts`, `apps/admin-web/src/lib/api/with-account.ts` |
+| 2026-05-29 | Ngăn chặn người dùng Google Auth lạ giữ session bằng cách kiểm tra email tại Middleware `/login` và xóa cookies nếu không hợp lệ | `apps/admin-web/src/proxy.ts` |
+| 2026-05-29 | Tối giản hóa giao diện `/unauthorized` loại bỏ landing page cồng kềnh, dọn dẹp footer trang đăng nhập và sửa test `sales-landing.ts` | `apps/admin-web/src/app/unauthorized/unauthorized-client.tsx`, `apps/admin-web/src/widgets/pages/login/page-client.tsx`, `apps/admin-web/src/lib/settings/sales-landing.ts` |
+| 2026-05-29 | Triển khai API `/api/cron/notify` hợp nhất trên Vercel để gọi các cron job, thực hiện truy vấn cơ sở dữ liệu để lấy các số liệu đo lường chi tiết và gửi thông báo Telegram tổng hợp chuẩn đẹp | `apps/admin-web/src/app/api/cron/notify/route.ts`, `.github/workflows/vercel-cron-scheduler.yml` |
 | 2026-05-29 | Triển khai soft-delete và cascade purge đồng bộ cho 5 thực thể mới trong Thùng rác (lịch, thuê bao, gia hạn, chuyển đổi, chia sẻ) | `apps/admin-web/src/lib/supabase/repositories/trash.repo.ts`, `apps/admin-web/src/widgets/pages/trash/page-client.tsx` |
 | 2026-05-29 | Khắc phục lỗi 500 khi xoá vĩnh viễn khách hàng/sản phẩm bằng cascade đơn hàng/contacts và xử lý chặn lỗi FK sản phẩm thân thiện | `apps/admin-web/src/lib/supabase/repositories/trash.repo.ts` |
 | 2026-05-29 | Bổ sung API Webhook landing-page vào danh sách route công khai để không bị chặn đăng nhập | `apps/admin-web/src/proxy.ts` |

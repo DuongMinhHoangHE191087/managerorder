@@ -39,10 +39,8 @@ const CHANNEL_OPTIONS: Array<{
   icon: typeof MessageSquare;
   description: string;
 }> = [
-  { value: "telegram", label: "Telegram nội bộ", icon: MessageSquare, description: "Gửi cho admin / vận hành" },
-  { value: "zalo", label: "Zalo khách hàng", icon: MessageCircle, description: "Gửi trực tiếp khách đã match" },
-  { value: "email", label: "Email", icon: Mail, description: "Giữ chỗ cho phase email" },
-  { value: "both", label: "Telegram + Zalo", icon: Zap, description: "Nội bộ và khách hàng cùng lúc" },
+  { value: "telegram", label: "Telegram", icon: MessageSquare, description: "Gửi cảnh báo và thông báo" },
+  { value: "email", label: "Email", icon: Mail, description: "Gửi qua email khách hàng" },
 ];
 
 const REMINDER_DAYS = [
@@ -198,31 +196,7 @@ function ReminderConfigForm({
         </div>
       </div>
 
-      <div className="flex items-center justify-between rounded-2xl border border-[var(--border-soft)] bg-white p-4">
-        <div className="flex items-center gap-3">
-          {config.auto_send ? <Zap className="size-5 text-amber-500" /> : <BellOff className="size-5 text-[var(--fg-muted)]" />}
-          <div>
-            <p className="text-[13px] font-bold text-[var(--fg-base)]">Tự động gửi cho khách</p>
-            <p className="text-[11px] text-[var(--fg-muted)]">
-              Chỉ áp dụng khi có Zalo contact đã match với khách hàng và bật auto reminder.
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => updateField("auto_send", !config.auto_send)}
-          aria-pressed={config.auto_send}
-          className={`flex h-7 w-12 items-center rounded-full p-0.5 transition-colors duration-300 ${
-            config.auto_send ? "bg-amber-500" : "bg-gray-300"
-          }`}
-        >
-          <div
-            className={`h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-300 ease-out ${
-              config.auto_send ? "translate-x-5" : "translate-x-0"
-            }`}
-          />
-        </button>
-      </div>
+
 
       <div className="space-y-4">
         <h4 className="flex items-center gap-2 text-[13px] font-bold text-[var(--fg-base)]">
@@ -247,35 +221,21 @@ function ReminderConfigForm({
 
         <TemplateField
           label="Telegram nội bộ"
-          description="Dùng cho admin / vận hành khi cron gửi cảnh báo nội bộ."
+          description="Cảnh báo nội bộ qua Telegram."
           value={config.template_renewal_internal}
           onChange={(value) => updateField("template_renewal_internal", value)}
         />
 
         <TemplateField
-          label="Zalo gia hạn"
-          description="Gửi cho khách hàng khi còn 7/3/1 ngày."
-          value={config.template_renewal_zalo}
-          onChange={(value) => updateField("template_renewal_zalo", value)}
-        />
-
-        <TemplateField
-          label="Zalo hết hạn"
-          description="Gửi khi đơn đã hết hạn và có contact Zalo đã match."
-          value={config.template_expired_zalo}
-          onChange={(value) => updateField("template_expired_zalo", value)}
-        />
-
-        <TemplateField
           label="Template tương thích cũ"
-          description="Giữ lại cho các luồng cũ đang đọc template renewal/debt."
+          description="Tương thích cũ cho hệ thống."
           value={config.template_renewal}
           onChange={(value) => updateField("template_renewal", value)}
         />
 
         <TemplateField
           label="Template công nợ"
-          description="Dùng cho các luồng debt/follow-up hiện hữu."
+          description="Tin nhắn nhắc nợ."
           value={config.template_debt}
           onChange={(value) => updateField("template_debt", value)}
         />

@@ -3,6 +3,7 @@ import { getDecryptedSourceAccountSecretsForAccount } from "@/domains/source-acc
 import { supabaseAdmin as supabase } from "@/lib/supabase/admin";
 import { getSourceAccountById } from "@/lib/supabase/repositories/source-accounts.repo";
 import { ValidationError } from "@/lib/utils/errors";
+import { resolveShortLinkContext } from "@/domains/short-links";
 import {
   createUnlockCookieValue,
   hashPasscode,
@@ -345,6 +346,41 @@ export async function resolveAccountShareSummary(
   const passcodeRequired = Boolean(row.passcode_hash) || accessPolicy.requirePasscode;
   const locked = Boolean(validation.reason) || (passcodeRequired && !hasUnlock);
 
+  let template: "owner_intro" | "ctv_neutral" = "owner_intro";
+  let shortLinkRow = null;
+
+  if (row.short_link_id) {
+    const { data: sl } = await supabase
+      .from("short_links")
+      .select("account_id, sales_channel_id, order_id, delivery_mode, landing_template_key, failure_template_key, seller_contact_url")
+      .eq("id", row.short_link_id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    shortLinkRow = sl;
+  }
+
+  if (!shortLinkRow) {
+    const { data: sl } = await supabase
+      .from("short_links")
+      .select("account_id, sales_channel_id, order_id, delivery_mode, landing_template_key, failure_template_key, seller_contact_url")
+      .like("target_url", `%share/${slug}%`)
+      .is("deleted_at", null)
+      .limit(1)
+      .maybeSingle();
+    shortLinkRow = sl;
+  }
+
+  if (shortLinkRow) {
+    try {
+      const context = await resolveShortLinkContext(shortLinkRow);
+      if (context.resolvedPolicy.effectiveLandingTemplateKey) {
+        template = context.resolvedPolicy.effectiveLandingTemplateKey;
+      }
+    } catch (e) {
+      console.warn("[AccountShare] Failed to resolve short link context for template:", e);
+    }
+  }
+
   return {
     slug,
     title: row.title,
@@ -353,6 +389,7 @@ export async function resolveAccountShareSummary(
     expiresAt: row.expires_at,
     locked,
     reason: validation.reason ?? (locked ? "locked" : undefined),
+    template,
   };
 }
 

@@ -91,7 +91,7 @@ export function SettingsOverviewPanels() {
 
         <DeferredSettingsCard
           title="Kênh bán hàng"
-          description="Nguồn phát sinh đơn như Facebook, Zalo, website hoặc đội CTV."
+          description="Nguồn phát sinh đơn như Facebook, Telegram, website hoặc đội CTV."
           rows={4}
         >
           <SalesChannelManager />
@@ -116,7 +116,7 @@ export function SettingsOverviewPanels() {
 
       <DeferredSettingsCard
         title="Cấu hình nhắc hẹn"
-        description="Quản lý lịch nhắc, template Telegram nội bộ và template Zalo gửi khách hàng."
+        description="Quản lý lịch nhắc, template Telegram gửi khách hàng và thông báo nội bộ."
         rows={6}
       >
         <ReminderConfigManager />

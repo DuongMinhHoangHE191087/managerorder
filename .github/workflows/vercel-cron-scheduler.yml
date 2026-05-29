@@ -59,91 +59,52 @@ jobs:
             --fail --show-error --max-time 30
 
       # ─── 3. Group 01:00 UTC (08:00 sáng VN): Order Expiry + Revenue + Best Link ───
-      - name: Trigger Order Expiry Reminder
+      - name: Trigger Daily 01:00 UTC Group
         if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          echo "→ Triggering order-expiry-reminder"
+          echo "→ Triggering daily-01 group"
           curl --retry 3 --retry-delay 8 --retry-connrefused \
-            -X GET "${APP_URL}/api/cron/order-expiry-reminder" \
+            -X GET "${APP_URL}/api/cron/notify?schedule=daily-01" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error --max-time 30
-          sleep 10
-
-      - name: Trigger Revenue Report (Daily)
-        if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
-        run: |
-          echo "→ Triggering revenue-report (daily)"
-          curl --retry 3 --retry-delay 8 --retry-connrefused \
-            -X GET "${APP_URL}/api/cron/revenue-report" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json" \
-            --fail --show-error --max-time 30
-          sleep 10
-
-      - name: Trigger Best Super Link
-        if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
-        run: |
-          echo "→ Triggering best-super-link"
-          curl --retry 3 --retry-delay 8 --retry-connrefused \
-            -X GET "${APP_URL}/api/cron/best-super-link" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json" \
-            --fail --show-error --max-time 30
+            --fail --show-error --max-time 90
 
       # ─── 4. Thứ 2 lúc 01:00 UTC (08:00 sáng thứ 2 VN): Revenue Report Weekly ───
-      - name: Trigger Revenue Report (Weekly)
+      - name: Trigger Weekly 01:00 UTC Group
         if: github.event.schedule == '0 1 * * 1' || github.event_name == 'workflow_dispatch'
         run: |
-          echo "→ Triggering revenue-report (weekly)"
+          echo "→ Triggering weekly-01 group"
           curl --retry 3 --retry-delay 8 --retry-connrefused \
-            -X GET "${APP_URL}/api/cron/revenue-report?type=weekly" \
+            -X GET "${APP_URL}/api/cron/notify?schedule=weekly-01" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error --max-time 30
+            --fail --show-error --max-time 60
 
       # ─── 5. Group 02:00 UTC (09:00 sáng VN): Auto Escalation + Premium Renewal ───
-      - name: Trigger Auto Escalation
+      - name: Trigger Daily 02:00 UTC Group
         if: github.event.schedule == '0 2 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          echo "→ Triggering auto-escalation"
+          echo "→ Triggering daily-02 group"
           curl --retry 3 --retry-delay 8 --retry-connrefused \
-            -X GET "${APP_URL}/api/cron/auto-escalation" \
+            -X GET "${APP_URL}/api/cron/notify?schedule=daily-02" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error --max-time 30
-          sleep 10
-
-      - name: Trigger Premium Renewal Reminder
-        if: github.event.schedule == '0 2 * * *' || github.event_name == 'workflow_dispatch'
-        run: |
-          echo "→ Triggering premium-renewal-reminder"
-          curl --retry 3 --retry-delay 8 --retry-connrefused \
-            -X GET "${APP_URL}/api/cron/premium-renewal-reminder" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json" \
-            --fail --show-error --max-time 30
+            --fail --show-error --max-time 60
 
       # ─── 6. Premium Health Checks (10:15 sáng VN) ────────────────────────────
-      - name: Trigger Premium Health Checks
+      - name: Trigger Daily 03:15 UTC Group
         if: github.event.schedule == '15 3 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          echo "→ Triggering premium-health-checks"
+          echo "→ Triggering daily-03 group"
           curl --retry 3 --retry-delay 8 --retry-connrefused \
-            -X GET "${APP_URL}/api/cron/premium-health-checks" \
+            -X GET "${APP_URL}/api/cron/notify?schedule=daily-03" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --show-error --max-time 30
+            --fail --show-error --max-time 60
 
-      # ─── 7. Telegram Notification ─────────────────────────────────────────────
-      - name: Send Telegram Notification (Success)
-        if: |
-          success() && (
-            github.event_name == 'workflow_dispatch' ||
-            github.event.schedule == '0 1 * * *' ||
-            github.event.schedule == '0 2 * * *' ||
-            github.event.schedule == '15 3 * * *'
-          )
+      # ─── 7. Telegram Notification (Failure only) ──────────────────────────────
+      - name: Send Telegram Notification (Failure)
+        if: failure()
         run: |
           BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
           CHAT_ID="${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}"
@@ -160,39 +121,13 @@ jobs:
           SCHEDULE="${{ github.event.schedule }}"
           TRIGGER="${{ github.event_name }}"
 
-          MESSAGE="✅ <b>[GitHub Actions] Cron Scheduler</b>
-          
-          ⏰ ${VN_TIME} (VN)
-          📋 Trigger: ${TRIGGER}${SCHEDULE:+ / Schedule: ${SCHEDULE}}
-          🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Xem workflow</a>"
-
-          curl -s --fail -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-            -d "chat_id=${CHAT_ID}" \
-            --data-urlencode "text=${MESSAGE}" \
-            -d "parse_mode=HTML" \
-            -d "disable_web_page_preview=true" || echo "Telegram gửi không thành công"
-
-      - name: Send Telegram Notification (Failure)
-        if: failure()
-        run: |
-          BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
-          CHAT_ID="${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}"
-          if [ -z "$CHAT_ID" ]; then
-            CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}"
-          fi
-
-          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
-            echo "⚠️ Thiếu TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID — bỏ qua thông báo"
-            exit 0
-          fi
-
-          VN_TIME=$(TZ="Asia/Ho_Chi_Minh" date +'%d/%m/%Y %H:%M:%S')
-
-          MESSAGE="🚨 <b>[GitHub Actions] Cron Scheduler THẤT BẠI!</b>
-          
-          ❌ Có lỗi xảy ra trong quá trình trigger Cron Jobs.
-          ⏰ ${VN_TIME} (VN)
-          🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Xem log lỗi</a>"
+          MESSAGE="🚨 <b>CRON SCHEDULER THẤT BẠI!</b>
+          ⏰ <b>Thời gian:</b> ${VN_TIME} (VN)
+          📋 <b>Trigger:</b> ${TRIGGER}${SCHEDULE:+ / ${SCHEDULE}}
+          ━━━━━━━━━━━━━━━━━━━
+          ❌ Có lỗi xảy ra trong quá trình chạy tác vụ.
+          ━━━━━━━━━━━━━━━━━━━
+          🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Xem log chi tiết lỗi</a>"
 
           curl -s --fail -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
             -d "chat_id=${CHAT_ID}" \

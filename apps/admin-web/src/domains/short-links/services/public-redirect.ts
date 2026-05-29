@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { executeShortLink, getShortLinkBySlug, logShortLinkClick } from "@/domains/short-links";
+import { executeShortLink, getShortLinkBySlug, logShortLinkClick, resolveShortLinkContext } from "@/domains/short-links";
 import { supabaseAdmin as supabase } from "@/lib/supabase/admin";
 import { createShortLinkClickRecord, getShortLinkVisitorFingerprint } from "./visitor";
 
@@ -152,7 +152,22 @@ export async function executePublicShortLinkRedirect(
     }),
   );
 
+  let targetUrl = execution.target_url;
+  if (targetUrl.includes("/share/")) {
+    try {
+      const context = await resolveShortLinkContext(link);
+      const templateKey = context.resolvedPolicy.effectiveLandingTemplateKey;
+      if (templateKey) {
+        const url = new URL(targetUrl, request.url);
+        url.searchParams.set("template", templateKey);
+        targetUrl = url.toString();
+      }
+    } catch (e) {
+      console.warn("[ShortLink] Failed to append template during redirect:", e);
+    }
+  }
+
   return applyPublicShortLinkSecurityHeaders(
-    NextResponse.redirect(execution.target_url, { status: 302 }),
+    NextResponse.redirect(targetUrl, { status: 302 }),
   );
 }

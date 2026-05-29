@@ -12,6 +12,7 @@ type ShareSummary = {
   expiresAt: string | null;
   locked: boolean;
   reason?: string;
+  template?: "owner_intro" | "ctv_neutral";
 };
 
 type ShareCredential = {
@@ -92,6 +93,9 @@ export function AccountSharePublicView({ slug }: { slug: string }) {
     }
 
     setSummary(summaryResult.data);
+    if (summaryResult.data.template) {
+      setTemplate(summaryResult.data.template);
+    }
     if (!summaryResult.data.locked) {
       await loadPayload();
     }
@@ -190,7 +194,7 @@ export function AccountSharePublicView({ slug }: { slug: string }) {
             <form onSubmit={handleUnlock} className="share-lock-form">
               <div className="share-lock-notice">
                 <Lock className="size-4 shrink-0 text-amber-400" />
-                <span>Liên kết này cần mã mở khóa để xem thông tin.</span>
+                <span>Nhập mã mở khóa để xem thông tin.</span>
               </div>
               <div className="share-input-group">
                 <label className="share-input-label">Mã mở khóa</label>
@@ -285,7 +289,7 @@ export function AccountSharePublicView({ slug }: { slug: string }) {
             <span>HỖ TRỢ & BẢO HÀNH 24/7</span>
           </div>
           <p className="share-support-desc">
-            Tài khoản được bảo hành trọn đời gói mua. Nếu gặp lỗi mật khẩu, hết hạn hoặc cần hỗ trợ kích hoạt, vui lòng liên hệ nhanh qua các kênh bên dưới.
+            Bảo hành trọn đời gói mua. Liên hệ hỗ trợ nhanh qua các kênh bên dưới khi gặp lỗi.
           </p>
           <div className="share-support-actions">
             <a

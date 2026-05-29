@@ -19,7 +19,15 @@
 - 2026-05-29: Sửa lỗi 500 khi xóa vĩnh viễn (purge) Khách hàng và Sản phẩm trong thùng rác do ràng buộc khóa ngoại (FK constraints). Tự động xóa các đơn hàng liên quan của khách hàng trước (vì orders.customer_id là NOT NULL), và chặn xóa sản phẩm nếu có đơn hàng đang sử dụng (order_items.product_id là NOT NULL) bằng cách ném ra lỗi thân thiện, đồng thời nullify các tham chiếu sản phẩm hợp lệ khác.
 - 2026-05-29: Hỗ trợ xóa mềm (Soft-delete) và xóa vĩnh viễn (Purge) đồng bộ cho 5 thực thể mới trong Thùng rác: Lịch sự kiện (`reminder_events`), Tài khoản thuê bao (`premium_accounts`), Yêu cầu gia hạn (`subscription_renewals`), Chuyển đổi thuê bao (`account_migrations`), và Liên kết chia sẻ (`account_share_links`).
 - 2026-05-29: Triển khai cơ chế cascade delete tự động cho `premium_accounts` (xóa subscriptions -> renewals -> migrations -> users -> health check logs -> migrations refs) và `account_migrations` / `account_share_links` khi thực hiện xóa vĩnh viễn (purge) để tránh lỗi ràng buộc khóa ngoại (Foreign Key constraint error 500).
-- [date] decision / rationale
+- 2026-05-29: Cấu hình Vercel Cron Scheduler GitHub Action để gọi một endpoint hợp nhất mới trên Vercel (`/api/cron/notify?schedule=...`). Endpoint này thực thi tuần tự các cron API, thực hiện truy vấn cơ sở dữ liệu để lấy các số liệu nghiệp vụ chi tiết (như danh sách khách hàng được nhắc hạn, doanh thu từng đơn lớn, các Super Link trống...) và gửi thông báo Telegram tổng hợp chuẩn đẹp.
+- 2026-05-29: Khắc phục lỗi 401 cho Google Auth và tăng tốc API bằng cơ chế Edge-Signed Headers. Middleware (`proxy.ts`) ký mã HMAC (`x-auth-signature`) dựa trên Account/User ID. Route wrapper (`with-account.ts`) verify chữ ký để lấy account_id lập tức, bỏ qua database lookup trùng lặp.
+- 2026-05-29: Ngăn chặn tài khoản Google không được phép giữ session đăng nhập bằng cách cập nhật Middleware `/login` kiểm tra quyền admin. Nếu không hợp lệ, hệ thống xóa sạch session cookies (`sb-` cookies) và redirect sang `/unauthorized`.
+- 2026-05-29: Tối giản hóa giao diện `/unauthorized` bằng cách thay thế landing page cồng kềnh bằng giao diện glassmorphism gọn nhẹ, đồng thời dọn dẹp banner thừa chân trang login.
+- 2026-05-29: Sửa lỗi test của `sales-landing.ts` bằng cách cập nhật hàm `normalizeSalesLandingConfig` tự động bù đắp các offers còn thiếu bằng giá trị mặc định cho đủ chiều dài quy định.
+- 2026-05-29: Đồng bộ hóa template Sharelink tự động bằng cách kết nối với sales channels và short links động ở API `/api/share/[slug]` và tự động append template query param tại Middleware chuyển hướng.
+- 2026-05-29: Loại bỏ hoàn toàn Zalo Bot khỏi giao diện Cài đặt và quản lý Bot (StatusGrid, Contacts, ReminderConfig), tinh gọn lưới hiển thị và các bộ lọc để tập trung 100% vào Telegram Bot chuyên môn.
+- 2026-05-29: Rút gọn các văn bản mô tả hướng dẫn dài dòng trong phần Cài đặt Bot, Cấu hình nhắc hẹn và trang Public Share để đạt chuẩn tối giản, chuyên nghiệp.
+- 2026-05-29: Khắc phục triệt để lỗi mã hóa tiếng Việt (Mojibake) trong tệp dịch thuật `vi.ts` ở các module `marketing`, `bot`, và `shortLinks` và cấu hình các hàm dynamic string để vượt qua 100% unit tests.
 
 ## Facts
 
@@ -34,7 +42,10 @@
 - 2026-05-29: Cập nhật repo `trash.repo.ts`, `calendar.repo.ts`, và các route API DELETE (soft-delete) / GET tương ứng cho các thực thể gia hạn, chuyển đổi, lịch, tài khoản, chia sẻ.
 - 2026-05-29: Tích hợp hoàn hảo giao diện và hook Trash trên frontend (`page-client.tsx`, `use-trash.ts`) để hiển thị tab, số lượng rác của 5 thực thể mới.
 - 2026-05-29: Chạy toàn bộ 34 tests trong Vitest thành công (100% pass) và ESLint linting đạt 0 errors (10 warnings không ảnh hưởng).
-- [date] concise factual note
+- 2026-05-29: Triển khai API `/api/cron/notify` để gộp việc gọi và thu thập phản hồi của các cron job khác, đồng thời truy vấn cơ sở dữ liệu để thêm thông tin đo lường chi tiết và gửi tin nhắn Telegram đẹp mắt.
+- 2026-05-29: Triển khai cơ chế Edge-Signed Headers bằng HMAC bảo mật để khắc phục triệt để lỗi 401 cho Google Auth và tăng tốc API. Sửa đổi `proxy.ts`, `with-account.ts`, `unauthorized-client.tsx`, `page-client.tsx` và `sales-landing.ts`.
+- 2026-05-29: Đã chạy thành công 2091 unit tests trong Vitest (100% pass) và hoàn thành biên dịch (next build) thành công 100% dự án.
+- 2026-05-29: Chạy thành công 2091 unit tests của 183 files (100% passed) và hoàn tất build Turbopack thành công 100% dự án sau khi dọn dẹp Zalo Bot và làm sạch Mojibake.
 - 2026-05-13: After short-links/calendar patches, remaining top transition hotspots are short-link detail, create-order form, customers list, providers content, event-create modal, inventory table/header, settings reminder config, group/tag manager, and orders import.
 - 2026-05-13: Short-links page keeps search/status/sort/page in local state, has many `transition-all` classes, and still uses browser `confirm(...)` for destructive single/bulk deletes.
 - 2026-05-13: Remaining widgets scan ranks `short-links/components/short-links-page-content.tsx` as the largest untouched UI hotspot (18 `transition-all`, no `useSearchParams`), followed by short-link detail, calendar page, create-order form, customers list, and providers content.
@@ -77,6 +88,7 @@
 - 2026-05-28: Gỡ bỏ hoàn toàn Zalo Bot: Xóa cứng thư mục packages/zalo-bot-js, dọn dẹp cấu hình workspace và 288 packages phụ thuộc. Xác thực chạy lại build toàn monorepo thành công rực rỡ.
 - 2026-05-28: Chạy quy trình /ops (/deploy check) toàn diện: Kiểm tra thành công ESLint (0 errors), tsc typecheck (0 errors) của admin-web. Đồng thời gỡ bỏ corepack khỏi zalo-bot-js, xác thực thành công bộ unit tests 2091/2091 passed và smoke test thành công (smoke ok).
 - 2026-05-29: Sửa lỗi 500 khi xoá vĩnh viễn khách hàng và sản phẩm trong thùng rác do ràng buộc khoá ngoại (FK constraint). Cập nhật `trash.repo.ts` để cascade/nullify các liên kết đơn hàng, sản phẩm, và license_keys tương ứng một cách an toàn và ném lỗi thân thiện khi cần.
+- 2026-05-29: Thay thế logic bash script trong GitHub Actions bằng cách viết trực tiếp mã JavaScript/TypeScript trong route `/api/cron/notify` trên Vercel để query cơ sở dữ liệu và gửi thông báo Telegram tổng hợp chi tiết nhất.
 - [date] event or correction
 - 2026-05-13: Spot-check of non-UI hook/type files under `widgets/pages` showed their diffs are pre-existing contract additions, not transition rewrite artifacts; no `transition-*` strings remain in those hook/type files.
 - 2026-05-13: Final scan remained clean for `transition-all` and native `confirm(` across `widgets/pages`; final scoped `git diff --check` passed with the same premium CRLF normalization warnings.

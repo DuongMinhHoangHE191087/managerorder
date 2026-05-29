@@ -28,12 +28,22 @@ export function normalizeSalesLandingConfig(
 ): SalesLandingConfig {
   const offers = extractOffers(value);
 
-  const normalizedOffers = offers.length > 0
-    ? offers.map((offer, index) => {
-        const fallback = DEFAULT_OFFER_CONFIGS[index % DEFAULT_OFFER_CONFIGS.length] || DEFAULT_OFFER_CONFIGS[0];
-        return normalizeOffer(offer, fallback, index);
-      })
-    : DEFAULT_OFFER_CONFIGS;
+  let normalizedOffers: SalesLandingOfferConfig[] = [];
+  if (offers.length > 0) {
+    const mapped = offers.map((offer, index) => {
+      const fallback = DEFAULT_OFFER_CONFIGS[index % DEFAULT_OFFER_CONFIGS.length] || DEFAULT_OFFER_CONFIGS[0];
+      return normalizeOffer(offer, fallback, index);
+    });
+
+    // Fills missing slots up to DEFAULT_OFFER_CONFIGS length with defaults
+    const filled: SalesLandingOfferConfig[] = [...mapped];
+    for (let index = mapped.length; index < DEFAULT_OFFER_CONFIGS.length; index++) {
+      filled.push(DEFAULT_OFFER_CONFIGS[index]);
+    }
+    normalizedOffers = filled;
+  } else {
+    normalizedOffers = DEFAULT_OFFER_CONFIGS;
+  }
 
   return {
     offers: normalizedOffers,

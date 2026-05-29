@@ -22,7 +22,7 @@ export default function BotManagementPage() {
   const text = vi.bot.page;
   const [isClient, setIsClient] = useState(false);
   const [broadcastMessage, setBroadcastMessage] = useState("");
-  const [contactChannel, setContactChannel] = useState<"zalo" | "telegram">("zalo");
+  const [contactChannel, setContactChannel] = useState<"zalo" | "telegram">("telegram");
   const [matchFilter, setMatchFilter] = useState<MatchFilter>("all");
   const [search, setSearch] = useState("");
   const [candidateQuery, setCandidateQuery] = useState<Record<string, string>>({});
@@ -224,19 +224,19 @@ export default function BotManagementPage() {
         />
         {showUnavailableState ? (
           <SectionCard
-            title="Trạng thái bot chưa sẵn sàng"
-            description="Phiên đăng nhập chưa sẵn sàng hoặc tài khoản hiện tại không có quyền xem trạng thái bot. Trang vẫn hoạt động, nhưng số liệu bot sẽ được ẩn để tránh lỗi console."
+            title="Chưa sẵn sàng"
+            description="Tài khoản chưa đồng bộ phiên hoặc không có quyền quản lý bot."
           >
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium leading-6 text-amber-800">
-              Nếu bạn vừa đăng nhập, hãy tải lại trang để đồng bộ phiên. Nếu không có quyền quản trị bot, phần này sẽ không hiển thị số liệu.
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-[12px] font-semibold text-amber-800">
+              Vui lòng tải lại trang hoặc kiểm tra quyền tài khoản.
             </div>
           </SectionCard>
         ) : (
           <BotStatusGrid status={statusGridStatus} loading={statusGridLoading} />
         )}
         <SectionCard
-          title="Kiểm tra tra cứu Zalo nội bộ"
-          description="Kiểm tra nhanh cùng contract với lệnh /kt, /kiemtra và tra cứu đơn trước khi dùng trên bot thật."
+          title="Kiểm thử Telegram Bot"
+          description="Tra cứu và kiểm tra nhanh phản hồi của Telegram Bot."
         >
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
             <input

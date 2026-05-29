@@ -3,19 +3,46 @@ import { isMockSessionEnabled, isMockSessionTokenAllowed } from "@/lib/auth/mock
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { verifyToken } from "@/lib/utils/jwt";
+import crypto from "crypto";
 
 export type ApiHandler<T extends object = Record<string, never>> = (
   request: NextRequest,
   context: { accountId: string; params: Promise<T> }
 ) => Promise<NextResponse> | NextResponse;
 
+function verifyAuthSignature(accountId: string, userId: string, email: string, role: string, signature: string, secret: string): boolean {
+  const data = `${accountId}:${userId}:${email}:${role}`;
+  const hmac = crypto.createHmac("sha256", secret);
+  hmac.update(data);
+  const calculated = hmac.digest("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  return calculated === signature;
+}
+
 /**
  * Resolve accountId in order of priority:
- * 1. x-account-id header (injected by middleware after auth verification)
- * 2. (Fallback) Supabase session -> admin_users lookup
+ * 1. x-account-id header with a valid server-signed x-auth-signature
+ * 2. Custom JWT (Authorization header or access_token cookie)
+ * 3. (Fallback) Supabase session -> admin_users lookup
  */
 export async function resolveAccountId(req: NextRequest): Promise<string | null> {
   const headerAccountId = req.headers.get("x-account-id");
+  const signature = req.headers.get("x-auth-signature");
+  const email = req.headers.get("x-user-email");
+  const role = req.headers.get("x-user-role");
+  const userId = req.headers.get("x-user-id");
+  const jwtSecret = process.env.JWT_SECRET;
+
+  // Priority 1: Verify the server-signed HMAC signature from middleware.
+  // Bypasses slower DB/Auth API roundtrips safely.
+  if (headerAccountId && signature && email && role && userId && jwtSecret) {
+    if (verifyAuthSignature(headerAccountId, userId, email, role, signature, jwtSecret)) {
+      return headerAccountId;
+    }
+  }
+
   const isE2EMockSession = isMockSessionEnabled(req.nextUrl.hostname);
   const mockSessionHeader = req.headers.get("x-e2e-mock-session");
 
@@ -25,7 +52,7 @@ export async function resolveAccountId(req: NextRequest): Promise<string | null>
 
   // Validate header against JWT to prevent header injection.
   if (headerAccountId) {
-    // Priority 1: Validate via Authorization Bearer header.
+    // Priority 2a: Validate via Authorization Bearer header.
     try {
       const authHeader = req.headers.get("authorization");
       if (authHeader?.startsWith("Bearer ")) {
@@ -39,7 +66,7 @@ export async function resolveAccountId(req: NextRequest): Promise<string | null>
       // Bearer JWT verification failed.
     }
 
-    // Priority 2: Validate via httpOnly cookie (email login users).
+    // Priority 2b: Validate via httpOnly cookie (email login users).
     try {
       const cookieToken = req.cookies.get("access_token")?.value;
       if (cookieToken) {
