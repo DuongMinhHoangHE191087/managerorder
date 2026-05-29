@@ -22,3 +22,5 @@ packages/*/.tmp/
 
 /.pnpm-store-local
 .env
+
+/scratch/taste-skill

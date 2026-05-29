@@ -34,10 +34,12 @@
 - 2026-05-30: Nâng cấp toàn diện thiết kế UI/UX Premium (Giai đoạn 3) cho các trang mục tiêu: Khách hàng (Customers), Sản phẩm (Products) và Nhà cung cấp (Providers) theo chuẩn Taste Skill / Redesign Skill / Modern Web Architect. Nâng cấp tactile feedback đàn hồi (`active:scale-[0.99]`) khi tương tác thẻ card và đồng bộ hóa hiển thị font chữ monospace (`font-mono`) cho toàn bộ các thông số đo lường tài chính báo cáo (giá tiền, tổng chi tiêu, ví, nợ và độ tin cậy).
 - 2026-05-30: Nâng cấp thiết kế UI/UX Premium (Giai đoạn Bổ sung) cho các trang: Kho hàng (Inventory), Thùng rác (Trash) và Bảng điều khiển (Dashboard) theo chuẩn Taste Skill / Redesign Skill / Modern Web Architect. Tích hợp active-scale đàn hồi và font chữ monospace (`font-mono`) cho các thông số đo lường (dung lượng, số lượng, thời gian hết hạn và số liệu tài chính).
 - 2026-05-30: Khắc phục lỗi đăng nhập bằng Google (State mismatch) trên môi trường development cục bộ bằng cách tự động bypass việc đối khớp state khi phát hiện NODE_ENV là development, giúp ngăn chặn lỗi do mismatch cookie domain giữa localhost và 127.0.0.1.
+- 2026-05-30: Chuyển đổi cơ chế thiết lập Redirect URI của Google OAuth sang dạng động (dynamic) bằng cách tự động phân tích headers x-forwarded-proto và host/x-forwarded-host từ NextRequest. Giải pháp này giúp hỗ trợ chạy mượt mà trên mọi tên miền (như duongminhhoang.id.vn) hoặc các đường hầm phát triển (như ngrok) mà không bị bó cứng (hardcoded) vào localhost.
 
 ## Facts
 
 - 2026-05-30: Khắc phục lỗi Google Login Callback (State mismatch) trên localhost/dev bằng cách bypass việc so khớp nonce cookie khi chạy ở development mode, vượt qua 100% typecheck và unit tests.
+- 2026-05-30: Sửa đổi các route xử lý login và callback của Google Auth để tự động cấu trúc Redirect URI động theo domain đang truy cập thực tế, vượt qua 100% typecheck và unit tests.
 - 2026-05-28: Tối ưu hóa cấu hình vercel.json, xóa bỏ hoàn toàn dòng khai báo trùng lặp cho cron job telegram-reminder.
 - 2026-05-28: Lỗi "supabaseKey is required" khi Next.js thu thập dữ liệu trang tĩnh cho /api/auth/callback đã được khắc phục hoàn toàn bằng cách cung cấp fallback placeholders. Next.js build hiện tại đã biên dịch thành công 100% (60/60 trang tĩnh).
 - 2026-05-28: Next.js build gặp lỗi crash code 134 (JS heap out of memory) trong pha tsc typecheck. Giải quyết triệt để bằng cách dùng cross-env cấp phát 4GB heap size và chạy next build chuẩn hóa, tương thích cả Windows local và Linux Vercel CI.
@@ -95,6 +97,7 @@
 ## Session Log
 
 - 2026-05-30: Khắc phục lỗi Google OAuth callback state mismatch cho môi trường localhost/dev bằng cách tự động bypass so khớp state ở development mode, chạy thành công typecheck và bộ 2091 unit tests (100% Passed).
+- 2026-05-30: Hỗ trợ Redirect URI động cho Google Auth (login và callback) dựa trên domain máy khách đang trỏ tới (ví dụ duongminhhoang.id.vn), giải quyết dứt điểm việc bị redirect về localhost:3000.
 - 2026-05-28: Sửa lỗi Node engine cảnh báo bằng cách nới rộng phạm vi thành ">=22.0.0" và cập nhật packageManager thành "pnpm@10.0.0" đồng bộ với lockfile v9. Đồng thời loại bỏ cron job telegram-reminder trùng lặp trong vercel.json.
 - 2026-05-28: Sửa lỗi build admin-web bằng cách cung cấp giá trị mặc định cho Supabase client ở admin.ts và proxy.ts. Khởi chạy build thành công rực rỡ với Turbopack.
 - 2026-05-28: Gỡ bỏ hoàn toàn Zalo Bot: Xóa cứng thư mục packages/zalo-bot-js, dọn dẹp cấu hình workspace và 288 packages phụ thuộc. Xác thực chạy lại build toàn monorepo thành công rực rỡ.

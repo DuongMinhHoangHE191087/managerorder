@@ -1,41 +1,18 @@
 import { randomUUID } from "crypto";
-import { google } from "googleapis";
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveAccountId } from "@/lib/api/with-account";
+import { checkAuthRateLimit, getClientIp } from "@/lib/api/rate-limiter";
 import { resolveInternalRedirectPath } from "@/widgets/pages/login/login-routing";
+import {
+  COOKIE_OPTIONS,
+  GOOGLE_COOKIE_NAMES,
+  GOOGLE_CALENDAR_SCOPES,
+  GOOGLE_LOGIN_SCOPES,
+  clearOAuthCookies,
+  createOAuthClient,
+} from "@/lib/utils/google-oauth";
 
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  path: "/",
-};
-
-const GOOGLE_LOGIN_STATE_COOKIE = "google_login_oauth_state";
-const GOOGLE_LOGIN_NEXT_COOKIE = "google_login_oauth_next";
-const GOOGLE_CALENDAR_STATE_COOKIE = "google_calendar_oauth_state";
-const GOOGLE_LEGACY_STATE_COOKIE = "google_oauth_state";
-const GOOGLE_LEGACY_NEXT_COOKIE = "google_oauth_next";
-const GOOGLE_LOGIN_SCOPES = ["openid", "email", "profile"];
-const GOOGLE_CALENDAR_SCOPES = [
-  "https://www.googleapis.com/auth/calendar.events",
-  "https://www.googleapis.com/auth/calendar.readonly",
-];
-
-function getRedirectUri() {
-  return `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/auth/google/callback`;
-}
-
-function createOAuthClient() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    return null;
-  }
-
-  return new google.auth.OAuth2(clientId, clientSecret, getRedirectUri());
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildLoginErrorRedirect(request: NextRequest, reason: string) {
   const errorUrl = new URL("/login", request.url);
@@ -44,51 +21,59 @@ function buildLoginErrorRedirect(request: NextRequest, reason: string) {
   return errorUrl;
 }
 
-function clearLegacyOAuthCookies(response: NextResponse) {
-  response.cookies.set(GOOGLE_LEGACY_STATE_COOKIE, "", {
-    ...COOKIE_OPTIONS,
-    maxAge: 0,
-  });
-  response.cookies.set(GOOGLE_LEGACY_NEXT_COOKIE, "", {
-    ...COOKIE_OPTIONS,
-    maxAge: 0,
-  });
-}
+function setLoginOAuthCookies(
+  response: NextResponse,
+  nonce: string,
+  nextPath?: string,
+) {
+  // Clear legacy cookies before setting new ones
+  clearOAuthCookies(response);
 
-function setLoginOAuthCookies(response: NextResponse, nonce: string, nextPath?: string) {
-  response.cookies.set(GOOGLE_LOGIN_STATE_COOKIE, nonce, {
+  response.cookies.set(GOOGLE_COOKIE_NAMES.LOGIN_STATE, nonce, {
     ...COOKIE_OPTIONS,
     maxAge: 10 * 60,
   });
 
   if (nextPath) {
-    response.cookies.set(GOOGLE_LOGIN_NEXT_COOKIE, nextPath, {
+    response.cookies.set(GOOGLE_COOKIE_NAMES.LOGIN_NEXT, nextPath, {
       ...COOKIE_OPTIONS,
       maxAge: 10 * 60,
     });
   } else {
-    response.cookies.set(GOOGLE_LOGIN_NEXT_COOKIE, "", {
+    response.cookies.set(GOOGLE_COOKIE_NAMES.LOGIN_NEXT, "", {
       ...COOKIE_OPTIONS,
       maxAge: 0,
     });
   }
-
-  clearLegacyOAuthCookies(response);
 }
 
 function setCalendarOAuthCookies(response: NextResponse, nonce: string) {
-  response.cookies.set(GOOGLE_CALENDAR_STATE_COOKIE, nonce, {
+  clearOAuthCookies(response);
+  response.cookies.set(GOOGLE_COOKIE_NAMES.CALENDAR_STATE, nonce, {
     ...COOKIE_OPTIONS,
     maxAge: 10 * 60,
   });
-
-  clearLegacyOAuthCookies(response);
 }
 
+// ─── Route Handler ────────────────────────────────────────────────────────────
+
 export async function GET(request: NextRequest) {
+  // Rate limiting — 5 requests / minute per IP (shared with auth bucket)
+  const ip = getClientIp(request);
+  const rateLimit = await checkAuthRateLimit(ip);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Quá nhiều yêu cầu. Vui lòng thử lại sau." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil(rateLimit.retryAfterMs / 1000)) },
+      },
+    );
+  }
+
   const url = new URL(request.url);
   const mode = url.searchParams.get("mode");
-  const oauth2Client = createOAuthClient();
+  const oauth2Client = createOAuthClient(request);
 
   if (!oauth2Client) {
     if (mode === "login") {
@@ -101,16 +86,17 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(
-      {
-        error:
-          "Thieu thong tin GOOGLE_CLIENT_ID hoac GOOGLE_CLIENT_SECRET trong file mau",
-      },
+      { error: "Thieu thong tin GOOGLE_CLIENT_ID hoac GOOGLE_CLIENT_SECRET trong file mau" },
       { status: 500 },
     );
   }
 
+  // ── Login Mode ──────────────────────────────────────────────────────────────
   if (mode === "login") {
-    const nextPath = resolveInternalRedirectPath(url.searchParams.get("next"), url.searchParams.get("redirect"));
+    const nextPath = resolveInternalRedirectPath(
+      url.searchParams.get("next"),
+      url.searchParams.get("redirect"),
+    );
     const nonce = randomUUID();
 
     const authUrl = oauth2Client.generateAuthUrl({
@@ -119,11 +105,14 @@ export async function GET(request: NextRequest) {
       state: `login:${nonce}`,
     });
 
+    console.info(`[GoogleAuth:login] Initiating OAuth flow — ip=${ip}`);
+
     const response = NextResponse.redirect(authUrl);
     setLoginOAuthCookies(response, nonce, nextPath);
     return response;
   }
 
+  // ── Calendar Mode (requires authenticated session) ──────────────────────────
   const accountId = await resolveAccountId(request);
   if (!accountId) {
     return NextResponse.json(
@@ -139,6 +128,8 @@ export async function GET(request: NextRequest) {
     prompt: "consent",
     state: `calendar:${accountId}:${nonce}`,
   });
+
+  console.info(`[GoogleAuth:calendar] Initiating OAuth flow — accountId=${accountId} ip=${ip}`);
 
   const response = NextResponse.redirect(authUrl);
   setCalendarOAuthCookies(response, nonce);
