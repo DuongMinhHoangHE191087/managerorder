@@ -21,6 +21,7 @@ import { vi } from "@/shared/messages/vi";
 import { hasSearchTokens, matchesSearchQuery } from "@/shared/lib/filtering/search";
 import { ProviderModel } from "@/entities/provider";
 import { ProvidersGrid } from "./providers-grid";
+import { SlimLoader } from "@/shared/ui/slim-loader";
 
 const CustomerCreateModal = dynamic(
   () =>
@@ -40,7 +41,7 @@ const ProviderEditModal = dynamic(
 
 export default function ProvidersPage() {
   const router = useRouter();
-  const { data: providers = [], isLoading } = useProviders();
+  const { data: providers = [], isLoading, isFetching } = useProviders();
   const { mutateAsync: deleteProvider } = useDeleteProvider();
   const text = vi.providers.page;
   const detailText = vi.providers.detail;
@@ -220,30 +221,32 @@ export default function ProvidersPage() {
             action={totalProviders > 0 ? <span className="text-[12px] font-bold text-[var(--fg-muted)]">{pageCount} trang</span> : null}
           />
 
-          <div className={cn("w-full flex flex-col relative min-h-0 items-stretch", viewMode === "list" ? "space-y-3 p-4 sm:p-5" : "p-6")}>
-          {isLoading ? (
-            viewMode === "card" ? (
-              <ProvidersGrid
-                isLoading={true}
-                mappedProviders={[]}
-                onRowClick={() => {}}
-                onEditClick={() => {}}
-                onDeleteClick={() => {}}
-              />
-            ) : (
-              <div className="p-8 space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-4 animate-pulse">
-                    <div className="size-12 bg-gray-200 rounded-2xl shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-1/3" />
-                      <div className="h-3 bg-gray-100 rounded w-1/4" />
-                    </div>
-                    <div className="h-4 bg-gray-200 rounded w-20" />
+          <div className={cn("w-full flex flex-col relative min-h-[200px] items-stretch", viewMode === "list" ? "space-y-3 p-4 sm:p-5" : "p-6")}>
+            <SlimLoader isVisible={isFetching && !isLoading} />
+            <div className={cn("transition-opacity duration-200 w-full flex flex-col items-stretch", isFetching && !isLoading && "opacity-85")}>
+              {isLoading ? (
+                viewMode === "card" ? (
+                  <ProvidersGrid
+                    isLoading={true}
+                    mappedProviders={[]}
+                    onRowClick={() => {}}
+                    onEditClick={() => {}}
+                    onDeleteClick={() => {}}
+                  />
+                ) : (
+                  <div className="p-8 space-y-4 w-full">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm w-full">
+                        <div className="size-12 shimmer rounded-2xl shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 shimmer rounded w-1/3" />
+                          <div className="h-3 shimmer rounded w-1/4" />
+                        </div>
+                        <div className="h-4 shimmer rounded w-20" />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )
+                )
           ) : totalProviders === 0 ? (
             <EmptyState
               icon={<Briefcase className="size-12" />}
@@ -462,6 +465,7 @@ export default function ProvidersPage() {
               )}
             </div>
           )}
+            </div>
           </div>
         </SurfaceCard>
 

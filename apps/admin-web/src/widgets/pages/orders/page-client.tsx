@@ -23,6 +23,7 @@ import { OrdersTable } from "@/widgets/pages/orders/components/orders-table";
 import { OrdersGrid } from "./components/orders-grid";
 import { OrderModel } from "@/entities/order";
 import { BulkActionBar } from "@/widgets/pages/orders/components/bulk-action-bar";
+import { SlimLoader } from "@/shared/ui/slim-loader";
 
 /* ─── Types ──────────────────────────────────────────────── */
 type RawOrder = Record<string, unknown> & {
@@ -524,11 +525,13 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        <div className={`mt-4 ${isFetching && !isLoading ? "pointer-events-none opacity-60" : ""}`}>
-          {viewMode === "card" ? (
-            <OrdersGrid
-              isLoading={isLoading}
-              mappedOrders={gridOrders}
+        <div className="relative mt-4 min-h-[200px]">
+          <SlimLoader isVisible={isFetching && !isLoading} />
+          <div className={cn("transition-opacity duration-200", isFetching && !isLoading && "opacity-85")}>
+            {viewMode === "card" ? (
+              <OrdersGrid
+                isLoading={isLoading}
+                mappedOrders={gridOrders}
               selectedOrderIds={selectedOrderIds}
               onToggleSelect={handleToggleOrderSelect}
               onRowClick={handleRowClick}
@@ -550,6 +553,7 @@ export default function OrdersPage() {
               onRowContextMenu={handleRowContextMenu}
             />
           )}
+          </div>
         </div>
       </PageContainer>
 

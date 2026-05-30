@@ -210,22 +210,22 @@ export const ProvidersGrid = React.memo(function ProvidersGrid({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="providers-grid-loading">
         {Array.from({ length: 6 }).map((_, index) => (
           <div key={index} className="overflow-hidden rounded-2xl border border-gray-200 bg-white flex flex-col justify-between min-h-[190px]">
-            <div className="p-4 flex-1 animate-pulse">
+            <div className="p-4 flex-1">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="size-9 rounded-xl bg-gray-205" />
+                  <div className="size-9 rounded-xl shimmer" />
                   <div>
-                    <div className="h-3.5 w-24 rounded bg-gray-205 mb-1.5" />
-                    <div className="h-2.5 w-16 rounded bg-gray-205" />
+                    <div className="h-3.5 w-24 rounded shimmer mb-1.5" />
+                    <div className="h-2.5 w-16 rounded shimmer" />
                   </div>
                 </div>
-                <div className="h-5 w-16 rounded-full bg-gray-205" />
+                <div className="h-5 w-16 rounded-full shimmer" />
               </div>
-              <div className="h-3.5 w-36 rounded bg-gray-205 my-4" />
+              <div className="h-3.5 w-36 rounded shimmer my-4" />
             </div>
             <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-2 flex justify-end gap-1">
-              <div className="size-7 animate-pulse rounded-lg bg-gray-205" />
-              <div className="size-7 animate-pulse rounded-lg bg-gray-205" />
+              <div className="size-7 rounded-lg shimmer" />
+              <div className="size-7 rounded-lg shimmer" />
             </div>
           </div>
         ))}

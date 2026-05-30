@@ -529,29 +529,17 @@ export const CustomersPageList = React.memo(function CustomersPageList({
             />
           ) : (
             Array.from({ length: 5 }).map((_, index) => (
-
-              <div key={index} className="animate-pulse flex flex-col gap-4 rounded-[1.5rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.82)] p-5 md:flex-row">
-
-                <div className="h-5 w-5 shrink-0 rounded-md bg-gray-200" />
-
+              <div key={index} className="flex flex-col gap-4 rounded-[1.5rem] border border-[var(--border-soft)] bg-white p-5 md:flex-row shadow-sm">
+                <div className="h-5 w-5 shrink-0 rounded-md shimmer" />
                 <div className="flex-1 space-y-3">
-
-                  <div className="h-4 w-1/4 rounded bg-gray-200" />
-
-                  <div className="h-3 w-1/3 rounded bg-gray-200" />
-
+                  <div className="h-4 w-1/4 rounded shimmer" />
+                  <div className="h-3 w-1/3 rounded shimmer" />
                 </div>
-
                 <div className="w-full space-y-3 md:w-1/3">
-
-                  <div className="h-2 w-full rounded bg-gray-200" />
-
-                  <div className="h-3 w-1/2 rounded bg-gray-200" />
-
+                  <div className="h-2 w-full rounded shimmer" />
+                  <div className="h-3 w-1/2 rounded shimmer" />
                 </div>
-
               </div>
-
             ))
           )
 

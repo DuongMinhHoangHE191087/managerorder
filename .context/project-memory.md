@@ -9,6 +9,7 @@
 
 ## Decisions
 
+- 2026-05-30: Tối ưu hóa Suspense boundaries ở cấp route-level page.tsx bằng cách bọc PageClient trong Suspense với PageShellSkeleton, triệt tiêu cảnh báo build-time deopt Next.js do useSearchParams. Nâng cấp trải nghiệm tải dữ liệu với hiệu ứng trượt sáng sóng ngang .shimmer dùng chung tại globals.css cho các component OrdersGrid, CustomersGrid, ProductsGrid, ProvidersGrid và list skeleton. Tích hợp SlimLoader để phản hồi trực quan mượt mà khi re-fetching ngầm.
 - 2026-05-28: Loại bỏ cron job trùng lặp cho telegram-reminder (path: /api/cron/telegram-reminder, schedule: 0 0 * * *) trong apps/admin-web/vercel.json để ngăn chặn việc trigger tác vụ lập lịch 2 lần.
 - 2026-05-28: Cấu hình dải phiên bản Node.js tối thiểu ">=22.0.0" ở cả root và admin package.json, đồng thời nâng pnpm packageManager lên "10.0.0" để khớp với pnpm-lock.yaml version 9. Việc này giúp tắt triệt để các cảnh báo sai lệch phiên bản trên Vercel và máy cục bộ.
 - 2026-05-28: Sửa lỗi Next.js build crash do thiếu biến môi trường Supabase bằng cách thêm giá trị placeholder mặc định (URL và Key) vào việc khởi tạo supabaseAdmin ở admin.ts và proxy.ts. Điều này đảm bảo build-time module evaluation diễn ra suôn sẻ, trong khi runtime vẫn đọc đúng biến môi trường từ hệ thống.

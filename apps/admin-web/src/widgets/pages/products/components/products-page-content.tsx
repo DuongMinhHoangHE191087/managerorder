@@ -13,6 +13,7 @@ import { cn, formatMoney } from "@/lib/utils";
 import { ProductModel } from "@/entities/product";
 import { ProductsGrid } from "./products-grid";
 import { Button } from "@/shared/ui/button";
+import { SlimLoader } from "@/shared/ui/slim-loader";
 import { Select } from "@/shared/ui/select";
 import { ActionMenu } from "@/shared/ui/action-menu";
 import { CreateActionFooter, CreateFlowDialog } from "@/shared/ui/create-flow-shell";
@@ -40,7 +41,7 @@ export default function ProductsPage() {
   const queryClient = useQueryClient();
   const trashMode = searchParams.get("trash") === "1";
   const viewingProductId = searchParams.get("view");
-  const { data: products = [], isLoading, isError } = useProducts();
+  const { data: products = [], isLoading, isError, isFetching } = useProducts();
   const { mutateAsync: deleteProduct } = useDeleteProduct();
   const { mutateAsync: updateProduct } = useUpdateProduct();
   const { data: routedProductResult } = useProductDetail(viewingProductId, trashMode);
@@ -270,8 +271,10 @@ export default function ProductsPage() {
               </button>
             </div>
           </div>
-          <div className={cn(viewMode === "list" && "overflow-x-auto", viewMode === "card" && "p-6")}>
-            {isLoading ? (
+          <div className={cn("relative min-h-[200px]", viewMode === "list" && "overflow-x-auto", viewMode === "card" && "p-6")}>
+            <SlimLoader isVisible={isFetching && !isLoading} />
+            <div className={cn("transition-opacity duration-200", isFetching && !isLoading && "opacity-85")}>
+              {isLoading ? (
               viewMode === "card" ? (
                 <ProductsGrid
                   isLoading={true}
@@ -284,14 +287,14 @@ export default function ProductsPage() {
               ) : (
                 <div className="p-8 space-y-4">
                   {[...Array(4)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-4 animate-pulse">
-                      <div className="size-10 bg-gray-200 rounded-xl" />
+                    <div key={i} className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+                      <div className="size-10 shimmer rounded-xl" />
                       <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-1/3" />
-                        <div className="h-3 bg-gray-100 rounded w-1/4" />
+                        <div className="h-4 shimmer rounded w-1/3" />
+                        <div className="h-3 shimmer rounded w-1/4" />
                       </div>
-                      <div className="h-4 bg-gray-200 rounded w-20" />
-                      <div className="h-4 bg-gray-200 rounded w-20" />
+                      <div className="h-4 shimmer rounded w-20" />
+                      <div className="h-4 shimmer rounded w-20" />
                     </div>
                   ))}
                 </div>
@@ -419,6 +422,7 @@ export default function ProductsPage() {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       </PageContainer>

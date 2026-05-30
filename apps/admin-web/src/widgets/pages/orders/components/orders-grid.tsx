@@ -276,29 +276,29 @@ export const OrdersGrid = React.memo(function OrdersGrid({
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {Array.from({ length: 9 }).map((_, index) => (
-          <div key={index} className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm flex flex-col justify-between min-h-[180px]">
+          <div key={index} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm flex flex-col justify-between min-h-[180px]">
             <div className="p-4 flex-1">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="size-9 animate-pulse rounded-lg bg-gray-200" />
+                  <div className="size-9 shimmer rounded-lg" />
                   <div>
-                    <div className="h-3.5 w-28 animate-pulse rounded bg-gray-200 mb-1.5" />
-                    <div className="h-2.5 w-16 animate-pulse rounded bg-gray-200" />
+                    <div className="h-3.5 w-28 shimmer rounded mb-1.5" />
+                    <div className="h-2.5 w-16 shimmer rounded" />
                   </div>
                 </div>
-                <div className="h-5 w-16 animate-pulse rounded-full bg-gray-200" />
+                <div className="h-5 w-16 shimmer rounded-full" />
               </div>
-              <div className="h-3.5 w-24 animate-pulse rounded bg-gray-200 my-4" />
-              <div className="h-10 w-full animate-pulse rounded-lg bg-gray-100" />
+              <div className="h-3.5 w-24 shimmer rounded my-4" />
+              <div className="h-10 w-full shimmer rounded-lg" />
             </div>
             <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-2.5 flex items-center justify-between">
               <div>
-                <div className="h-3.5 w-20 animate-pulse rounded bg-gray-200 mb-1" />
-                <div className="h-2.5 w-16 animate-pulse rounded bg-gray-200" />
+                <div className="h-3.5 w-20 shimmer rounded mb-1" />
+                <div className="h-2.5 w-16 shimmer rounded" />
               </div>
               <div className="flex gap-1">
-                <div className="size-7 animate-pulse rounded-lg bg-gray-200" />
-                <div className="size-7 animate-pulse rounded-lg bg-gray-200" />
+                <div className="size-7 shimmer rounded-lg" />
+                <div className="size-7 shimmer rounded-lg" />
               </div>
             </div>
           </div>

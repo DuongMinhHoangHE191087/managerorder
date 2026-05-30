@@ -197,19 +197,19 @@ export const ProductsGrid = React.memo(function ProductsGrid({
             <div className="p-4 flex-1">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="size-9 animate-pulse rounded-xl bg-gray-200" />
+                  <div className="size-9 shimmer rounded-xl" />
                   <div>
-                    <div className="h-3.5 w-24 animate-pulse rounded bg-gray-200 mb-1.5" />
-                    <div className="h-2.5 w-16 animate-pulse rounded bg-gray-200" />
+                    <div className="h-3.5 w-24 shimmer rounded mb-1.5" />
+                    <div className="h-2.5 w-16 shimmer rounded" />
                   </div>
                 </div>
-                <div className="h-5 w-16 animate-pulse rounded-full bg-gray-200" />
+                <div className="h-5 w-16 shimmer rounded-full" />
               </div>
-              <div className="h-3.5 w-36 animate-pulse rounded bg-gray-200 my-4" />
+              <div className="h-3.5 w-36 shimmer rounded my-4" />
             </div>
             <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-2 flex justify-end gap-1">
-              <div className="size-7 animate-pulse rounded-lg bg-gray-200" />
-              <div className="size-7 animate-pulse rounded-lg bg-gray-200" />
+              <div className="size-7 shimmer rounded-lg" />
+              <div className="size-7 shimmer rounded-lg" />
             </div>
           </div>
         ))}

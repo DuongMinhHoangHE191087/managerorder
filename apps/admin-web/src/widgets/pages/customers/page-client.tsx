@@ -4,6 +4,7 @@ import { useCallback, useDeferredValue, useMemo, useState, useEffect, type Mouse
 import dynamic from "next/dynamic";
 import { FolderPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SlimLoader } from "@/shared/ui/slim-loader";
 
 import { appToast } from "@/shared/lib/toast";
 import { useDebounce } from "@/shared/hooks/use-debounce";
@@ -94,7 +95,7 @@ export default function CustomersPage() {
   const [pageSize, setPageSize] = useState(20);
   const debouncedQuery = useDebounce(searchQuery, 300);
   const deferredQuery = useDeferredValue(debouncedQuery);
-  const { data: customers = [], isLoading } = useCustomers(deferredQuery);
+  const { data: customers = [], isLoading, isFetching } = useCustomers(deferredQuery);
 
   const filteredCustomers = useMemo(
     () =>
@@ -471,30 +472,35 @@ export default function CustomersPage() {
           />
         ) : null}
 
-        <CustomersPageList
-          customers={filteredCustomers}
-          debouncedQuery={deferredQuery}
-          groups={groups}
-          isLoading={isLoading}
-          onCreateFirstCustomer={handleOpenCreateCustomer}
-          onClearDebt={handleClearDebt}
-          onDeleteCustomer={setDeletingCustomer}
-          onEditCustomer={setEditingCustomer}
-          onOpenCustomer={handleOpenCustomer}
-          onPageIndexChange={setPageIndex}
-          onPageSizeChange={setPageSize}
-          onRenewCustomer={setRenewingCustomer}
-          onToggleSelect={toggleSelect}
-          onToggleSelectAll={toggleSelectAll}
-          pageCount={pageCount}
-          pageIndex={pageIndex}
-          pageSize={pageSize}
-          selectedCount={selectedCount}
-          selectedIds={selectedIds}
-          totalElements={totalElements}
-          allFilteredSelected={allFilteredSelected}
-          viewMode={viewMode}
-        />
+        <div className="relative mt-4 min-h-[400px]">
+          <SlimLoader isVisible={isFetching && !isLoading} />
+          <div className={cn("transition-opacity duration-200", isFetching && !isLoading && "opacity-85")}>
+            <CustomersPageList
+              customers={filteredCustomers}
+              debouncedQuery={deferredQuery}
+              groups={groups}
+              isLoading={isLoading}
+              onCreateFirstCustomer={handleOpenCreateCustomer}
+              onClearDebt={handleClearDebt}
+              onDeleteCustomer={setDeletingCustomer}
+              onEditCustomer={setEditingCustomer}
+              onOpenCustomer={handleOpenCustomer}
+              onPageIndexChange={setPageIndex}
+              onPageSizeChange={setPageSize}
+              onRenewCustomer={setRenewingCustomer}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAll}
+              pageCount={pageCount}
+              pageIndex={pageIndex}
+              pageSize={pageSize}
+              selectedCount={selectedCount}
+              selectedIds={selectedIds}
+              totalElements={totalElements}
+              allFilteredSelected={allFilteredSelected}
+              viewMode={viewMode}
+            />
+          </div>
+        </div>
 
         <CustomerDetailDrawer
           isOpen={!!viewingCustomerId}
