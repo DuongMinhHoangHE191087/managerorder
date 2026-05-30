@@ -1,0 +1,132 @@
+/* ============================================================
+   PalmaYard-order — light GREEN theme (matches current product)
+   Shared across all three layout variations.
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* green system */
+  --g-50:  #f1f8f1;
+  --g-100: #e3f1e4;
+  --g-200: #c7e6cb;
+  --g-300: #97d6a0;
+  --g-400: #56bd6c;
+  --g-500: #2ea44f;   /* primary */
+  --g-600: #1f8a3f;
+  --g-700: #197034;
+  --g-800: #155a2b;
+
+  /* neutrals (faint green-tinted) */
+  --ink:    #16241a;
+  --ink-2:  #3f5247;
+  --muted:  #7c8c81;
+  --line:   #e6efe6;
+  --line-2: #d7e6d9;
+  --surface: #ffffff;
+  --page:   #f3f7f2;
+  --page-2: #eef4ed;
+
+  /* functional */
+  --amber:  #c77a14;
+  --amber-bg: #fcf2e1;
+  --red:    #d23b3b;
+  --red-bg: #fbe9e9;
+  --blue:   #2f72c4;
+  --blue-bg: #e8f0fb;
+  --teal:   #138b86;
+  --teal-bg: #e0f3f1;
+  --gray:   #74827a;
+  --gray-bg: #eef1ee;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow-1: 0 1px 2px rgba(22,60,30,0.05);
+  --shadow-2: 0 6px 20px rgba(22,60,30,0.08);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* { box-sizing: border-box; }
+
+.pv-root {
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--page);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.45;
+}
+.pv-root *::selection { background: var(--g-200); }
+
+/* ---- tone helpers (status / chip colors) ---- */
+.tone-green { color: var(--g-700); background: var(--g-100); }
+.tone-blue  { color: var(--blue);  background: var(--blue-bg); }
+.tone-teal  { color: var(--teal);  background: var(--teal-bg); }
+.tone-amber { color: var(--amber); background: var(--amber-bg); }
+.tone-red   { color: var(--red);   background: var(--red-bg); }
+.tone-gray  { color: var(--gray);  background: var(--gray-bg); }
+
+/* ---- status badge ---- */
+.pv-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; letter-spacing: .01em;
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+}
+.pv-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* ---- product tile (monogram) ---- */
+.pv-tile {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; color: var(--g-700); background: var(--g-100);
+  border: 1px solid var(--g-200); border-radius: 9px;
+  flex: none;
+}
+
+/* ---- expiry pill ---- */
+.pv-exp { display: inline-flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+.pv-exp .n { font-weight: 700; font-variant-numeric: tabular-nums; }
+.pv-exp.ok    { color: var(--g-700); }
+.pv-exp.soon  { color: var(--amber); }
+.pv-exp.expired { color: var(--red); }
+.pv-exp.none  { color: var(--muted); }
+
+/* ---- buttons ---- */
+.pv-btn {
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  font-family: inherit; font-weight: 600; font-size: 13px;
+  border-radius: var(--radius-sm); padding: 9px 15px; border: 1px solid transparent;
+  transition: background .18s var(--ease), border-color .18s var(--ease), transform .18s var(--ease);
+}
+.pv-btn svg { width: 16px; height: 16px; }
+.pv-btn-primary { background: var(--g-500); color: #fff; box-shadow: var(--shadow-1); }
+.pv-btn-primary:hover { background: var(--g-600); }
+.pv-btn-ghost { background: var(--surface); color: var(--ink-2); border-color: var(--line-2); }
+.pv-btn-ghost:hover { background: var(--g-50); border-color: var(--g-300); color: var(--g-700); }
+
+/* ---- icon button (row actions) ---- */
+.pv-iconbtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+  color: var(--muted); background: transparent; border: 1px solid transparent;
+  transition: all .15s var(--ease);
+}
+.pv-iconbtn svg { width: 16px; height: 16px; }
+.pv-iconbtn:hover { color: var(--g-700); background: var(--g-50); border-color: var(--g-200); }
+.pv-iconbtn.danger:hover { color: var(--red); background: var(--red-bg); border-color: #f1cccc; }
+
+/* ---- generic chip ---- */
+.pv-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 500; color: var(--ink-2);
+  background: var(--surface); border: 1px solid var(--line);
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+}
+.pv-chip svg { width: 13px; height: 13px; color: var(--muted); }
+
+/* ---- scaffolding shared by views ---- */
+.pv-page { padding: 26px 28px 40px; }
+.pv-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+
+.pv-mono { font-variant-numeric: tabular-nums; }
+.pv-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--g-600);
+}

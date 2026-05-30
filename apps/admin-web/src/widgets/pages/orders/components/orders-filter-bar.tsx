@@ -54,13 +54,13 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
 
   return (
     <div className="page-stack">
-      <FiltersBar sticky className="px-4 py-4">
+      <FiltersBar sticky className="px-4 py-2.5">
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)_auto]">
           <div className="relative min-w-0">
-            <Search aria-hidden="true" className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
+          <Search aria-hidden="true" className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[var(--fg-muted)]" />
             <Input
               aria-label="Tìm đơn hàng"
-              className="h-11 pl-9"
+              className="h-9 pl-9 text-sm"
               placeholder="Tìm theo mã đơn, khách hàng, sản phẩm hoặc ghi chú…"
               autoComplete="off"
               name="search-orders"
@@ -76,7 +76,7 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
               name="order-status-filter"
               value={statusFilter}
               onChange={(event) => onStatusChange(event.target.value)}
-              className="h-11 min-w-[180px]"
+              className="h-9 min-w-[160px] text-sm"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -94,7 +94,7 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
                   type="date"
                   value={dateFrom}
                   onChange={(event) => onDateFromChange(event.target.value)}
-                  className="h-11 pl-9"
+                  className="h-9 pl-9 text-sm"
                   title="Từ ngày"
                 />
               </div>
@@ -109,7 +109,7 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
                   type="date"
                   value={dateTo}
                   onChange={(event) => onDateToChange(event.target.value)}
-                  className="h-11 pl-9"
+                  className="h-9 pl-9 text-sm"
                   title="Đến ngày"
                 />
               </div>
@@ -120,7 +120,7 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
             <Button
               type="button"
               variant="ghost"
-              className="h-11"
+              className="h-9 text-sm"
               disabled={!hasFilters}
               onClick={() => {
                 onSearchChange("");
@@ -136,14 +136,14 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
         </div>
       </FiltersBar>
 
-      <div className="flex flex-wrap gap-2 px-1">
+      <div className="flex flex-wrap gap-1.5 px-1">
         {STATUS_CHIPS.map((chip) => (
           <button
             key={chip.value}
             type="button"
             aria-pressed={statusFilter === chip.value}
             onClick={() => onStatusChange(chip.value)}
-            className={`rounded-full border px-3.5 py-1.5 text-[12px] font-bold tracking-wide transition-[background-color,border-color,color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 ${
+            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide transition-[background-color,border-color,color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 ${
               statusFilter === chip.value
                 ? `${chip.color} border-current shadow-sm`
                 : "border-transparent bg-[rgba(255,255,255,0.82)] text-[var(--fg-muted)] hover:bg-white"

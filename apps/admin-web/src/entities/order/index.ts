@@ -6,3 +6,6 @@ export type {
   PaymentState,
   PaymentTerms,
 } from "@/lib/domain/types";
+
+export { OrderModel } from "./order.model";
+export type { OrderModelInput, OrderModelContact } from "./order.model";

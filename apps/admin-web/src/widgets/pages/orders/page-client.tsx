@@ -6,6 +6,7 @@ import { Eye, Printer, Trash2, CheckCircle2, Clock } from "lucide-react";
 import { appToast } from "@/shared/lib/toast";
 import { useDebounce } from "@/shared/hooks/use-debounce";
 import { hasSearchTokens } from "@/shared/lib/filtering/search";
+import { cn } from "@/lib/utils";
 
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { PageContainer } from "@/shared/ui/page-layout";
@@ -19,6 +20,8 @@ import { useOrders, useUpdateOrder, useDeleteOrder, useBatchDeleteOrders, useOrd
 import type { OrderRow } from "@/widgets/pages/orders/components/orders-table";
 import { OrdersKPIs } from "@/widgets/pages/orders/components/orders-kpis";
 import { OrdersTable } from "@/widgets/pages/orders/components/orders-table";
+import { OrdersGrid } from "./components/orders-grid";
+import { OrderModel } from "@/entities/order";
 import { BulkActionBar } from "@/widgets/pages/orders/components/bulk-action-bar";
 
 /* ─── Types ──────────────────────────────────────────────── */
@@ -167,6 +170,24 @@ export default function OrdersPage() {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printingOrder, setPrintingOrder] = useState<OrderWithItems | null>(null);
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("orders-view-mode");
+      if (saved === "card" || saved === "list") {
+        setViewMode(saved);
+      }
+    }
+  }, []);
+
+  const handleSetViewMode = useCallback((mode: "card" | "list") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("orders-view-mode", mode);
+    }
+  }, []);
+
   const debouncedQuery = useDebounce(searchQuery, 500);
   const deferredQuery = useDeferredValue(debouncedQuery);
   const hasSearchQuery = hasSearchTokens(deferredQuery);
@@ -203,6 +224,43 @@ export default function OrdersPage() {
     const rawOrders = rawOrdersData as unknown as RawOrder[];
     return rawOrders.map(mapRawToOrderRow);
   }, [pageData?.data]);
+
+  const gridOrders = useMemo(() => {
+    return mappedOrders.map((order) => {
+      return new OrderModel({
+        id: order.id,
+        order_code: order.order_code,
+        customer_id: order.customer_id,
+        product_id: order.product_id,
+        quantity: order.quantity,
+        total_amount_vnd: order.total_amount_vnd,
+        total_paid: order.total_paid,
+        total_cost_vnd: order.total_cost_vnd,
+        payment_method: order.payment_method,
+        payment_terms: order.payment_terms,
+        payment_state: order.payment_state,
+        balance_due_vnd: order.balance_due_vnd,
+        is_fully_paid: order.is_fully_paid,
+        payment_source_id: order.payment_source_id,
+        sales_channel_id: order.sales_channel_id,
+        status: order.status,
+        created_at: order.created_at,
+        updated_at: order.updated_at,
+        expires_at: order.expires_at,
+        customerName: order.customerName,
+        productName: order.productName,
+        customerEmail: order.customerEmail,
+        customerContacts: order.customerContacts,
+        salesChannelName: order.salesChannelName,
+        paymentSourceName: order.paymentSourceName,
+        unit_price_vnd: order.unit_price_vnd,
+        cost_price_vnd: order.cost_price_vnd,
+        sales_note: order.sales_note,
+        contact_snapshot: order.contact_snapshot,
+        proof_image_urls: order.proof_image_urls,
+      }).toJSON() as any;
+    });
+  }, [mappedOrders]);
   const selectedOrderIdsArray = useMemo(() => Array.from(selectedOrderIds), [selectedOrderIds]);
   const selectedOrderCount = selectedOrderIdsArray.length;
   const handleToggleOrderSelect = useCallback((orderId: string) => {
@@ -434,21 +492,64 @@ export default function OrdersPage() {
           onDateToChange={handleDateToChange}
         />
 
-        <div className={`mt-6 ${isFetching && !isLoading ? "pointer-events-none opacity-60" : ""}`}>
-          <OrdersTable
-            isLoading={isLoading}
-            pageCount={meta.totalPages}
-            pageIndex={pageIndex}
-            pageSize={pageSize}
-            totalElements={meta.count}
-            onPaginationChange={handlePaginationChange}
-            mappedOrders={mappedOrders}
-            selectedOrderIds={selectedOrderIds}
-            onToggleSelect={handleToggleOrderSelect}
-            setSelectedOrderIds={setSelectedOrderIds}
-            onRowClick={handleRowClick}
-            onRowContextMenu={handleRowContextMenu}
-          />
+        {/* View mode toggle and counter */}
+        <div className="mt-6 flex items-center justify-between px-1">
+          <div className="text-[12px] text-gray-500">
+            Hiển thị <strong className="text-gray-800 font-mono">{mappedOrders.length}</strong> / {meta.count} đơn
+          </div>
+          
+          <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-gray-200/80">
+            <button
+              onClick={() => handleSetViewMode("card")}
+              className={cn(
+                "px-3 py-1 text-[11px] font-bold rounded-md transition-all duration-150",
+                viewMode === "card"
+                  ? "bg-white text-[var(--accent)] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              Thẻ
+            </button>
+            <button
+              onClick={() => handleSetViewMode("list")}
+              className={cn(
+                "px-3 py-1 text-[11px] font-bold rounded-md transition-all duration-150",
+                viewMode === "list"
+                  ? "bg-white text-[var(--accent)] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              Danh sách
+            </button>
+          </div>
+        </div>
+
+        <div className={`mt-4 ${isFetching && !isLoading ? "pointer-events-none opacity-60" : ""}`}>
+          {viewMode === "card" ? (
+            <OrdersGrid
+              isLoading={isLoading}
+              mappedOrders={gridOrders}
+              selectedOrderIds={selectedOrderIds}
+              onToggleSelect={handleToggleOrderSelect}
+              onRowClick={handleRowClick}
+              onRowContextMenu={handleRowContextMenu}
+            />
+          ) : (
+            <OrdersTable
+              isLoading={isLoading}
+              pageCount={meta.totalPages}
+              pageIndex={pageIndex}
+              pageSize={pageSize}
+              totalElements={meta.count}
+              onPaginationChange={handlePaginationChange}
+              mappedOrders={mappedOrders}
+              selectedOrderIds={selectedOrderIds}
+              onToggleSelect={handleToggleOrderSelect}
+              setSelectedOrderIds={setSelectedOrderIds}
+              onRowClick={handleRowClick}
+              onRowContextMenu={handleRowContextMenu}
+            />
+          )}
         </div>
       </PageContainer>
 

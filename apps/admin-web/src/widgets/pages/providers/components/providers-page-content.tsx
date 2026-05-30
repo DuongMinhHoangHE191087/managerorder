@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { ShieldCheck, Plus, Pencil, Trash2, Briefcase, Search, Eye, Phone, Mail, User, Package } from "lucide-react";
 // import Link from "next/link";
@@ -19,6 +19,8 @@ import type { Provider } from "@/lib/domain/types";
 import { useProviders, useDeleteProvider } from "@/widgets/pages/providers/hooks/use-providers";
 import { vi } from "@/shared/messages/vi";
 import { hasSearchTokens, matchesSearchQuery } from "@/shared/lib/filtering/search";
+import { ProviderModel } from "@/entities/provider";
+import { ProvidersGrid } from "./providers-grid";
 
 const CustomerCreateModal = dynamic(
   () =>
@@ -38,7 +40,7 @@ const ProviderEditModal = dynamic(
 
 export default function ProvidersPage() {
   const router = useRouter();
-  const { data: providers = [] } = useProviders();
+  const { data: providers = [], isLoading } = useProviders();
   const { mutateAsync: deleteProvider } = useDeleteProvider();
   const text = vi.providers.page;
   const detailText = vi.providers.detail;
@@ -49,6 +51,22 @@ export default function ProvidersPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [tierFilter, setTierFilter] = useState("");
+
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("providers_view_mode") as "card" | "list";
+      if (saved) {
+        setViewMode(saved);
+      }
+    }
+  }, []);
+
+  const handleSetViewMode = useCallback((mode: "card" | "list") => {
+    setViewMode(mode);
+    localStorage.setItem("providers_view_mode", mode);
+  }, []);
 
   const filteredProviders = useMemo(() => providers.filter((provider) => {
     if (tierFilter && provider.tier !== tierFilter) return false;
@@ -71,6 +89,13 @@ export default function ProvidersPage() {
   const totalProviders = filteredProviders.length;
   const pageCount = Math.ceil(totalProviders / pageSize);
   const paginatedProviders = filteredProviders.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
+
+  const mappedProviders = useMemo(() => {
+    return paginatedProviders.map((p) => {
+      const model = new ProviderModel(p as any);
+      return model.toJSON() as any;
+    });
+  }, [paginatedProviders]);
 
   useEffect(() => {
     setPageIndex((current) => Math.min(current, Math.max(0, pageCount - 1)));
@@ -133,6 +158,33 @@ export default function ProvidersPage() {
               <option value="vip">{text.tiers.vip}</option>
               <option value="regular">{text.tiers.regular}</option>
             </select>
+
+            <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-gray-200/80 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleSetViewMode("card")}
+                className={cn(
+                  "px-3 py-1.5 text-[11px] font-bold rounded-md transition-all duration-150",
+                  viewMode === "card"
+                    ? "bg-white text-[var(--accent)] shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                Thẻ
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetViewMode("list")}
+                className={cn(
+                  "px-3 py-1.5 text-[11px] font-bold rounded-md transition-all duration-150",
+                  viewMode === "list"
+                    ? "bg-white text-[var(--accent)] shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                Danh sách
+              </button>
+            </div>
           </div>
         </FiltersBar>
 
@@ -168,8 +220,31 @@ export default function ProvidersPage() {
             action={totalProviders > 0 ? <span className="text-[12px] font-bold text-[var(--fg-muted)]">{pageCount} trang</span> : null}
           />
 
-          <div className="w-full flex flex-col relative min-h-0 items-stretch space-y-3 p-4 sm:p-5">
-          {totalProviders === 0 ? (
+          <div className={cn("w-full flex flex-col relative min-h-0 items-stretch", viewMode === "list" ? "space-y-3 p-4 sm:p-5" : "p-6")}>
+          {isLoading ? (
+            viewMode === "card" ? (
+              <ProvidersGrid
+                isLoading={true}
+                mappedProviders={[]}
+                onRowClick={() => {}}
+                onEditClick={() => {}}
+                onDeleteClick={() => {}}
+              />
+            ) : (
+              <div className="p-8 space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 animate-pulse">
+                    <div className="size-12 bg-gray-200 rounded-2xl shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-1/3" />
+                      <div className="h-3 bg-gray-100 rounded w-1/4" />
+                    </div>
+                    <div className="h-4 bg-gray-200 rounded w-20" />
+                  </div>
+                ))}
+              </div>
+            )
+          ) : totalProviders === 0 ? (
             <EmptyState
               icon={<Briefcase className="size-12" />}
               title={hasSearchTokens(searchQuery) ? text.empty.noResults : text.empty.none}
@@ -181,6 +256,14 @@ export default function ProvidersPage() {
                   </Button>
                 ) : null
               }
+            />
+          ) : viewMode === "card" ? (
+            <ProvidersGrid
+              isLoading={false}
+              mappedProviders={mappedProviders}
+              onRowClick={(row) => router.push(`/providers/${row.id}`)}
+              onEditClick={setEditingProvider}
+              onDeleteClick={setDeletingProvider}
             />
           ) : (
             paginatedProviders.map((provider) => {
@@ -294,7 +377,7 @@ export default function ProvidersPage() {
                         <div className="flex items-center">
                            <span className={`text-[15px] md:text-[16px] font-black font-mono ${
                             provider.reliabilityScore < 50 ? 'text-rose-500' : provider.reliabilityScore < 80 ? 'text-amber-500' : 'text-emerald-500'
-                          }`}>{provider.reliabilityScore}</span>
+                           }`}>{provider.reliabilityScore}</span>
                           <span className="text-[10px] md:text-[11px] text-[var(--fg-muted)] font-bold ml-0.5">/100</span>
                         </div>
                       </div>

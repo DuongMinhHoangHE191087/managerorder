@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,7 +9,9 @@ import { appToast } from "@/shared/lib/toast";
 
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { PageContainer, PageHeader, StatsGrid, SurfaceCard } from "@/shared/ui/page-layout";
-import { formatMoney } from "@/lib/utils";
+import { cn, formatMoney } from "@/lib/utils";
+import { ProductModel } from "@/entities/product";
+import { ProductsGrid } from "./products-grid";
 import { Button } from "@/shared/ui/button";
 import { Select } from "@/shared/ui/select";
 import { ActionMenu } from "@/shared/ui/action-menu";
@@ -54,6 +56,22 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [modeFilter, setModeFilter] = useState("");
 
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("products_view_mode") as "card" | "list";
+      if (saved) {
+        setViewMode(saved);
+      }
+    }
+  }, []);
+
+  const handleSetViewMode = useCallback((mode: "card" | "list") => {
+    setViewMode(mode);
+    localStorage.setItem("products_view_mode", mode);
+  }, []);
+
   const activeViewingProduct = viewingProductId ? routedProduct ?? null : viewingProduct;
 
   useEffect(() => {
@@ -75,6 +93,13 @@ export default function ProductsPage() {
       p.durationValue,
     );
   }), [products, modeFilter, searchQuery]);
+
+  const mappedProducts = useMemo(() => {
+    return filteredProducts.map((p) => {
+      const model = new ProductModel(p as any);
+      return model.toJSON() as any;
+    });
+  }, [filteredProducts]);
 
   const totalProducts = products.length;
   const activeProducts = products.filter(p => p.isActive).length;
@@ -217,22 +242,60 @@ export default function ProductsPage() {
                 <option value="hybrid">{productText.types.hybrid}</option>
               </Select>
             </div>
+
+            <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-gray-200/80 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleSetViewMode("card")}
+                className={cn(
+                  "px-3 py-1 text-[11px] font-bold rounded-md transition-all duration-150",
+                  viewMode === "card"
+                    ? "bg-white text-[var(--accent)] shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                Thẻ
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetViewMode("list")}
+                className={cn(
+                  "px-3 py-1 text-[11px] font-bold rounded-md transition-all duration-150",
+                  viewMode === "list"
+                    ? "bg-white text-[var(--accent)] shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                Danh sách
+              </button>
+            </div>
           </div>
-          <div className="overflow-x-auto">
+          <div className={cn(viewMode === "list" && "overflow-x-auto", viewMode === "card" && "p-6")}>
             {isLoading ? (
-              <div className="p-8 space-y-4">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-4 animate-pulse">
-                    <div className="size-10 bg-gray-200 rounded-xl" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-1/3" />
-                      <div className="h-3 bg-gray-100 rounded w-1/4" />
+              viewMode === "card" ? (
+                <ProductsGrid
+                  isLoading={true}
+                  mappedProducts={[]}
+                  onRowClick={() => {}}
+                  onEditClick={() => {}}
+                  onDeleteClick={() => {}}
+                  onToggleActive={() => {}}
+                />
+              ) : (
+                <div className="p-8 space-y-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 animate-pulse">
+                      <div className="size-10 bg-gray-200 rounded-xl" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-1/3" />
+                        <div className="h-3 bg-gray-100 rounded w-1/4" />
+                      </div>
+                      <div className="h-4 bg-gray-200 rounded w-20" />
+                      <div className="h-4 bg-gray-200 rounded w-20" />
                     </div>
-                    <div className="h-4 bg-gray-200 rounded w-20" />
-                    <div className="h-4 bg-gray-200 rounded w-20" />
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             ) : isError ? (
               <div className="p-12 flex flex-col items-center justify-center text-center">
                 <PackageSearch className="size-12 text-[var(--danger)] opacity-50 mb-3" />
@@ -247,105 +310,114 @@ export default function ProductsPage() {
                   {hasSearchTokens(searchQuery) || modeFilter ? productText.emptyDescriptionWithFilter : productText.emptyDescriptionDefault}
                 </p>
               </div>
+            ) : viewMode === "card" ? (
+              <ProductsGrid
+                isLoading={false}
+                mappedProducts={mappedProducts}
+                onRowClick={(row) => setViewingProduct(row)}
+                onEditClick={setEditingProduct}
+                onDeleteClick={setDeletingProduct}
+                onToggleActive={handleToggleActive}
+              />
             ) : (
-          <div className="flex flex-col pb-4">
-            <div className="hidden lg:grid grid-cols-[minmax(0,3.5fr)_minmax(0,2fr)_minmax(0,3fr)_140px_100px] gap-4 px-10 py-4 border-b border-[var(--border-soft)] mb-4">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{productText.tableHeaders.product}</div>
-              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{productText.tableHeaders.infoType}</div>
-              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{productText.tableHeaders.priceMargin}</div>
-              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] justify-self-center">{productText.tableHeaders.status}</div>
-              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] justify-self-end">{productText.tableHeaders.actions}</div>
-            </div>
+              <div className="flex flex-col pb-4">
+                <div className="hidden lg:grid grid-cols-[minmax(0,3.5fr)_minmax(0,2fr)_minmax(0,3fr)_140px_100px] gap-4 px-10 py-4 border-b border-[var(--border-soft)] mb-4">
+                  <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{productText.tableHeaders.product}</div>
+                  <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{productText.tableHeaders.infoType}</div>
+                  <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{productText.tableHeaders.priceMargin}</div>
+                  <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] justify-self-center">{productText.tableHeaders.status}</div>
+                  <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] justify-self-end">{productText.tableHeaders.actions}</div>
+                </div>
 
-            <div className="flex flex-col gap-3 px-4">
-              {filteredProducts.map((product) => {
-                const margin = product.sellPriceVnd - product.buyPriceVnd;
-                const marginPercent = product.sellPriceVnd > 0 ? Math.round((margin / product.sellPriceVnd) * 100) : 0;
-                
-                return (
-                  <div 
-                    key={product.id} 
-                    onClick={() => setViewingProduct(product)}
-                    data-testid="product-row"
-                    data-product-id={product.id}
-                    className="group flex flex-col lg:grid lg:grid-cols-[minmax(0,3.5fr)_minmax(0,2fr)_minmax(0,3fr)_140px_100px] gap-4 items-center p-5 bg-[var(--surface-light)] border border-[var(--border-soft)] rounded-2xl hover:border-[var(--accent)]/50 hover:shadow-md transition-[border-color,box-shadow,transform] duration-200 active:scale-[0.99] cursor-pointer relative"
-                  >
-                    {/* name & Icon */}
-                    <div className="flex items-center gap-4 w-full min-w-0">
-                      <div className="size-12 rounded-xl bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 border border-[var(--accent)]/20 flex items-center justify-center text-[var(--accent)] shadow-inner group-hover:scale-110 transition-transform shrink-0">
-                        <span className="material-symbols-outlined text-[24px]">diamond</span>
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[16px] font-black text-[var(--fg-base)] tracking-tight group-hover:text-[var(--accent)] transition-colors truncate">
-                          {product.name}
-                        </span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-widest px-1.5 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-soft)]">
-                            {product.id.substring(0, 8)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* mode / Duration */}
-                    <div className="flex flex-col gap-1.5 w-full min-w-0 mt-2 lg:mt-0 pt-3 border-t border-[var(--border-soft)] lg:pt-0 lg:border-none">
-                      <span className="lg:hidden text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] block mb-1">{productText.tableHeaders.infoType}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 uppercase tracking-widest px-2.5 py-1 rounded-md border border-[var(--accent)]/20">
-                          {product.mode}
-                        </span>
-                        <div className="text-[13px] font-semibold text-[var(--fg-muted)] flex items-center gap-1.5">
-                          <PackageSearch className="size-3.5" />
-                          {product.durationValue} {product.durationType === "months" ? productText.durationUnits.months : product.durationType === "years" ? productText.durationUnits.years : productText.durationUnits.days}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* pricing / Margin */}
-                    <div className="flex flex-col gap-1.5 w-full min-w-0 mt-2 lg:mt-0 pt-3 border-t border-[var(--border-soft)] lg:pt-0 lg:border-none">
-                      <span className="lg:hidden text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] block mb-1">{productText.tableHeaders.priceMargin}</span>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-[16px] font-black tracking-tight text-[var(--accent)] font-mono">{formatMoney(product.sellPriceVnd)}</span>
-                        <span className="text-[11px] font-bold text-[var(--fg-muted)] line-through opacity-70 font-mono">{formatMoney(product.buyPriceVnd)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-black text-emerald-600 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20 font-mono">
-                          {productText.marginLabel} {formatMoney(margin)}
-                        </span>
-                        <span className="text-[11px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded border border-[var(--accent)]/20 font-mono">
-                          {marginPercent}% {productText.marginSuffix}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Status */}
-                    <div className="flex justify-start lg:justify-center w-full lg:w-auto mt-2 lg:mt-0 pt-3 border-t border-[var(--border-soft)] lg:pt-0 lg:border-none">
-                      <span className="lg:hidden text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] mr-3">{productText.tableHeaders.status}:</span>
-                      <button 
-                        type="button"
-                        aria-pressed={product.isActive}
-                        onClick={(e) => { e.stopPropagation(); handleToggleActive(product); }} 
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-[background-color,border-color,box-shadow,color,transform] hover:scale-105 active:scale-95 ${product.isActive ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.15)]" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}
+                <div className="flex flex-col gap-3 px-4">
+                  {filteredProducts.map((product) => {
+                    const margin = product.sellPriceVnd - product.buyPriceVnd;
+                    const marginPercent = product.sellPriceVnd > 0 ? Math.round((margin / product.sellPriceVnd) * 100) : 0;
+                    
+                    return (
+                      <div 
+                        key={product.id} 
+                        onClick={() => setViewingProduct(product)}
+                        data-testid="product-row"
+                        data-product-id={product.id}
+                        className="group flex flex-col lg:grid lg:grid-cols-[minmax(0,3.5fr)_minmax(0,2fr)_minmax(0,3fr)_140px_100px] gap-4 items-center p-5 bg-[var(--surface-light)] border border-[var(--border-soft)] rounded-2xl hover:border-[var(--accent)]/50 hover:shadow-md transition-[border-color,box-shadow,transform] duration-200 active:scale-[0.99] cursor-pointer relative"
                       >
-                        <div className={`size-1.5 rounded-full animate-pulse ${product.isActive ? "bg-emerald-500" : "bg-red-500"}`} />
-                        {product.isActive ? productText.statusLabels.selling : productText.statusLabels.paused}
-                      </button>
-                    </div>
+                        {/* name & Icon */}
+                        <div className="flex items-center gap-4 w-full min-w-0">
+                          <div className="size-12 rounded-xl bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 border border-[var(--accent)]/20 flex items-center justify-center text-[var(--accent)] shadow-inner group-hover:scale-110 transition-transform shrink-0">
+                            <span className="material-symbols-outlined text-[24px]">diamond</span>
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[16px] font-black text-[var(--fg-base)] tracking-tight group-hover:text-[var(--accent)] transition-colors truncate">
+                              {product.name}
+                            </span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-widest px-1.5 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-soft)]">
+                                {product.id.substring(0, 8)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
 
-                    {/* Actions */}
-                    <div className="flex justify-end shrink-0 w-full lg:w-auto mt-2 lg:mt-0 pt-3 border-t border-[var(--border-soft)] lg:pt-0 lg:border-none" onClick={e => e.stopPropagation()}>
-                      <ActionMenu items={[
-                        { label: productText.actions.view, icon: <Eye className="size-4" />, onClick: () => setViewingProduct(product) },
-                        { label: productText.actions.edit, icon: <Pencil className="size-4" />, onClick: () => setEditingProduct(product) },
-                        { label: product.isActive ? productText.actions.disable : productText.actions.enable, icon: <Power className="size-4" />, onClick: () => handleToggleActive(product), variant: product.isActive ? "danger" : "default" },
-                        { label: productText.actions.delete, icon: <Trash2 className="size-4" />, onClick: () => setDeletingProduct(product), variant: "danger", dividerBefore: true },
-                      ]} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                        {/* mode / Duration */}
+                        <div className="flex flex-col gap-1.5 w-full min-w-0 mt-2 lg:mt-0 pt-3 border-t border-[var(--border-soft)] lg:pt-0 lg:border-none">
+                          <span className="lg:hidden text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] block mb-1">{productText.tableHeaders.infoType}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[12px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 uppercase tracking-widest px-2.5 py-1 rounded-md border border-[var(--accent)]/20">
+                              {product.mode}
+                            </span>
+                            <div className="text-[13px] font-semibold text-[var(--fg-muted)] flex items-center gap-1.5">
+                              <PackageSearch className="size-3.5" />
+                              {product.durationValue} {product.durationType === "months" ? productText.durationUnits.months : product.durationType === "years" ? productText.durationUnits.years : productText.durationUnits.days}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* pricing / Margin */}
+                        <div className="flex flex-col gap-1.5 w-full min-w-0 mt-2 lg:mt-0 pt-3 border-t border-[var(--border-soft)] lg:pt-0 lg:border-none">
+                          <span className="lg:hidden text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] block mb-1">{productText.tableHeaders.priceMargin}</span>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-[16px] font-black tracking-tight text-[var(--accent)] font-mono">{formatMoney(product.sellPriceVnd)}</span>
+                            <span className="text-[11px] font-bold text-[var(--fg-muted)] line-through opacity-70 font-mono">{formatMoney(product.buyPriceVnd)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[12px] font-black text-emerald-600 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20 font-mono">
+                              {productText.marginLabel} {formatMoney(margin)}
+                            </span>
+                            <span className="text-[11px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded border border-[var(--accent)]/20 font-mono">
+                              {marginPercent}% {productText.marginSuffix}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Status */}
+                        <div className="flex justify-start lg:justify-center w-full lg:w-auto mt-2 lg:mt-0 pt-3 border-t border-[var(--border-soft)] lg:pt-0 lg:border-none">
+                          <span className="lg:hidden text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] mr-3">{productText.tableHeaders.status}:</span>
+                          <button 
+                            type="button"
+                            aria-pressed={product.isActive}
+                            onClick={(e) => { e.stopPropagation(); handleToggleActive(product); }} 
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-[background-color,border-color,box-shadow,color,transform] hover:scale-105 active:scale-95 ${product.isActive ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.15)]" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}
+                          >
+                            <div className={`size-1.5 rounded-full animate-pulse ${product.isActive ? "bg-emerald-500" : "bg-red-500"}`} />
+                            {product.isActive ? productText.statusLabels.selling : productText.statusLabels.paused}
+                          </button>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex justify-end shrink-0 w-full lg:w-auto mt-2 lg:mt-0 pt-3 border-t border-[var(--border-soft)] lg:pt-0 lg:border-none" onClick={e => e.stopPropagation()}>
+                          <ActionMenu items={[
+                            { label: productText.actions.view, icon: <Eye className="size-4" />, onClick: () => setViewingProduct(product) },
+                            { label: productText.actions.edit, icon: <Pencil className="size-4" />, onClick: () => setEditingProduct(product) },
+                            { label: product.isActive ? productText.actions.disable : productText.actions.enable, icon: <Power className="size-4" />, onClick: () => handleToggleActive(product), variant: product.isActive ? "danger" : "default" },
+                            { label: productText.actions.delete, icon: <Trash2 className="size-4" />, onClick: () => setDeletingProduct(product), variant: "danger", dividerBefore: true },
+                          ]} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
         </div>

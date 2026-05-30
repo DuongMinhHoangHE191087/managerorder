@@ -15,12 +15,14 @@ import { Button } from "@/shared/ui/button";
 import { cn, formatMoney } from "@/lib/utils";
 
 import type { Customer } from "@/lib/domain/types";
+import { CustomerModel } from "@/entities/customer";
 
 import { vi } from "@/shared/messages/vi";
 
 
 
 const RfmBadge = dynamic(() => import("@/widgets/pages/customers/components/rfm-badge").then((m) => ({ default: m.RfmBadge })), { ssr: false });
+import { CustomersGrid } from "./customers-grid";
 
 
 
@@ -79,6 +81,8 @@ type CustomersPageListProps = {
   totalElements: number;
 
   allFilteredSelected: boolean;
+
+  viewMode?: "card" | "list";
 
 };
 
@@ -159,36 +163,21 @@ type CustomerListRowProps = {
 
 
 const CustomerListRow = React.memo(function CustomerListRow({
-
   customer,
-
   groupMap,
-
   isSelected,
-
   onClearDebt,
-
   onDeleteCustomer,
-
   onEditCustomer,
-
   onOpenCustomer,
-
   onRenewCustomer,
-
   onToggleSelect,
-
 }: CustomerListRowProps) {
-
-  const badge = getDebtBadge(customer.debtAmountVnd, customer.debtOverdueDays);
-
+  const model = new CustomerModel(customer);
+  const badge = model.getSegmentMeta();
   const group = customer.group_id ? groupMap.get(customer.group_id) : undefined;
-
-  const contact = getPrimaryContact(customer.contacts);
-
+  const contact = model.getPrimaryContact();
   const tags = customer.tags ?? [];
-
-
 
   return (
 
@@ -361,35 +350,20 @@ const CustomerListRow = React.memo(function CustomerListRow({
 
 
       <div className="pointer-events-none flex w-full flex-col justify-center gap-2.5 rounded-[1.15rem] border border-[var(--border-soft)] bg-[rgba(246,250,244,0.72)] p-3.5 transition-colors group-hover:border-[var(--accent)]/20 group-hover:bg-white md:w-[240px] shrink-0">
-
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-1.5 text-[13px] font-medium">
-
           <span className="text-[var(--fg-muted)]">{vi.customers.list.totalSpent}</span>
-
-          <span className="font-bold text-[var(--fg-base)] font-mono">{formatMoney(customer.totalSpentVnd || 0)}</span>
-
+          <span className="font-bold text-[var(--fg-base)] font-mono">{model.getFormattedTotalSpent()}</span>
         </div>
-
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-1.5 text-[13px] font-medium">
-
           <span className="text-[var(--fg-muted)]">{vi.customers.list.wallet}</span>
-
-          <span className="font-bold text-[var(--accent)] font-mono">{formatMoney(customer.balanceVnd || 0)}</span>
-
+          <span className="font-bold text-[var(--accent)] font-mono">{model.getFormattedBalance()}</span>
         </div>
-
         <div className="flex items-center justify-between text-[13px] font-medium">
-
           <span className="text-[var(--fg-muted)]">{vi.customers.list.debt}</span>
-
           <span className={cn("text-[14px] font-bold font-mono", customer.debtAmountVnd > 0 ? "text-[var(--danger)]" : "text-emerald-500")}>
-
-            {customer.debtAmountVnd > 0 ? formatMoney(customer.debtAmountVnd) : vi.common.zeroMoney}
-
+            {customer.debtAmountVnd > 0 ? model.getFormattedDebt() : vi.common.zeroMoney}
           </span>
-
         </div>
-
       </div>
 
 
@@ -480,6 +454,8 @@ export const CustomersPageList = React.memo(function CustomersPageList({
 
   allFilteredSelected,
 
+  viewMode = "list",
+
 }: CustomersPageListProps) {
 
   const groupMap = useMemo(() => new Map(groups.map((group) => [group.id, group])), [groups]);
@@ -491,6 +467,13 @@ export const CustomersPageList = React.memo(function CustomersPageList({
     [customers, pageIndex, pageSize]
 
   );
+
+  const mappedCustomers = useMemo(() => {
+    return paginatedCustomers.map((customer) => {
+      const model = new CustomerModel(customer as any);
+      return model.toJSON() as any;
+    });
+  }, [paginatedCustomers]);
 
 
 
@@ -536,31 +519,41 @@ export const CustomersPageList = React.memo(function CustomersPageList({
 
         {isLoading ? (
 
-          Array.from({ length: 5 }).map((_, index) => (
+          viewMode === "card" ? (
+            <CustomersGrid
+              isLoading={true}
+              mappedCustomers={[]}
+              onRowClick={() => {}}
+              onEditClick={() => {}}
+              onDeleteClick={() => {}}
+            />
+          ) : (
+            Array.from({ length: 5 }).map((_, index) => (
 
-            <div key={index} className="animate-pulse flex flex-col gap-4 rounded-[1.5rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.82)] p-5 md:flex-row">
+              <div key={index} className="animate-pulse flex flex-col gap-4 rounded-[1.5rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.82)] p-5 md:flex-row">
 
-              <div className="h-5 w-5 shrink-0 rounded-md bg-gray-200" />
+                <div className="h-5 w-5 shrink-0 rounded-md bg-gray-200" />
 
-              <div className="flex-1 space-y-3">
+                <div className="flex-1 space-y-3">
 
-                <div className="h-4 w-1/4 rounded bg-gray-200" />
+                  <div className="h-4 w-1/4 rounded bg-gray-200" />
 
-                <div className="h-3 w-1/3 rounded bg-gray-200" />
+                  <div className="h-3 w-1/3 rounded bg-gray-200" />
+
+                </div>
+
+                <div className="w-full space-y-3 md:w-1/3">
+
+                  <div className="h-2 w-full rounded bg-gray-200" />
+
+                  <div className="h-3 w-1/2 rounded bg-gray-200" />
+
+                </div>
 
               </div>
 
-              <div className="w-full space-y-3 md:w-1/3">
-
-                <div className="h-2 w-full rounded bg-gray-200" />
-
-                <div className="h-3 w-1/2 rounded bg-gray-200" />
-
-              </div>
-
-            </div>
-
-          ))
+            ))
+          )
 
         ) : customers.length === 0 ? (
 
@@ -586,6 +579,14 @@ export const CustomersPageList = React.memo(function CustomersPageList({
 
           </div>
 
+        ) : viewMode === "card" ? (
+          <CustomersGrid
+            isLoading={false}
+            mappedCustomers={mappedCustomers}
+            onRowClick={(row) => onOpenCustomer(row.id)}
+            onEditClick={onEditCustomer}
+            onDeleteClick={onDeleteCustomer}
+          />
         ) : (
 
           paginatedCustomers.map((customer) => {

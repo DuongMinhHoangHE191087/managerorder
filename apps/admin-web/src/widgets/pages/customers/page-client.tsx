@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useDeferredValue, useMemo, useState, type MouseEvent } from "react";
+import { useCallback, useDeferredValue, useMemo, useState, useEffect, type MouseEvent } from "react";
 import dynamic from "next/dynamic";
 import { FolderPlus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { appToast } from "@/shared/lib/toast";
 import { useDebounce } from "@/shared/hooks/use-debounce";
@@ -48,6 +49,22 @@ export default function CustomersPage() {
   const { data: allTags = [] } = useCustomerTags();
   const { mutateAsync: batchAssignTagMutateAsync, isPending: isBatchAssignTagPending } = useBatchAssignTag();
   const { mutateAsync: recalculateRfm, isPending: isRecalculating } = useRecalculateRfm();
+
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("customers_view_mode") as "card" | "list";
+      if (saved) {
+        setViewMode(saved);
+      }
+    }
+  }, []);
+
+  const handleSetViewMode = useCallback((mode: "card" | "list") => {
+    setViewMode(mode);
+    localStorage.setItem("customers_view_mode", mode);
+  }, []);
 
   useCustomersRealtime();
 
@@ -365,6 +382,32 @@ export default function CustomersPage() {
             <FolderPlus className="size-3.5" />
             {showGroupTag ? vi.customers.page.hideGroupsAndTags : vi.customers.page.manageGroupsAndTags}
           </button>
+
+          <div className="flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-250/80">
+            <button
+              onClick={() => handleSetViewMode("card")}
+              className={cn(
+                "px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all duration-150",
+                viewMode === "card"
+                  ? "bg-white text-[var(--accent)] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              Thẻ
+            </button>
+            <button
+              onClick={() => handleSetViewMode("list")}
+              className={cn(
+                "px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all duration-150",
+                viewMode === "list"
+                  ? "bg-white text-[var(--accent)] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              Danh sách
+            </button>
+          </div>
+
           <div className="min-w-0 w-full md:ml-auto md:w-auto">
             <div className="flex max-w-full items-center gap-1 overflow-x-auto pb-1 md:justify-end md:overflow-visible md:pb-0">
               {(["vip", "loyal", "regular", "at_risk", "churned"] as const).map((seg) => (
@@ -450,6 +493,7 @@ export default function CustomersPage() {
           selectedIds={selectedIds}
           totalElements={totalElements}
           allFilteredSelected={allFilteredSelected}
+          viewMode={viewMode}
         />
 
         <CustomerDetailDrawer

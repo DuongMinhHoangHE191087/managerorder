@@ -80,10 +80,13 @@ export function getRedirectUri(request: NextRequest): string {
   const proto =
     request.headers.get("x-forwarded-proto") ||
     url.protocol.replace(":", "");
-  const host =
+  const rawHost =
     request.headers.get("x-forwarded-host") ||
     request.headers.get("host") ||
     url.host;
+  // Normalize: strip www. to avoid redirect_uri_mismatch when the canonical
+  // Google Console URI is registered without the www prefix.
+  const host = rawHost.replace(/^www\./i, "");
   return `${proto}://${host}/api/auth/google/callback`;
 }
 
