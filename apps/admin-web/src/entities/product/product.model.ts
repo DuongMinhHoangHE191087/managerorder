@@ -10,6 +10,7 @@ export interface ProductModelInput {
   durationType: 'days' | 'months' | 'years';
   durationValue: number;
   isActive: boolean;
+  iconUrl?: string | null;
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }
@@ -22,6 +23,7 @@ export class ProductModel extends BaseModel {
   public readonly durationType: 'days' | 'months' | 'years';
   public readonly durationValue: number;
   public readonly isActive: boolean;
+  public readonly iconUrl: string | null;
 
   constructor(data: ProductModelInput) {
     super({
@@ -37,6 +39,7 @@ export class ProductModel extends BaseModel {
     this.durationType = data.durationType || "months";
     this.durationValue = data.durationValue ?? 1;
     this.isActive = data.isActive ?? true;
+    this.iconUrl = data.iconUrl || null;
   }
 
   /**
@@ -113,6 +116,7 @@ export class ProductModel extends BaseModel {
       durationType: this.durationType,
       durationValue: this.durationValue,
       isActive: this.isActive,
+      iconUrl: this.iconUrl,
 
       // Getters & Helpers
       profit,

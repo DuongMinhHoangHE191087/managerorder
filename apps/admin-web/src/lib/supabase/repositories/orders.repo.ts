@@ -36,8 +36,8 @@ export interface OrderWithItems extends OrderRow {
     assigned_source_account?: { id: string; email: string; provider: string } | null;
     license_keys?: { id: string; key_code: string }[] | null;
   })[];
-  customer?: { id: string; full_name: string; type?: string; customer_contacts: { id: string; channel: string; value: string; is_verified: boolean }[] } | null;
-  product?: { id: string; name: string; mode?: string } | null;
+  customer?: { id: string; full_name: string; type?: string; avatar_url?: string | null; customer_contacts: { id: string; channel: string; value: string; is_verified: boolean }[] } | null;
+  product?: { id: string; name: string; mode?: string; icon_url?: string | null } | null;
   sales_channel?: { id: string; name: string } | null;
   payment_source?: { id: string; name: string; icon: string | null } | null;
 }
@@ -95,6 +95,7 @@ type OrderCustomerRow = {
   id: string;
   full_name: string;
   type: string | null;
+  avatar_url?: string | null;
   customer_contacts?: CustomerContactRow[];
 };
 
@@ -102,6 +103,7 @@ type OrderProductRow = {
   id: string;
   name: string;
   mode: string | null;
+  icon_url?: string | null;
 };
 
 type OrderPaymentSourceRow = {
@@ -158,14 +160,14 @@ async function loadOrderRelationMaps(
       'customers',
       accountId,
       customerIds,
-      'id, full_name, type',
+      'id, full_name, type, avatar_url',
     ),
     loadRowsByIds<OrderProductRow>(
       supabase,
       'products',
       accountId,
       productIds,
-      'id, name, mode',
+      'id, name, mode, icon_url',
     ),
     loadRowsByIds<OrderPaymentSourceRow>(
       supabase,
@@ -228,12 +230,20 @@ function attachOrderRelations<T extends OrderRelationRow & Record<string, unknow
       customer: customer
         ? {
             ...customer,
+            avatar_url: customer.avatar_url,
             customer_contacts: includeContacts
               ? maps.contacts.get(customer.id) ?? []
               : customer.customer_contacts ?? [],
           }
         : null,
-      product: productId ? maps.products.get(productId) ?? null : null,
+      product: productId
+        ? maps.products.get(productId)
+          ? {
+              ...maps.products.get(productId)!,
+              icon_url: maps.products.get(productId)!.icon_url,
+            }
+          : null
+        : null,
       payment_source: paymentSourceId ? maps.paymentSources.get(paymentSourceId) ?? null : null,
       sales_channel: salesChannelId ? maps.salesChannels.get(salesChannelId) ?? null : null,
     };
@@ -399,19 +409,19 @@ async function loadOrderWithItemsFallback(
 
       return new Map((accounts ?? []).map((row) => [row.id, row] as const));
     })(),
-    loadRowsByIds<{ id: string; full_name: string; type?: string }>(
+    loadRowsByIds<OrderCustomerRow>(
       supabase,
       'customers',
       accountId,
       orderData.customer_id ? [orderData.customer_id] : [],
-      'id, full_name, type',
+      'id, full_name, type, avatar_url',
     ),
-    loadRowsByIds<{ id: string; name: string; mode?: string }>(
+    loadRowsByIds<{ id: string; name: string; mode?: string; icon_url?: string | null }>(
       supabase,
       'products',
       accountId,
       orderData.product_id ? [orderData.product_id] : [],
-      'id, name, mode',
+      'id, name, mode, icon_url',
     ),
     loadRowsByIds<{ id: string; name: string; icon: string | null }>(
       supabase,
@@ -456,6 +466,7 @@ async function loadOrderWithItemsFallback(
           id: customer.id,
           full_name: customer.full_name,
           type: customer.type,
+          avatar_url: customer.avatar_url,
           customer_contacts: customerContacts,
         }
       : null,
@@ -464,6 +475,7 @@ async function loadOrderWithItemsFallback(
           id: product.id,
           name: product.name,
           mode: product.mode,
+          icon_url: product.icon_url,
         }
       : null,
     payment_source: paymentSource

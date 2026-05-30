@@ -182,7 +182,7 @@ export function RenewalConfirmModal({
       isOpen={Boolean(renewal && form)}
       onClose={onClose}
       title="Xác nhận gia hạn premium"
-      description="Kiểm tra lại chu kỳ, doanh thu đã thu, giá vốn và lãi trước khi khóa renewal request."
+      description=""
       size="xl"
       footer={
         <CreateActionFooter
@@ -197,9 +197,7 @@ export function RenewalConfirmModal({
       {renewal && form ? (
         <CreateFormSection
           title={`${renewal.customer_name} • ${renewal.service_name}`}
-          description={`Chu kỳ hiện tại ${getBillingCycleLabel(
-            renewal.current_billing_cycle,
-          )} • Giá đang dùng ${formatMoney(Number(renewal.current_subscription_price ?? 0))}`}
+          description=""
         >
           <PremiumRenewalForm
             value={form}

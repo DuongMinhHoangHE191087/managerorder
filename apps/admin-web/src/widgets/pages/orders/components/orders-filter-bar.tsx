@@ -53,11 +53,11 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
   const hasFilters = Boolean(searchQuery || statusFilter || dateFrom || dateTo);
 
   return (
-    <div className="page-stack">
-      <FiltersBar sticky className="px-4 py-2.5">
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)_auto]">
+    <div className="page-stack space-y-3">
+      <FiltersBar sticky className="px-4 py-2">
+        <div className="grid gap-3 md:grid-cols-[1fr_200px_auto] items-center">
           <div className="relative min-w-0">
-          <Search aria-hidden="true" className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[var(--fg-muted)]" />
+            <Search aria-hidden="true" className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[var(--fg-muted)]" />
             <Input
               aria-label="Tìm đơn hàng"
               className="h-9 pl-9 text-sm"
@@ -70,57 +70,18 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
             />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-[minmax(180px,0.7fr)_minmax(0,1fr)]">
-            <Select
-              aria-label="Lọc theo trạng thái đơn hàng"
-              name="order-status-filter"
-              value={statusFilter}
-              onChange={(event) => onStatusChange(event.target.value)}
-              className="h-9 min-w-[160px] text-sm"
-            >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr]">
-              <div className="relative">
-                <Calendar aria-hidden="true" className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
-                <Input
-                  aria-label="Từ ngày tạo đơn"
-                  name="orders-date-from"
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) => onDateFromChange(event.target.value)}
-                  className="h-9 pl-9 text-sm"
-                  title="Từ ngày"
-                />
-              </div>
-              <div className="hidden items-center justify-center text-[12px] font-medium text-[var(--fg-muted)] sm:flex">
-                đến
-              </div>
-              <div className="relative">
-                <Calendar aria-hidden="true" className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
-                <Input
-                  aria-label="Đến ngày tạo đơn"
-                  name="orders-date-to"
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => onDateToChange(event.target.value)}
-                  className="h-9 pl-9 text-sm"
-                  title="Đến ngày"
-                />
-              </div>
-            </div>
-          </div>
+          <DatePickerPopover
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateFromChange={onDateFromChange}
+            onDateToChange={onDateToChange}
+          />
 
           <div className="flex items-center justify-end">
             <Button
               type="button"
               variant="ghost"
-              className="h-9 text-sm"
+              className="h-9 text-sm px-3"
               disabled={!hasFilters}
               onClick={() => {
                 onSearchChange("");
@@ -129,30 +90,134 @@ export const OrdersFilterBar = React.memo(function OrdersFilterBar({
                 onDateToChange("");
               }}
             >
-              <X className="size-4" />
+              <X className="size-4 mr-1" />
               Xóa lọc
             </Button>
           </div>
         </div>
       </FiltersBar>
 
-      <div className="flex flex-wrap gap-1.5 px-1">
+      <div className="flex flex-wrap gap-2 px-1">
         {STATUS_CHIPS.map((chip) => (
           <button
             key={chip.value}
             type="button"
             aria-pressed={statusFilter === chip.value}
             onClick={() => onStatusChange(chip.value)}
-            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide transition-[background-color,border-color,color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 ${
+            className={`rounded-full px-4 py-1.5 text-[12px] font-bold transition-all duration-150 border ${
               statusFilter === chip.value
-                ? `${chip.color} border-current shadow-sm`
-                : "border-transparent bg-[rgba(255,255,255,0.82)] text-[var(--fg-muted)] hover:bg-white"
+                ? "border-slate-800 bg-white text-slate-800 ring-1 ring-slate-800 shadow-sm"
+                : "border-transparent bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
             }`}
           >
             {chip.label}
           </button>
         ))}
       </div>
+    </div>
+  );
+});
+
+interface DatePickerPopoverProps {
+  dateFrom: string;
+  dateTo: string;
+  onDateFromChange: (value: string) => void;
+  onDateToChange: (value: string) => void;
+}
+
+function formatDateCompact(dateStr: string) {
+  try {
+    const [y, m, d] = dateStr.split("-");
+    if (!y || !m || !d) return dateStr;
+    return `${d}/${m}`;
+  } catch {
+    return dateStr;
+  }
+}
+
+const DatePickerPopover = React.memo(function DatePickerPopover({
+  dateFrom,
+  dateTo,
+  onDateFromChange,
+  onDateToChange,
+}: DatePickerPopoverProps) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const popoverRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative w-full" ref={popoverRef}>
+      <Button
+        type="button"
+        variant="secondary"
+        className="h-9 w-full justify-start text-left font-normal text-sm"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <Calendar className="mr-2 h-4 w-4 text-[var(--fg-muted)] shrink-0" />
+        {dateFrom || dateTo ? (
+          <span className="truncate font-bold text-[var(--fg-base)]">
+            {dateFrom ? formatDateCompact(dateFrom) : "..."} - {dateTo ? formatDateCompact(dateTo) : "..."}
+          </span>
+        ) : (
+          <span className="text-[var(--fg-muted)] font-medium">Thời gian</span>
+        )}
+      </Button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">Từ ngày</label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => onDateFromChange(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">Đến ngày</label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => onDateToChange(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2.5 border-t border-[var(--border-soft)]">
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-8 text-xs font-bold"
+                onClick={() => {
+                  onDateFromChange("");
+                  onDateToChange("");
+                  setIsOpen(false);
+                }}
+              >
+                Xóa
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                className="h-8 text-xs font-bold bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)]"
+                onClick={() => setIsOpen(false)}
+              >
+                Xong
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

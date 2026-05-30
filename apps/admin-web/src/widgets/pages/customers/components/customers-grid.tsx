@@ -20,6 +20,7 @@ export type CustomerGridRow = {
   nicksRegistry: any[];
   segment: string | null;
   rfmScore: number | null;
+  avatarUrl?: string | null;
 
   // Computed properties from CustomerModel.toJSON()
   primaryContact: any | null;
@@ -97,9 +98,17 @@ const CustomerCard = React.memo(function CustomerCard({
         {/* Header: Name + Segment */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-purple-100 bg-purple-50/50 font-bold text-purple-800 text-[14px]">
-              <User className="size-4 text-purple-700" />
-            </div>
+            {customer.avatarUrl ? (
+              <img
+                src={customer.avatarUrl}
+                alt={customer.name}
+                className="size-9 shrink-0 rounded-lg object-cover border border-gray-250 shadow-sm"
+              />
+            ) : (
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-purple-100 bg-purple-50/50 font-bold text-purple-800 text-[14px]">
+                <User className="size-4 text-purple-700" />
+              </div>
+            )}
             <div className="min-w-0">
               <h3 className="truncate font-semibold text-gray-800 text-[13.5px] leading-tight" title={customer.name}>
                 {customer.name}

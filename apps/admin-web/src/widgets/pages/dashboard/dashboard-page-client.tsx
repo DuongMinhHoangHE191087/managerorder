@@ -138,6 +138,8 @@ export default function DashboardPage() {
           consumedKeys={totalSlots}
           overdueCustomersCount={overdueCustomers.length}
           pendingCount={pendingCount}
+          totalOrders={stats?.chartData?.reduce((sum: number, item: { orders?: number }) => sum + (item.orders ?? 0), 0) ?? 0}
+          totalRefunded={stats?.totalRefunded ?? 0}
         />
 
         <DashboardAlerts

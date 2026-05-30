@@ -162,7 +162,7 @@ export function RenewalRequestModal({
       isOpen={Boolean(subscription && form)}
       onClose={onClose}
       title="Tạo yêu cầu gia hạn premium"
-      description="Chốt chu kỳ mới, giá bán, giá vốn và phần tiền đã thu ngay từ lúc tạo request để queue gia hạn có đủ dữ liệu vận hành."
+      description=""
       size="xl"
       footer={
         <CreateActionFooter
@@ -177,9 +177,7 @@ export function RenewalRequestModal({
       {subscription && form ? (
         <CreateFormSection
           title={`${subscription.customer_name} • ${subscription.service_name}`}
-          description={`Hạn hiện tại ${subscription.expiry_date} • Giá hiện tại ${formatMoney(
-            Number(subscription.final_price ?? subscription.original_price ?? 0),
-          )}`}
+          description=""
         >
           <PremiumRenewalForm
             value={form}

@@ -20,7 +20,6 @@ export function OrdersPageHeader({
   return (
     <PageHeader
       title="Quản lý đơn hàng"
-      description="Một workspace rộng hơn cho đội vận hành: lọc nhanh, xem KPI, mở chi tiết và xử lý thanh toán hoặc gia hạn mà không phải chuyển qua nhiều màn."
       eyebrow={
         <>
           <span className="inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/15 bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--accent)]">

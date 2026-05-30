@@ -28,7 +28,8 @@ import {
   useCustomerDetail,
   useCustomerOrders,
 } from "@/widgets/pages/customers/hooks/use-customer-detail";
-import { useCustomer360Stats } from "@/widgets/pages/customers/hooks/use-customers";
+import { useCustomer360Stats, useUpdateCustomer } from "@/widgets/pages/customers/hooks/use-customers";
+import { ImageUploader } from "@/shared/ui/image-uploader";
 
 interface CustomerDetailDrawerProps {
   isOpen: boolean;
@@ -286,6 +287,7 @@ export function CustomerDetailDrawer({
   const customerQuery = useCustomerDetail(activeCustomerId, isOpen);
   const ordersQuery = useCustomerOrders(activeCustomerId, isOpen);
   const statsQuery = useCustomer360Stats(activeCustomerId, isOpen);
+  const { mutateAsync: updateCustomer } = useUpdateCustomer();
 
   const customer = customerQuery.data ?? fallbackCustomer ?? null;
   const groupById = useMemo(
@@ -348,8 +350,20 @@ export function CustomerDetailDrawer({
           <section className="rounded-[1.4rem] border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,250,244,0.88))] p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex min-w-0 items-start gap-4">
-                <div className="flex size-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] text-[24px] font-black text-white shadow-[0_16px_30px_rgba(var(--accent-rgb),0.2)]">
-                  {customer.name.charAt(0).toUpperCase()}
+                <div className="shrink-0">
+                  <ImageUploader
+                    value={customer.avatarUrl}
+                    placeholderType="avatar"
+                    className="size-16 rounded-[1.35rem]"
+                    onChange={async (url) => {
+                      try {
+                        await updateCustomer({ id: customer.id, avatarUrl: url });
+                        appToast.success("Đã cập nhật ảnh đại diện khách hàng!");
+                      } catch {
+                        appToast.error("Lỗi cập nhật ảnh đại diện");
+                      }
+                    }}
+                  />
                 </div>
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--fg-muted)]">

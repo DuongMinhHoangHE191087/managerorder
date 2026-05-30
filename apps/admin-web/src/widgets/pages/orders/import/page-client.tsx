@@ -245,11 +245,24 @@ export default function ImportOrdersPage() {
     setStep(3);
   }, [rawExcelData, headerRowIndex, mapping, dynamicContactFields, dynamicDuolingoFields, defaultValues]);
 
+  // --- Stats for preview ---
+  const stats = useMemo(() => {
+    const total = parsedOrders.length;
+    const valid = parsedOrders.filter(o => !o._error).length;
+    const errors = total - valid;
+    return { total, valid, errors };
+  }, [parsedOrders]);
+
   // --- Import execution (chunked for large datasets up to 20,000) ---
   const MAX_IMPORT = 20_000;
 
   const handleImport = useCallback(async () => {
-    const validOrders = parsedOrders.filter(o => !o._error);
+    if (stats.errors > 0) {
+      appToast.error("Toàn bộ tệp tin bị từ chối vì có dòng dữ liệu lỗi. Vui lòng sửa lại tệp tin trước khi tải lên lại.");
+      return;
+    }
+
+    const validOrders = parsedOrders;
     if (validOrders.length === 0) {
       appToast.error(IMPORT_TEXT.noValidOrders);
       return;
@@ -295,15 +308,7 @@ export default function ImportOrdersPage() {
     } finally {
       setIsImporting(false);
     }
-  }, [parsedOrders]);
-
-  // --- Stats for preview ---
-  const stats = useMemo(() => {
-    const total = parsedOrders.length;
-    const valid = parsedOrders.filter(o => !o._error).length;
-    const errors = total - valid;
-    return { total, valid, errors };
-  }, [parsedOrders]);
+  }, [parsedOrders, stats.errors]);
 
   return (
     <AppLayout>
@@ -534,10 +539,10 @@ export default function ImportOrdersPage() {
             </div>
 
             {stats.errors > 0 && (
-              <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
-                <AlertCircle className="size-5 text-amber-600 mt-0.5 shrink-0" />
-                <p className="text-sm text-amber-700">
-                  {importText.errorsNotice(stats.errors, stats.valid)}
+              <div className="flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
+                <AlertCircle className="size-5 text-red-650 mt-0.5 shrink-0" />
+                <p className="text-sm text-red-800 font-semibold">
+                  Toàn bộ tệp tin bị từ chối nhập vì phát hiện có {stats.errors} dòng dữ liệu lỗi. Vui lòng sửa lại các dòng lỗi trong file Excel trước khi tải lên lại để bảo vệ cơ sở dữ liệu.
                 </p>
               </div>
             )}
@@ -557,7 +562,7 @@ export default function ImportOrdersPage() {
               <button
                 type="button"
                 onClick={handleImport}
-                disabled={isImporting || stats.valid === 0}
+                disabled={isImporting || stats.errors > 0 || stats.total === 0}
                 className="px-8 py-3 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white rounded-lg font-bold hover:opacity-90 transition-[opacity,box-shadow] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
               >
                 {isImporting ? (
@@ -565,10 +570,15 @@ export default function ImportOrdersPage() {
                     <Loader2 className="size-4 animate-spin" />
                     {importText.importing}
                   </>
+                ) : stats.errors > 0 ? (
+                  <>
+                    <AlertCircle className="size-4" />
+                    Tệp tin có lỗi dữ liệu
+                  </>
                 ) : (
                   <>
                     <CheckCircle2 className="size-4" />
-                    {importText.importOrders(stats.valid)}
+                    {importText.importOrders(stats.total)}
                   </>
                 )}
               </button>

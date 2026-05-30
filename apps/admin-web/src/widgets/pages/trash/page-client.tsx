@@ -349,7 +349,7 @@ function TrashPreview({
           <EmptyState
             icon={<Info className="size-5" />}
             title={copy.preview.emptyTitle}
-            description={copy.preview.emptyDescription}
+            description=""
           />
         </div>
       </SurfaceCard>
@@ -371,7 +371,7 @@ function TrashPreview({
     <SurfaceCard data-testid="trash-preview" data-focused-id={item.id}>
       <SectionHeader
         title={copy.preview.detailTitle}
-        description={copy.preview.detailDescription}
+        description=""
       />
       <div className="space-y-5 p-5">
         <div className="rounded-[28px] border border-[var(--border-soft)] bg-[linear-gradient(135deg,rgba(246,250,244,0.96),rgba(255,255,255,0.94))] p-5">
@@ -670,7 +670,7 @@ export default function TrashPage() {
       <PageContainer variant="wide">
         <PageHeader
           title={vi.trash.page.title}
-          description={copy.layout.description}
+          description=""
           eyebrow="Recovery Workspace"
           actions={
             <NextLink
@@ -701,11 +701,7 @@ export default function TrashPage() {
                 <WorkspaceMetricCard
                   label={entity.label}
                   value={counts[entityKey] ?? 0}
-                  description={
-                    entityKey === activeType
-                      ? copy.layout.current
-                      : "Nhấn để chuyển sang nhóm dữ liệu này"
-                  }
+                  description=""
                   icon={<Icon className="size-4" />}
                   tone={entityKey === activeType ? "accent" : "default"}
                   className={cn(entityKey === activeType && "ring-1 ring-[var(--accent)]/25")}
@@ -718,7 +714,7 @@ export default function TrashPage() {
         <WorkspaceToolbar>
           <ToolbarField
             label={copy.layout.searchLabel}
-            description={copy.layout.searchDescription(filteredItems.length, items.length, config.label)}
+            description=""
           >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
@@ -733,7 +729,7 @@ export default function TrashPage() {
 
           <ToolbarField
             label="Điều khiển"
-            description={copy.layout.sortDescription}
+            description=""
           >
             <div className="flex flex-wrap gap-2">
               <Button
@@ -777,7 +773,7 @@ export default function TrashPage() {
           <SurfaceCard>
             <SectionHeader
               title={`Danh sách ${config.label.toLowerCase()}`}
-              description={copy.layout.tableDescription}
+              description=""
               action={
                 selectedCount > 0 ? (
                   <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">

@@ -156,6 +156,7 @@ export type Database = {
           deleted_at: string | null;
           created_at: string;
           updated_at: string;
+          avatar_url: string | null;
         };
         Insert: {
           id?: string;
@@ -179,6 +180,7 @@ export type Database = {
           deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          avatar_url?: string | null;
         };
         Update: {
           id?: string;
@@ -202,6 +204,7 @@ export type Database = {
           deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          avatar_url?: string | null;
         };
         Relationships: [
           {
@@ -556,6 +559,7 @@ export type Database = {
           deleted_at: string | null;
           created_at: string;
           updated_at: string;
+          icon_url: string | null;
         };
         Insert: {
           id?: string;
@@ -573,6 +577,7 @@ export type Database = {
           deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          icon_url?: string | null;
         };
         Update: {
           id?: string;
@@ -590,6 +595,7 @@ export type Database = {
           deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          icon_url?: string | null;
         };
         Relationships: [
           {

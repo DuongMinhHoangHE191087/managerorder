@@ -14,6 +14,8 @@ import { BotBroadcastSection } from "./components/bot-broadcast-section";
 import { BotContactsSection } from "./components/bot-contacts-section";
 import { BotPageHeader } from "./components/bot-page-header";
 import { BotStatusGrid } from "./components/bot-status-grid";
+import { BotUpcomingRemindersSection } from "./components/bot-upcoming-reminders-section";
+import { BotReminderSection } from "./components/bot-reminder-section";
 import type { MatchFilter } from "./types";
 import { vi } from "@/shared/messages/vi";
 
@@ -232,11 +234,15 @@ export default function BotManagementPage() {
             </div>
           </SectionCard>
         ) : (
-          <BotStatusGrid status={statusGridStatus} loading={statusGridLoading} />
+          <>
+            <BotStatusGrid status={statusGridStatus} loading={statusGridLoading} />
+            <BotUpcomingRemindersSection />
+            <BotReminderSection />
+          </>
         )}
         <SectionCard
           title="Kiểm thử Telegram Bot"
-          description="Tra cứu và kiểm tra nhanh phản hồi của Telegram Bot."
+          description=""
         >
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
             <input

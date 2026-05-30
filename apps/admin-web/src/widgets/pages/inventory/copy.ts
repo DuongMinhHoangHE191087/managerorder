@@ -8,7 +8,7 @@ export const INVENTORY_COPY = {
   inventoryDetailDrawer: vi.inventory.page.detailDrawer,
   header: {
     title: "Quản lý kho hàng",
-    description: "Nhấn chuột phải vào dòng để mở menu thao tác. Cập nhật dữ liệu nhanh hơn.",
+    description: "",
     searchPlaceholder: "Tìm kiếm tài khoản...",
     createKey: "Thêm License Key",
     smartMatch: "Quét Gợi Ý",
@@ -61,7 +61,7 @@ export const INVENTORY_COPY = {
   createSourceAccount: {
     modal: {
       title: "Thêm tài khoản nguồn",
-      description: "Giữ layout nhập liệu rộng và gọn, tối ưu cho thao tác nhanh trên màn hình lớn lẫn mobile.",
+      description: "",
       save: "Tạo tài khoản",
       cancel: "Hủy",
       success: "Tạo tài khoản nguồn thành công.",
@@ -70,7 +70,7 @@ export const INVENTORY_COPY = {
     },
     identity: {
       title: "Thông tin tài khoản",
-      description: "Giữ form gọn ở những trường nhập thật sự cần thiết để thao tác nhanh và ít nhầm hơn.",
+      description: "",
       emailLabel: "Email đăng nhập *",
       emailPlaceholder: "admin@example.com",
       passwordLabel: "Mật khẩu",
@@ -81,14 +81,14 @@ export const INVENTORY_COPY = {
     },
     allocation: {
       title: "Cấu hình cấp phát",
-      description: "Giữ các trường về sản phẩm, slot và hạn dùng trong cùng một vùng để đọc và rà nhanh hơn.",
+      description: "",
       productLabel: "Sản phẩm khả dụng *",
       capacityLabel: "Sức chứa (tổng slots) *",
       expiryLabel: "Ngày hết hạn *",
     },
     credentials: {
       title: "Dữ liệu đăng nhập",
-      description: "Danh sách credential được giữ riêng để dễ tái sử dụng và giảm lỗi khi cần đối soát.",
+      description: "",
     },
     cost: {
       title: "Giá mua (VND)",
@@ -101,7 +101,7 @@ export const INVENTORY_COPY = {
   editSourceAccount: {
     modal: {
       title: "Sửa thông tin tài khoản nguồn",
-      description: "Nhập nhanh phần cần đổi, còn các phần nâng cao được giữ gọn ở dưới để giảm rối mắt.",
+      description: "",
       save: "Lưu thay đổi",
       cancel: "Hủy",
       success: "Cập nhật tài khoản nguồn thành công.",
@@ -112,7 +112,7 @@ export const INVENTORY_COPY = {
   createLicenseKey: {
     modal: {
       title: "Thêm License Key mới",
-      description: "Nhập mã key và gắn vào sản phẩm tương ứng. Các trường còn lại sẽ được hệ thống khởi tạo tự động.",
+      description: "",
       save: "Tạo key",
       cancel: "Hủy",
       success: "Tạo License Key thành công.",
@@ -122,14 +122,14 @@ export const INVENTORY_COPY = {
     },
     main: {
       title: "Thông tin chính",
-      description: "Giữ form gọn để nhập nhanh, tránh làm người dùng phải đi qua nhiều lớp cấu hình không cần thiết.",
+      description: "",
       keyLabel: "Mã License Key",
       productLabel: "Sản phẩm",
       productPlaceholder: "Chọn sản phẩm",
     },
     delete: {
       title: "Xác nhận xóa License Key",
-      description: "Thao tác này sẽ đưa key vào thùng rác. Bạn vẫn có thể khôi phục lại từ màn chi tiết hoặc trang thùng rác.",
+      description: "",
       save: "Đưa vào thùng rác",
       cancel: "Hủy",
       question: "Bạn chắc chắn muốn xóa?",
@@ -196,7 +196,7 @@ export const INVENTORY_COPY = {
   },
   inventoryTable: {
     title: "Tài khoản nguồn (Pool)",
-    description: "Quản lý tài khoản nguồn, slot và hạn dùng trong một màn hình.",
+    description: "",
     selectAll: "Chọn tất cả",
     providerLabel: "Nhà CC",
     productLabel: "Sản phẩm",
@@ -261,8 +261,7 @@ export const INVENTORY_COPY = {
   },
   licenseKeyDetail: {
     title: "Chi tiết License Key",
-    description:
-      "Xem thông tin license key và thực hiện khôi phục hoặc xóa vĩnh viễn khi key đang ở thùng rác.",
+    description: "",
     notFoundTitle: "Không tìm thấy license key",
     notFoundDescription:
       "Key có thể đã bị xóa hoàn toàn hoặc không còn thuộc về tài khoản hiện tại.",
@@ -360,7 +359,7 @@ export const INVENTORY_COPY = {
     },
     header: {
       title: "Thông tin đăng nhập kho",
-      description: "Link join, 2FA và các khóa truy cập khác.",
+      description: "",
       addDuolingoId: "Thêm Duolingo ID",
       addField: "Thêm trường",
     },

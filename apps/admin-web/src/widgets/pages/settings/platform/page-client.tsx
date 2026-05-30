@@ -112,9 +112,11 @@ export default function PlatformMetricsPage() {
                   <BarChart3 className="size-9 text-[var(--accent)]" />
                   {vi.settings.platform.page.title}
                 </h1>
-                <p className="text-[15px] text-[var(--fg-muted)] font-medium mt-1">
-                  {vi.settings.platform.page.description}
-                </p>
+                {vi.settings.platform.page.description ? (
+                  <p className="text-[15px] text-[var(--fg-muted)] font-medium mt-1">
+                    {vi.settings.platform.page.description}
+                  </p>
+                ) : null}
               </div>
               <div className="flex bg-white border border-[var(--border-soft)] rounded-xl overflow-hidden">
                 {(["24h", "7d", "30d"] as const).map((range) => (

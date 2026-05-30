@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useDeferredValue, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, Printer, Trash2, CheckCircle2, Clock } from "lucide-react";
+import { Eye, Printer, Trash2, CheckCircle2, Clock, ChevronLeft, ChevronRight, Mail } from "lucide-react";
 import { appToast } from "@/shared/lib/toast";
 import { useDebounce } from "@/shared/hooks/use-debounce";
 import { hasSearchTokens } from "@/shared/lib/filtering/search";
@@ -37,8 +37,8 @@ type RawOrder = Record<string, unknown> & {
   payment_state?: string | null;
   balance_due_vnd?: number | null;
   is_fully_paid?: boolean | null;
-  customer?: { full_name?: string; customer_contacts?: Array<{ id: string; channel: string; value: string; is_verified: boolean }> };
-  product?: { name?: string };
+  customer?: { full_name?: string; avatar_url?: string | null; customer_contacts?: Array<{ id: string; channel: string; value: string; is_verified: boolean }> };
+  product?: { name?: string; icon_url?: string | null };
   sales_channel?: { id: string; name: string } | null;
   payment_source?: { id: string; name: string; icon: string | null } | null;
   unit_price_vnd?: number | null;
@@ -133,6 +133,8 @@ function mapRawToOrderRow(order: RawOrder): OrderRow {
     productName: product?.name || order.product_id,
     customerEmail: primaryContact?.value ?? "No contact",
     customerContacts: contacts,
+    customerAvatarUrl: customer?.avatar_url ?? null,
+    productIconUrl: product?.icon_url ?? null,
     salesChannelName: order.sales_channel?.name ?? null,
     paymentSourceName: order.payment_source?.name ?? null,
     payment_method: order.payment_method ?? null,
@@ -259,6 +261,8 @@ export default function OrdersPage() {
         sales_note: order.sales_note,
         contact_snapshot: order.contact_snapshot,
         proof_image_urls: order.proof_image_urls,
+        customerAvatarUrl: order.customerAvatarUrl,
+        productIconUrl: order.productIconUrl,
       }).toJSON() as any;
     });
   }, [mappedOrders]);
@@ -401,9 +405,39 @@ export default function OrdersPage() {
     }
   }
 
+  const handleSendEmailReminder = useCallback(async (order: OrderRow) => {
+    const email = order.customerEmail || order.customerContacts?.find((c: { channel: string; value: string }) => c.channel === "email")?.value;
+    const targetEmail = prompt("Nhập địa chỉ email nhận thông báo nhắc hạn:", email || "");
+    if (targetEmail === null) return;
+    if (!targetEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
+      appToast.error("Địa chỉ email không hợp lệ");
+      return;
+    }
+
+    appToast.loading("Đang gửi email nhắc hạn...", { id: `remind-email-${order.id}` });
+    try {
+      const res = await fetch(`/api/orders/${order.id}/remind`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel: "email", emailAddress: targetEmail }),
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        appToast.success("Đã gửi email nhắc hạn thành công!", { id: `remind-email-${order.id}` });
+      } else if (result.error === "SMTP_NOT_CONFIGURED") {
+        appToast.error("Gửi thất bại: Chưa cấu hình SMTP trong file .env", { id: `remind-email-${order.id}` });
+      } else {
+        appToast.error(`Lỗi: ${result.details || result.error || "Gửi email thất bại"}`, { id: `remind-email-${order.id}` });
+      }
+    } catch (_err) {
+      appToast.error("Lỗi kết nối mạng", { id: `remind-email-${order.id}` });
+    }
+  }, []);
+
   function handleRowContextMenu(e: React.MouseEvent, order: OrderRow) {
     openContextMenu(e, [
       { label: "Xem chi tiết", icon: <Eye className="size-4" />, onClick: () => router.push(`/orders/${order.id}`) },
+      { label: "Gửi email nhắc hạn", icon: <Mail className="size-4" />, onClick: () => handleSendEmailReminder(order) },
       { label: "Ghi nhận thanh toán", icon: <CheckCircle2 className="size-4" />, onClick: () => { setPayingOrder(order); setIsPaymentModalOpen(true); } },
       { label: "Gia hạn / Sửa ngày HH", icon: <Clock className="size-4" />, onClick: () => { setRenewingOrder(order); setIsRenewalDrawerOpen(true); } },
       { label: "In hóa đơn", icon: <Printer className="size-4" />, onClick: () => fetchAndPrint(order.id) },
@@ -459,6 +493,7 @@ export default function OrdersPage() {
             setIsDrawerOpen(false);
           }
         }}
+        onRemindEmailClick={handleSendEmailReminder}
         payingOrder={payingOrder}
         printingOrder={printingOrder}
         renewingOrder={renewingOrder}
@@ -555,6 +590,87 @@ export default function OrdersPage() {
           )}
           </div>
         </div>
+
+        {/* Pagination Footer */}
+        {meta.count > 0 && (
+          <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-[1.2rem] border border-[var(--border-soft)] bg-[rgba(255,255,255,0.88)] p-4 sm:flex-row shadow-[0_2px_8px_rgba(22,60,30,0.04)]">
+            <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+              <span className="text-[12px] text-[var(--fg-muted)] font-bold tracking-wide uppercase whitespace-nowrap">Số hàng:</span>
+              <div className="flex bg-gray-100 rounded-lg p-1 border border-[var(--border-soft)]">
+                {[20, 50, 100].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    aria-pressed={pageSize === s}
+                    onClick={() => {
+                      setPageSize(s);
+                      setPageIndex(0);
+                      replaceListQuery({ pageIndex: 0, pageSize: s });
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 text-[12px] font-bold rounded-md transition-[background-color,color,box-shadow]",
+                      pageSize === s ? "bg-white text-[var(--accent)] shadow-sm" : "text-[var(--fg-muted)] hover:text-[var(--fg-base)] hover:bg-black/5"
+                    )}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[12px] text-[var(--fg-muted)] font-medium whitespace-nowrap hidden lg:inline border-l border-[var(--border-soft)] pl-3 font-mono">
+                {(pageIndex * pageSize) + 1}–{Math.min((pageIndex + 1) * pageSize, meta.count)} / {meta.count} đơn
+              </span>
+            </div>
+
+            {meta.totalPages > 1 && (
+              <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-xl border border-[var(--border-soft)]">
+                <button
+                  type="button"
+                  aria-label="Trang trước"
+                  onClick={() => handlePaginationChange(Math.max(0, pageIndex - 1), pageSize)}
+                  disabled={pageIndex === 0}
+                  className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--fg-muted)] hover:text-[var(--accent)] hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent transition-[background-color,color,opacity] font-bold"
+                >
+                  <ChevronLeft className="size-4" />
+                </button>
+                
+                {Array.from({ length: meta.totalPages }).map((_, i) => {
+                  const shouldShow = i === 0 || i === meta.totalPages - 1 || Math.abs(i - pageIndex) <= 1;
+                  if (!shouldShow) {
+                    if (i === 1 || i === meta.totalPages - 2) {
+                      return <span key={i} className="text-gray-400 px-1 text-xs select-none">...</span>;
+                    }
+                    return null;
+                  }
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handlePaginationChange(i, pageSize)}
+                      className={cn(
+                        "h-8 w-8 flex items-center justify-center rounded-lg text-[12px] font-bold transition-all duration-150",
+                        i === pageIndex
+                          ? "bg-white text-[var(--accent)] shadow-sm border border-[var(--border-soft)]"
+                          : "text-[var(--fg-muted)] hover:text-[var(--fg-base)] hover:bg-black/5"
+                      )}
+                    >
+                      {i + 1}
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  aria-label="Trang sau"
+                  onClick={() => handlePaginationChange(Math.min(meta.totalPages - 1, pageIndex + 1), pageSize)}
+                  disabled={pageIndex >= meta.totalPages - 1}
+                  className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--fg-muted)] hover:text-[var(--accent)] hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent transition-[background-color,color,opacity] font-bold"
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </PageContainer>
 
       {selectedOrderCount > 0 && (

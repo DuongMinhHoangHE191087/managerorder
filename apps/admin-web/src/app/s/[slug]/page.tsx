@@ -226,6 +226,67 @@ export default async function ShortLinkPage({ params, searchParams }: PageProps)
       );
     }
 
+    let orderData = null;
+    let orderPaymentSource = null;
+    if (link.order_id) {
+      const { data: order } = await supabase
+        .from("orders")
+        .select("order_code, total_amount_vnd, total_paid, payment_source_id")
+        .eq("id", link.order_id)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (order) {
+        orderData = {
+          orderCode: order.order_code,
+          totalAmount: Number(order.total_amount_vnd),
+          totalPaid: Number(order.total_paid),
+        };
+        if (order.payment_source_id) {
+          const { data: ps } = await supabase
+            .from("payment_sources")
+            .select("name, bank_name, account_number")
+            .eq("id", order.payment_source_id)
+            .maybeSingle();
+          if (ps && ps.bank_name && ps.account_number) {
+            orderPaymentSource = {
+              bank_name: ps.bank_name,
+              bank_account: ps.account_number,
+              personal_name: ps.name,
+            };
+          }
+        }
+      }
+    }
+
+    if (!orderPaymentSource) {
+      const { data: firstPs } = await supabase
+        .from("payment_sources")
+        .select("name, bank_name, account_number")
+        .not("bank_name", "is", null)
+        .not("account_number", "is", null)
+        .limit(1);
+      if (firstPs && firstPs.length > 0 && firstPs[0].bank_name && firstPs[0].account_number) {
+        orderPaymentSource = {
+          bank_name: firstPs[0].bank_name,
+          bank_account: firstPs[0].account_number,
+          personal_name: firstPs[0].name,
+        };
+      }
+    }
+
+    const activePaymentInfo = orderPaymentSource || {
+      bank_name: systemSettings?.bank_name,
+      bank_account: systemSettings?.bank_account,
+      personal_name: systemSettings?.personal_name,
+    };
+
+    const mergedSystemSettings = {
+      ...systemSettings,
+      bank_name: activePaymentInfo.bank_name,
+      bank_account: activePaymentInfo.bank_account,
+      personal_name: activePaymentInfo.personal_name,
+    };
+
     return (
       <ShortLinkPublicView
         title={link.title}
@@ -233,6 +294,8 @@ export default async function ShortLinkPage({ params, searchParams }: PageProps)
         templateKey={resolvedPolicy.effectiveLandingTemplateKey ?? "owner_intro"}
         requiresToken={Boolean(link.require_token)}
         resolvedDeliveryMode={resolvedPolicy.effectiveDeliveryMode}
+        order={orderData}
+        systemSettings={mergedSystemSettings}
       />
     );
   }

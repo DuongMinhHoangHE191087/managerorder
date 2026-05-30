@@ -27,7 +27,6 @@ export const CustomersPageHeader = React.memo(function CustomersPageHeader({
   return (
     <PageHeader
       title={vi.customers.header.title}
-      description={vi.customers.header.description}
       eyebrow="Customer Workspace"
       actions={
         <>

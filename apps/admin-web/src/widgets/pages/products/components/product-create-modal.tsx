@@ -14,6 +14,7 @@ import {
 import type { ProductService } from "@/lib/domain/types";
 import { useCreateProduct } from "@/widgets/pages/products/hooks/use-products";
 import { PRODUCT_MODE_OPTIONS, MarginPreview } from "./product-shared";
+import { ImageUploader } from "@/shared/ui/image-uploader";
 
 export type CreateProductResult = ProductService;
 
@@ -37,6 +38,7 @@ export function ProductCreateModal({
   const [buyPrice, setBuyPrice] = useState("");
   const [sellPrice, setSellPrice] = useState("");
   const [saving, setSaving] = useState(false);
+  const [iconUrl, setIconUrl] = useState("");
 
   const { mutateAsync: createProduct } = useCreateProduct();
 
@@ -51,6 +53,7 @@ export function ProductCreateModal({
     setDurationType("months");
     setBuyPrice("");
     setSellPrice("");
+    setIconUrl("");
   }, [initialName, isOpen]);
 
   function handleClose() {
@@ -60,6 +63,7 @@ export function ProductCreateModal({
     setDurationType("months");
     setBuyPrice("");
     setSellPrice("");
+    setIconUrl("");
     onClose();
   }
 
@@ -83,6 +87,7 @@ export function ProductCreateModal({
         durationValue: Number(durationValue) || 1,
         buyPriceVnd: Number(buyPrice) || 0,
         sellPriceVnd: Number(sellPrice),
+        iconUrl: iconUrl.trim() || undefined,
       });
 
       appToast.success(`Đã tạo sản phẩm "${newProduct?.name ?? trimmedName}"!`);
@@ -132,6 +137,16 @@ export function ProductCreateModal({
                 }}
               placeholder="VD: Netflix Premium 1 Năm"
             />
+            <div className="pt-2">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)] mb-1">
+                Icon sản phẩm
+              </label>
+              <ImageUploader
+                value={iconUrl}
+                onChange={(url) => setIconUrl(url || "")}
+                placeholderType="icon"
+              />
+            </div>
           </div>
 
             <div className="space-y-2">

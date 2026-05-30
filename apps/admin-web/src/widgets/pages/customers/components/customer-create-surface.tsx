@@ -31,6 +31,7 @@ import { useCreateCustomer } from "@/widgets/pages/customers/hooks/use-customers
 import { useCreateProvider } from "@/widgets/pages/providers/hooks/use-providers";
 import { useCheckDuplicates } from "@/widgets/pages/customers/hooks/use-check-duplicates";
 import { vi } from "@/shared/messages/vi";
+import { ImageUploader } from "@/shared/ui/image-uploader";
 
 export type EntityType = "customer" | "supplier" | "both";
 type CustomerType = "retail" | "wholesale" | "agency";
@@ -175,6 +176,7 @@ export function CustomerCreateSurface({
   const [duplicates, setDuplicates] = useState<DuplicateCandidate[]>([]);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState("");
 
   const duplicateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -262,6 +264,7 @@ export function CustomerCreateSurface({
           contacts: activeContacts,
           notes: notes.trim() || undefined,
           tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+          avatarUrl: avatarUrl.trim() || undefined,
         })) as CreateCustomerResult;
       }
 
@@ -314,7 +317,7 @@ export function CustomerCreateSurface({
     <div className="text-[var(--fg-base)]">
       <CreateFlowShell
         title={getEntityHeadline(entityType)}
-        description={getEntityDescription(entityType)}
+        description=""
         className={mode === "page" ? "mx-auto max-w-6xl" : "max-h-[92vh]"}
         scrollBody={mode === "modal"}
         footer={
@@ -351,7 +354,7 @@ export function CustomerCreateSurface({
       >
           <FormSection
             title={vi.customers.createModal.sections.type}
-            description={vi.customers.createModal.sections.typeDescription}
+            description=""
           >
             <ChoiceGrid className="grid-cols-1 sm:grid-cols-3">
               {ENTITY_TYPE_OPTIONS.map((option) => (
@@ -369,7 +372,7 @@ export function CustomerCreateSurface({
 
           <FormSection
             title="Thông tin nhận diện"
-            description="Chuẩn hóa phần tên, phân loại và các trường cốt lõi để dùng lại nhất quán giữa customer, provider và các màn tìm kiếm."
+            description=""
           >
             <div className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
               <div className="space-y-3">
@@ -395,6 +398,20 @@ export function CustomerCreateSurface({
                   }
                   className="h-12 text-[15px] font-semibold"
                 />
+                
+                {entityType !== "supplier" && (
+                  <div className="pt-2">
+                    <FieldLabel icon={<User className="size-3" />}>Avatar khách hàng</FieldLabel>
+                    <div className="mt-2">
+                      <ImageUploader
+                        value={avatarUrl}
+                        onChange={(url) => setAvatarUrl(url || "")}
+                        placeholderType="avatar"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {showDuplicateWarning && duplicates.length > 0 ? (
                   <DuplicateWarning
                     duplicates={duplicates}
@@ -450,7 +467,7 @@ export function CustomerCreateSurface({
 
           <FormSection
             title={vi.customers.dynamicContactList.title}
-            description="Giữ contact list theo cùng chuẩn ở mọi flow tạo mới để search, duplicate check và các automation không bị lệch shape."
+            description=""
           >
             <DynamicContactList
               contacts={contacts}
@@ -462,7 +479,7 @@ export function CustomerCreateSurface({
           {entityType !== "supplier" ? (
             <FormSection
               title={vi.customers.createModal.sections.tags}
-              description={vi.customers.createModal.sections.tagsDescription}
+              description=""
             >
               <CustomerTagPicker
                 selectedTagIds={selectedTagIds}
@@ -473,7 +490,7 @@ export function CustomerCreateSurface({
 
           <FormSection
             title={vi.customers.createModal.sections.notes}
-            description={vi.customers.createModal.sections.notesDescription}
+            description=""
           >
             <div className="space-y-3">
               <FieldLabel icon={<MessageSquareText className="size-3" />}>

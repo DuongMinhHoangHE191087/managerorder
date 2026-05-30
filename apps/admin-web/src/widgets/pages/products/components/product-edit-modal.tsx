@@ -14,6 +14,7 @@ import {
 import type { ProductService } from "@/lib/domain/types";
 import { useUpdateProduct } from "@/widgets/pages/products/hooks/use-products";
 import { PRODUCT_MODE_OPTIONS, MarginPreview } from "./product-shared";
+import { ImageUploader } from "@/shared/ui/image-uploader";
 
 interface ProductEditModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export function ProductEditModal({
   const [sellPrice, setSellPrice] = useState(product.sellPriceVnd.toString());
   const [isActive, setIsActive] = useState(product.isActive);
   const [saving, setSaving] = useState(false);
+  const [iconUrl, setIconUrl] = useState(product.iconUrl ?? "");
 
   const { mutateAsync: updateProduct } = useUpdateProduct();
 
@@ -51,6 +53,7 @@ export function ProductEditModal({
     setBuyPrice(product.buyPriceVnd.toString());
     setSellPrice(product.sellPriceVnd.toString());
     setIsActive(product.isActive);
+    setIconUrl(product.iconUrl ?? "");
   }, [isOpen, product]);
 
   function handleClose() {
@@ -79,6 +82,7 @@ export function ProductEditModal({
         buyPriceVnd: Number(buyPrice) || 0,
         sellPriceVnd: Number(sellPrice),
         isActive,
+        iconUrl: iconUrl.trim() || undefined,
       });
 
       appToast.success(`Đã cập nhật sản phẩm "${updatedProduct?.name ?? trimmedName}"!`);
@@ -120,6 +124,16 @@ export function ProductEditModal({
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
+            <div className="pt-2">
+              <FieldLabel>Icon sản phẩm</FieldLabel>
+              <div className="mt-1">
+                <ImageUploader
+                  value={iconUrl}
+                  onChange={(url) => setIconUrl(url || "")}
+                  placeholderType="icon"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-3">

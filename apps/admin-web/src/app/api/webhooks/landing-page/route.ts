@@ -20,6 +20,9 @@ const WEBHOOK_SECRET = (
 ).trim();
 const DEFAULT_ACCOUNT_ID = "550e8400-e29b-41d4-a716-446655440000";
 
+// Lock in-memory to prevent concurrent duplicate requests
+const processingLocks = new Set<string>();
+
 interface WebhookPayload {
   event: string;
   timestamp: string;
@@ -98,8 +101,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let transactionId = "";
   try {
     const payload = (await request.json()) as WebhookPayload;
+    transactionId = payload.data?.payment?.transaction_id || "";
+
+    if (transactionId) {
+      if (processingLocks.has(transactionId)) {
+        console.warn(`[Webhook Seepay] Duplicate concurrent request detected for transaction: ${transactionId}`);
+        return NextResponse.json(
+          { error: "This transaction is currently being processed. Please wait." },
+          { status: 409 }
+        );
+      }
+      processingLocks.add(transactionId);
+    }
     
     // Validate required payload fields
     if (!payload.data?.customer?.full_name || !payload.data?.order?.product_id) {
@@ -112,7 +128,7 @@ export async function POST(request: NextRequest) {
     const phone = customer.phone?.trim() ?? "";
 
     // Generate readable order code using transaction details
-    const orderCode = `ORD-${payment.transaction_id || Date.now().toString().slice(-8)}`;
+    const orderCode = `ORD-${transactionId || Date.now().toString().slice(-8)}`;
 
     // ── Idempotency Guard (Only allocate ONCE per transaction) ──
     const { data: existingOrder } = await supabaseAdmin
@@ -321,5 +337,9 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : "Internal Server Error" },
       { status: 500 }
     );
+  } finally {
+    if (transactionId) {
+      processingLocks.delete(transactionId);
+    }
   }
 }

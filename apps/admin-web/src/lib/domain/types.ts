@@ -56,6 +56,10 @@ export interface ReminderConfig {
   template_renewal_zalo: string;
   template_expired_zalo: string;
   auto_send: boolean;
+  telegram_notifications_enabled?: boolean;
+  webhook_notifications_enabled?: boolean;
+  template_share_link?: string;
+  template_share_account?: string;
 }
 
 export type BotUserContactChannel = "telegram" | "zalo";
@@ -193,6 +197,8 @@ export interface PaymentSource {
   id: string;
   name: string;
   icon: string; // emoji or short label
+  bank_name?: string | null;
+  account_number?: string | null;
 }
 
 export type ShortLinkDeliveryMode = "inherit_channel" | "direct_redirect" | "landing_page";
@@ -281,6 +287,7 @@ export interface Customer {
   rfmFrequency?: number;
   rfmMonetary?: number;
   lastRfmCalculatedAt?: string;
+  avatarUrl?: string | null;
 }
 
 export interface Provider {
@@ -330,6 +337,7 @@ export interface ProductService {
   durationType: 'days' | 'months' | 'years';
   durationValue: number;
   isActive: boolean;
+  iconUrl?: string | null;
 }
 
 export interface SourceAccount {

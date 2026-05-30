@@ -9,6 +9,8 @@
 
 ## Decisions
 
+- 2026-05-30: Giải quyết lỗi unit test tạo sản phẩm trong product service bằng cách bổ sung trường iconUrl: null vào khớp kết quả mapProductRow, khôi phục thành công 100% pass tỉ lệ cho bộ 2134 unit tests.
+- 2026-05-30: Tiến hành dọn dẹp diện rộng các đoạn text giải thích thừa dưới tiêu đề FormSection/CreateFlowDialog và SectionCard của các trang cài đặt (Webhooks, Short Links, Platform Export, Bot Upcoming Reminders) và hồ sơ Khách hàng để giữ giao diện tối giản chuyên nghiệp.
 - 2026-05-30: Tối ưu hóa Suspense boundaries ở cấp route-level page.tsx bằng cách bọc PageClient trong Suspense với PageShellSkeleton, triệt tiêu cảnh báo build-time deopt Next.js do useSearchParams. Nâng cấp trải nghiệm tải dữ liệu với hiệu ứng trượt sáng sóng ngang .shimmer dùng chung tại globals.css cho các component OrdersGrid, CustomersGrid, ProductsGrid, ProvidersGrid và list skeleton. Tích hợp SlimLoader để phản hồi trực quan mượt mà khi re-fetching ngầm.
 - 2026-05-28: Loại bỏ cron job trùng lặp cho telegram-reminder (path: /api/cron/telegram-reminder, schedule: 0 0 * * *) trong apps/admin-web/vercel.json để ngăn chặn việc trigger tác vụ lập lịch 2 lần.
 - 2026-05-28: Cấu hình dải phiên bản Node.js tối thiểu ">=22.0.0" ở cả root và admin package.json, đồng thời nâng pnpm packageManager lên "10.0.0" để khớp với pnpm-lock.yaml version 9. Việc này giúp tắt triệt để các cảnh báo sai lệch phiên bản trên Vercel và máy cục bộ.

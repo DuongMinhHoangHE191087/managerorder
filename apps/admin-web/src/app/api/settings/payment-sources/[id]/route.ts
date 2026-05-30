@@ -11,7 +11,7 @@ import { createActivityLog } from "@/lib/supabase/repositories/activity-logs.rep
 export const PUT = withErrorHandler(
   withAccount<{ id: string }>(requirePermissions<{ id: string }>(["settings:write"])(async (request: NextRequest, { accountId, params, user }) => {
     const { id } = await params;
-    const body = await request.json() as { name?: string; icon?: string };
+    const body = await request.json() as { name?: string; icon?: string; bank_name?: string | null; account_number?: string | null };
     const updated = await updatePaymentSource(id, accountId, body);
     createActivityLog({
       account_id: accountId,

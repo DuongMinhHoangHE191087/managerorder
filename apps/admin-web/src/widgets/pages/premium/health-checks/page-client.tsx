@@ -275,7 +275,6 @@ export default function PremiumHealthChecksPage() {
         <PageHeader
           eyebrow={<span>Premium / Health Checks</span>}
           title="Kiểm tra sức khỏe hệ thống"
-          description="Theo dõi log health check của tài khoản premium, lọc theo trạng thái hoặc dịch vụ, và chạy lại ngay từ màn hình này."
           actions={
             <>
               <Button
@@ -321,7 +320,7 @@ export default function PremiumHealthChecksPage() {
         <SurfaceCard className="mt-6">
           <SectionHeader
             title="Bộ lọc"
-            description="Lọc theo account, dịch vụ, trạng thái, kiểu kiểm tra và khoảng thời gian."
+            description=""
             action={
               <Button
                 type="button"
@@ -474,11 +473,7 @@ export default function PremiumHealthChecksPage() {
         <SurfaceCard className="mt-6">
           <SectionHeader
             title="Log kiểm tra"
-            description={
-              isBootstrapping
-                ? "Đang tải danh mục tài khoản và dịch vụ..."
-                : `Đang hiển thị ${logs.length} log trên trang này · Dữ liệu được phân trang server-side.`
-            }
+            description=""
           />
 
           {isLoading && logs.length === 0 ? (
@@ -490,7 +485,7 @@ export default function PremiumHealthChecksPage() {
               <EmptyState
                 icon={<Activity className="size-6" />}
                 title="Chưa có log health check"
-                description="Thử đổi bộ lọc hoặc chạy một health check mới để tạo dữ liệu."
+                description=""
               />
             </div>
           ) : (

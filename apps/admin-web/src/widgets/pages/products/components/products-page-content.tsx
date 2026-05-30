@@ -4,11 +4,12 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, CheckCircle, PackageSearch, CircleDollarSign, Pencil, Trash2, Eye, Power } from "lucide-react";
+import { Plus, Search, CheckCircle, PackageSearch, CircleDollarSign, Pencil, Trash2, Eye, Power, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { appToast } from "@/shared/lib/toast";
 
 import { AppLayout } from "@/widgets/layout/app-layout";
-import { PageContainer, PageHeader, StatsGrid, SurfaceCard } from "@/shared/ui/page-layout";
+import { FiltersBar, PageContainer, PageHeader, SectionHeader, StatsGrid, SurfaceCard } from "@/shared/ui/page-layout";
+import { StaggerContainer, StaggerItem, GlassHoverCard } from "@/shared/ui/animations";
 import { cn, formatMoney } from "@/lib/utils";
 import { ProductModel } from "@/entities/product";
 import { ProductsGrid } from "./products-grid";
@@ -36,6 +37,12 @@ const ProductEditModal = dynamic(() => import("@/widgets/pages/products/componen
 
 export default function ProductsPage() {
   const productText = vi.products.page;
+  const PRODUCT_MODE_CHIPS = useMemo(() => [
+    { value: "", label: productText.allTypes },
+    { value: "slot", label: productText.types.slot },
+    { value: "key", label: productText.types.key },
+    { value: "hybrid", label: productText.types.hybrid },
+  ], [productText]);
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -56,6 +63,9 @@ export default function ProductsPage() {
   const [deletingProduct, setDeletingProduct] = useState<ProductService | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [modeFilter, setModeFilter] = useState("");
+
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
 
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
 
@@ -81,6 +91,11 @@ export default function ProductsPage() {
     }
   }, [routedProduct, viewingProductId]);
 
+  // Reset pageIndex khi filter/search thay đổi
+  useEffect(() => {
+    setPageIndex(0);
+  }, [searchQuery, modeFilter]);
+
   const filteredProducts = useMemo(() => products.filter(p => {
     if (modeFilter && p.mode !== modeFilter) return false;
     if (!hasSearchTokens(searchQuery)) return true;
@@ -95,13 +110,18 @@ export default function ProductsPage() {
     );
   }), [products, modeFilter, searchQuery]);
 
+  const paginatedProducts = useMemo(() => {
+    return filteredProducts.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
+  }, [filteredProducts, pageIndex, pageSize]);
+
   const mappedProducts = useMemo(() => {
-    return filteredProducts.map((p) => {
+    return paginatedProducts.map((p) => {
       const model = new ProductModel(p as any);
       return model.toJSON() as any;
     });
-  }, [filteredProducts]);
+  }, [paginatedProducts]);
 
+  const pageCount = Math.ceil(filteredProducts.length / pageSize);
   const totalProducts = products.length;
   const activeProducts = products.filter(p => p.isActive).length;
   // Only include products with sell price > 0 for accurate avg margin
@@ -166,7 +186,6 @@ export default function ProductsPage() {
       <PageContainer className="relative">
         <PageHeader
           title={productText.title}
-          description={productText.description}
           actions={
             <button
               onClick={() => setIsCreateOpen(true)}
@@ -180,76 +199,88 @@ export default function ProductsPage() {
         />
 
         {/* Stat Cards */}
-        <StatsGrid className="mb-8 md:grid-cols-3">
-          <SurfaceCard className="p-6 border border-[var(--border-soft)] bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[1.5rem] transition-all duration-300 hover:shadow-[0_18px_38px_rgba(0,0,0,0.05)] hover:-translate-y-0.5 active:scale-[0.98] cursor-default h-full flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--fg-muted)]">{productText.stats.total}</p>
-              <span className="bg-[var(--accent)]/10 text-[var(--accent)] p-1.5 rounded-xl">
-                <span className="material-symbols-outlined text-[20px]">inventory_2</span>
-              </span>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-black tracking-tight text-[var(--fg-base)] font-mono">{totalProducts}</span>
-            </div>
-          </SurfaceCard>
-          <SurfaceCard className="p-6 border border-[var(--border-soft)] bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[1.5rem] transition-all duration-300 hover:shadow-[0_18px_38px_rgba(0,0,0,0.05)] hover:-translate-y-0.5 active:scale-[0.98] cursor-default h-full flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--fg-muted)]">{productText.stats.active}</p>
-              <span className="bg-emerald-500/10 text-emerald-500 p-1.5 rounded-xl">
-                <CheckCircle className="size-4" />
-              </span>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-black tracking-tight text-[var(--fg-base)] font-mono">{activeProducts}</span>
-            </div>
-          </SurfaceCard>
-          <SurfaceCard className="p-6 border border-[var(--border-soft)] bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[1.5rem] transition-all duration-300 hover:shadow-[0_18px_38px_rgba(0,0,0,0.05)] hover:-translate-y-0.5 active:scale-[0.98] cursor-default h-full flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--fg-muted)]">{productText.stats.avgMargin}</p>
-              <span className="bg-[var(--accent)]/10 text-[var(--accent)] p-1.5 rounded-xl">
-                <CircleDollarSign className="size-4" />
-              </span>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-black tracking-tight text-[var(--fg-base)] font-mono">{avgMargin}%</span>
-            </div>
-          </SurfaceCard>
-        </StatsGrid>
-
-        {/* Products Table */}
-        <div className="glass-card overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white border border-[var(--border-soft)]">
-          <div className="flex justify-between items-center bg-transparent px-6 py-4 border-b border-[var(--border-soft)]">
-            <div className="flex gap-3 w-full max-w-xl">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--fg-muted)] size-4" />
-                <input
-                  className="w-full bg-[var(--bg-surface)] backdrop-blur-md border border-[var(--border-soft)] rounded-xl pl-9 pr-4 py-2 text-[13px] font-medium focus:ring-1 focus:ring-[var(--ring)] focus:border-[var(--accent)] text-[var(--fg-base)] placeholder:text-[var(--fg-muted)] outline-none transition-[border-color,box-shadow]"
-                  placeholder={productText.searchPlaceholder}
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  data-testid="products-search"
-                />
+        <StaggerContainer delayChildren={0.2} staggerDelay={0.08} className="grid grid-cols-2 gap-2 xl:grid-cols-3 mb-4">
+          <StaggerItem>
+            <GlassHoverCard className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border-soft)] bg-white p-3 shadow-[0_1px_3px_rgba(22,60,30,0.04)] transition-shadow hover:shadow-[0_2px_8px_rgba(22,60,30,0.07)]">
+              <div className="min-w-0">
+                <p className="text-[var(--fg-muted)] text-[9px] font-bold uppercase tracking-widest mb-1">{productText.stats.total}</p>
+                <p className="text-[var(--fg-base)] text-lg font-black tracking-tight font-mono leading-none mb-1.5">{totalProducts}</p>
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="rounded bg-slate-50 text-[var(--fg-muted)] px-1.5 py-px text-[9px] font-bold font-mono border border-slate-100">
+                    {products.filter(p => p.mode === 'slot').length} Slot
+                  </span>
+                  <span className="rounded bg-blue-50 text-blue-600 px-1.5 py-px text-[9px] font-bold font-mono border border-blue-100">
+                    {products.filter(p => p.mode === 'key').length} Key
+                  </span>
+                </div>
               </div>
-              <Select
-                value={modeFilter}
-                onChange={(e) => setModeFilter(e.target.value)}
-                data-testid="products-mode-filter"
-                className="h-11 !w-auto min-w-[11rem] rounded-xl text-[13px] font-bold"
-              >
-                <option value="">{productText.allTypes}</option>
-                <option value="slot">{productText.types.slot}</option>
-                <option value="key">{productText.types.key}</option>
-                <option value="hybrid">{productText.types.hybrid}</option>
-              </Select>
+              <span className="shrink-0 rounded-lg bg-[var(--accent)]/10 p-1.5 text-[var(--accent)] self-start">
+                <span className="material-symbols-outlined text-[14px]">inventory_2</span>
+              </span>
+            </GlassHoverCard>
+          </StaggerItem>
+
+          <StaggerItem>
+            <GlassHoverCard className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border-soft)] bg-white p-3 shadow-[0_1px_3px_rgba(22,60,30,0.04)] transition-shadow hover:shadow-[0_2px_8px_rgba(22,60,30,0.07)]">
+              <div className="min-w-0">
+                <p className="text-[var(--fg-muted)] text-[9px] font-bold uppercase tracking-widest mb-1">{productText.stats.active}</p>
+                <p className="text-[var(--fg-base)] text-lg font-black tracking-tight font-mono leading-none mb-1.5">{activeProducts}</p>
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="rounded bg-emerald-50 text-emerald-600 px-1.5 py-px text-[9px] font-bold font-mono border border-emerald-100">
+                    {activeProducts} Active
+                  </span>
+                  {products.length - activeProducts > 0 ? (
+                    <span className="rounded bg-red-50 text-red-600 px-1.5 py-px text-[9px] font-bold font-mono border border-red-100">
+                      {products.length - activeProducts} Paused
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+              <span className="shrink-0 rounded-lg bg-emerald-500/10 p-1.5 text-emerald-500 self-start">
+                <CheckCircle className="size-3.5" />
+              </span>
+            </GlassHoverCard>
+          </StaggerItem>
+
+          <StaggerItem>
+            <GlassHoverCard className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border-soft)] bg-white p-3 shadow-[0_1px_3px_rgba(22,60,30,0.04)] transition-shadow hover:shadow-[0_2px_8px_rgba(22,60,30,0.07)]">
+              <div className="min-w-0">
+                <p className="text-[var(--fg-muted)] text-[9px] font-bold uppercase tracking-widest mb-1">{productText.stats.avgMargin}</p>
+                <p className="text-[var(--accent)] text-lg font-black tracking-tight font-mono leading-none mb-1.5">{avgMargin}%</p>
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="rounded bg-[var(--accent)]/5 text-[var(--accent)] px-1.5 py-px text-[9px] font-bold font-mono border border-[var(--accent)]/15">
+                    Biên lợi nhuận TB
+                  </span>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-lg bg-[var(--accent)]/10 p-1.5 text-[var(--accent)] self-start">
+                <CircleDollarSign className="size-3.5" />
+              </span>
+            </GlassHoverCard>
+          </StaggerItem>
+        </StaggerContainer>
+
+        {/* Filters Bar */}
+        <FiltersBar sticky className="px-4 py-2 mt-2.5">
+          <div className="grid gap-3 md:grid-cols-[1fr_160px_auto] items-center">
+            <div className="relative min-w-0">
+              <Search aria-hidden="true" className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[var(--fg-muted)]" />
+              <input
+                className="w-full bg-[var(--bg-surface)] backdrop-blur-md border border-[var(--border-soft)] rounded-xl pl-9 pr-4 py-2 h-9 text-[13px] font-medium focus:ring-1 focus:ring-[var(--ring)] focus:border-[var(--accent)] text-[var(--fg-base)] placeholder:text-[var(--fg-muted)] outline-none transition-[border-color,box-shadow]"
+                placeholder={productText.searchPlaceholder}
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                data-testid="products-search"
+              />
             </div>
 
-            <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-gray-200/80 shrink-0">
+            <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-gray-200/80 shrink-0 h-9">
               <button
                 type="button"
                 onClick={() => handleSetViewMode("card")}
                 className={cn(
-                  "px-3 py-1 text-[11px] font-bold rounded-md transition-all duration-150",
+                  "px-3 py-1 text-[10px] font-bold rounded-md transition-all duration-150 h-full",
                   viewMode === "card"
                     ? "bg-white text-[var(--accent)] shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
@@ -261,7 +292,7 @@ export default function ProductsPage() {
                 type="button"
                 onClick={() => handleSetViewMode("list")}
                 className={cn(
-                  "px-3 py-1 text-[11px] font-bold rounded-md transition-all duration-150",
+                  "px-3 py-1 text-[10px] font-bold rounded-md transition-all duration-150 h-full",
                   viewMode === "list"
                     ? "bg-white text-[var(--accent)] shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
@@ -270,7 +301,48 @@ export default function ProductsPage() {
                 Danh sách
               </button>
             </div>
+
+            <div className="flex items-center justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-9 text-sm px-3"
+                disabled={!searchQuery && !modeFilter}
+                onClick={() => {
+                  setSearchQuery("");
+                  setModeFilter("");
+                }}
+              >
+                <X className="size-4 mr-1" />
+                Xóa lọc
+              </Button>
+            </div>
           </div>
+        </FiltersBar>
+
+        <div className="flex flex-wrap gap-2 px-1 mt-2.5 mb-4">
+          {PRODUCT_MODE_CHIPS.map((chip) => (
+            <button
+              key={chip.value}
+              type="button"
+              onClick={() => setModeFilter(chip.value)}
+              className={`rounded-full px-4 py-1.5 text-[12px] font-bold transition-all duration-150 border ${
+                modeFilter === chip.value
+                  ? "border-slate-800 bg-white text-slate-800 ring-1 ring-slate-800 shadow-sm"
+                  : "border-transparent bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+              }`}
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+
+        <SurfaceCard className="mt-3.5 overflow-hidden">
+          <SectionHeader
+            title="Danh sách sản phẩm"
+            description=""
+            action={filteredProducts.length > 0 ? <span className="text-[12px] font-bold text-[var(--fg-muted)]">{pageCount} trang</span> : null}
+          />
           <div className={cn("relative min-h-[200px]", viewMode === "list" && "overflow-x-auto", viewMode === "card" && "p-6")}>
             <SlimLoader isVisible={isFetching && !isLoading} />
             <div className={cn("transition-opacity duration-200", isFetching && !isLoading && "opacity-85")}>
@@ -333,7 +405,7 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="flex flex-col gap-3 px-4">
-                  {filteredProducts.map((product) => {
+                  {paginatedProducts.map((product) => {
                     const margin = product.sellPriceVnd - product.buyPriceVnd;
                     const marginPercent = product.sellPriceVnd > 0 ? Math.round((margin / product.sellPriceVnd) * 100) : 0;
                     
@@ -347,9 +419,17 @@ export default function ProductsPage() {
                       >
                         {/* name & Icon */}
                         <div className="flex items-center gap-4 w-full min-w-0">
-                          <div className="size-12 rounded-xl bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 border border-[var(--accent)]/20 flex items-center justify-center text-[var(--accent)] shadow-inner group-hover:scale-110 transition-transform shrink-0">
-                            <span className="material-symbols-outlined text-[24px]">diamond</span>
-                          </div>
+                          {product.iconUrl ? (
+                            <img
+                              src={product.iconUrl}
+                              alt={product.name}
+                              className="size-12 rounded-xl object-cover border border-gray-250 shadow-sm group-hover:scale-110 transition-transform shrink-0"
+                            />
+                          ) : (
+                            <div className="size-12 rounded-xl bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 border border-[var(--accent)]/20 flex items-center justify-center text-[var(--accent)] shadow-inner group-hover:scale-110 transition-transform shrink-0">
+                              <span className="material-symbols-outlined text-[24px]">diamond</span>
+                            </div>
+                          )}
                           <div className="flex flex-col min-w-0">
                             <span className="text-[16px] font-black text-[var(--fg-base)] tracking-tight group-hover:text-[var(--accent)] transition-colors truncate">
                               {product.name}
@@ -423,8 +503,88 @@ export default function ProductsPage() {
               </div>
             )}
             </div>
+            
+            {/* Pagination Footer */}
+            {filteredProducts.length > 0 && (
+              <div className="mt-6 flex flex-col items-center justify-between gap-4 border-t border-[var(--border-soft)] pt-6 sm:flex-row px-6 pb-4">
+                <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+                  <span className="text-[12px] text-[var(--fg-muted)] font-bold tracking-wide uppercase whitespace-nowrap">Số hàng:</span>
+                  <div className="flex bg-gray-100 rounded-lg p-1 border border-[var(--border-soft)]">
+                    {[20, 50, 100].map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        aria-pressed={pageSize === s}
+                        onClick={() => {
+                          setPageSize(s);
+                          setPageIndex(0);
+                        }}
+                        className={cn(
+                          "px-3 py-1.5 text-[12px] font-bold rounded-md transition-[background-color,color,box-shadow]",
+                          pageSize === s ? "bg-white text-[var(--accent)] shadow-sm" : "text-[var(--fg-muted)] hover:text-[var(--fg-base)] hover:bg-black/5"
+                        )}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[12px] text-[var(--fg-muted)] font-medium whitespace-nowrap hidden lg:inline border-l border-[var(--border-soft)] pl-3 font-mono">
+                    {(pageIndex * pageSize) + 1}–{Math.min((pageIndex + 1) * pageSize, filteredProducts.length)} / {filteredProducts.length} sản phẩm
+                  </span>
+                </div>
+
+                {pageCount > 1 && (
+                  <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-xl border border-[var(--border-soft)]">
+                    <button
+                      type="button"
+                      aria-label="Trang trước"
+                      onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
+                      disabled={pageIndex === 0}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--fg-muted)] hover:text-[var(--accent)] hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent transition-[background-color,color,opacity] font-bold"
+                    >
+                      <ChevronLeft className="size-4" />
+                    </button>
+                    
+                    {Array.from({ length: pageCount }).map((_, i) => {
+                      const shouldShow = i === 0 || i === pageCount - 1 || Math.abs(i - pageIndex) <= 1;
+                      if (!shouldShow) {
+                        if (i === 1 || i === pageCount - 2) {
+                          return <span key={i} className="text-gray-400 px-1 text-xs select-none">...</span>;
+                        }
+                        return null;
+                      }
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setPageIndex(i)}
+                          className={cn(
+                            "h-8 w-8 flex items-center justify-center rounded-lg text-[12px] font-bold transition-all duration-150",
+                            i === pageIndex
+                              ? "bg-white text-[var(--accent)] shadow-sm border border-[var(--border-soft)]"
+                              : "text-[var(--fg-muted)] hover:text-[var(--fg-base)] hover:bg-black/5"
+                          )}
+                        >
+                          {i + 1}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      type="button"
+                      aria-label="Trang sau"
+                      onClick={() => setPageIndex(Math.min(pageCount - 1, pageIndex + 1))}
+                      disabled={pageIndex >= pageCount - 1}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--fg-muted)] hover:text-[var(--accent)] hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent transition-[background-color,color,opacity] font-bold"
+                    >
+                      <ChevronRight className="size-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        </div>
+        </SurfaceCard>
       </PageContainer>
 
       {/* ===== CREATE PRODUCT – Shared Modal ===== */}
@@ -462,7 +622,7 @@ export default function ProductsPage() {
             productText.detailModal.title
           )
         }
-        description="Giữ detail ngắn gọn nhưng đủ để kiểm tra mode vận hành, giá bán, giá vốn và biên lợi nhuận."
+        description=""
         size="lg"
           footer={
             isTrashView && activeViewingProduct ? (
@@ -501,9 +661,17 @@ export default function ProductsPage() {
               </div>
             ) : null}
             <div className="flex items-center gap-4 rounded-xl border border-[var(--accent)]/20 bg-gradient-to-r from-[var(--accent)]/5 to-transparent p-4">
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                <span className="material-symbols-outlined text-[28px]">diamond</span>
-              </div>
+              {activeViewingProduct.iconUrl ? (
+                <img
+                  src={activeViewingProduct.iconUrl}
+                  alt={activeViewingProduct.name}
+                  className="size-14 rounded-2xl object-cover border border-gray-250 shadow-sm shrink-0"
+                />
+              ) : (
+                <div className="flex size-14 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] shrink-0">
+                  <span className="material-symbols-outlined text-[28px]">diamond</span>
+                </div>
+              )}
               <div>
                 <h3 className="text-[18px] font-black tracking-tight text-[var(--fg-base)]">{activeViewingProduct.name}</h3>
                 <p className="text-[13px] font-medium capitalize text-[var(--fg-muted)]">

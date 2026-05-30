@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Printer, Trash2 } from "lucide-react";
+import { Printer, Trash2, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { appToast } from "@/shared/lib/toast";
@@ -49,6 +49,7 @@ type OrdersPageModalsProps = {
   onRenewClick: () => void;
   onPrintClick: () => void;
   onDeleteClick: () => void;
+  onRemindEmailClick: (order: OrderRow) => void;
   payingOrder: OrderRow | null;
   printingOrder: OrderWithItems | null;
   renewingOrder: OrderRow | null;
@@ -59,6 +60,7 @@ type OrdersPageModalsProps = {
 
 function PrintInvoiceModal({ isOpen, onClose, order }: { isOpen: boolean; onClose: () => void; order: OrderWithItems | null }) {
   const modalText = vi.orders.pageModals;
+
   const handlePrintNow = () => {
     const printContent = document.getElementById("invoice-print-area");
     if (!printContent) return;
@@ -94,6 +96,32 @@ function PrintInvoiceModal({ isOpen, onClose, order }: { isOpen: boolean; onClos
     }, 500);
   };
 
+  const handleDownloadImage = async () => {
+    if (!order) return;
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const element = document.getElementById("invoice-print-area");
+      if (!element) {
+        return;
+      }
+      
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.download = `HOADON-${order.order_code || order.id.slice(0, 8)}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("Lỗi tải ảnh hóa đơn:", err);
+    }
+  };
+
   return (
     <CreateFlowDialog
       isOpen={isOpen}
@@ -105,6 +133,9 @@ function PrintInvoiceModal({ isOpen, onClose, order }: { isOpen: boolean; onClos
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={onClose}>
             {modalText.close}
+          </Button>
+          <Button variant="secondary" onClick={handleDownloadImage} className="flex items-center gap-2">
+            <Download className="size-4" /> Tải ảnh
           </Button>
           <Button variant="primary" onClick={handlePrintNow} className="flex items-center gap-2">
             <Printer className="size-4" /> {modalText.printNow}
@@ -214,6 +245,7 @@ export function OrdersPageModals({
   onRenewClick,
   onPrintClick,
   onDeleteClick,
+  onRemindEmailClick,
   payingOrder,
   printingOrder,
   renewingOrder,
@@ -240,6 +272,7 @@ export function OrdersPageModals({
         onPrintClick={onPrintClick}
         onDeleteClick={onDeleteClick}
         onStatusChange={onStatusChange}
+        onRemindEmailClick={onRemindEmailClick}
       />
 
       <RenewalDrawer isOpen={isRenewalDrawerOpen} onClose={onCloseRenewal} onSubmit={onRenewSubmit} order={renewingOrder} />

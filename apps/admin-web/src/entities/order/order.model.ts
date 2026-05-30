@@ -41,6 +41,8 @@ export interface OrderModelInput {
   sales_note?: string | null;
   contact_snapshot?: string | null;
   proof_image_urls?: string[] | null;
+  customerAvatarUrl?: string | null;
+  productIconUrl?: string | null;
 }
 
 export class OrderModel extends BaseModel {
@@ -73,6 +75,8 @@ export class OrderModel extends BaseModel {
   public readonly salesNote: string | null;
   public readonly contactSnapshot: string | null;
   public readonly proofImageUrls: string[] | null;
+  public readonly customerAvatarUrl: string | null;
+  public readonly productIconUrl: string | null;
 
   constructor(data: OrderModelInput) {
     super({
@@ -112,6 +116,8 @@ export class OrderModel extends BaseModel {
     this.salesNote = data.sales_note || null;
     this.contactSnapshot = data.contact_snapshot || null;
     this.proofImageUrls = data.proof_image_urls || null;
+    this.customerAvatarUrl = data.customerAvatarUrl || null;
+    this.productIconUrl = data.productIconUrl || null;
   }
 
   /**
@@ -307,6 +313,8 @@ export class OrderModel extends BaseModel {
       salesNote: this.salesNote,
       contactSnapshot: this.contactSnapshot,
       proofImageUrls: this.proofImageUrls,
+      customerAvatarUrl: this.customerAvatarUrl,
+      productIconUrl: this.productIconUrl,
       
       // Getter/Computed values
       profit,

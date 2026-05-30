@@ -301,7 +301,7 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
         <PageHeader
           eyebrow={<span>Premium / Accounts / Detail</span>}
           title={detail.primary_email}
-          description="Canonical admin surface cho premium account: cấu hình, subscriptions, sub-users, migrations, health checks và audit trail."
+          description=""
           actions={
             <>
               <Button variant="secondary" onClick={() => router.push("/premium/accounts")}>
@@ -342,7 +342,7 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
         <div className="mt-6 grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
           <div className="min-w-0 space-y-6">
             <SurfaceCard>
-              <SectionHeader title="Cấu hình account" description="Cập nhật metadata, dung lượng slot, hạn thuê bao và trạng thái vận hành." action={<Button onClick={() => void handleSaveConfig()} isLoading={isSaving}><Save className="size-4" />Lưu</Button>} />
+              <SectionHeader title="Cấu hình account" description="" action={<Button onClick={() => void handleSaveConfig()} isLoading={isSaving}><Save className="size-4" />Lưu</Button>} />
               <div className="grid min-w-0 grid-cols-1 gap-4 p-4 sm:p-5 md:grid-cols-2">
                 <div className="space-y-2"><label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Email chính</label><Input value={configForm.primary_email} onChange={(event) => setConfigForm((current) => current ? { ...current, primary_email: event.target.value } : current)} /></div>
                 <div className="space-y-2"><label className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Mật khẩu mới</label><Input type="password" value={configForm.primary_password} placeholder="Để trống nếu không đổi" onChange={(event) => setConfigForm((current) => current ? { ...current, primary_password: event.target.value } : current)} /></div>
@@ -358,9 +358,9 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
             </SurfaceCard>
 
             <SurfaceCard>
-              <SectionHeader title="Linked subscriptions" description="Mở thẳng customer profile hoặc chuyển sang surface migrations khi cần điều chuyển." />
+              <SectionHeader title="Linked subscriptions" description="" />
               <div className="space-y-3 p-5">
-                {detail.subscriptions.length === 0 ? <EmptyState icon={<ClipboardList className="size-6" />} title="Chưa có thuê bao nào" description="Account này chưa cấp quyền cho khách hàng nào." /> : detail.subscriptions.map((subscription) => (
+                {detail.subscriptions.length === 0 ? <EmptyState icon={<ClipboardList className="size-6" />} title="Chưa có thuê bao nào" description="" /> : detail.subscriptions.map((subscription) => (
                   <div key={subscription.id} className="rounded-[1.4rem] border border-[var(--border-soft)] bg-white p-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>
@@ -397,18 +397,17 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
 
           <div className="min-w-0 space-y-6">
             <SurfaceCard>
-              <SectionHeader title="Sub-users" description="CRUD trực tiếp sub-users và trạng thái slot ngay tại account detail." action={<span className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]">{detail.metrics.active_user_count}/{detail.metrics.user_count} active</span>} />
+              <SectionHeader title="Sub-users" description="" action={<span className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]">{detail.metrics.active_user_count}/{detail.metrics.user_count} active</span>} />
               <div className="space-y-4 p-5">
                 <div className="rounded-[1.4rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/50 p-4">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">Thêm sub-user mới</p>
-                  <p className="mt-1 text-[12px] text-[var(--fg-muted)]">{isLocalFixture ? "Sandbox local đang ở chế độ read-only." : "Tạo thêm slot trực tiếp cho account này."}</p>
                   <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                     <Input value={creatingUserEmail} placeholder="user-email@example.com" onChange={(event) => setCreatingUserEmail(event.target.value)} />
                     <Button onClick={() => { setCreatingUser(true); void mutateUser(`/api/premium/accounts/${accountId}/users`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_email: creatingUserEmail.trim() }) }, "Đã thêm sub-user", () => { setCreatingUserEmail(""); }, () => setCreatingUser(false)); }} isLoading={creatingUser} disabled={isLocalFixture}><UserPlus className="size-4" />Thêm user</Button>
                   </div>
                 </div>
 
-                {detail.users.length === 0 ? <EmptyState icon={<UserCog className="size-6" />} title="Chưa có sub-user" description="Account này chưa có user chia sẻ nào." /> : detail.users.map((user) => {
+                {detail.users.length === 0 ? <EmptyState icon={<UserCog className="size-6" />} title="Chưa có sub-user" description="" /> : detail.users.map((user) => {
                   const draft = userDrafts[user.id] ?? { user_email: user.user_email, status: user.status };
                   return (
                     <div key={user.id} className="rounded-[1.3rem] border border-[var(--border-soft)] bg-white p-4">
@@ -432,10 +431,10 @@ export default function PremiumAccountDetailPage({ accountId }: { accountId: str
             </SurfaceCard>
 
             <SurfaceCard>
-              <SectionHeader title="Audit trail" description="Lịch sử thay đổi và sự kiện vận hành gắn với premium account này." action={<div className="flex items-center gap-2"><Button variant="secondary" disabled={!auditHasPrevious} onClick={() => void fetchDetail(Math.max(1, auditPage - 1), { silent: true })}>Trang trước</Button><Button variant="secondary" disabled={!auditHasNext} onClick={() => void fetchDetail(auditPage + 1, { silent: true })}>Trang sau</Button></div>} />
+              <SectionHeader title="Audit trail" description="" action={<div className="flex items-center gap-2"><Button variant="secondary" disabled={!auditHasPrevious} onClick={() => void fetchDetail(Math.max(1, auditPage - 1), { silent: true })}>Trang trước</Button><Button variant="secondary" disabled={!auditHasNext} onClick={() => void fetchDetail(auditPage + 1, { silent: true })}>Trang sau</Button></div>} />
               <div className="space-y-3 p-5">
                 <div className="rounded-[1.2rem] border border-[var(--border-soft)] bg-[var(--surface-light)]/50 px-4 py-3 text-[12px] text-[var(--fg-muted)]">Trang {detail.audit.meta.page}/{Math.max(detail.audit.meta.totalPages, 1)} • {detail.audit.meta.count} bản ghi</div>
-                {detail.audit.items.length === 0 ? <EmptyState icon={<CalendarClock className="size-6" />} title="Chưa có audit record" description="Các thao tác mutate trên account sẽ xuất hiện tại đây." /> : detail.audit.items.map((item) => (
+                {detail.audit.items.length === 0 ? <EmptyState icon={<CalendarClock className="size-6" />} title="Chưa có audit record" description="" /> : detail.audit.items.map((item) => (
                   <div key={item.id} className="rounded-[1.3rem] border border-[var(--border-soft)] bg-white p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div><p className="text-[12px] font-black uppercase tracking-widest text-[var(--fg-muted)]">{item.action_type}</p><p className="mt-1 text-[13px] font-semibold text-[var(--fg-base)]">{formatDateTimeLabel(item.created_at)}</p><p className="mt-1 text-[12px] text-[var(--fg-muted)]">actor: {item.created_by ?? "system"}</p></div>

@@ -58,7 +58,7 @@ const rawVi = {
     brand: {
       title: "Dương Minh Hoàng",
       subtitle: "Hệ thống quản trị",
-      description: "Hệ thống quản trị, phân phối và vận hành tài khoản cao cấp dành riêng cho Dương Minh Hoàng.",
+      description: "",
     },
     sections: {
       operations: "Điều hành",
@@ -99,9 +99,9 @@ const rawVi = {
       title: "Thông báo vận hành",
       count: (count: number) => `${count} mục cần theo dõi`,
       emptyTitle: "Không có tín hiệu nào cần xử lý",
-      emptyDescription: "Drawer này chỉ hiển thị các tín hiệu hành động được ưu tiên.",
+      emptyDescription: "",
       emptyStateTitle: "Chưa có vấn đề nào cần thao tác.",
-      emptyStateDescription: "Hệ thống sẽ hiển thị các cảnh báo, sự kiện và tín hiệu ưu tiên tại đây.",
+      emptyStateDescription: "",
       close: "Đóng thông báo",
     },
   },
@@ -114,14 +114,14 @@ const rawVi = {
     noResults: "Không tìm thấy kết quả phù hợp.",
     metaFallback: "Mở chi tiết liên quan",
     shortcutDescriptions: {
-      dashboard: "Theo dõi trạng thái toàn hệ thống",
-      createOrder: "Mở nhanh flow tạo đơn hàng",
-      orders: "Danh sách và bộ lọc vận hành",
-      customers: "Tra cứu hồ sơ khách hàng",
-      inventory: "Kiểm soát sức chứa và hạn dùng",
-      providers: "Đơn nhập và theo dõi nguồn hàng",
-      premiumAccounts: "Tài khoản gốc và sức chứa",
-      calendar: "Lịch vận hành và nhắc việc",
+      dashboard: "",
+      createOrder: "",
+      orders: "",
+      customers: "",
+      inventory: "",
+      providers: "",
+      premiumAccounts: "",
+      calendar: "",
     },
     kinds: {
       order: "đơn hàng",
@@ -501,7 +501,7 @@ const rawVi = {
   shortLinks: {
     page: {
       title: "Link rút gọn",
-      description: "Quản lý liên kết rút gọn và chống gian lận truy cập.",
+      description: "",
       create: "Tạo Link",
       all: "Tất cả",
       total: "Tổng link",
@@ -706,17 +706,15 @@ const rawVi = {
     },
     public: {
       protectedTitle: "Liên kết bảo mật",
-      activeDescription:
-        "Truy cập an toàn qua hệ thống Dương Minh Hoàng. Liên kết được bảo mật SSL, chống gian lận và xác thực truy cập nội bộ.",
-      expiredDescription:
-        "Liên kết đã hết hạn hoặc không khả dụng. Vui lòng liên hệ Admin để nhận liên kết mới.",
+      activeDescription: "",
+      expiredDescription: "",
       verifying: "Đang xác thực liên kết...",
     },
   },  activityLogs: {
     page: {
       title: "Nháº­t kÃ½ há»‡ thá»‘ng",
-      description: "Theo dÃµi lá»‹ch sá»­ toÃ n bá»™ cÃ¡c thao tÃ¡c thay Ä‘á»•i dá»¯ liá»‡u cá»§a nhÃ¢n sá»± thÃ´ng qua truy váº¥n JSONB Deep-Search.",
-      searchPlaceholder: "TÃ¬m kiáº¿m ná»™i dung (vÃ­ dá»¥: email, id Ä‘Æ¡n, hoáº·c tÃªn khÃ¡ch hÃ ng)...",
+      description: "",
+      searchPlaceholder: "Tìm kiếm...",
       allActions: "Táº¥t cáº£ thao tÃ¡c",
       fromDate: "Tá»« ngÃ y",
       toDate: "Äáº¿n ngÃ y",
@@ -945,7 +943,7 @@ const rawVi = {
   customers: {
     header: {
       title: "Khách hàng",
-      description: "Quản lý hồ sơ khách hàng, tài khoản liên kết và công nợ trên cùng một workspace.",
+      description: "",
       recalculate: "Tính RFM",
       recalculating: "Đang tính...",
       create: "Thêm khách hàng",
@@ -974,14 +972,14 @@ const rawVi = {
     },
     form: {
       headerTitle: "Hồ sơ khách hàng mới",
-      headerDescription: "Điền thông tin định danh, phân loại và các kênh liên hệ chính.",
+      headerDescription: "",
       identityTitle: "Thông tin chính",
-      identityDescription: "Tên khách hàng và phân loại hồ sơ.",
+      identityDescription: "",
       nameLabel: "Họ và tên",
       namePlaceholder: "Ví dụ: Nguyễn Văn A",
       typeLabel: "Phân loại",
       contactTitle: "Thông tin liên hệ",
-      contactDescription: "Zalo, Facebook, Telegram, Email, SĐT...",
+      contactDescription: "",
       cancel: "Hủy bỏ",
       save: "Lưu khách hàng",
       validation: {
@@ -1003,7 +1001,7 @@ const rawVi = {
       backToList: "← Quay lại danh sách",
       breadcrumbRoot: "Khách hàng",
       title: "Hồ sơ khách hàng",
-      description: "Quản lý liên hệ, công nợ, RFM và toàn bộ đơn hàng.",
+      description: "",
       edit: "Cập nhật hồ sơ",
       createOrder: "Tạo đơn mới",
       typeLabels: {
@@ -1040,7 +1038,7 @@ const rawVi = {
       updated: "Cập nhật thành công!",
       ordersPanel: {
         title: "Đơn hàng & Thanh toán",
-        description: "Đối soát doanh thu, công nợ và các đơn chưa hoàn tất thanh toán.",
+        description: "",
         countSuffix: "đơn",
         emptyTitle: "Chưa có đơn hàng nào",
         emptyDescription: "Tạo đơn mới để bắt đầu ghi nhận thanh toán.",
@@ -1061,7 +1059,7 @@ const rawVi = {
       },
       nicksPanel: {
         title: "Tài khoản kết nối (Nicks)",
-        description: "Danh sách nick đã gắn vào khách hàng để đồng bộ nghiệp vụ.",
+        description: "",
         countSuffix: "nicks",
         emptyTitle: "Chưa có tài khoản kết nối nào",
         emptyDescription: "Gắn nick để tăng độ chính xác khi tìm kiếm và đối soát.",
@@ -1277,7 +1275,7 @@ const rawVi = {
     },
     newPage: {
       title: "Tạo khách hàng mới",
-      description: "Dùng workspace tạo mới chuẩn hóa để nhập liệu đầy đủ, rộng rãi và tái sử dụng nhất quán trên các trang quản trị.",
+      description: "",
     },
     createModal: {
       titleCustomer: "Tạo khách hàng mới",
@@ -1291,14 +1289,14 @@ const rawVi = {
       },
       sections: {
         type: "Loại hồ sơ",
-        typeDescription: "Chọn đúng vai trò để form, workflow và dữ liệu sinh ra bám đúng domain vận hành.",
+        typeDescription: "",
         name: "Tên khách hàng",
         supplierName: "Tên nhà cung cấp",
         tier: "Phân hạng",
         tags: "Tags",
-        tagsDescription: "Gắn nhãn để tìm kiếm, lọc và kích hoạt các workflow nhanh hơn.",
+        tagsDescription: "",
         notes: "Ghi chú",
-        notesDescription: "Lưu thêm bối cảnh, yêu cầu đặc biệt hoặc lưu ý nội bộ cho các lần xử lý sau.",
+        notesDescription: "",
       },
       entityTypes: {
         customer: { label: "Khách hàng", desc: "Mua dịch vụ" },
@@ -1333,17 +1331,17 @@ const rawVi = {
       save: "Lưu thay đổi",
       sections: {
         main: "Thông tin chính",
-        mainDescription: "Giữ định danh, phân loại và mức độ tin cậy của khách hàng trên cùng một form.",
+        mainDescription: "",
         contacts: "Thông tin liên hệ",
-        contactsDescription: "Quản lý toàn bộ kênh liên hệ của khách hàng theo cùng một chuẩn dữ liệu.",
+        contactsDescription: "",
         debt: "Công nợ",
-        debtDescription: "Theo dõi số tiền còn nợ và số ngày quá hạn để quyết định xử lý.",
+        debtDescription: "",
         debtBanner: (amount: string, overdueDays: number) =>
           `Công nợ hiện tại: ${amount}${overdueDays > 0 ? ` • quá hạn ${overdueDays} ngày` : ""}`,
         tags: "Tags",
-        tagsDescription: "Gắn nhãn để lọc, nhóm và tự động hóa thao tác cho khách hàng.",
+        tagsDescription: "",
         notes: "Ghi chú",
-        notesDescription: "Lưu bối cảnh hoặc yêu cầu đặc biệt để đội vận hành không mất ngữ cảnh.",
+        notesDescription: "",
       },
       labels: {
         fullName: "Họ tên khách hàng",
@@ -1388,7 +1386,7 @@ const rawVi = {
     },
     dynamicContactList: {
       title: "Thông tin liên hệ",
-      description: "Thêm các kênh để liên lạc với khách hàng",
+      description: "",
       addChannel: "Thêm kênh",
       types: {
         phone: "Điện thoại",
@@ -1588,7 +1586,7 @@ const rawVi = {
   providers: {
     page: {
       title: "NhÃ  cung cáº¥p",
-      description: "Quáº£n lÃ½ máº¡ng lÆ°á»›i Ä‘á»‘i tÃ¡c, nguá»“n cung dá»‹ch vá»¥ & sáº£n pháº©m.",
+      description: "",
       create: "ThÃªm NhÃ  Cung Cáº¥p",
       searchPlaceholder: "TÃ¬m kiáº¿m theo tÃªn, SÄT, email...",
       pagination: {
@@ -1641,7 +1639,7 @@ const rawVi = {
       backToList: "â† Quay láº¡i danh sÃ¡ch",
       breadcrumbRoot: "NhÃ  cung cáº¥p",
       title: "Há»“ sÆ¡ nhÃ  cung cáº¥p",
-      description: "Quáº£n lÃ½ há»“ sÆ¡, cÃ´ng ná»£ vÃ  toÃ n bá»™ Ä‘Æ¡n nháº­p cá»§a Ä‘á»‘i tÃ¡c.",
+      description: "",
       edit: "Cáº­p nháº­t há»“ sÆ¡",
       createPurchaseOrder: "Táº¡o Ä‘Æ¡n nháº­p má»›i",
       tabs: {
@@ -1675,7 +1673,7 @@ const rawVi = {
       updated: "Cáº­p nháº­t thÃ nh cÃ´ng",
       ordersPanel: {
         title: "Đơn hàng & Thanh toán",
-        description: "Đối soát doanh thu, công nợ và các đơn chưa hoàn tất thanh toán.",
+        description: "",
         countSuffix: "đơn",
         emptyTitle: "Chưa có đơn hàng nào",
         emptyDescription: "Tạo đơn mới để bắt đầu ghi nhận thanh toán.",
@@ -1696,7 +1694,7 @@ const rawVi = {
       },
       nicksPanel: {
         title: "Tài khoản kết nối (Nicks)",
-        description: "Danh sách nick đã gắn vào khách hàng để đồng bộ nghiệp vụ.",
+        description: "",
         countSuffix: "nicks",
         emptyTitle: "Chưa có tài khoản kết nối nào",
         emptyDescription: "Gắn nick để tăng độ chính xác khi tìm kiếm và đối soát.",
@@ -1704,10 +1702,10 @@ const rawVi = {
     },
     financialsPanel: {
       title: "Tá»•ng quan tÃ i chÃ­nh",
-      description: "TÃ³m lÆ°á»£c cÃ´ng ná»£, sá»‘ tiá»n Ä‘Ã£ thanh toÃ¡n vÃ  tiáº¿n Ä‘á»™ xá»­ lÃ½.",
+      description: "",
       stats: {
         totalPurchases: "Tá»•ng mua",
-        totalPaid: "ÄÃ£ thanh toÃ¡n",
+        totalPaid: "Ä Ã£ thanh toÃ¡n",
         totalDebt: "CÃ´ng ná»£",
         completed: "HoÃ n thÃ nh",
       },
@@ -1718,7 +1716,7 @@ const rawVi = {
     },
     purchaseOrdersPanel: {
       title: "ÄÆ¡n nháº­p hÃ ng",
-      description: "Theo dÃµi tiáº¿n Ä‘á»™ nháº­p, cÃ´ng ná»£ vÃ  cÃ¡c khoáº£n Ä‘Ã£ thanh toÃ¡n.",
+      description: "",
       countSuffix: "Ä‘Æ¡n",
       emptyTitle: "ChÆ°a cÃ³ Ä‘Æ¡n nháº­p hÃ ng nÃ o",
       emptyDescription: "Táº¡o Ä‘Æ¡n nháº­p Ä‘á»ƒ ghi nháº­n chi phÃ­ vÃ  theo dÃµi thanh toÃ¡n.",
@@ -1775,7 +1773,7 @@ const rawVi = {
         vip: { title: "Äá»‘i tÃ¡c VIP", desc: "Cung cáº¥p nguá»“n Ä‘áº§u vÃ o lá»›n" },
       },
       contactTitle: "KÃªnh liÃªn láº¡c",
-      contactDescription: "Quáº£n lÃ½ danh báº¡ liÃªn há»‡ nhÃ  cung cáº¥p",
+      contactDescription: "",
       reliabilityLabel: "Äiá»ƒm uy tÃ­n",
       reliabilityLow: "0 (KÃ©m)",
       reliabilityHigh: "100 (Uy tÃ­n)",
@@ -2326,7 +2324,7 @@ const rawVi = {
         errorLoading: "LÃ¡Â»â€”i khi tÃ¡ÂºÂ£i dÃ¡Â»Â¯ liÃ¡Â»â€¡u metric.",
         fetchFailed: "KhÃƒÂ´ng thÃ¡Â»Æ’ tÃ¡ÂºÂ£i dÃ¡Â»Â¯ liÃ¡Â»â€¡u metric",
         title: "Chá»‰ sá»‘ ná»n táº£ng",
-        description: "GiÃ¡m sÃ¡t lÆ°u lÆ°á»£ng API, giá»›i háº¡n tá»‘c Ä‘á»™, lá»—i xÃ¡c thá»±c vÃ  hiá»‡u suáº¥t há»‡ thá»‘ng",
+        description: "",
         apiCallsToday: "SÃ¡Â»â€˜ API gÃ¡Â»Â­i hÃƒÂ´m nay",
         avgResponse: "PhÃ¡ÂºÂ£n hÃ¡Â»â€œi trung bÃƒÂ¬nh",
         errorRate: "TÃ¡Â»Â· lÃ¡Â»â€¡ lÃ¡Â»â€”i",
@@ -2369,7 +2367,7 @@ const rawVi = {
   products: {
     page: {
       title: "Quáº£n lÃ½ Sáº£n pháº©m",
-      description: "Theo dÃµi kho tÃ i khoáº£n cao cáº¥p vÃ  biÃªn lá»£i nhuáº­n cá»§a báº¡n.",
+      description: "",
       createButton: "ThÃªm Sáº£n Pháº©m Má»›i",
       stats: {
         total: "Tá»•ng sáº£n pháº©m",

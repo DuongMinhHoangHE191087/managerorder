@@ -19,7 +19,7 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   invoice_prefix: "INV",
   tax_label: "VAT",
   tax_rate_default: 0,
-  payment_instruction_template: "",
+  payment_instruction_template: "Ngân hàng: {{bank_name}}\nSố tài khoản: {{bank_account}}\nChủ tài khoản: {{account_name}}\n{{transfer_line}}",
   sales_landing_config: DEFAULT_SALES_LANDING_CONFIG,
 };
 

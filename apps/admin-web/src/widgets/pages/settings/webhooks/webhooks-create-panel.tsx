@@ -84,7 +84,7 @@ function WebhooksCreatePanelContent({
   return (
     <CreateFlowShell
       title={vi.settings.webhooks.createPanel.title}
-      description={vi.settings.webhooks.createPanel.description}
+      description=""
       footer={
         <CreateActionFooter
           primaryLabel={vi.settings.webhooks.createPanel.create}
@@ -100,7 +100,7 @@ function WebhooksCreatePanelContent({
     >
       <CreateFormSection
         title="Endpoint nhận dữ liệu"
-        description="Dán URL đích thật rõ để test delivery, retry và audit trail từ đúng nơi nhận."
+        description=""
       >
         <div className="space-y-2">
           <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
@@ -124,7 +124,7 @@ function WebhooksCreatePanelContent({
 
       <CreateFormSection
         title="Sự kiện cần subscribe"
-        description="Chỉ chọn các event thực sự cần gửi để queue webhook không bị nhiễu và dễ debug."
+        description=""
       >
         <div>
           <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">

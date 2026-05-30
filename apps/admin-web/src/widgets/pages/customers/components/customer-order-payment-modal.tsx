@@ -71,7 +71,7 @@ export function CustomerOrderPaymentModal({
       onClose={onClose}
       size="lg"
       title={vi.customers.paymentModal.title}
-      description="Xử lý thanh toán trực tiếp ngay trong hồ sơ khách hàng với phần còn lại, số tiền thu thêm và kết quả công nợ rõ ràng trước khi xác nhận."
+      description=""
       footer={
         <CreateActionFooter
           primaryLabel={vi.customers.paymentModal.confirm}
@@ -86,7 +86,7 @@ export function CustomerOrderPaymentModal({
     >
       <CreateFormSection
         title="Khoản thanh toán"
-        description="Chỉ giữ các trường cần thiết để thao tác nhanh từ customer detail mà không làm rối màn."
+        description=""
       >
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">
@@ -151,7 +151,7 @@ export function CustomerOrderPaymentModal({
 
       <CreateFormSection
         title="Tác động sau khi lưu"
-        description="Dùng panel phụ để kiểm tra nhanh tình trạng thanh toán trước khi ghi nhận."
+        description=""
       >
         <div className="grid gap-3">
           <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-4">

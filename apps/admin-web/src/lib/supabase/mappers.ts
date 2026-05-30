@@ -44,6 +44,7 @@ export function mapCustomerRow(row: Record<string, any>): Customer {
     lastRfmCalculatedAt: row.last_rfm_calculated_at ? String(row.last_rfm_calculated_at) : undefined,
     notes: row.notes ? String(row.notes) : undefined,
     createdAt: String(row.created_at ?? new Date().toISOString()),
+    avatarUrl: row.avatar_url ? String(row.avatar_url) : null,
   };
 }
 
@@ -128,6 +129,7 @@ export function mapProductRow(row: Record<string, any>): ProductService {
     durationType: (row.duration_type as 'days' | 'months' | 'years') ?? 'days',
     durationValue: Number(row.duration_value ?? 0),
     isActive: Boolean(row.is_active ?? true),
+    iconUrl: row.icon_url ? String(row.icon_url) : null,
   };
 }
 

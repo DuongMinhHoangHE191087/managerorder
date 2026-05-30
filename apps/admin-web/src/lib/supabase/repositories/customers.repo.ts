@@ -307,6 +307,7 @@ export async function createCustomer(
     type: 'retail' | 'wholesale' | 'agency';
     notes?: string;
     reliability_score?: number;
+    avatar_url?: string | null;
     contacts?: {
       channel: string;
       value: string;
@@ -326,6 +327,7 @@ export async function createCustomer(
       type: input.type,
       notes: input.notes ?? null,
       reliability_score: input.reliability_score ?? 100,
+      avatar_url: input.avatar_url ?? null,
     })
     .select()
     .single();
@@ -371,6 +373,7 @@ export async function updateCustomer(
     }[];
     reliability_score?: number;
     notes?: string;
+    avatar_url?: string | null;
   }
 ): Promise<CustomerRow> {
   // 1. Update customer fields
@@ -379,6 +382,7 @@ export async function updateCustomer(
   if (input.type) updateData.type = input.type;
   if (input.reliability_score !== undefined) updateData.reliability_score = input.reliability_score;
   if (input.notes !== undefined) updateData.notes = input.notes;
+  if (input.avatar_url !== undefined) updateData.avatar_url = input.avatar_url;
 
   if (Object.keys(updateData).length > 0) {
     const { error } = await supabase

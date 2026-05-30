@@ -38,7 +38,6 @@ function StatusCard({
         <span className="text-[var(--accent)]">{icon}</span>
       </div>
       <p className="mt-2 text-3xl font-black text-[var(--accent)]">{count}</p>
-      <p className="mt-2 text-[12px] leading-5 text-[var(--fg-muted)]">{description}</p>
     </button>
   );
 }

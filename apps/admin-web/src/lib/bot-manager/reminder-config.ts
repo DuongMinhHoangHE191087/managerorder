@@ -21,6 +21,10 @@ export const DEFAULT_REMINDER_CONFIG: ReminderConfig = {
   template_expired_zalo:
     "Xin chào {customer_name}, dịch vụ {product_name} đã hết hạn vào {expiry_date}. Nếu cần tiếp tục sử dụng, bạn vui lòng nhắn lại để được hỗ trợ gia hạn.",
   auto_send: false,
+  telegram_notifications_enabled: true,
+  webhook_notifications_enabled: true,
+  template_share_link: "Xin chào {customer_name}, đây là liên kết nhận tài khoản {product_name} của bạn: {share_link}",
+  template_share_account: "Thông tin tài khoản {product_name} của bạn:\nEmail: {email}\nMật khẩu: {password}\n2FA: {totp_code}",
 };
 
 type ReminderConfigLike = Partial<ReminderConfigRow & ReminderConfig>;
@@ -54,6 +58,10 @@ export function normalizeReminderConfig(input?: ReminderConfigLike | null): Remi
     template_expired_zalo:
       input?.template_expired_zalo ?? DEFAULT_REMINDER_CONFIG.template_expired_zalo,
     auto_send: input?.auto_send ?? DEFAULT_REMINDER_CONFIG.auto_send,
+    telegram_notifications_enabled: input?.telegram_notifications_enabled ?? DEFAULT_REMINDER_CONFIG.telegram_notifications_enabled,
+    webhook_notifications_enabled: input?.webhook_notifications_enabled ?? DEFAULT_REMINDER_CONFIG.webhook_notifications_enabled,
+    template_share_link: input?.template_share_link ?? DEFAULT_REMINDER_CONFIG.template_share_link,
+    template_share_account: input?.template_share_account ?? DEFAULT_REMINDER_CONFIG.template_share_account,
   };
 }
 

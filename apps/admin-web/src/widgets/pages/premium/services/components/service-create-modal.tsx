@@ -71,7 +71,7 @@ export function ServiceCreateModal({
       isOpen={isOpen}
       onClose={handleClose}
       title="Thêm dịch vụ Premium"
-      description="Nguồn sự thật cho danh mục nền tảng, package mapping và các flow gia hạn hoặc migration."
+      description=""
       size="md"
       footer={
         <CreateActionFooter
@@ -85,7 +85,7 @@ export function ServiceCreateModal({
     >
       <CreateFormSection
         title="Thông tin chính"
-        description="Chỉ giữ các trường thực sự cần để mở bán và map với account/subscription."
+        description=""
       >
         <div className="grid gap-4">
           <div className="space-y-2">
@@ -118,7 +118,6 @@ export function ServiceCreateModal({
                 placeholder="vd: duolingo"
                 className="w-full rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[14px] font-medium outline-none transition-[background-color,border-color,box-shadow,color,opacity,transform,width] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
               />
-              <p className="text-xs leading-6 text-[var(--fg-muted)]">Slug dùng để map service trong kho, thuê bao và báo cáo.</p>
             </div>
 
             <div className="space-y-2">

@@ -38,7 +38,6 @@ export function ProviderFinancialsPanel({
             <Banknote className="size-5 text-[var(--accent)]" />
             {text.title}
           </h3>
-          <p className="mt-1 text-[11px] text-[var(--fg-muted)]">{text.description}</p>
         </div>
         <div className="grid grid-cols-2 gap-3 p-5">
           <div className="rounded-[1.15rem] border border-[var(--border-soft)] bg-[var(--surface-light)] p-4">

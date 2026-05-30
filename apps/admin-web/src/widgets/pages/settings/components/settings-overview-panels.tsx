@@ -83,7 +83,6 @@ export function SettingsOverviewPanels() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <DeferredSettingsCard
           title="Nguồn thanh toán"
-          description="Thêm, sửa và dọn danh mục MoMo, ngân hàng, tiền mặt để mọi luồng thanh toán dùng chung."
           rows={4}
         >
           <PaymentSourceManager />
@@ -91,7 +90,6 @@ export function SettingsOverviewPanels() {
 
         <DeferredSettingsCard
           title="Kênh bán hàng"
-          description="Nguồn phát sinh đơn như Facebook, Telegram, website hoặc đội CTV."
           rows={4}
         >
           <SalesChannelManager />
@@ -100,7 +98,6 @@ export function SettingsOverviewPanels() {
 
       <DeferredSettingsCard
         title="Landing công khai"
-        description="Chọn sản phẩm và cấu hình hiển thị cho landing public, trang lỗi và các link hết hạn."
         rows={6}
       >
         <SalesLandingManager />
@@ -108,7 +105,6 @@ export function SettingsOverviewPanels() {
 
       <DeferredSettingsCard
         title="Cấu hình giá nhập NCC"
-        description="Tùy chỉnh mức giảm giá CTV/VIP khi tạo đơn nhập hàng với nhà cung cấp."
         rows={3}
       >
         <PricingConfigManager />
@@ -116,7 +112,6 @@ export function SettingsOverviewPanels() {
 
       <DeferredSettingsCard
         title="Cấu hình nhắc hẹn"
-        description="Quản lý lịch nhắc, template Telegram gửi khách hàng và thông báo nội bộ."
         rows={6}
       >
         <ReminderConfigManager />
@@ -124,7 +119,6 @@ export function SettingsOverviewPanels() {
 
       <DeferredSettingsCard
         title="Cấu hình công ty và hoá đơn"
-        description="Khai báo thông tin mặc định khi in hoá đơn, sinh QR và render hướng dẫn thanh toán."
         rows={6}
       >
         <SystemSettingsManager />
@@ -140,9 +134,6 @@ export function SettingsOverviewPanels() {
               <h3 className="text-[15px] font-bold text-[var(--fg-base)] transition-colors group-hover:text-[var(--accent)]">
                 Webhooks
               </h3>
-              <p className="text-[12px] font-medium text-[var(--fg-muted)]">
-                Nhận thông báo real-time khi có đơn hàng, thanh toán, gia hạn và các sự kiện vận hành khác.
-              </p>
             </div>
           </div>
           <ChevronRight className="size-5 text-[var(--fg-muted)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] group-hover:translate-x-1 group-hover:text-[var(--accent)]" />

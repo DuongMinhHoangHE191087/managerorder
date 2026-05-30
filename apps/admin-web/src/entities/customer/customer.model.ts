@@ -22,6 +22,7 @@ export interface CustomerModelInput {
   rfmRecency?: number;
   rfmFrequency?: number;
   rfmMonetary?: number;
+  avatarUrl?: string | null;
 }
 
 export class CustomerModel extends BaseModel {
@@ -40,6 +41,7 @@ export class CustomerModel extends BaseModel {
   public readonly nicksRegistry: CustomerNick[];
   public readonly segment: CustomerSegment | null;
   public readonly rfmScore: number | null;
+  public readonly avatarUrl: string | null;
 
   constructor(data: CustomerModelInput) {
     super({
@@ -63,6 +65,7 @@ export class CustomerModel extends BaseModel {
     this.nicksRegistry = data.nicksRegistry || [];
     this.segment = data.segment || null;
     this.rfmScore = data.rfmScore || null;
+    this.avatarUrl = data.avatarUrl || null;
   }
 
   /**
@@ -194,6 +197,7 @@ export class CustomerModel extends BaseModel {
       nicksRegistry: this.nicksRegistry,
       segment: this.segment,
       rfmScore: this.rfmScore,
+      avatarUrl: this.avatarUrl,
 
       // Getters & Helpers
       primaryContact,

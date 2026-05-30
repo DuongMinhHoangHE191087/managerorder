@@ -59,7 +59,7 @@ export function PlatformExportPanel() {
   return (
     <SectionCard
       title="Backup & Data Export"
-      description="Xuất dữ liệu thủ công để sao lưu, di chuyển hệ thống, hoặc đối chiếu báo cáo."
+      description=""
       action={
         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
           <ShieldCheck className="size-4" />
@@ -112,10 +112,6 @@ export function PlatformExportPanel() {
               </span>
             </Button>
           </div>
-
-          <p className="text-[12px] leading-6 text-[var(--fg-muted)]">
-            Backup JSON chứa snapshot dữ liệu vận hành chính, còn CSV/XLSX phục vụ xuất nhanh cho đối soát, chuyển máy, hoặc lưu trữ offline.
-          </p>
         </div>
 
         <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-light)]/70 p-4">
@@ -131,10 +127,6 @@ export function PlatformExportPanel() {
             <li className="flex items-start gap-2">
               <span className="mt-1 size-1.5 rounded-full bg-[var(--accent)]" />
               Nhắc hạn đơn dùng T-7, T-3, T-1 theo cấu hình trong reminder config.
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1 size-1.5 rounded-full bg-[var(--accent)]" />
-              Panel này dùng để tải bản sao thủ công hoặc kiểm tra dữ liệu trước khi đồng bộ.
             </li>
           </ul>
         </div>

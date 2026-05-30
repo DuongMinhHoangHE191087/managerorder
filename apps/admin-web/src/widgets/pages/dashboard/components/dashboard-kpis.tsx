@@ -15,6 +15,8 @@ interface DashboardKPIsProps {
   consumedKeys: number;
   overdueCustomersCount: number;
   pendingCount: number;
+  totalOrders?: number;
+  totalRefunded?: number;
 }
 
 function KPIStyleCard({
@@ -26,7 +28,7 @@ function KPIStyleCard({
 }) {
   return (
     <div
-      className={`app-card flex h-full flex-col justify-between border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(246,250,244,0.86))] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(15,23,42,0.08)] active:scale-[0.98] ${className}`}
+      className={`app-card flex h-full flex-col justify-between border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(246,250,244,0.86))] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,color,opacity,transform,width] duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(15,23,42,0.08)] active:scale-[0.98] rounded-2xl ${className}`}
     >
       {children}
     </div>
@@ -44,9 +46,17 @@ export function DashboardKPIs({
   consumedKeys,
   overdueCustomersCount,
   pendingCount,
+  totalOrders = 0,
+  totalRefunded = 0,
 }: DashboardKPIsProps) {
+  const marginPercent = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : "0";
+  const aov = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+  const refundRate = (totalRevenue + totalRefunded) > 0 
+    ? ((totalRefunded / (totalRevenue + totalRefunded)) * 100).toFixed(1)
+    : "0";
+
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3">
       <KPIStyleCard>
         <div>
           <div className="mb-4 flex items-start justify-between">
@@ -98,6 +108,54 @@ export function DashboardKPIs({
         </div>
         <h3 className="mt-2 text-3xl font-black tracking-tight text-[var(--fg-base)] font-mono" data-testid="dashboard-kpi-value">
           {formatMoney(totalProfit)}
+        </h3>
+      </KPIStyleCard>
+
+      <KPIStyleCard>
+        <div>
+          <div className="mb-4 flex items-start justify-between">
+            <span className="material-symbols-outlined rounded-2xl bg-teal-500/10 p-2.5 text-teal-600">
+              margin
+            </span>
+          </div>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+            Tỷ lệ lợi nhuận gộp (Gross Margin)
+          </p>
+        </div>
+        <h3 className="mt-2 text-3xl font-black tracking-tight text-teal-600 font-mono">
+          {marginPercent}%
+        </h3>
+      </KPIStyleCard>
+
+      <KPIStyleCard>
+        <div>
+          <div className="mb-4 flex items-start justify-between">
+            <span className="material-symbols-outlined rounded-2xl bg-indigo-500/10 p-2.5 text-indigo-600">
+              shopping_basket
+            </span>
+          </div>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+            Giá trị đơn trung bình (AOV)
+          </p>
+        </div>
+        <h3 className="mt-2 text-3xl font-black tracking-tight text-indigo-600 font-mono">
+          {formatMoney(aov)}
+        </h3>
+      </KPIStyleCard>
+
+      <KPIStyleCard>
+        <div>
+          <div className="mb-4 flex items-start justify-between">
+            <span className="material-symbols-outlined rounded-2xl bg-rose-500/10 p-2.5 text-rose-600">
+              keyboard_return
+            </span>
+          </div>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+            Tỷ lệ hoàn tiền (Refund Rate)
+          </p>
+        </div>
+        <h3 className="mt-2 text-3xl font-black tracking-tight text-rose-600 font-mono">
+          {refundRate}%
         </h3>
       </KPIStyleCard>
 

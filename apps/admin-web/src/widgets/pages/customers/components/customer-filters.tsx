@@ -1,12 +1,12 @@
 "use client";
 
 import React from "react";
-import { AlertTriangle, Search } from "lucide-react";
+import { AlertTriangle, Search, X } from "lucide-react";
 import type { CustomerGroup, CustomerTag } from "@/shared/types/customers";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 import { Button } from "@/shared/ui/button";
-import { ToolbarField, WorkspaceToolbar } from "@/shared/ui/admin-workspace";
+import { FiltersBar } from "@/shared/ui/page-layout";
 import { vi } from "@/shared/messages/vi";
 import { hasSearchTokens } from "@/shared/lib/filtering/search";
 
@@ -41,33 +41,33 @@ export const CustomerFilters = React.memo(function CustomerFilters({
 }: CustomerFiltersProps) {
   const hasFilters = Boolean(hasSearchTokens(searchQuery) || groupFilter || typeFilter || tagFilter || debtOnly);
 
-  return (
-    <WorkspaceToolbar className="mb-5">
-      <ToolbarField
-        label="Tìm kiếm nhanh"
-        description="Giữ cùng một thanh điều khiển cho list khách hàng, customer detail và các dashboard liên quan."
-      >
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
-          <Input
-            type="text"
-            value={searchQuery}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder={vi.customers.filters.searchPlaceholder}
-            className="h-11 pl-10"
-          />
-        </div>
-      </ToolbarField>
+  const CUSTOMER_TYPE_CHIPS = React.useMemo(() => [
+    { value: "", label: vi.customers.filters.allTypes },
+    { value: "retail", label: vi.customers.filters.retail },
+    { value: "wholesale", label: vi.customers.filters.wholesale },
+    { value: "agency", label: vi.customers.filters.agency },
+  ], []);
 
-      <ToolbarField
-        label="Bộ lọc vận hành"
-        description="Lọc theo nhóm, phân loại, tag và công nợ mà không cần rời khỏi màn hiện tại."
-      >
-        <div className="flex flex-wrap gap-2">
+  return (
+    <div className="flex flex-col gap-3">
+      <FiltersBar sticky className="px-4 py-2">
+        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto_auto] items-center">
+          <div className="relative min-w-0">
+            <Search aria-hidden="true" className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[var(--fg-muted)]" />
+            <Input
+              aria-label="Tìm khách hàng"
+              type="text"
+              value={searchQuery}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder={vi.customers.filters.searchPlaceholder}
+              className="h-9 pl-9 text-sm"
+            />
+          </div>
+
           <Select
             value={groupFilter}
             onChange={(event) => onGroupFilterChange(event.target.value)}
-            className="h-11 !w-auto min-w-[11rem] rounded-xl text-[13px] font-bold"
+            className="h-9 !w-auto min-w-[10rem] rounded-xl text-xs font-bold"
           >
             <option value="">{vi.customers.filters.allGroups}</option>
             {groups.map((group) => (
@@ -77,22 +77,11 @@ export const CustomerFilters = React.memo(function CustomerFilters({
             ))}
           </Select>
 
-          <Select
-            value={typeFilter}
-            onChange={(event) => onTypeFilterChange(event.target.value)}
-            className="h-11 !w-auto min-w-[11rem] rounded-xl text-[13px] font-bold"
-          >
-            <option value="">{vi.customers.filters.allTypes}</option>
-            <option value="retail">{vi.customers.filters.retail}</option>
-            <option value="wholesale">{vi.customers.filters.wholesale}</option>
-            <option value="agency">{vi.customers.filters.agency}</option>
-          </Select>
-
           {tags.length > 0 ? (
             <Select
               value={tagFilter}
               onChange={(event) => onTagFilterChange(event.target.value)}
-              className="h-11 !w-auto min-w-[11rem] rounded-xl text-[13px] font-bold"
+              className="h-9 !w-auto min-w-[10rem] rounded-xl text-xs font-bold"
             >
               <option value="">{vi.customers.filters.allTags}</option>
               {tags.map((tag) => (
@@ -106,18 +95,19 @@ export const CustomerFilters = React.memo(function CustomerFilters({
           <Button
             type="button"
             variant={debtOnly ? "danger" : "secondary"}
-            className="h-11"
+            className="h-9 text-xs px-3"
             onClick={() => onDebtOnlyChange(!debtOnly)}
           >
-            <AlertTriangle className="size-4" />
+            <AlertTriangle className="size-3.5 mr-1" />
             {vi.customers.filters.debtOnly}
           </Button>
 
-          {hasFilters ? (
+          <div className="flex items-center justify-end">
             <Button
               type="button"
               variant="ghost"
-              className="h-11"
+              className="h-9 text-sm px-3"
+              disabled={!hasFilters}
               onClick={() => {
                 onSearchChange("");
                 onGroupFilterChange("");
@@ -126,11 +116,29 @@ export const CustomerFilters = React.memo(function CustomerFilters({
                 onDebtOnlyChange(false);
               }}
             >
-              Xóa bộ lọc
+              <X className="size-4 mr-1" />
+              Xóa lọc
             </Button>
-          ) : null}
+          </div>
         </div>
-      </ToolbarField>
-    </WorkspaceToolbar>
+      </FiltersBar>
+
+      <div className="flex flex-wrap gap-2 px-1 mb-4">
+        {CUSTOMER_TYPE_CHIPS.map((chip) => (
+          <button
+            key={chip.value}
+            type="button"
+            onClick={() => onTypeFilterChange(chip.value)}
+            className={`rounded-full px-4 py-1.5 text-[12px] font-bold transition-all duration-150 border ${
+              typeFilter === chip.value
+                ? "border-slate-800 bg-white text-slate-800 ring-1 ring-slate-800 shadow-sm"
+                : "border-transparent bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+            }`}
+          >
+            {chip.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 });

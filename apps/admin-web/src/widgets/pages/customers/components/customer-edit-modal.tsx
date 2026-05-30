@@ -11,6 +11,7 @@ import type { ContactInfo, Customer } from "@/lib/domain/types";
 import { useUpdateCustomer } from "@/widgets/pages/customers/hooks/use-customers";
 import { formatMoney } from "@/lib/utils";
 import { vi } from "@/shared/messages/vi";
+import { ImageUploader } from "@/shared/ui/image-uploader";
 
 const CustomerTagPickerLazy = dynamic(
   () =>
@@ -57,21 +58,25 @@ const CustomerProfileSection = memo(function CustomerProfileSection({
   name,
   customerType,
   reliabilityScore,
+  avatarUrl,
   setName,
   setCustomerType,
   setReliabilityScore,
+  setAvatarUrl,
 }: {
   name: string;
   customerType: "retail" | "wholesale" | "agency";
   reliabilityScore: string;
+  avatarUrl: string;
   setName: (value: string) => void;
   setCustomerType: (value: "retail" | "wholesale" | "agency") => void;
   setReliabilityScore: (value: string) => void;
+  setAvatarUrl: (value: string) => void;
 }) {
   return (
     <FormSection
       title={vi.customers.editModal.sections.main}
-      description={vi.customers.editModal.sections.mainDescription}
+      description=""
     >
       <div className="space-y-3">
         <FieldLabel required>{vi.customers.editModal.labels.fullName}</FieldLabel>
@@ -80,6 +85,15 @@ const CustomerProfileSection = memo(function CustomerProfileSection({
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder={vi.customers.editModal.placeholders.name}
+        />
+      </div>
+
+      <div className="space-y-3">
+        <FieldLabel>Avatar khách hàng</FieldLabel>
+        <ImageUploader
+          value={avatarUrl}
+          onChange={(url) => setAvatarUrl(url || "")}
+          placeholderType="avatar"
         />
       </div>
 
@@ -139,7 +153,7 @@ const CustomerContactsSection = memo(function CustomerContactsSection({
       contacts={contacts}
       onChange={setContacts}
       title={vi.customers.editModal.sections.contacts}
-      description={vi.customers.editModal.sections.contactsDescription}
+      description=""
     />
   );
 });
@@ -175,7 +189,7 @@ const CustomerTagsSection = memo(function CustomerTagsSection({
   return (
     <FormSection
       title={vi.customers.editModal.sections.tags}
-      description={vi.customers.editModal.sections.tagsDescription}
+      description=""
     >
       <CustomerTagPickerLazy selectedTagIds={selectedTagIds} onChange={setSelectedTagIds} />
     </FormSection>
@@ -192,7 +206,7 @@ const CustomerNotesSection = memo(function CustomerNotesSection({
   return (
     <FormSection
       title={vi.customers.editModal.sections.notes}
-      description={vi.customers.editModal.sections.notesDescription}
+      description=""
     >
       <div className="space-y-3">
         <FieldLabel icon={<StickyNote className="size-3.5" />}>{vi.customers.editModal.labels.internalNotes}</FieldLabel>
@@ -221,6 +235,7 @@ export function CustomerEditModal({
   const [reliabilityScore, setReliabilityScore] = useState(String(customer.reliabilityScore ?? 100));
   const [saving, setSaving] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(customer.tags?.map((tag) => tag.id) ?? []);
+  const [avatarUrl, setAvatarUrl] = useState(customer.avatarUrl ?? "");
 
   const { mutateAsync: updateCustomer } = useUpdateCustomer();
 
@@ -235,6 +250,7 @@ export function CustomerEditModal({
     setNotes(customer.notes ?? "");
     setReliabilityScore(String(customer.reliabilityScore ?? 100));
     setSelectedTagIds(customer.tags?.map((tag) => tag.id) ?? []);
+    setAvatarUrl(customer.avatarUrl ?? "");
   }, [customer, isOpen]);
 
   async function handleSave() {
@@ -258,6 +274,7 @@ export function CustomerEditModal({
         notes: notes.trim(),
         reliabilityScore: Number(reliabilityScore),
         tagIds: selectedTagIds,
+        avatarUrl: avatarUrl.trim() || undefined,
       });
 
       appToast.success(vi.customers.editModal.success(updatedCustomer?.name ?? trimmedName));
@@ -276,7 +293,7 @@ export function CustomerEditModal({
       onClose={onClose}
       title={vi.customers.editModal.title}
       size="xl"
-      description="Chỉnh sửa hồ sơ khách hàng theo cùng cấu trúc với create flow để sales, CSKH và premium team thao tác nhất quán hơn."
+      description=""
       footer={
         <CreateActionFooter
           primaryLabel={vi.customers.editModal.save}
@@ -295,9 +312,11 @@ export function CustomerEditModal({
           name={name}
           customerType={customerType}
           reliabilityScore={reliabilityScore}
+          avatarUrl={avatarUrl}
           setName={setName}
           setCustomerType={setCustomerType}
           setReliabilityScore={setReliabilityScore}
+          setAvatarUrl={setAvatarUrl}
         />
 
         <CustomerContactsSection contacts={contacts} setContacts={setContacts} />

@@ -96,6 +96,7 @@ export function useCreateOrder() {
       // queryKeys.orders prefix invalidates all order queries including stats
       queryClient.invalidateQueries({ queryKey: queryKeys.orders });
       queryClient.invalidateQueries({ queryKey: queryKeys.salesChannels });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });
 }
@@ -113,6 +114,7 @@ export function useUpdateOrder() {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders });
       queryClient.invalidateQueries({ queryKey: queryKeys.orderStatusHistory(variables.id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.salesChannels });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });
 }
@@ -183,6 +185,7 @@ export function useDeleteOrder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders });
       queryClient.invalidateQueries({ queryKey: queryKeys.salesChannels });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });
 }
@@ -199,6 +202,7 @@ export function useBatchDeleteOrders() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders });
       queryClient.invalidateQueries({ queryKey: queryKeys.salesChannels });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });
 }

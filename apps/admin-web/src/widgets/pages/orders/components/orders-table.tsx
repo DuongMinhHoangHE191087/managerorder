@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { cn, formatMoney } from "@/lib/utils";
 import { OrderModel } from "@/entities/order";
 
@@ -43,6 +43,8 @@ export type OrderRow = {
   sales_note?: string | null;
   contact_snapshot?: string | null;
   proof_image_urls?: string[] | null;
+  customerAvatarUrl?: string | null;
+  productIconUrl?: string | null;
 };
 
 interface OrdersTableProps {
@@ -59,8 +61,6 @@ interface OrdersTableProps {
   onRowClick: (row: OrderRow) => void;
   onRowContextMenu: (e: React.MouseEvent, row: OrderRow) => void;
 }
-
-const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
 type OrderTableRowProps = {
   order: OrderRow;
@@ -109,6 +109,8 @@ const OrderTableRow = React.memo(function OrderTableRow({
     sales_note: order.sales_note,
     contact_snapshot: order.contact_snapshot,
     proof_image_urls: order.proof_image_urls,
+    customerAvatarUrl: order.customerAvatarUrl,
+    productIconUrl: order.productIconUrl,
   });
 
   const profit = model.getProfit();
@@ -186,11 +188,19 @@ const OrderTableRow = React.memo(function OrderTableRow({
       {/* Product + Order code */}
       <td className="py-2.5 pr-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-50/50">
-            <svg className="size-3.5 text-[var(--accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            </svg>
-          </div>
+          {model.productIconUrl ? (
+            <img
+              src={model.productIconUrl}
+              alt={model.productName}
+              className="size-7 shrink-0 rounded-lg object-cover border border-gray-250 shadow-sm"
+            />
+          ) : (
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-50/50">
+              <svg className="size-3.5 text-[var(--accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              </svg>
+            </div>
+          )}
           <div className="min-w-0">
             <p className="truncate font-semibold text-gray-800 leading-tight" style={{ maxWidth: 160 }}>{model.productName}</p>
             <p className="font-mono text-[10px] text-[var(--accent)] opacity-75">#{model.orderCode || model.id.slice(0, 8).toUpperCase()}</p>
@@ -200,9 +210,34 @@ const OrderTableRow = React.memo(function OrderTableRow({
 
       {/* Customer */}
       <td className="py-2.5 pr-3">
-        <p className="font-semibold text-gray-800 leading-tight truncate" style={{ maxWidth: 120 }}>{model.customerName}</p>
-        <p className="text-[10.5px] text-gray-400 truncate" style={{ maxWidth: 120 }}>
-          {primaryContact?.value || model.customerEmail || "—"}
+        <div className="flex items-center gap-2">
+          {model.customerAvatarUrl ? (
+            <img
+              src={model.customerAvatarUrl}
+              alt={model.customerName}
+              className="size-6 shrink-0 rounded-full object-cover border border-gray-250 shadow-sm"
+            />
+          ) : (
+            <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-purple-50 text-[10px] font-bold text-purple-700 border border-purple-100 uppercase">
+              {model.customerName.charAt(0)}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-800 leading-tight truncate" style={{ maxWidth: 120 }} title={model.customerName}>{model.customerName}</p>
+            <p className="text-[10px] text-gray-400 truncate" style={{ maxWidth: 120 }}>
+              {primaryContact?.value || model.customerEmail || "—"}
+            </p>
+          </div>
+        </div>
+      </td>
+
+      {/* Nguồn & Kênh */}
+      <td className="py-2.5 pr-3">
+        <p className="font-semibold text-gray-800 leading-tight truncate" style={{ maxWidth: 130 }} title={order.paymentSourceName || "—"}>
+          {order.paymentSourceName || "—"}
+        </p>
+        <p className="text-[10px] text-gray-400 truncate" style={{ maxWidth: 130 }} title={order.salesChannelName || "—"}>
+          {order.salesChannelName || "—"}
         </p>
       </td>
 
@@ -240,6 +275,18 @@ const OrderTableRow = React.memo(function OrderTableRow({
           {model.getFormattedProfit()}
         </p>
       </td>
+
+      {/* Liên hệ & Ghi chú */}
+      <td className="py-2.5 pr-4">
+        <p className="font-medium text-gray-800 truncate" style={{ maxWidth: 140 }} title={primaryContact?.value || order.customerEmail || "—"}>
+          {primaryContact?.value || order.customerEmail || "—"}
+        </p>
+        {order.sales_note && (
+          <p className="text-[10px] text-amber-600 truncate font-semibold" style={{ maxWidth: 140 }} title={order.sales_note}>
+            📝 {order.sales_note}
+          </p>
+        )}
+      </td>
     </tr>
   );
 });
@@ -249,7 +296,7 @@ export const OrdersTable = React.memo(function OrdersTable({
   pageCount,
   pageIndex,
   pageSize,
-  totalElements,
+  totalElements: _totalElements,
   onPaginationChange,
   mappedOrders,
   selectedOrderIds,
@@ -268,33 +315,6 @@ export const OrdersTable = React.memo(function OrdersTable({
     }
   };
 
-  const renderPageButtons = () => {
-    const buttons: React.ReactNode[] = [];
-    const maxVisible = 5;
-    let start = Math.max(0, pageIndex - Math.floor(maxVisible / 2));
-    const end = Math.min(pageCount - 1, start + maxVisible - 1);
-    if (end - start < maxVisible - 1) start = Math.max(0, end - maxVisible + 1);
-
-    for (let i = start; i <= end; i++) {
-      buttons.push(
-        <button
-          key={i}
-          type="button"
-          onClick={() => onPaginationChange(i, pageSize)}
-          className={cn(
-            "h-7 w-7 rounded-md border text-[11px] font-bold transition-colors duration-150",
-            i === pageIndex
-              ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-              : "border-gray-200 bg-white text-gray-500 hover:border-[var(--accent)]/40 hover:text-[var(--accent)]",
-          )}
-        >
-          {i + 1}
-        </button>,
-      );
-    }
-    return buttons;
-  };
-
   return (
     <section data-testid="orders-list" className="overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-[0_2px_8px_rgba(22,60,30,0.06)]">
       <div className="overflow-x-auto">
@@ -303,10 +323,12 @@ export const OrdersTable = React.memo(function OrdersTable({
             <col style={{ width: 40 }} />
             <col />
             <col style={{ width: 130 }} />
+            <col style={{ width: 140 }} />
             <col style={{ width: 100 }} />
             <col style={{ width: 90 }} />
             <col style={{ width: 110 }} />
             <col style={{ width: 90 }} />
+            <col style={{ width: 160 }} />
           </colgroup>
 
           {/* Column headers */}
@@ -334,10 +356,12 @@ export const OrdersTable = React.memo(function OrdersTable({
               </th>
               <th className="py-2.5 pr-3 text-left text-[9px] font-bold uppercase tracking-widest text-gray-500">Sản phẩm / Mã đơn</th>
               <th className="py-2.5 pr-3 text-left text-[9px] font-bold uppercase tracking-widest text-gray-500">Khách hàng</th>
+              <th className="py-2.5 pr-3 text-left text-[9px] font-bold uppercase tracking-widest text-gray-500">Nguồn & Kênh</th>
               <th className="py-2.5 pr-3 text-left text-[9px] font-bold uppercase tracking-widest text-gray-500">Trạng thái</th>
               <th className="py-2.5 pr-3 text-left text-[9px] font-bold uppercase tracking-widest text-gray-500">Hạn dùng</th>
               <th className="py-2.5 pr-3 text-right text-[9px] font-bold uppercase tracking-widest text-gray-500">Giá trị</th>
               <th className="py-2.5 pr-4 text-right text-[9px] font-bold uppercase tracking-widest text-gray-500">Lãi/Lỗ</th>
+              <th className="py-2.5 pr-4 text-left text-[9px] font-bold uppercase tracking-widest text-gray-500">Liên hệ & Ghi chú</th>
             </tr>
           </thead>
 
@@ -360,15 +384,23 @@ export const OrdersTable = React.memo(function OrdersTable({
                     <div className="h-3 w-20 animate-pulse rounded bg-gray-200 mb-1.5" />
                     <div className="h-2.5 w-16 animate-pulse rounded bg-gray-200" />
                   </td>
+                  <td className="py-3 pr-3">
+                    <div className="h-3 w-24 animate-pulse rounded bg-gray-200 mb-1.5" />
+                    <div className="h-2.5 w-16 animate-pulse rounded bg-gray-200" />
+                  </td>
                   <td className="py-3 pr-3"><div className="h-5 w-16 animate-pulse rounded-full bg-gray-200" /></td>
                   <td className="py-3 pr-3"><div className="h-3 w-12 animate-pulse rounded bg-gray-200" /></td>
                   <td className="py-3 pr-3 text-right"><div className="ml-auto h-3 w-16 animate-pulse rounded bg-gray-200 font-mono" /></td>
                   <td className="py-3 pr-4 text-right"><div className="ml-auto h-3 w-12 animate-pulse rounded bg-gray-200 font-mono" /></td>
+                  <td className="py-3 pr-4">
+                    <div className="h-3 w-28 animate-pulse rounded bg-gray-200 mb-1.5" />
+                    <div className="h-2.5 w-20 animate-pulse rounded bg-gray-200" />
+                  </td>
                 </tr>
               ))
             ) : mappedOrders.length === 0 ? (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={9}>
                   <div data-testid="orders-empty-state" className="flex flex-col items-center justify-center py-16 text-center">
                     <div className="mb-3 flex size-12 items-center justify-center rounded-full border border-gray-255 bg-[#f3f7f2]">
                       <Search className="size-5 text-gray-400 opacity-60" />
@@ -397,60 +429,6 @@ export const OrdersTable = React.memo(function OrdersTable({
         </table>
       </div>
 
-      {/* Pagination */}
-      {(totalElements > 0 || isLoading) ? (
-        <div data-testid="orders-pagination" className="flex items-center justify-between gap-3 border-t border-gray-200 bg-gray-50/50 px-4 py-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-gray-500">Mỗi trang:</span>
-            <div className="flex gap-0.5">
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => onPaginationChange(0, size)}
-                  className={cn(
-                    "h-6 rounded px-2 text-[10px] font-bold transition-colors duration-150",
-                    pageSize === size
-                      ? "bg-[var(--accent)] text-white"
-                      : "text-gray-500 hover:bg-gray-200 hover:text-gray-700",
-                  )}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-            <span data-testid="orders-pagination-info" className="hidden text-[11px] text-gray-500 lg:inline">
-              · <strong className="text-gray-800">{(pageIndex * pageSize) + 1}–{Math.min((pageIndex + 1) * pageSize, totalElements)}</strong> / {totalElements}
-            </span>
-          </div>
-
-          {pageCount > 1 ? (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                data-testid="orders-prev-page"
-                onClick={() => onPaginationChange(Math.max(0, pageIndex - 1), pageSize)}
-                disabled={pageIndex === 0 || isLoading}
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition-colors duration-150 hover:border-[var(--accent)]/40 hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                <ChevronLeft className="size-3.5" />
-              </button>
-
-              {renderPageButtons()}
-
-              <button
-                type="button"
-                data-testid="orders-next-page"
-                onClick={() => onPaginationChange(Math.min(pageCount - 1, pageIndex + 1), pageSize)}
-                disabled={pageIndex >= pageCount - 1 || isLoading}
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition-colors duration-150 hover:border-[var(--accent)]/40 hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                <ChevronRight className="size-3.5" />
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
     </section>
   );
 });

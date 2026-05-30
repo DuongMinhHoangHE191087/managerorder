@@ -9,7 +9,7 @@ import { SlimLoader } from "@/shared/ui/slim-loader";
 import { appToast } from "@/shared/lib/toast";
 import { useDebounce } from "@/shared/hooks/use-debounce";
 import { AppLayout } from "@/widgets/layout/app-layout";
-import { PageContainer } from "@/shared/ui/page-layout";
+import { PageContainer, FiltersBar } from "@/shared/ui/page-layout";
 import type { Customer } from "@/lib/domain/types";
 import { vi } from "@/shared/messages/vi";
 import { hasSearchTokens, matchesSearchQuery } from "@/shared/lib/filtering/search";
@@ -365,58 +365,48 @@ export default function CustomersPage() {
 
         <CustomerKpiCards customers={customers} />
 
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <button
-            onClick={handleToggleStats}
-            className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-[12px] font-bold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
-              showStats ? "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:bg-gray-50"
-            }`}
-          >
-            📊 {showStats ? vi.customers.page.hideStats : vi.customers.page.showStats}
-          </button>
-          <button
-            onClick={handleToggleGroupTag}
-            className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-[12px] font-bold transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
-              showGroupTag ? "border-[#6366f1]/30 bg-[#6366f1]/10 text-[#6366f1]" : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:bg-gray-50"
-            }`}
-          >
-            <FolderPlus className="size-3.5" />
-            {showGroupTag ? vi.customers.page.hideGroupsAndTags : vi.customers.page.manageGroupsAndTags}
-          </button>
-
-          <div className="flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-250/80">
+        <FiltersBar className="px-4 py-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => handleSetViewMode("card")}
-              className={cn(
-                "px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all duration-150",
-                viewMode === "card"
-                  ? "bg-white text-[var(--accent)] shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              )}
+              onClick={handleToggleStats}
+              className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-[12px] font-bold transition-all duration-150 ${
+                showStats ? "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:bg-gray-50"
+              }`}
             >
-              Thẻ
+              📊 {showStats ? vi.customers.page.hideStats : vi.customers.page.showStats}
             </button>
             <button
-              onClick={() => handleSetViewMode("list")}
-              className={cn(
-                "px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all duration-150",
-                viewMode === "list"
-                  ? "bg-white text-[var(--accent)] shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              )}
+              onClick={handleToggleGroupTag}
+              className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-[12px] font-bold transition-all duration-150 ${
+                showGroupTag ? "border-[#6366f1]/30 bg-[#6366f1]/10 text-[#6366f1]" : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:bg-gray-50"
+              }`}
             >
-              Danh sách
+              <FolderPlus className="size-3.5" />
+              {showGroupTag ? vi.customers.page.hideGroupsAndTags : vi.customers.page.manageGroupsAndTags}
             </button>
-          </div>
 
-          <div className="min-w-0 w-full md:ml-auto md:w-auto">
-            <div className="flex max-w-full items-center gap-1 overflow-x-auto pb-1 md:justify-end md:overflow-visible md:pb-0">
+            <div className="flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-250/80">
+              <button
+                onClick={() => handleSetViewMode("card")}
+                className={cn("px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all duration-150", viewMode === "card" ? "bg-white text-[var(--accent)] shadow-sm" : "text-gray-500 hover:text-gray-700")}
+              >
+                Thẻ
+              </button>
+              <button
+                onClick={() => handleSetViewMode("list")}
+                className={cn("px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all duration-150", viewMode === "list" ? "bg-white text-[var(--accent)] shadow-sm" : "text-gray-500 hover:text-gray-700")}
+              >
+                Danh sách
+              </button>
+            </div>
+
+            <div className="ml-auto flex items-center gap-1 overflow-x-auto">
               {(["vip", "loyal", "regular", "at_risk", "churned"] as const).map((seg) => (
                 <button
                   key={seg}
                   data-segment={seg}
                   onClick={handleSegmentFilterClick}
-                  className={`cursor-pointer whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-[background-color,border-color,box-shadow,color,opacity,transform,width] ${
+                  className={`cursor-pointer whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-150 ${
                     segmentFilter === seg
                       ? "border-[var(--accent)] bg-[var(--accent)] text-white"
                       : "border-[var(--border-soft)] bg-white text-[var(--fg-muted)] hover:bg-gray-50"
@@ -427,7 +417,7 @@ export default function CustomersPage() {
               ))}
             </div>
           </div>
-        </div>
+        </FiltersBar>
 
         {showStats ? (
           <div className="mb-6">

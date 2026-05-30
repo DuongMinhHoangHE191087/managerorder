@@ -24,6 +24,7 @@ import { InventoryPageHeader } from "./components/inventory-page-header";
 import { InventoryPageOverlays } from "./components/inventory-page-overlays";
 
 const InventoryFilters = dynamic(() => import("@/widgets/pages/inventory/components/inventory-filters").then((m) => ({ default: m.InventoryFilters })), { ssr: false });
+const InventoryGrid = dynamic(() => import("@/widgets/pages/inventory/components/inventory-grid").then((m) => ({ default: m.InventoryGrid })), { ssr: false });
 const InventoryTable = dynamic(() => import("@/widgets/pages/inventory/components/inventory-table").then((m) => ({ default: m.InventoryTable })), {
   ssr: false,
   loading: () => (
@@ -158,6 +159,25 @@ export default function InventoryPage() {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [currentTime] = useState(() => Date.now());
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("inventory_view_mode") as "card" | "list";
+      if (saved) {
+        setViewMode(saved);
+      }
+    }
+  }, []);
+
+  const handleSetViewMode = useCallback((mode: "card" | "list") => {
+    setViewMode(mode);
+    localStorage.setItem("inventory_view_mode", mode);
+  }, []);
+
+  const handleRowOpen = useCallback((accountId: string) => {
+    router.push(`/inventory/source-accounts/${accountId}`);
+  }, [router]);
 
   useEffect(() => {
     const nextState = readInventoryFilterState(searchParams);
@@ -528,18 +548,31 @@ export default function InventoryPage() {
           onProductFilterChange={setProductIdFilter}
           onProviderFilterChange={setProviderFilter}
           onStatusFilterChange={setStatusFilter}
+          viewMode={viewMode}
+          onViewModeChange={handleSetViewMode}
         />
 
-        <div data-testid="inventory-list-shell">
-          <InventoryTable
-            filteredAccounts={filteredAccounts}
-            providerById={providerById}
-            productMap={productMap}
-            onRowContextMenu={handleRowContextMenu}
-            selectedIds={selectedIds}
-            onToggleSelect={handleToggleSelect}
-            onToggleSelectAll={handleToggleSelectAll}
-          />
+        <div data-testid="inventory-list-shell" className="mb-6">
+          {viewMode === "card" ? (
+            <InventoryGrid
+              filteredAccounts={filteredAccounts}
+              providerById={providerById}
+              productMap={productMap}
+              onRowOpen={handleRowOpen}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleSelect}
+            />
+          ) : (
+            <InventoryTable
+              filteredAccounts={filteredAccounts}
+              providerById={providerById}
+              productMap={productMap}
+              onRowContextMenu={handleRowContextMenu}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleSelect}
+              onToggleSelectAll={handleToggleSelectAll}
+            />
+          )}
         </div>
 
         {selectedCount > 0 ? (

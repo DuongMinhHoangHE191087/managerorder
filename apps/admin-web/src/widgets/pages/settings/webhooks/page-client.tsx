@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Plus, Webhook as WebhookIcon } from "lucide-react";
+import { Plus, Webhook as WebhookIcon, ChevronDown, ChevronUp, Terminal } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/widgets/layout/app-layout";
 import {
@@ -22,6 +22,7 @@ import {
   useDeleteWebhook,
   useUpdateWebhook,
   useWebhooks,
+  useWebhookLogs,
 } from "@/widgets/pages/settings/hooks/use-settings";
 
 type RecentWebhookSecret = {
@@ -174,7 +175,7 @@ export default function WebhooksPage() {
       <PageContainer variant="wide">
         <PageHeader
           title={vi.settings.webhooks.page.title}
-          description="Quản lý danh sách endpoint nhận sự kiện, test delivery và kiểm soát secret theo một workflow vận hành rõ ràng hơn."
+          description=""
           eyebrow={
             <>
               <span className="inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/15 bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--accent)]">
@@ -203,29 +204,25 @@ export default function WebhooksPage() {
           <div className="app-card px-5 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Đang hoạt động</div>
             <div className="mt-2 text-2xl font-black text-emerald-600">{summary.activeCount}</div>
-            <p className="mt-1 text-[12px] text-[var(--fg-muted)]">Các endpoint đang nhận event bình thường.</p>
           </div>
           <div className="app-card px-5 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Tạm dừng</div>
             <div className="mt-2 text-2xl font-black text-slate-700">{summary.inactiveCount}</div>
-            <p className="mt-1 text-[12px] text-[var(--fg-muted)]">Webhook giữ record nhưng chưa phát sự kiện.</p>
           </div>
           <div className="app-card px-5 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Lỗi delivery</div>
             <div className="mt-2 text-2xl font-black text-rose-600">{summary.failedCount}</div>
-            <p className="mt-1 text-[12px] text-[var(--fg-muted)]">Webhook đang ở trạng thái failed cần kiểm tra.</p>
           </div>
           <div className="app-card px-5 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Tổng retry lỗi</div>
             <div className="mt-2 text-2xl font-black text-[var(--fg-base)]">{summary.totalFailures}</div>
-            <p className="mt-1 text-[12px] text-[var(--fg-muted)]">Phù hợp để ưu tiên xử lý endpoint kém ổn định.</p>
           </div>
         </StatsGrid>
 
         <SurfaceCard>
           <SectionHeader
             title="Tạo webhook mới"
-            description="Chỉ hiện khi cần tạo endpoint mới để màn chính luôn gọn và tập trung vào danh sách hiện có."
+            description=""
             action={
               <Button
                 type="button"
@@ -255,7 +252,7 @@ export default function WebhooksPage() {
         <SurfaceCard>
           <SectionHeader
             title="Danh sách webhook"
-            description="Theo dõi trạng thái, test endpoint, cập nhật URL hoặc subscription event trên cùng một surface."
+            description=""
           />
           <div className="p-5">
             <WebhooksList
@@ -269,7 +266,128 @@ export default function WebhooksPage() {
             />
           </div>
         </SurfaceCard>
+
+        <SurfaceCard>
+          <SectionHeader
+            title="Nhật ký Webhook nhận được"
+            description=""
+          />
+          <div className="p-5">
+            <WebhookLogsSection />
+          </div>
+        </SurfaceCard>
       </PageContainer>
     </AppLayout>
+  );
+}
+
+function WebhookLogsSection() {
+  const { data: logs = [], isLoading } = useWebhookLogs();
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+
+  if (isLoading) {
+    return <div className="animate-pulse py-4 text-center text-[13px] text-[var(--fg-muted)]">Đang tải nhật ký webhook...</div>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-left text-[13px]">
+        <thead>
+          <tr className="border-b border-[var(--border-soft)] text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+            <th className="pb-3 pt-2">Thời gian</th>
+            <th className="pb-3 pt-2">Nguồn</th>
+            <th className="pb-3 pt-2">Giao dịch ID</th>
+            <th className="pb-3 pt-2">Số tiền</th>
+            <th className="pb-3 pt-2">Đơn hàng</th>
+            <th className="pb-3 pt-2">Trạng thái</th>
+            <th className="pb-3 pt-2 text-right">Chi tiết</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[var(--border-soft)]">
+          {logs.length === 0 ? (
+            <tr>
+              <td colSpan={7} className="py-6 text-center italic text-[var(--fg-muted)]">
+                Chưa có nhật ký webhook nào được ghi nhận.
+              </td>
+            </tr>
+          ) : (
+            logs.map((log) => {
+              const isExpanded = expandedLogId === log.id;
+              const date = new Date(log.createdAt).toLocaleString("vi-VN");
+              
+              let statusBadge = "bg-slate-100 text-slate-700";
+              let statusLabel = log.status;
+              if (log.status === "success") {
+                statusBadge = "bg-emerald-50 text-emerald-700 border border-emerald-200/50";
+                statusLabel = "Thành công";
+              } else if (log.status === "failed") {
+                statusBadge = "bg-rose-50 text-rose-700 border border-rose-200/50";
+                statusLabel = "Thất bại";
+              } else if (log.status === "ignored") {
+                statusBadge = "bg-amber-50 text-amber-700 border border-amber-200/50";
+                statusLabel = "Bỏ qua";
+              } else if (log.status === "pending") {
+                statusBadge = "bg-blue-50 text-blue-700 border border-blue-200/50";
+                statusLabel = "Đang xử lý";
+              }
+
+              return (
+                <React.Fragment key={log.id}>
+                  <tr className="hover:bg-[var(--surface-light)]/40 transition-colors">
+                    <td className="py-3 font-medium text-[var(--fg-muted)]">{date}</td>
+                    <td className="py-3 font-bold uppercase text-[var(--fg-base)]">{log.provider}</td>
+                    <td className="py-3 font-mono text-[var(--fg-muted)]">{log.externalTransactionId || "-"}</td>
+                    <td className="py-3 font-bold text-[var(--fg-base)]">
+                      {log.amount ? `${log.amount.toLocaleString("vi-VN")} VND` : "-"}
+                    </td>
+                    <td className="py-3 font-bold text-[var(--accent)]">
+                      {log.orderCode ? (
+                        <a href={`/orders/${log.orderId}`} className="hover:underline">
+                          {log.orderCode}
+                        </a>
+                      ) : "-"}
+                    </td>
+                    <td className="py-3">
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${statusBadge}`}>
+                        {statusLabel}
+                      </span>
+                    </td>
+                    <td className="py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                        className="text-[var(--fg-muted)] hover:text-[var(--accent)] transition-colors p-1"
+                      >
+                        {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                      </button>
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr>
+                      <td colSpan={7} className="bg-[var(--bg-app)] p-4 rounded-xl">
+                        <div className="space-y-2">
+                          {log.errorMessage && (
+                            <p className="text-[12px] font-bold text-rose-600">
+                              Lỗi: <span className="font-medium text-rose-700">{log.errorMessage}</span>
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 text-[11px] font-bold text-[var(--fg-muted)]">
+                            <Terminal className="size-3.5" />
+                            <span>Payload dữ liệu nhận được:</span>
+                          </div>
+                          <pre className="overflow-x-auto rounded-xl border border-[var(--border-soft)] bg-slate-900 p-3 font-mono text-[11px] text-sky-200">
+                            {JSON.stringify(log.payload, null, 2)}
+                          </pre>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }

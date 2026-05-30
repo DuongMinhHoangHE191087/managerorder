@@ -165,31 +165,7 @@ export function SalesLandingManager() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-[var(--border-soft)] bg-gradient-to-br from-indigo-50 to-white p-4 shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
-            <Sparkles className="size-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[12px] font-bold uppercase tracking-wider text-indigo-700">Release / runtime note</p>
-            <p className="mt-1 text-[13px] leading-6 text-[var(--fg-base)]">
-              4 card bên dưới sẽ hiển thị trên trang landing công khai, trang lỗi và trang hết hạn link.
-              Mỗi card lấy tiêu đề, giá và mô tả từ snapshot bạn chọn trong cài đặt.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full border border-indigo-200 bg-white px-2.5 py-1 text-[11px] font-bold text-indigo-700">
-                Chọn sản phẩm
-              </span>
-              <span className="rounded-full border border-indigo-200 bg-white px-2.5 py-1 text-[11px] font-bold text-indigo-700">
-                Tuỳ chỉnh link
-              </span>
-              <span className="rounded-full border border-indigo-200 bg-white px-2.5 py-1 text-[11px] font-bold text-indigo-700">
-                Snapshot theo settings
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       <div className="grid gap-4 xl:grid-cols-2">
         <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-sm xl:col-span-2">
@@ -201,9 +177,7 @@ export function SalesLandingManager() {
               <h4 className="mt-1 text-[17px] font-black text-[var(--fg-base)]">
                 Mặc định khi short-link hết hạn hoặc không tồn tại
               </h4>
-              <p className="mt-1 max-w-2xl text-[13px] leading-6 text-[var(--fg-muted)]">
-                Link cụ thể và kênh bán có thể override. Slug 404 không có record nên luôn dùng cấu hình mặc định này.
-              </p>
+
             </div>
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
               /s/[slug] failure
@@ -231,9 +205,7 @@ export function SalesLandingManager() {
                   </option>
                 ))}
               </Select>
-              <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
-                {FAILURE_TEMPLATE_OPTIONS.find((option) => option.value === settings.sales_landing_config.shortLinkFailureDefaults.defaultTemplateKey)?.desc}
-              </p>
+
             </label>
 
             <label className="block">
@@ -348,9 +320,7 @@ export function SalesLandingManager() {
                     }
                     placeholder="https://... hoặc /s/slug"
                   />
-                  <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
-                    Có thể dán URL thật hoặc chọn một short-link đang hoạt động bên dưới để tránh rơi sang trang 404.
-                  </p>
+
                 </div>
 
                 <div>
@@ -369,9 +339,7 @@ export function SalesLandingManager() {
                       </option>
                     ))}
                   </Select>
-                  <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
-                    Link này sẽ được chèn vào landing dưới dạng short-link nội bộ đang hoạt động.
-                  </p>
+
                 </div>
 
                 <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-light)] p-3">

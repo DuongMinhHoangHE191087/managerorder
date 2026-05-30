@@ -101,7 +101,7 @@ export default function PremiumServicesPage() {
         <PageHeader
           eyebrow={<span>Premium / Services</span>}
           title="Dịch vụ Premium"
-          description="Quản lý danh mục nền tảng số và nhóm gói kinh doanh trên hệ thống."
+          description=""
           actions={
             <Button
               type="button"
@@ -139,7 +139,7 @@ export default function PremiumServicesPage() {
         <SurfaceCard className="mt-6">
           <SectionHeader
             title="Danh sách nền tảng"
-            description="Tất cả dịch vụ đang có trong danh mục, trạng thái hoạt động và số gói đang mở bán."
+            description=""
           />
 
           {isLoading ? (
@@ -164,7 +164,7 @@ export default function PremiumServicesPage() {
               <EmptyState
                 icon={<Globe className="size-6" />}
                 title="Chưa có dịch vụ nào"
-                description="Thêm một dịch vụ đầu tiên để khởi tạo danh mục Premium."
+                description=""
                 action={
                   <Button type="button" variant="primary" onClick={() => setIsCreateOpen(true)}>
                     <Plus className="size-4" />

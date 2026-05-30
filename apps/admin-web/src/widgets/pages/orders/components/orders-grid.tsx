@@ -40,6 +40,8 @@ export type OrderGridRow = {
   salesNote?: string | null;
   contactSnapshot?: string | null;
   proofImageUrls?: string[] | null;
+  customerAvatarUrl?: string | null;
+  productIconUrl?: string | null;
 
   // Computed fields from OrderModel.toJSON()
   profit: number;
@@ -151,10 +153,17 @@ const OrderCard = React.memo(function OrderCard({
         {/* Header: Product + Status */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            {/* Monogram squircle tile */}
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-emerald-100 bg-emerald-50/50 font-bold text-emerald-800 text-[13px]">
-              {mono}
-            </div>
+            {order.productIconUrl ? (
+              <img
+                src={order.productIconUrl}
+                alt={order.productName}
+                className="size-9 shrink-0 rounded-lg object-cover border border-gray-250 shadow-sm"
+              />
+            ) : (
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-emerald-100 bg-emerald-50/50 font-bold text-emerald-800 text-[13px]">
+                {mono}
+              </div>
+            )}
             <div className="min-w-0">
               <h3 className="truncate font-semibold text-gray-800 text-[13.5px] leading-tight" title={order.productName}>
                 {order.productName}
@@ -187,7 +196,15 @@ const OrderCard = React.memo(function OrderCard({
         {/* Customer Information */}
         <div className="space-y-2 mt-4 text-[12px] text-gray-600">
           <div className="flex items-center gap-2">
-            <User className="size-3.5 text-gray-400 shrink-0" />
+            {order.customerAvatarUrl ? (
+              <img
+                src={order.customerAvatarUrl}
+                alt={order.customerName}
+                className="size-5 shrink-0 rounded-full object-cover border border-gray-250 shadow-sm"
+              />
+            ) : (
+              <User className="size-3.5 text-gray-400 shrink-0" />
+            )}
             <span className="font-semibold text-gray-800 truncate" style={{ maxWidth: 140 }}>
               {order.customerName}
             </span>

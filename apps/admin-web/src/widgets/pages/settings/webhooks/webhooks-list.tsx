@@ -112,7 +112,6 @@ export function WebhooksList({
       <div className="rounded-[28px] border border-dashed border-[var(--border-soft)] bg-[var(--surface-light)]/40 px-6 py-12 text-center">
         <WebhookIcon className="mx-auto mb-4 size-12 text-[var(--fg-muted)]/30" />
         <p className="text-[15px] font-bold text-[var(--fg-muted)]">{vi.settings.webhooks.createPanel.emptyTitle}</p>
-        <p className="mt-1 text-[13px] text-[var(--fg-muted)]/70">{vi.settings.webhooks.createPanel.emptyDescription}</p>
       </div>
     );
   }
@@ -328,15 +327,10 @@ export function WebhooksList({
                     <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
                       Khóa bí mật
                     </label>
-                    <p className="text-[12px] text-[var(--fg-muted)]">{vi.settings.webhooks.createPanel.secretKeyDescription}</p>
-                    {webhook.secret ? (
-                      <code className="mt-3 block overflow-x-auto rounded-xl border border-[var(--border-soft)] bg-white px-3 py-2 text-[12px] font-mono text-[var(--fg-base)]">
+                    {webhook.secret && (
+                      <code className="mt-2 block overflow-x-auto rounded-xl border border-[var(--border-soft)] bg-white px-3 py-2 text-[12px] font-mono text-[var(--fg-base)]">
                         {webhook.secret}
                       </code>
-                    ) : (
-                      <p className="mt-3 text-[12px] text-amber-700">
-                        Secret chỉ hiển thị một lần ở banner sau khi tạo webhook mới.
-                      </p>
                     )}
                   </div>
 

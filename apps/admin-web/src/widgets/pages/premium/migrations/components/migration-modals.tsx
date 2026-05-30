@@ -675,7 +675,7 @@ function MigrationDetailModalV2({
       <SectionCard
         eyebrow="Tổng quan"
         title="Tóm tắt hồ sơ chuyển đổi"
-        description="Hồ sơ vận hành của lần chuyển thuê bao từ kho nguồn sang kho đích."
+        description=""
         className="bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(245,250,239,0.96))]"
       >
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
@@ -840,7 +840,7 @@ function MigrationDetailModalV2({
         <SectionCard
           eyebrow="Kho nguồn / kho đích"
           title="Kho nguồn và kho đích"
-          description="Thông tin hai đầu chuyển đổi được hiển thị theo cùng một cấu trúc để kiểm tra nhanh."
+          description=""
           className="h-full bg-[var(--surface-light)]"
         >
           <div className="space-y-3">
@@ -915,7 +915,7 @@ function MigrationDetailModalV2({
         <SectionCard
           eyebrow="Yêu cầu"
           title="Dữ liệu yêu cầu chuyển đổi"
-          description="Chỉ khi chưa bắt đầu chuyển đổi mới có thể chỉnh kho đích, lý do và ghi chú."
+          description=""
           className="h-full"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -982,7 +982,7 @@ function MigrationDetailModalV2({
       <SectionCard
         eyebrow="Thực thi"
         title="Điều khiển quá trình chuyển đổi"
-        description="Chọn người nhận hiện có, tạo người nhận mới hoặc kết thúc bằng thất bại / huỷ khi có thay đổi."
+        description=""
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-light)] px-3 py-1 text-[11px] font-bold text-[var(--fg-base)]">
@@ -1149,7 +1149,7 @@ function MigrationDetailModalV2({
         <SectionCard
           eyebrow="Dữ liệu"
           title="Trường nghiệp vụ đã chuẩn hoá"
-          description="Dữ liệu này dùng cho đối soát nhanh. JSON gốc được giữ ở phần mở rộng bên dưới."
+          description=""
           className="h-full bg-[var(--surface-light)]"
         >
           <div className="grid gap-3 sm:grid-cols-2">

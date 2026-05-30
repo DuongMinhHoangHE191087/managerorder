@@ -241,11 +241,17 @@ const CustomerListRow = React.memo(function CustomerListRow({
 
 
 
-        <div className="hidden size-11 items-center justify-center rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-lg font-bold tracking-tighter text-[var(--accent)] transition-transform group-hover:scale-105 sm:flex uppercase">
-
-          {customer.name.charAt(0)}
-
-        </div>
+        {customer.avatarUrl ? (
+          <img
+            src={customer.avatarUrl}
+            alt={customer.name}
+            className="hidden size-11 shrink-0 rounded-xl border border-gray-250 object-cover shadow-sm transition-transform group-hover:scale-105 sm:flex"
+          />
+        ) : (
+          <div className="hidden size-11 items-center justify-center rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-lg font-bold tracking-tighter text-[var(--accent)] transition-transform group-hover:scale-105 sm:flex uppercase">
+            {customer.name.charAt(0)}
+          </div>
+        )}
 
       </div>
 

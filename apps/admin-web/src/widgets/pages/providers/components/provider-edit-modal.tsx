@@ -110,7 +110,7 @@ export function ProviderEditModal({
       isOpen={isOpen}
       onClose={onClose}
       title={text.title}
-      description="Cập nhật thông tin nhà cung cấp trong cùng một layout gọn, rộng và dễ nhập liệu."
+      description=""
       size="lg"
       footer={
         <CreateActionFooter
@@ -126,7 +126,7 @@ export function ProviderEditModal({
       <div className="grid gap-5">
         <CreateFormSection
           title="Thông tin chính"
-          description="Tên nhà cung cấp là trường bắt buộc. Các trường còn lại được tổ chức để nhập nhanh và dễ đọc."
+          description=""
         >
           <div className="space-y-2">
             <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
@@ -149,7 +149,7 @@ export function ProviderEditModal({
 
         <CreateFormSection
           title="Phân loại và độ tin cậy"
-          description="Chuyển đổi nhanh giữa khách thường và VIP, đồng thời giữ thang độ tin cậy rõ ràng."
+          description=""
         >
           <div>
             <label className="mb-3 block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
@@ -220,7 +220,7 @@ export function ProviderEditModal({
 
         <CreateFormSection
           title="Liên hệ"
-          description="Danh sách kênh liên hệ được giữ cùng một chuẩn để dùng lại cho search, detail và các luồng automation."
+          description=""
         >
           <DynamicContactListLazy
             contacts={contacts}
@@ -232,7 +232,7 @@ export function ProviderEditModal({
 
         <CreateFormSection
           title="Ghi chú"
-          description="Ghi chú ngắn gọn giúp truy ngược lý do chỉnh sửa sau này."
+          description=""
         >
           <textarea
             value={notes}

@@ -40,11 +40,17 @@ export async function listPaymentSources(accountId: string): Promise<PaymentSour
 
 export async function createPaymentSource(
   accountId: string,
-  input: { name: string; icon?: string }
+  input: { name: string; icon?: string; bank_name?: string | null; account_number?: string | null }
 ): Promise<PaymentSourceRow> {
   const { data, error } = await supabase
     .from('payment_sources')
-    .insert({ name: input.name, icon: input.icon ?? null, account_id: accountId })
+    .insert({
+      name: input.name,
+      icon: input.icon ?? null,
+      bank_name: input.bank_name ?? null,
+      account_number: input.account_number ?? null,
+      account_id: accountId,
+    })
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -55,7 +61,7 @@ export async function createPaymentSource(
 export async function updatePaymentSource(
   id: string,
   accountId: string,
-  input: { name?: string; icon?: string }
+  input: { name?: string; icon?: string; bank_name?: string | null; account_number?: string | null }
 ): Promise<PaymentSourceRow> {
   const { data, error } = await supabase
     .from('payment_sources')

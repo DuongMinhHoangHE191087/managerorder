@@ -33,7 +33,6 @@ export function ProviderPurchaseOrdersPanel({
             <ShoppingCart className="size-5 text-[var(--accent)]" />
             {text.title}
           </h3>
-          <p className="mt-1 text-[11px] text-[var(--fg-muted)]">{text.description}</p>
         </div>
         <span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-1 text-[11px] font-bold text-[var(--accent)]">
           {purchaseOrders.length} {text.countSuffix}
@@ -57,7 +56,6 @@ export function ProviderPurchaseOrdersPanel({
         <div className="py-12 text-center">
           <Package className="mx-auto mb-3 size-10 text-[var(--fg-muted)] opacity-30" />
           <p className="text-[13px] text-[var(--fg-muted)]">{text.emptyTitle}</p>
-          <p className="mt-1 text-[11px] text-[var(--fg-muted)]">{text.emptyDescription}</p>
         </div>
       ) : (
         <div className="divide-y divide-[var(--border-soft)]">

@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Clock, User, Phone, Mail, MessageCircle, Globe, Package, Store, Wallet, TrendingUp, CreditCard, DollarSign, RefreshCw, Printer, Trash2, History } from "lucide-react";
+import { Clock, User, Phone, Mail, MessageCircle, MessageSquare, Globe, Package, Store, Wallet, TrendingUp, CreditCard, DollarSign, RefreshCw, Printer, Trash2, History } from "lucide-react";
 import { CreateFlowDialog } from "@/shared/ui/create-flow-shell";
 import { ActivityTimeline } from "@/widgets/pages/activity-logs/components/activity-timeline";
 import { OrderStatusTimeline } from "@/widgets/pages/orders/components/order-status-timeline";
@@ -12,6 +12,7 @@ import type { OrderContact, OrderRow } from "./orders-table";
 import { getStatusLabel, getStatusStyle } from "@/widgets/pages/orders/lib/status";
 import { getOrderNextStatuses } from "@/lib/domain/order-state-machine";
 import type { OrderStatus } from "@/lib/domain/types";
+import { appToast } from "@/shared/ui/app-toast";
 
 interface OrderDetailModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface OrderDetailModalProps {
   onPrintClick: () => void;
   onDeleteClick: () => void;
   onStatusChange: (orderId: string, status: string) => void;
+  onRemindEmailClick?: (order: OrderRow) => void;
 }
 
 type OrderContactRowProps = {
@@ -106,6 +108,7 @@ export function OrderDetailModal({
   onPrintClick,
   onDeleteClick,
   onStatusChange,
+  onRemindEmailClick,
 }: OrderDetailModalProps) {
   if (!order) return null;
   const paymentLabel = formatPaymentTermsLabel(order.payment_terms ?? order.payment_method);
@@ -141,7 +144,7 @@ export function OrderDetailModal({
     >
       <div className="space-y-5">
         {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           <button
             onClick={onPaymentClick}
             className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-colors"
@@ -163,6 +166,63 @@ export function OrderDetailModal({
             <Printer className="size-5" />
             <span className="text-[10px] font-bold uppercase tracking-wider">In HĐ</span>
           </button>
+          <button
+            onClick={() => onRemindEmailClick?.(order)}
+            className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors"
+          >
+            <Mail className="size-5" />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Nhắc Email</span>
+          </button>
+        </div>
+
+        {/* Copy Messages Section */}
+        <div className="glass-card p-5 rounded-xl border border-[var(--border-soft)] bg-white">
+          <h3 className="text-[12px] font-bold text-[var(--fg-muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
+            <MessageSquare className="size-4 text-[var(--accent)]" />
+            Sao chép tin nhắn nhanh
+          </h3>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between p-2 rounded-lg bg-[var(--surface-light)] border border-[var(--border-soft)]/50">
+              <span className="text-[12px] font-medium text-[var(--fg-base)]">Thông tin tài khoản/Cấp phát</span>
+              <button
+                onClick={() => {
+                  const txt = `Xin chào ${order.customerName}, đây là thông tin tài khoản ${order.productName} của bạn:\nEmail/Tài khoản: ${order.customerEmail || "(Chưa có)"}\nHạn dùng: ${order.expires_at ? new Date(order.expires_at).toLocaleDateString("vi-VN") : "chưa xác định"}\nCảm ơn bạn đã ủng hộ!`;
+                  navigator.clipboard.writeText(txt);
+                  appToast.success("Đã sao chép tin nhắn cấp phát!");
+                }}
+                className="px-2.5 py-1 text-[10px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 rounded-lg hover:bg-[var(--accent)]/20 transition-colors"
+              >
+                Copy
+              </button>
+            </div>
+            <div className="flex items-center justify-between p-2 rounded-lg bg-[var(--surface-light)] border border-[var(--border-soft)]/50">
+              <span className="text-[12px] font-medium text-[var(--fg-base)]">Nhắc nhở gia hạn</span>
+              <button
+                onClick={() => {
+                  const txt = `Xin chào ${order.customerName}, gói dịch vụ ${order.productName} của bạn sẽ hết hạn vào ${order.expires_at ? new Date(order.expires_at).toLocaleDateString("vi-VN") : "chưa xác định"}. Vui lòng thanh toán gia hạn ${formatMoney(order.total_amount_vnd)} để tiếp tục sử dụng không bị gián đoạn. Cảm ơn bạn!`;
+                  navigator.clipboard.writeText(txt);
+                  appToast.success("Đã sao chép tin nhắn nhắc gia hạn!");
+                }}
+                className="px-2.5 py-1 text-[10px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 rounded-lg hover:bg-[var(--accent)]/20 transition-colors"
+              >
+                Copy
+              </button>
+            </div>
+            <div className="flex items-center justify-between p-2 rounded-lg bg-[var(--surface-light)] border border-[var(--border-soft)]/50">
+              <span className="text-[12px] font-medium text-[var(--fg-base)]">Nhắc nợ thanh toán</span>
+              <button
+                onClick={() => {
+                  const debt = Math.max(order.total_amount_vnd - (order.total_paid || 0), 0);
+                  const txt = `Xin chào ${order.customerName}, đơn hàng mua sản phẩm ${order.productName} của bạn còn số dư chưa thanh toán là ${formatMoney(debt)}. Vui lòng thanh toán sớm để hoàn tất đơn hàng. Cảm ơn bạn!`;
+                  navigator.clipboard.writeText(txt);
+                  appToast.success("Đã sao chép tin nhắn nhắc nợ!");
+                }}
+                className="px-2.5 py-1 text-[10px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 rounded-lg hover:bg-[var(--accent)]/20 transition-colors"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Customer Info */}

@@ -31,6 +31,10 @@ const DEFAULT_CONFIG: ReminderConfig = {
   template_expired_zalo:
     "Xin chào {customer_name}, dịch vụ {product_name} đã hết hạn vào {expiry_date}. Nếu cần tiếp tục sử dụng, bạn vui lòng nhắn lại để được hỗ trợ gia hạn.",
   auto_send: false,
+  telegram_notifications_enabled: true,
+  webhook_notifications_enabled: true,
+  template_share_link: "Xin chào {customer_name}, đây là liên kết nhận tài khoản {product_name} của bạn: {share_link}",
+  template_share_account: "Thông tin tài khoản {product_name} của bạn:\nEmail: {email}\nMật khẩu: {password}\n2FA: {totp_code}",
 };
 
 const CHANNEL_OPTIONS: Array<{
@@ -59,6 +63,10 @@ const TEMPLATE_VARS = [
   "{due_date}",
   "{order_code}",
   "{order_status}",
+  "{share_link}",
+  "{email}",
+  "{password}",
+  "{totp_code}",
 ];
 
 export function ReminderConfigManager() {
@@ -196,7 +204,67 @@ function ReminderConfigForm({
         </div>
       </div>
 
+      <div>
+        <h4 className="mb-3 flex items-center gap-2 text-[13px] font-bold text-[var(--fg-base)]">
+          <Zap className="size-4 text-[var(--accent)]" />
+          Kênh thông báo & Tự động hóa
+        </h4>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => updateField("telegram_notifications_enabled", !config.telegram_notifications_enabled)}
+            className={[
+              "flex items-center justify-between rounded-2xl border p-4 text-left transition-[background-color,border-color,box-shadow]",
+              config.telegram_notifications_enabled
+                ? "border-[var(--accent)] bg-[var(--accent)]/5 shadow-sm"
+                : "border-[var(--border-soft)] bg-white opacity-70",
+            ].join(" ")}
+          >
+            <div>
+              <span className="text-[12px] font-bold text-[var(--fg-base)] block">Telegram Notifications</span>
+              <span className="text-[11px] text-[var(--fg-muted)]">Gửi cảnh báo và thông báo qua bot Telegram</span>
+            </div>
+            <div
+              className={`flex h-6 w-10 items-center rounded-full p-0.5 transition-colors duration-300 ${
+                config.telegram_notifications_enabled ? "bg-[var(--accent)]" : "bg-gray-300"
+              }`}
+            >
+              <div
+                className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ease-out ${
+                  config.telegram_notifications_enabled ? "translate-x-4" : "translate-x-0"
+                }`}
+              />
+            </div>
+          </button>
 
+          <button
+            type="button"
+            onClick={() => updateField("webhook_notifications_enabled", !config.webhook_notifications_enabled)}
+            className={[
+              "flex items-center justify-between rounded-2xl border p-4 text-left transition-[background-color,border-color,box-shadow]",
+              config.webhook_notifications_enabled
+                ? "border-[var(--accent)] bg-[var(--accent)]/5 shadow-sm"
+                : "border-[var(--border-soft)] bg-white opacity-70",
+            ].join(" ")}
+          >
+            <div>
+              <span className="text-[12px] font-bold text-[var(--fg-base)] block">Webhook Notifications</span>
+              <span className="text-[11px] text-[var(--fg-muted)]">Trigger webhook sự kiện đơn hàng/khách hàng</span>
+            </div>
+            <div
+              className={`flex h-6 w-10 items-center rounded-full p-0.5 transition-colors duration-300 ${
+                config.webhook_notifications_enabled ? "bg-[var(--accent)]" : "bg-gray-300"
+              }`}
+            >
+              <div
+                className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ease-out ${
+                  config.webhook_notifications_enabled ? "translate-x-4" : "translate-x-0"
+                }`}
+              />
+            </div>
+          </button>
+        </div>
+      </div>
 
       <div className="space-y-4">
         <h4 className="flex items-center gap-2 text-[13px] font-bold text-[var(--fg-base)]">
@@ -221,23 +289,37 @@ function ReminderConfigForm({
 
         <TemplateField
           label="Telegram nội bộ"
-          description="Cảnh báo nội bộ qua Telegram."
+          description=""
           value={config.template_renewal_internal}
           onChange={(value) => updateField("template_renewal_internal", value)}
         />
 
         <TemplateField
           label="Template tương thích cũ"
-          description="Tương thích cũ cho hệ thống."
+          description=""
           value={config.template_renewal}
           onChange={(value) => updateField("template_renewal", value)}
         />
 
         <TemplateField
           label="Template công nợ"
-          description="Tin nhắn nhắc nợ."
+          description=""
           value={config.template_debt}
           onChange={(value) => updateField("template_debt", value)}
+        />
+
+        <TemplateField
+          label="Template chia sẻ liên kết (Share Link)"
+          description=""
+          value={config.template_share_link || ""}
+          onChange={(value) => updateField("template_share_link", value)}
+        />
+
+        <TemplateField
+          label="Template thông tin tài khoản (Share Account)"
+          description=""
+          value={config.template_share_account || ""}
+          onChange={(value) => updateField("template_share_account", value)}
         />
       </div>
 
@@ -280,12 +362,12 @@ function TemplateField({
   return (
     <div>
       <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{label}</label>
-      <p className="mb-2 text-[11px] text-[var(--fg-muted)]">{description}</p>
+      {description && <p className="mb-2 text-[11px] text-[var(--fg-muted)]">{description}</p>}
       <textarea
         rows={4}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full resize-none rounded-xl border border-[var(--border-soft)] bg-white px-4 py-3 text-[13px] font-medium outline-none transition-[border-color,box-shadow] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15"
+        className="w-full resize-none rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 font-mono text-[13px] text-emerald-400 placeholder:text-slate-650 outline-none transition-[border-color,box-shadow] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15"
       />
     </div>
   );

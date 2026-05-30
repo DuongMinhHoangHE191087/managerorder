@@ -31,7 +31,7 @@ import { Select } from "@/shared/ui/select";
 import { appToast } from "@/shared/lib/toast";
 import { readApiEnvelope } from "@/shared/lib/api-client";
 import type { CustomerPremiumSubscription } from "@/lib/domain/premium-types";
-import { formatMoney } from "@/lib/utils";
+import { cn, formatMoney } from "@/lib/utils";
 import { getBillingCycleLabel } from "@/lib/domain/premium-renewal-finance";
 import { RenewalRequestModal } from "./renewal-request-modal";
 import { QuickMigrationModal } from "./quick-migration-modal";
@@ -1250,77 +1250,44 @@ export default function PremiumSubscriptionsPage() {
                       ) : null}
 
                       {/* Action buttons row */}
-                      <div className="flex flex-wrap items-center gap-1.5 justify-between">
-                        <div className="flex flex-wrap items-center gap-1.5">
+                      <div className="flex items-center gap-2 justify-between">
+                        {primaryAction ? (
+                          <Button
+                            type="button"
+                            onClick={primaryAction.onClick}
+                            className={cn(
+                              "flex-1 h-9 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]",
+                              primaryAction.className
+                            )}
+                          >
+                            {primaryAction.icon}
+                            <span>{primaryAction.label}</span>
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => router.push(`/customers/${sub.customer_id}`)}
+                            className="flex-1 h-9 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                          >
+                            <User className="size-3.5" />
+                            <span>Chi tiết khách</span>
+                          </Button>
+                        )}
+
+                        <div className="flex items-center gap-1 shrink-0">
                           <Button
                             type="button"
                             variant="secondary"
                             onClick={() => void copyToClipboard(buildReminderMessage(sub), "Đã sao chép mẫu nhắc gia hạn")}
-                            className="inline-flex items-center justify-center size-8 rounded-full p-0 transition-transform active:scale-90"
+                            className="size-9 rounded-xl flex items-center justify-center p-0 transition-transform active:scale-90"
                             title="Sao chép mẫu nhắc gia hạn"
                           >
                             <Copy className="size-3.5" />
                           </Button>
 
-                          {/* Gia hạn button */}
-                          {canRenew && (
-                            <Button
-                              type="button"
-                              onClick={() => setRenewingSubscription(sub)}
-                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 border border-emerald-100 transition-transform active:scale-90"
-                              title="Gia hạn thuê bao"
-                            >
-                              <Sparkles className="size-3.5" />
-                            </Button>
-                          )}
-
-                          {/* Không gia hạn button */}
-                          {canNoRenew && (
-                            <Button
-                              type="button"
-                              onClick={() => void handleMarkNoRenew(sub)}
-                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-rose-500/10 text-rose-700 hover:bg-rose-500/20 border border-rose-100 transition-transform active:scale-90"
-                              title="Đánh dấu không gia hạn"
-                            >
-                              <XCircle className="size-3.5" />
-                            </Button>
-                          )}
-
-                          {/* Hoàn tiền button */}
-                          {canRefund && (
-                            <Button
-                              type="button"
-                              onClick={() => void handleRefund(sub)}
-                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 border border-amber-100 transition-transform active:scale-90"
-                              title="Tính hoàn tiền"
-                            >
-                              <HandCoins className="size-3.5" />
-                            </Button>
-                          )}
-
-                          {((sub.status === "active" || sub.status === "expired" || sub.status === "waiting_renewal") && sub.premium_account_id) && (
-                            <Button
-                              type="button"
-                              onClick={() => setMigratingSubscription(sub)}
-                              className="inline-flex items-center justify-center size-8 rounded-full p-0 bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 border border-blue-100 transition-transform active:scale-90"
-                              title="Chuyển Family nhanh"
-                            >
-                              <ArrowRightLeft className="size-3.5" />
-                            </Button>
-                          )}
-
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() => router.push(`/customers/${sub.customer_id}`)}
-                            className="inline-flex items-center justify-center size-8 rounded-full p-0 transition-transform active:scale-90"
-                            title="Đi tới chi tiết khách hàng"
-                          >
-                            <User className="size-3.5" />
-                          </Button>
+                          <ActionMenu items={quickActions} />
                         </div>
-
-                        <ActionMenu items={quickActions} />
                       </div>
                     </div>
                   </article>

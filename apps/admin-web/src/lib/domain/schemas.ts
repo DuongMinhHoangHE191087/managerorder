@@ -86,6 +86,7 @@ export const createProductInputSchema = z.object({
   durationType: z.enum(["days", "months", "years"]).default("days"),
   durationValue: z.number().int().min(1, "Thời hạn phải từ 1 trở lên"),
   isActive: z.boolean().default(true),
+  iconUrl: z.string().nullable().optional(),
 });
 
 export const updateProductInputSchema = z.object({
@@ -96,6 +97,7 @@ export const updateProductInputSchema = z.object({
   durationType: z.enum(["days", "months", "years"]).optional(),
   durationValue: z.number().int().min(1, "Thời hạn phải từ 1 trở lên").optional(),
   isActive: z.boolean().optional(),
+  iconUrl: z.string().nullable().optional(),
 });
 
 export const contactInfoSchema = z.object({
@@ -114,6 +116,7 @@ export const createCustomerInputSchema = z.object({
   customerType: z.enum(["retail", "wholesale", "agency"]).optional(),
   tagIds: z.array(z.string().uuid()).optional(),
   notes: optionalText(z.string().max(1000)),
+  avatarUrl: z.string().nullable().optional(),
 });
 
 export const updateCustomerInputSchema = z.object({
@@ -124,6 +127,7 @@ export const updateCustomerInputSchema = z.object({
   tagIds: z.array(z.string().uuid()).optional(),
   reliabilityScore: z.number().min(0).max(100).optional(),
   notes: z.string().max(1000).optional(),
+  avatarUrl: z.string().nullable().optional(),
 });
 
 export const createProviderInputSchema = z.object({
@@ -135,6 +139,8 @@ export const createProviderInputSchema = z.object({
 export const createPaymentSourceInputSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên nguồn thanh toán"),
   icon: z.string().default("💳"),
+  bank_name: z.string().nullable().optional(),
+  account_number: z.string().nullable().optional(),
 });
 
 const shortLinkResolvedDeliveryModeSchema = z.enum(["direct_redirect", "landing_page"]);

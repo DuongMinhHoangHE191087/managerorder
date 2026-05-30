@@ -378,7 +378,7 @@ export default function ActivityLogsPage() {
       <PageContainer variant="wide" className="relative pb-20">
         <PageHeader
           title={vi.activityLogs.page.title}
-          description="Một workspace audit chung để rà lịch sử thay đổi, tra payload thao tác và đối chiếu các sự kiện vận hành theo cùng một nhịp filter và bảng dữ liệu."
+          description=""
           eyebrow={
             <>
               <span className="inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/15 bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--accent)]">
@@ -415,22 +415,18 @@ export default function ActivityLogsPage() {
           <div className="app-card px-5 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Tạo mới</div>
             <div className="mt-2 text-2xl font-black text-emerald-600">{summary.createCount}</div>
-            <p className="mt-1 text-[12px] text-[var(--fg-muted)]">Số event create trong dataset hiện tại.</p>
           </div>
           <div className="app-card px-5 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Cập nhật</div>
             <div className="mt-2 text-2xl font-black text-sky-600">{summary.updateCount}</div>
-            <p className="mt-1 text-[12px] text-[var(--fg-muted)]">Các thao tác sửa đổi đã ghi lại.</p>
           </div>
           <div className="app-card px-5 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">Xóa / huỷ</div>
             <div className="mt-2 text-2xl font-black text-rose-600">{summary.deleteCount}</div>
-            <p className="mt-1 text-[12px] text-[var(--fg-muted)]">Phù hợp để review các thao tác nhạy cảm.</p>
           </div>
           <div className="app-card px-5 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">System</div>
             <div className="mt-2 text-2xl font-black text-[var(--fg-base)]">{summary.systemCount}</div>
-            <p className="mt-1 text-[12px] text-[var(--fg-muted)]">Log không gắn trực tiếp khách, đơn hoặc kho.</p>
           </div>
         </StatsGrid>
 
@@ -514,7 +510,7 @@ export default function ActivityLogsPage() {
         <SurfaceCard className={isFetching && !isLoading ? "pointer-events-none opacity-60" : undefined}>
           <SectionHeader
             title="Dòng sự kiện"
-            description="Click chuột phải để sao chép payload chi tiết. Bảng này giữ server-side pagination để log dài vẫn tải nhanh."
+            description=""
             action={
               <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--fg-muted)]">
                 Trang {pageIndex + 1}/{Math.max(meta.totalPages, 1)}

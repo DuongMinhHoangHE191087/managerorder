@@ -10,8 +10,9 @@ import {
   CreateFlowShell,
   CreateFormSection,
 } from "@/shared/ui/create-flow-shell";
-import { PageContainer } from "@/shared/ui/page-layout";
+import { PageContainer, PageHeader } from "@/shared/ui/page-layout";
 import { SectionCard } from "@/shared/ui/section-card";
+import { StaggerContainer, StaggerItem, GlassHoverCard } from "@/shared/ui/animations";
 import {
   useShortLinks, useCreateShortLink, useUpdateShortLink,
   useDeleteShortLink, useShortLinkAnalytics,
@@ -600,52 +601,52 @@ export default function ShortLinksPage() {
         ) : null}
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 mt-2">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight text-[var(--fg-base)] flex items-center gap-3">
-              <Link2 className="size-9 text-[var(--accent)]" />
-              {vi.shortLinks.page.title}
-            </h1>
-            <p className="text-[15px] text-[var(--fg-muted)] font-medium mt-1">
-              {vi.shortLinks.page.description}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => { setShowCreate(!showCreate); setCreatedSlug(null); }}
-            data-testid="short-links-create-toggle"
-            className="flex items-center gap-2 bg-[var(--fg-base)] text-[var(--bg-app)] px-5 py-2.5 rounded-full font-bold text-sm shadow-xl hover:scale-105 active:scale-95 transition-[box-shadow,opacity,transform] cursor-pointer"
-          >
-            <Plus aria-hidden="true" className="size-4" />
-            {vi.shortLinks.page.create}
-          </button>
-        </div>
+        <PageHeader
+          title={vi.shortLinks.page.title}
+          eyebrow="Short Links Workspace"
+          className="mt-2"
+          actions={
+            <button
+              type="button"
+              onClick={() => { setShowCreate(!showCreate); setCreatedSlug(null); }}
+              data-testid="short-links-create-toggle"
+              className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(var(--accent-rgb),0.3)] transition-[box-shadow,transform] hover:shadow-[0_6px_20px_rgba(var(--accent-rgb),0.4)] active:scale-[0.98]"
+            >
+              <Plus aria-hidden="true" className="size-4" />
+              {vi.shortLinks.page.create}
+            </button>
+          }
+        />
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {[
-            { label: vi.shortLinks.page.total, value: stats.total, color: "from-blue-500/20 to-indigo-500/20", icon: Link2 },
-            { label: vi.shortLinks.page.active, value: stats.active, color: "from-emerald-500/20 to-teal-500/20", icon: CheckCircle2 },
-            { label: vi.shortLinks.page.expired, value: stats.expired, color: "from-amber-500/20 to-orange-500/20", icon: Clock },
-            { label: vi.shortLinks.page.clicks, value: stats.totalClicks, color: "from-purple-500/20 to-pink-500/20", icon: BarChart3 },
-            { label: vi.shortLinks.page.protected, value: stats.protectedLinks, color: "from-violet-500/20 to-indigo-500/20", icon: ShieldCheck },
-          ].map(s => (
-            <div key={s.label} className={cn("glass-card p-4 rounded-2xl bg-gradient-to-br", s.color)}>
-              <div className="flex items-center gap-2 mb-1">
-                <s.icon className="size-3.5 text-[var(--fg-muted)]" />
-                <p className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider">{s.label}</p>
-              </div>
-              <p className="text-2xl font-black text-[var(--fg-base)]">{s.value}</p>
-            </div>
+        <StaggerContainer delayChildren={0.1} staggerDelay={0.06} className="grid grid-cols-2 gap-2 md:grid-cols-5">
+          {[
+            { label: vi.shortLinks.page.total, value: stats.total, icon: Link2, color: "text-[var(--accent)] bg-[var(--accent)]/10" },
+            { label: vi.shortLinks.page.active, value: stats.active, icon: CheckCircle2, color: "text-emerald-700 bg-emerald-50" },
+            { label: vi.shortLinks.page.expired, value: stats.expired, icon: Clock, color: "text-amber-700 bg-amber-50" },
+            { label: vi.shortLinks.page.clicks, value: stats.totalClicks, icon: BarChart3, color: "text-purple-700 bg-purple-50" },
+            { label: vi.shortLinks.page.protected, value: stats.protectedLinks, icon: ShieldCheck, color: "text-blue-700 bg-blue-50" },
+          ].map((s) => (
+            <StaggerItem key={s.label}>
+              <GlassHoverCard className="flex items-center gap-2 rounded-xl border border-[var(--border-soft)] bg-white p-2.5 shadow-[0_1px_3px_rgba(22,60,30,0.04)]">
+                <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-lg", s.color)}>
+                  <s.icon className="size-3.5" />
+                </span>
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{s.label}</div>
+                  <div className="text-[15px] font-black leading-none text-[var(--fg-base)]">{s.value}</div>
+                </div>
+              </GlassHoverCard>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
 
 
 
         {/* Create Form - only when on short-links tab */}
         {activeTab === "short-links" && showCreate && (
           createdSlug ? (
-            <SectionCard title={vi.shortLinks.page.createTitle} description={vi.shortLinks.page.createDescription}>
+            <SectionCard title={vi.shortLinks.page.createTitle} description="">
               <CreatedSuccess
                 slug={createdSlug}
                 link={createdLink}
@@ -657,7 +658,7 @@ export default function ShortLinksPage() {
           ) : (
             <CreateFlowShell
               title={vi.shortLinks.page.createTitle}
-              description="Chỉ mở những trường thật sự cần để tạo link mới. Template lỗi, chống gian lận và notify được gom vào nhóm nâng cao."
+              description=""
               footer={
                 <CreateActionFooter
                   primaryLabel={vi.shortLinks.page.createSubmit}
@@ -670,7 +671,7 @@ export default function ShortLinksPage() {
             >
               <CreateFormSection
                 title="Thông tin chính"
-                description="URL đích, tiêu đề hiển thị và kênh bán là ba trường cốt lõi để vận hành link."
+                description=""
               >
                 <div className="grid gap-4">
                   <div className="space-y-2">
@@ -728,7 +729,7 @@ export default function ShortLinksPage() {
 
               <CreateFormSection
                 title="Chính sách public"
-                description="Delivery mode được mở ngay vì nó quyết định link redirect thẳng hay đi qua landing."
+                description=""
               >
                 <div className="grid gap-4 xl:grid-cols-[minmax(240px,0.7fr)_minmax(0,1.3fr)]">
                   <div className="space-y-2">
@@ -941,7 +942,7 @@ export default function ShortLinksPage() {
         )}
 
         {/* Links Table - only when on short-links tab */}
-        {activeTab === "short-links" && <SectionCard title={vi.shortLinks.page.listTitle} description={vi.shortLinks.page.listDescription(filteredLinks.length)}>
+        {activeTab === "short-links" && <SectionCard title={vi.shortLinks.page.listTitle} description="">
           {/* Search, Sort & Filter */}
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 mb-4">
             <button

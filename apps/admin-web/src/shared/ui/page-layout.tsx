@@ -73,7 +73,7 @@ export function PageContainer({
 
 export function PageHeader({
   title,
-  description,
+  description: _description,
   actions,
   eyebrow,
   className,
@@ -94,11 +94,6 @@ export function PageHeader({
         <h1 className="break-words text-2xl font-black tracking-tight text-[var(--fg-base)] lg:text-[2.15rem]">
           {title}
         </h1>
-        {description ? (
-          <p className="mt-2 max-w-3xl text-sm font-medium text-[var(--fg-muted)] lg:text-[15px]">
-            {description}
-          </p>
-        ) : null}
       </div>
       {actions ? <div className="flex min-w-0 flex-wrap items-center gap-3">{actions}</div> : null}
     </header>
@@ -178,7 +173,7 @@ export function EmptyState({
 
 export function SectionHeader({
   title,
-  description,
+  description: _description,
   action,
   className,
 }: SectionHeaderProps) {
@@ -191,7 +186,6 @@ export function SectionHeader({
     >
       <div className="min-w-0">
         <h2 className="break-words text-[15px] font-bold tracking-tight text-[var(--fg-base)]">{title}</h2>
-        {description ? <p className="mt-1 break-words text-[13px] text-[var(--fg-muted)]">{description}</p> : null}
       </div>
       {action ? <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
     </div>

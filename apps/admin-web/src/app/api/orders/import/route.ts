@@ -51,23 +51,23 @@ export const POST = withErrorHandler(
       );
     }
 
-    // ── Pre-validate: filter out bad rows instead of rejecting all ──
+    // ── Pre-validate: Atomic rollback logic (all-or-nothing) ──
     const validation = preValidateRecords(records);
-    const skippedRows = [...new Set(validation.errors.map(e => e.row))];
-    const validRecords = validation.valid
-      ? records
-      : records.filter((_, idx) => !skippedRows.includes(idx + 1));
-
-    if (validRecords.length === 0) {
+    if (!validation.valid && validation.errors.length > 0) {
       return NextResponse.json(
         {
-          error: "All records failed validation",
+          error: "Import rejected: file contains data validation errors",
           validationErrors: validation.errors,
           validationWarnings: validation.warnings,
+          success: false,
+          importedCount: 0,
         },
         { status: 422 }
       );
     }
+
+    const validRecords = records;
+    const skippedRows: number[] = [];
 
     // ── Multi-step import (direct DB inserts, no RPC) ─────────
     try {

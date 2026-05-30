@@ -13,7 +13,7 @@ const roles = [
 export function SettingsGovernancePanels() {
   return (
     <>
-      <SectionCard title="Ma trận quyền (Role matrix)" description="Cấp quyền theo vai trò hệ thống">
+      <SectionCard title="Ma trận quyền (Role matrix)" description="">
         <div className="w-full overflow-hidden rounded-ios-sm border border-[var(--border-soft)] bg-white shadow-sm">
           <table className="min-w-[760px] w-full border-collapse text-left text-sm">
             <thead className="border-b border-[var(--border-soft)] bg-[#f8f9fa] text-[var(--fg-muted)]">
@@ -36,7 +36,7 @@ export function SettingsGovernancePanels() {
 
       <SectionCard
         title="Chính sách vận hành mặc định"
-        description="Cảnh báo công nợ, tự động khóa quá hạn, hỗ trợ hoàn tiền"
+        description=""
       >
         <ul className="space-y-3 rounded-ios-sm border border-[var(--border-soft)] bg-white p-5 text-[14px] font-medium text-[var(--fg-muted)] shadow-sm">
           <li className="flex items-start gap-2">
@@ -54,38 +54,6 @@ export function SettingsGovernancePanels() {
           <li className="flex items-start gap-2">
             <span className="text-[var(--accent)]">•</span>
             Chế độ hoàn tiền hỗ trợ toàn phần và một phần theo tỷ lệ sử dụng.
-          </li>
-        </ul>
-      </SectionCard>
-
-      <SectionCard
-        title="Release readiness"
-        description="Tóm tắt các gate đã chốt trước khi dừng nhánh settings"
-      >
-        <ul className="space-y-3 rounded-ios-sm border border-[var(--border-soft)] bg-white p-5 text-[14px] font-medium text-[var(--fg-muted)] shadow-sm">
-          <li className="flex items-start gap-2">
-            <span className="text-[var(--accent)]">•</span>
-            <span>
-              <strong className="text-[var(--fg-base)]">Sales channels</strong> đã mang policy default cho short-link public và có note rõ về override.
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[var(--accent)]">•</span>
-            <span>
-              <strong className="text-[var(--fg-base)]">Webhooks</strong> có test endpoint thật, validate URL chặt, và audit trail theo user.
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[var(--accent)]">•</span>
-            <span>
-              <strong className="text-[var(--fg-base)]">System settings</strong> vẫn là nguồn cấu hình hóa đơn / thanh toán mặc định, không động vào dữ liệu vận hành.
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[var(--accent)]">•</span>
-            <span>
-              Tất cả thay đổi settings gần nhất đều đã qua <strong className="text-[var(--fg-base)]">typecheck, test, build, visual smoke</strong>.
-            </span>
           </li>
         </ul>
       </SectionCard>

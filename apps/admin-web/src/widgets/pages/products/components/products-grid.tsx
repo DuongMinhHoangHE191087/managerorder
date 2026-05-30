@@ -24,6 +24,7 @@ export type ProductGridRow = {
   formattedSellPrice: string;
   formattedBuyPrice: string;
   formattedProfit: string;
+  iconUrl?: string | null;
 };
 
 interface ProductsGridProps {
@@ -79,9 +80,17 @@ const ProductCard = React.memo(function ProductCard({
         {/* Header: Icon + Name + Active Switch */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50/50 text-blue-600 font-bold group-hover:scale-105 transition-transform">
-              <span className="material-symbols-outlined text-[18px]">diamond</span>
-            </div>
+            {product.iconUrl ? (
+              <img
+                src={product.iconUrl}
+                alt={product.name}
+                className="size-9 shrink-0 rounded-xl object-cover border border-gray-250 shadow-sm transition-transform group-hover:scale-105"
+              />
+            ) : (
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50/50 text-blue-600 font-bold group-hover:scale-105 transition-transform">
+                <span className="material-symbols-outlined text-[18px]">diamond</span>
+              </div>
+            )}
             <div className="min-w-0">
               <h3 className="truncate font-semibold text-gray-800 text-[13.5px] leading-tight" title={product.name}>
                 {product.name}

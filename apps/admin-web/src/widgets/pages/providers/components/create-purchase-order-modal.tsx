@@ -181,7 +181,7 @@ export function CreatePurchaseOrderModal({
         isOpen={isOpen}
         onClose={onClose}
         title={text.title}
-        description="Tạo phiếu nhập rõ ràng hơn với ba lớp: sản phẩm, thanh toán và tùy chọn nâng cao."
+        description=""
         size="2xl"
         footer={
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -213,7 +213,7 @@ export function CreatePurchaseOrderModal({
         <div className="grid gap-5">
           <CreateFormSection
             title="Danh sách sản phẩm"
-            description="Chọn sản phẩm, nhập số lượng và đơn giá. Mỗi dòng được tách rõ để dễ rà soát."
+            description=""
           >
             <div className="space-y-3">
               {poItems.map((item, idx) => (
@@ -326,7 +326,7 @@ export function CreatePurchaseOrderModal({
 
           <CreateFormSection
             title="Thanh toán và ghi chú"
-            description="Giữ các trường vận hành chính ở cùng một chỗ để nhập nhanh và không phải cuộn quá nhiều."
+            description=""
           >
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div>

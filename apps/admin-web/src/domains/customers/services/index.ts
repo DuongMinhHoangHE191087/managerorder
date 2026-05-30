@@ -135,6 +135,7 @@ export async function createCustomerForAccount(
     type: customerType,
     notes: input.notes,
     contacts: toDbContacts(input.contacts),
+    avatar_url: input.avatarUrl,
   });
 
   if (input.tagIds && input.tagIds.length > 0) {
@@ -175,6 +176,7 @@ export async function updateCustomerForAccount(
     contacts: toDbContacts(input.contacts),
     reliability_score: input.reliabilityScore,
     notes: input.notes,
+    avatar_url: input.avatarUrl,
   });
 
   if (input.tagIds) {

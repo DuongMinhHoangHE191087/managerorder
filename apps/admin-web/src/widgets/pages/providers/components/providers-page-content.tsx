@@ -2,17 +2,20 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { ShieldCheck, Plus, Pencil, Trash2, Briefcase, Search, Eye, Phone, Mail, User, Package } from "lucide-react";
+import { ShieldCheck, Plus, Pencil, Trash2, Briefcase, Search, Eye, Phone, Mail, User, Package, X } from "lucide-react";
 // import Link from "next/link";
 import { appToast } from "@/shared/lib/toast";
 import { useRouter } from "next/navigation";
 
 import { AppLayout } from "@/widgets/layout/app-layout";
 import { EmptyState, FiltersBar, PageContainer, PageHeader, SectionHeader, StatsGrid, SurfaceCard } from "@/shared/ui/page-layout";
+import { StaggerContainer, StaggerItem, GlassHoverCard } from "@/shared/ui/animations";
 import { useContextMenu } from "@/shared/ui/context-menu";
 import { Modal } from "@/shared/ui/modal";
 import { Button } from "@/shared/ui/button";
 import { ActionMenu } from "@/shared/ui/action-menu";
+import { Input } from "@/shared/ui/input";
+import { Select } from "@/shared/ui/select";
 import { ChevronRight, ChevronLeft, Star } from "lucide-react";
 import { cn, formatMoney } from "@/lib/utils";
 import type { Provider } from "@/lib/domain/types";
@@ -52,6 +55,12 @@ export default function ProvidersPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [tierFilter, setTierFilter] = useState("");
+
+  const PROVIDER_TIER_CHIPS = useMemo(() => [
+    { value: "", label: text.allTiers },
+    { value: "vip", label: text.tiers.vip },
+    { value: "regular", label: text.tiers.regular },
+  ], [text]);
 
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
 
@@ -123,7 +132,6 @@ export default function ProvidersPage() {
       <PageContainer className="relative">
         <PageHeader
           title={text.title}
-          description={text.description}
           actions={
             <button
               onClick={() => setIsCreateOpen(true)}
@@ -136,36 +144,38 @@ export default function ProvidersPage() {
           }
         />
 
-        <FiltersBar className="mt-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--fg-muted)]" />
-              <input
+        <FiltersBar sticky className="px-4 py-2 mt-2.5">
+          <div className="grid gap-3 md:grid-cols-[1fr_200px_160px_auto] items-center">
+            <div className="relative min-w-0">
+              <Search aria-hidden="true" className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[var(--fg-muted)]" />
+              <Input
+                aria-label="Tìm nhà cung cấp"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={text.searchPlaceholder}
-                data-testid="providers-search"
-                className="h-11 w-full rounded-[1rem] border border-[var(--border-soft)] bg-white pl-9 pr-4 text-[13px] font-medium outline-none transition-colors placeholder:text-[var(--fg-muted)] focus:border-[var(--accent)]"
+                className="h-9 pl-9 text-sm"
               />
             </div>
-            <select
+
+            <Select
               value={tierFilter}
               onChange={(e) => setTierFilter(e.target.value)}
-              data-testid="providers-tier-filter"
-              className="h-11 cursor-pointer rounded-[1rem] border border-[var(--border-soft)] bg-white px-4 text-[13px] font-bold outline-none transition-colors focus:border-[var(--accent)]"
+              className="h-9 text-xs font-bold rounded-xl"
             >
-              <option value="">{text.allTiers}</option>
-              <option value="vip">{text.tiers.vip}</option>
-              <option value="regular">{text.tiers.regular}</option>
-            </select>
+              {PROVIDER_TIER_CHIPS.map((chip) => (
+                <option key={chip.value} value={chip.value}>
+                  {chip.label}
+                </option>
+              ))}
+            </Select>
 
-            <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-gray-200/80 shrink-0">
+            <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-gray-200/80 shrink-0 h-9">
               <button
                 type="button"
                 onClick={() => handleSetViewMode("card")}
                 className={cn(
-                  "px-3 py-1.5 text-[11px] font-bold rounded-md transition-all duration-150",
+                  "px-3 py-1 text-[10px] font-bold rounded-md transition-all duration-150 h-full",
                   viewMode === "card"
                     ? "bg-white text-[var(--accent)] shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
@@ -177,7 +187,7 @@ export default function ProvidersPage() {
                 type="button"
                 onClick={() => handleSetViewMode("list")}
                 className={cn(
-                  "px-3 py-1.5 text-[11px] font-bold rounded-md transition-all duration-150",
+                  "px-3 py-1 text-[10px] font-bold rounded-md transition-all duration-150 h-full",
                   viewMode === "list"
                     ? "bg-white text-[var(--accent)] shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
@@ -186,38 +196,61 @@ export default function ProvidersPage() {
                 Danh sách
               </button>
             </div>
+
+            <div className="flex items-center justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-9 text-sm px-3"
+                disabled={!(searchQuery || tierFilter)}
+                onClick={() => {
+                  setSearchQuery("");
+                  setTierFilter("");
+                }}
+              >
+                <X className="size-4 mr-1" />
+                Xóa lọc
+              </Button>
+            </div>
           </div>
         </FiltersBar>
 
-        <StatsGrid className="mt-4 md:grid-cols-2 xl:grid-cols-2">
-          <SurfaceCard className="p-6">
-            <div className="flex h-full flex-col gap-2">
-              <div className="flex items-start justify-between">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{text.stats.totalProviders}</p>
-                <span className="rounded-lg bg-[var(--accent)]/10 p-1.5 text-[var(--accent)]">
-                  <Briefcase className="size-5" />
-                </span>
+        <StaggerContainer delayChildren={0.2} staggerDelay={0.08} className="grid grid-cols-2 gap-2 mt-2.5 mb-4">
+          <StaggerItem>
+            <GlassHoverCard className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border-soft)] bg-white p-3 shadow-[0_1px_3px_rgba(22,60,30,0.04)] transition-shadow hover:shadow-[0_2px_8px_rgba(22,60,30,0.07)]">
+              <div className="min-w-0">
+                <p className="text-[var(--fg-muted)] text-[9px] font-bold uppercase tracking-widest mb-1">{text.stats.totalProviders}</p>
+                <p className="text-[var(--fg-base)] text-lg font-black tracking-tight font-mono leading-none mb-1.5">{providers.length}</p>
+                <div className="flex items-center gap-1">
+                  <span className="rounded bg-slate-50 text-[var(--fg-muted)] px-1.5 py-px text-[9px] font-bold font-mono border border-slate-100">{allVipProviders} VIP</span>
+                </div>
               </div>
-              <p className="text-3xl font-black tracking-tight text-[var(--fg-base)]">{providers.length}</p>
-            </div>
-          </SurfaceCard>
-          <SurfaceCard className="p-6">
-            <div className="flex h-full flex-col gap-2">
-              <div className="flex items-start justify-between">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-muted)]">{text.stats.vipProviders}</p>
-                <span className="rounded-lg bg-[#ff9500]/10 p-1.5 text-[#ff9500]">
-                  <ShieldCheck className="size-5" />
-                </span>
-              </div>
-              <p className="text-3xl font-black tracking-tight text-[var(--fg-base)]">{allVipProviders}</p>
-            </div>
-          </SurfaceCard>
-        </StatsGrid>
+              <span className="shrink-0 rounded-lg bg-[var(--accent)]/10 p-1.5 text-[var(--accent)] self-start">
+                <Briefcase className="size-4" />
+              </span>
+            </GlassHoverCard>
+          </StaggerItem>
 
-        <SurfaceCard className="mt-6 overflow-hidden">
+          <StaggerItem>
+            <GlassHoverCard className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border-soft)] bg-white p-3 shadow-[0_1px_3px_rgba(22,60,30,0.04)] transition-shadow hover:shadow-[0_2px_8px_rgba(22,60,30,0.07)]">
+              <div className="min-w-0">
+                <p className="text-[var(--fg-muted)] text-[9px] font-bold uppercase tracking-widest mb-1">{text.stats.vipProviders}</p>
+                <p className="text-[var(--fg-base)] text-lg font-black tracking-tight font-mono leading-none mb-1.5">{allVipProviders}</p>
+                <div className="flex items-center gap-1">
+                  <span className="rounded bg-[#ff9500]/5 text-[#ff9500] px-1.5 py-px text-[9px] font-bold font-mono border border-[#ff9500]/15">Ưu tiên nhập</span>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-lg bg-[#ff9500]/10 p-1.5 text-[#ff9500] self-start">
+                <ShieldCheck className="size-4" />
+              </span>
+            </GlassHoverCard>
+          </StaggerItem>
+        </StaggerContainer>
+
+        <SurfaceCard className="mt-3.5 overflow-hidden">
           <SectionHeader
             title="Danh sách nhà cung cấp"
-            description={totalProviders > 0 ? `Hiển thị ${totalProviders} bản ghi sau khi lọc.` : "Chưa có nhà cung cấp phù hợp."}
+            description=""
             action={totalProviders > 0 ? <span className="text-[12px] font-bold text-[var(--fg-muted)]">{pageCount} trang</span> : null}
           />
 
@@ -452,6 +485,32 @@ export default function ProvidersPage() {
                   >
                     <ChevronLeft className="size-4" />
                   </button>
+                  
+                  {Array.from({ length: pageCount }).map((_, i) => {
+                    const shouldShow = i === 0 || i === pageCount - 1 || Math.abs(i - pageIndex) <= 1;
+                    if (!shouldShow) {
+                      if (i === 1 || i === pageCount - 2) {
+                        return <span key={i} className="text-gray-400 px-1 text-xs select-none">...</span>;
+                      }
+                      return null;
+                    }
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setPageIndex(i)}
+                        className={cn(
+                          "h-8 w-8 flex items-center justify-center rounded-lg text-[12px] font-bold transition-all duration-150",
+                          i === pageIndex
+                            ? "bg-white text-[var(--accent)] shadow-sm border border-[var(--border-soft)]"
+                            : "text-[var(--fg-muted)] hover:text-[var(--fg-base)] hover:bg-black/5"
+                        )}
+                      >
+                        {i + 1}
+                      </button>
+                    );
+                  })}
+
                   <button
                      type="button"
                      aria-label="Trang sau"

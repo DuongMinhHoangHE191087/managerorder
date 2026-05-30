@@ -19,9 +19,6 @@ export function BotPageHeader({
           <Bot className="size-9 text-[var(--accent)]" />
           {vi.bot.pageHeader.title}
         </h1>
-        <p className="mt-1 text-[15px] font-medium text-[var(--fg-muted)]">
-          {vi.bot.pageHeader.description}
-        </p>
       </div>
       <div className="flex flex-wrap gap-2">
         <button

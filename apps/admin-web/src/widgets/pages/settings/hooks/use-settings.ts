@@ -45,7 +45,7 @@ export function usePaymentSources() {
 export function useCreatePaymentSource() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; icon: string }) =>
+    mutationFn: (data: { name: string; icon: string; bank_name?: string | null; account_number?: string | null }) =>
       fetcher<PaymentSource>("/api/settings/payment-sources", {
         method: "POST",
         body: JSON.stringify(data),
@@ -59,7 +59,7 @@ export function useCreatePaymentSource() {
 export function useUpdatePaymentSource() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; name: string; icon: string }) =>
+    mutationFn: ({ id, ...data }: { id: string; name: string; icon: string; bank_name?: string | null; account_number?: string | null }) =>
       fetcher<PaymentSource>(`/api/settings/payment-sources/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
@@ -217,6 +217,14 @@ export function useDeleteWebhook() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.webhooks });
     },
+  });
+}
+
+export function useWebhookLogs() {
+  return useQuery({
+    queryKey: ["settings", "webhooks", "logs"],
+    queryFn: () => fetcher<any[]>("/api/settings/webhooks/logs"),
+    staleTime: 30_000,
   });
 }
 

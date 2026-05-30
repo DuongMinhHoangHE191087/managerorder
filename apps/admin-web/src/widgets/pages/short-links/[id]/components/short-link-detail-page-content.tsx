@@ -261,7 +261,6 @@ export default function ShortLinkDetailPage() {
         <PageContainer variant="narrow" className="py-20 text-center">
           <AlertTriangle className="size-12 text-red-400 mx-auto mb-4" />
           <h2 className="text-lg font-bold text-[var(--fg-base)] mb-2">{vi.shortLinks.detail.notFoundTitle}</h2>
-          <p className="text-[var(--fg-muted)] text-sm mb-4">{vi.shortLinks.detail.notFoundDescription}</p>
           <Link href="/short-links" className="text-[var(--accent)] font-bold text-sm hover:underline">{vi.shortLinks.detail.backToList}</Link>
         </PageContainer>
       </AppLayout>

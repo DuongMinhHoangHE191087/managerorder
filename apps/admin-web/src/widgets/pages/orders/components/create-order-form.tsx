@@ -850,6 +850,11 @@ const OrderPaymentSection = memo(function OrderPaymentSection({
   setPaymentNote: (value: string) => void;
   onCopyText: () => void;
 }) {
+  const selectedSource = useMemo(
+    () => paymentSources.find((s) => s.id === paymentSourceId),
+    [paymentSources, paymentSourceId]
+  );
+
   return (
     <SlideUp delay={0.3} className="glass-card rounded-ios border border-[var(--border-soft)] p-6 shadow-sm">
       <div className="mb-6 flex items-center gap-3">
@@ -904,33 +909,59 @@ const OrderPaymentSection = memo(function OrderPaymentSection({
         <ProofUploader value={proofUrls} onChange={setProofUrls} />
       </div>
 
-      {total > 0 && paymentTerms === "prepaid" && paymentInstructionsReady && paymentInstructionText ? (
-        <div className="mt-8 flex flex-col items-center justify-center rounded-2xl border-2 border-[var(--accent)]/20 bg-[var(--accent)]/5 p-6">
-          <h3 className="mb-4 flex items-center gap-2 text-[14px] font-black text-[var(--accent)]">
-            <CreditCard className="size-5" />
-            {orderText.labels.paymentGuide}
-          </h3>
-          <div className="mb-4 w-full max-w-sm">
-            <label className="mb-1.5 block text-center text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{orderText.labels.transferNoteLabel}</label>
-            <Input value={paymentNote} onChange={(e) => setPaymentNote(e.target.value)} placeholder={orderText.labels.transferNotePlaceholder} className="bg-white text-center text-[13px] font-bold" />
+      {total > 0 && paymentTerms === "prepaid" && (Boolean(selectedSource?.bank_name && selectedSource?.account_number) || (paymentInstructionsReady && paymentInstructionText)) ? (() => {
+        const qrBankName = selectedSource?.bank_name || systemSettings?.bank_name;
+        const qrBankAccount = selectedSource?.account_number || systemSettings?.bank_account;
+        const qrAccountName = selectedSource ? selectedSource.name : (systemSettings?.personal_name || "");
+        const canShowQR = Boolean(qrBankName && qrBankAccount);
+
+        return (
+          <div className="mt-8 flex flex-col items-center justify-center rounded-2xl border-2 border-[var(--accent)]/20 bg-[var(--accent)]/5 p-6">
+            <h3 className="mb-4 flex items-center gap-2 text-[14px] font-black text-[var(--accent)]">
+              <CreditCard className="size-5" />
+              {orderText.labels.paymentGuide}
+            </h3>
+            <div className="mb-4 w-full max-w-sm">
+              <label className="mb-1.5 block text-center text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">{orderText.labels.transferNoteLabel}</label>
+              <Input value={paymentNote} onChange={(e) => setPaymentNote(e.target.value)} placeholder={orderText.labels.transferNotePlaceholder} className="bg-white text-center text-[13px] font-bold" />
+            </div>
+
+            {canShowQR && (
+              <div className="mb-5 rounded-2xl border-2 border-white bg-white p-3 shadow-md">
+                <img
+                  src={`https://img.vietqr.io/image/${qrBankName!.replace(/\s+/g, "")}-${qrBankAccount}-compact2.png?amount=${total}&addInfo=${encodeURIComponent(paymentNote)}&accountName=${encodeURIComponent(qrAccountName)}`}
+                  alt="VietQR Code"
+                  className="size-44 object-contain"
+                />
+              </div>
+            )}
+
+            {paymentInstructionText && (
+              <pre className="w-full max-w-xl whitespace-pre-wrap rounded-xl border border-[var(--border-soft)] bg-white p-4 text-[12px] font-medium text-[var(--fg-base)]">
+                {paymentInstructionText}
+              </pre>
+            )}
+
+            <div className="mt-4 flex items-center gap-3">
+              <Button type="button" variant="secondary" onClick={onCopyText} className="h-auto px-3 py-1.5 text-[12px] font-bold">
+                <Copy className="mr-1 size-3.5" />
+                {orderText.labels.copyTransfer}
+              </Button>
+            </div>
+
+            <p className="mt-4 text-center text-[12px] font-bold text-[var(--fg-muted)]">
+              {orderText.labels.bank} <span className="text-[var(--fg-base)]">{qrBankName}</span><br />
+              {orderText.labels.accountNumber} <span className="text-[var(--fg-base)]">{qrBankAccount}</span><br />
+              {qrAccountName && (
+                <>
+                  {orderText.labels.accountOwner} <span className="text-[var(--fg-base)]">{qrAccountName}</span><br />
+                </>
+              )}
+              {orderText.labels.transferContent} <span className="text-[var(--fg-base)]">{paymentNote || orderText.labels.optional}</span>
+            </p>
           </div>
-          <pre className="w-full max-w-xl whitespace-pre-wrap rounded-xl border border-[var(--border-soft)] bg-white p-4 text-[12px] font-medium text-[var(--fg-base)]">
-            {paymentInstructionText}
-          </pre>
-          <div className="mt-4 flex items-center gap-3">
-            <Button type="button" variant="secondary" onClick={onCopyText} className="h-auto px-3 py-1.5 text-[12px] font-bold">
-              <Copy className="mr-1 size-3.5" />
-              {orderText.labels.copyTransfer}
-            </Button>
-          </div>
-          <p className="mt-4 text-center text-[12px] font-bold text-[var(--fg-muted)]">
-            {orderText.labels.bank} <span className="text-[var(--fg-base)]">{systemSettings?.bank_name}</span><br />
-            {orderText.labels.accountNumber} <span className="text-[var(--fg-base)]">{systemSettings?.bank_account}</span><br />
-            {orderText.labels.accountOwner} <span className="text-[var(--fg-base)]">{systemSettings?.personal_name}</span><br />
-            {orderText.labels.transferContent} <span className="text-[var(--fg-base)]">{paymentNote || orderText.labels.optional}</span>
-          </p>
-        </div>
-      ) : null}
+        );
+      })() : null}
     </SlideUp>
   );
 });
@@ -1089,6 +1120,29 @@ export function CreateOrderForm() {
   const [selectedContact, setSelectedContact] = useState<string>("");
   const paymentInstructionsReady = hasConfiguredPaymentInstructions(systemSettings);
   const paymentInstructionText = buildPaymentInstructionText(systemSettings, paymentNote);
+
+  const selectedSource = useMemo(
+    () => paymentSources.find((s) => s.id === paymentSourceId),
+    [paymentSources, paymentSourceId]
+  );
+
+  const customInstructionText = useMemo(() => {
+    if (selectedSource?.bank_name && selectedSource?.account_number) {
+      const template =
+        systemSettings?.payment_instruction_template ||
+        "Ngân hàng: {{bank_name}}\nSố tài khoản: {{bank_account}}\nChủ tài khoản: {{account_name}}\n{{transfer_line}}";
+      return template
+        .replaceAll("{{bank_name}}", selectedSource.bank_name)
+        .replaceAll("{{bank_account}}", selectedSource.account_number)
+        .replaceAll("{{account_name}}", selectedSource.name)
+        .replaceAll(
+          "{{transfer_line}}",
+          paymentNote?.trim() ? `Nội dung chuyển khoản: ${paymentNote.trim()}` : ""
+        )
+        .trim();
+    }
+    return paymentInstructionText;
+  }, [selectedSource, systemSettings, paymentNote, paymentInstructionText]);
 
   const { handleSubmit, setValue, reset, control, formState: { errors, isSubmitting } } = useForm<CreateOrderFieldValues, unknown, CreateOrderInput>({
     resolver: zodResolver(createOrderInputSchema),
@@ -1263,14 +1317,14 @@ export function CreateOrderForm() {
   }, [setIsCreateProductOpen]);
 
   const handleCopyText = useCallback(() => {
-    if (!paymentInstructionText) {
+    if (!customInstructionText) {
       appToast.error(orderText.actions.copyMissing);
       return;
     }
-    navigator.clipboard.writeText(paymentInstructionText).then(() => {
+    navigator.clipboard.writeText(customInstructionText).then(() => {
       appToast.success(orderText.actions.copySuccess);
     });
-  }, [paymentInstructionText]);
+  }, [customInstructionText]);
 
   const handleSetPaymentTerms = useCallback((value: "prepaid" | "credit" | "cod") => {
     setPaymentTerms(value);
@@ -1362,8 +1416,8 @@ export function CreateOrderForm() {
         registeredAt,
         expiresAt: autoExpiresAt,
         paymentInstructionText:
-          paymentTerms === "prepaid" && paymentInstructionsReady && paymentInstructionText
-            ? paymentInstructionText
+          paymentTerms === "prepaid" && (Boolean(selectedSource?.bank_name) || paymentInstructionsReady) && customInstructionText
+            ? customInstructionText
             : null,
         paymentNote: paymentNote || null,
         items: successItems,
@@ -1466,8 +1520,8 @@ export function CreateOrderForm() {
           paymentSourceId={paymentSourceId}
           salesChannelId={salesChannelId}
           proofUrls={proofUrls}
-          paymentInstructionText={paymentInstructionText}
-          paymentInstructionsReady={paymentInstructionsReady}
+          paymentInstructionText={customInstructionText}
+          paymentInstructionsReady={Boolean(selectedSource?.bank_name || paymentInstructionsReady)}
           paymentNote={paymentNote}
           systemSettings={systemSettings}
           setPaymentTerms={handleSetPaymentTerms}

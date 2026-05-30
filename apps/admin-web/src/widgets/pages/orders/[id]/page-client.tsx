@@ -351,8 +351,8 @@ export default function OrderDetailPage() {
         </div>
 
         {isTrashView ? (
-          <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-700">
-            Bản ghi này đang ở thùng rác. Dữ liệu hiển thị để xem lại, còn khôi phục/xoá vĩnh viễn nằm ngay trên thanh thao tác.
+          <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50/50 px-3 py-2 text-[12px] font-medium text-amber-700">
+            Đơn hàng đã xóa (Thùng rác).
           </div>
         ) : null}
 
@@ -466,9 +466,9 @@ export default function OrderDetailPage() {
                </div>
                 {isTrashView ? (
                   <div className="p-4 space-y-3">
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-[13px] font-medium text-amber-700">
-                     Đơn hàng đang ở thùng rác, không còn dùng luồng đổi trạng thái.
-                   </div>
+                    <div className="rounded-xl border border-amber-100 bg-amber-50/30 px-3 py-2 text-[11px] font-medium text-amber-600">
+                      Đơn hàng trong Thùng rác.
+                    </div>
                    <div className="grid grid-cols-2 gap-2">
                      <Button
                        variant="primary"

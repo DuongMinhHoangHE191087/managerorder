@@ -41,7 +41,7 @@ export function SystemSettingsManager() {
     <div className="space-y-4">
       <CreateFormSection
         title="Thông tin hoá đơn và thuế"
-        description="Các trường ở đây là nguồn sự thật cho invoice print, mã thuế và prefix chứng từ."
+        description=""
       >
         <div className="grid gap-4 xl:grid-cols-2">
           <Field
@@ -86,7 +86,7 @@ export function SystemSettingsManager() {
 
       <CreateFormSection
         title="Thanh toán và hướng dẫn chuyển khoản"
-        description="Các mẫu này được dùng lại cho QR, invoice và các flow thu tiền nội bộ."
+        description=""
       >
         <div className="grid gap-4 xl:grid-cols-2">
           <Field
@@ -134,7 +134,7 @@ export function SystemSettingsManager() {
 
       <CreateFormSection
         title="Locale và định dạng"
-        description="Formatter cho UI, API và invoice sẽ ưu tiên các giá trị này thay vì khoá cứng theo một locale duy nhất."
+        description=""
       >
         <div className="grid gap-4 xl:grid-cols-3">
           <Field
@@ -158,9 +158,7 @@ export function SystemSettingsManager() {
             placeholder="Asia/Ho_Chi_Minh"
           />
         </div>
-        <div className="rounded-2xl border border-dashed border-[var(--border-soft)] bg-[var(--bg-app)] px-4 py-4 text-[13px] leading-6 text-[var(--fg-muted)]">
-          Dữ liệu tài chính hiện vẫn lưu ở VND trong database, nhưng cách hiển thị ở dashboard, invoice và public surfaces giờ ưu tiên theo bộ cấu hình này.
-        </div>
+
       </CreateFormSection>
 
       <div className="rounded-[28px] border border-[var(--border-soft)] bg-white px-5 py-4">

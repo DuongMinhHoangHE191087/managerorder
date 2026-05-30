@@ -157,7 +157,7 @@ export function PlatformMetricsPanels({ metrics }: { metrics: PlatformMetrics })
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SectionCard title={vi.settings.platform.panels.requestVolume} description={vi.settings.platform.panels.requestVolumeDescription}>
+        <SectionCard title={vi.settings.platform.panels.requestVolume} description="">
           <MiniBarChart data={metrics.hourlyRequests} />
           <div className="flex items-center gap-4 mt-3 text-[10px] text-[var(--fg-muted)] font-bold">
             <div className="flex items-center gap-1.5">
@@ -171,7 +171,7 @@ export function PlatformMetricsPanels({ metrics }: { metrics: PlatformMetrics })
           </div>
         </SectionCard>
 
-        <SectionCard title={vi.settings.platform.panels.topEndpoints} description={vi.settings.platform.panels.topEndpointsDescription}>
+        <SectionCard title={vi.settings.platform.panels.topEndpoints} description="">
           <div className="space-y-2">
             {metrics.topEndpoints.map((ep, i) => (
               <div
@@ -200,7 +200,7 @@ export function PlatformMetricsPanels({ metrics }: { metrics: PlatformMetrics })
 
         <SectionCard
           title={vi.settings.platform.panels.rateLimitHits}
-          description={vi.settings.platform.panels.rateLimitHitsDescription}
+          description=""
           action={
             <span className="flex items-center gap-1.5 text-[11px] font-bold text-amber-600">
               {metrics.rateLimits.totalHits} {vi.settings.platform.panels.hits} | {metrics.rateLimits.blocked} {vi.settings.platform.panels.blocked}
@@ -227,7 +227,7 @@ export function PlatformMetricsPanels({ metrics }: { metrics: PlatformMetrics })
 
         <SectionCard
           title="Blocked IPs"
-          description="Các IP bị chặn nhiều nhất từ short-link / landing traffic."
+          description=""
           action={
             <span className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--fg-muted)]">
               <ShieldAlert className="size-4 text-red-500" />
@@ -265,7 +265,7 @@ export function PlatformMetricsPanels({ metrics }: { metrics: PlatformMetrics })
 
         <SectionCard
           title="Blocked Links"
-          description="Short-link / landing pages bị chặn hoặc cảnh báo nhiều nhất."
+          description=""
           action={
             <span className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--fg-muted)]">
               <Link2 className="size-4 text-amber-500" />
@@ -303,7 +303,7 @@ export function PlatformMetricsPanels({ metrics }: { metrics: PlatformMetrics })
           </div>
         </SectionCard>
 
-        <SectionCard title={vi.settings.platform.panels.authentication} description={vi.settings.platform.panels.authenticationDescription}>
+        <SectionCard title={vi.settings.platform.panels.authentication} description="">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
               { label: vi.settings.platform.panels.loginSuccess, value: metrics.authMetrics.loginSuccess, color: "text-emerald-600" },
@@ -319,7 +319,7 @@ export function PlatformMetricsPanels({ metrics }: { metrics: PlatformMetrics })
           </div>
         </SectionCard>
 
-        <SectionCard title={vi.settings.platform.panels.recentErrors} description={vi.settings.platform.panels.recentErrorsDescription}>
+        <SectionCard title={vi.settings.platform.panels.recentErrors} description="">
           <div className="space-y-2">
             {metrics.recentErrors.map((err, i) => (
               <div

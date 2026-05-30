@@ -1,3 +1,6 @@
+"use client";
+
+import React, { useState } from "react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -19,6 +22,8 @@ type ShortLinkPublicViewProps = {
   templateKey: ShortLinkLandingTemplateKey;
   requiresToken: boolean;
   resolvedDeliveryMode: ShortLinkResolvedDeliveryMode;
+  order?: { orderCode: string | null; totalAmount: number; totalPaid: number } | null;
+  systemSettings?: any;
 };
 
 type TemplateCopy = {
@@ -54,12 +59,24 @@ export function ShortLinkPublicView({
   templateKey,
   requiresToken,
   resolvedDeliveryMode,
+  order,
+  systemSettings,
 }: ShortLinkPublicViewProps) {
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const copy = TEMPLATE_COPY[templateKey];
   const isCtv = templateKey === "ctv_neutral";
   const showOwnerBranding = templateKey === "owner_intro";
   const showSupportAction = templateKey === "owner_intro";
   const themeColor = isCtv ? "sky" : ("emerald" as const);
+
+  const amountDue = order ? order.totalAmount - order.totalPaid : 0;
+  const isPaid = order ? order.totalPaid >= order.totalAmount : false;
+
+  const copyToClipboard = (text: string, fieldName: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField(null), 1500);
+  };
 
   // Dynamic visual configurations
   const bgGradient = isCtv
@@ -150,6 +167,97 @@ export function ShortLinkPublicView({
                   themeColor={themeColor}
                 />
               </div>
+
+              {/* QR Code & Auto Payment Box */}
+              {order && amountDue > 0 && systemSettings && (
+                <div className="mt-6 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 shadow-inner backdrop-blur-md">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-400 mb-4 flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                    Thanh toán đơn hàng để tiếp tục truy cập
+                  </p>
+                  
+                  <div className="grid gap-5 sm:grid-cols-[150px_1fr]">
+                    {/* QR Code */}
+                    <div className="flex flex-col items-center justify-center rounded-2xl bg-white p-2 w-[150px] h-[150px] mx-auto sm:mx-0">
+                      <img
+                        src={`https://img.vietqr.io/image/${(systemSettings.bank_name || 'MB').replace(/\s+/g, '')}-${systemSettings.bank_account}-compact2.png?amount=${amountDue}&addInfo=${order.orderCode}&accountName=${encodeURIComponent(systemSettings.personal_name || '')}`}
+                        alt="VietQR code"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+
+                    {/* Billing Details */}
+                    <div className="space-y-3 text-[12px] text-slate-300">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Ngân hàng</span>
+                          <span className="text-[13px] font-extrabold text-white">{systemSettings.bank_name}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Chủ tài khoản</span>
+                          <span className="text-[13px] font-extrabold text-white uppercase">{systemSettings.personal_name}</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Số tài khoản</span>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(systemSettings.bank_account || '', "account")}
+                            className="flex items-center gap-1.5 text-[13px] font-black text-white hover:text-emerald-400 transition-colors text-left focus:outline-none"
+                          >
+                            <span>{systemSettings.bank_account}</span>
+                            <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                              {copiedField === "account" ? "Đã copy" : "Copy"}
+                            </span>
+                          </button>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Số tiền</span>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(String(amountDue), "amount")}
+                            className="flex items-center gap-1.5 text-[13px] font-black text-white hover:text-emerald-400 transition-colors text-left focus:outline-none"
+                          >
+                            <span>{amountDue.toLocaleString("vi-VN")} VND</span>
+                            <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                              {copiedField === "amount" ? "Đã copy" : "Copy"}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Nội dung chuyển khoản (Bắt buộc)</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(order.orderCode || '', "code")}
+                          className="flex items-center gap-1.5 text-[13px] font-black text-emerald-400 hover:opacity-80 transition-opacity text-left font-mono focus:outline-none"
+                        >
+                          <span>{order.orderCode}</span>
+                          <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                            {copiedField === "code" ? "Đã copy" : "Copy"}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="mt-4 text-[11px] leading-relaxed text-slate-400">
+                    💡 <b>Xác nhận tự động:</b> Sau khi chuyển khoản thành công từ 5-15 giây, hệ thống sẽ nhận được webhook tự động kích hoạt và chuyển bạn đến trang đích mà không cần gửi ảnh hóa đơn.
+                  </p>
+                </div>
+              )}
+
+              {order && isPaid && (
+                <div className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-center gap-3">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                  <p className="text-[12px] font-bold text-emerald-400">
+                    Đơn hàng đã được thanh toán thành công! Bạn có thể nhấn nút bên dưới để truy cập liên kết.
+                  </p>
+                </div>
+              )}
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a

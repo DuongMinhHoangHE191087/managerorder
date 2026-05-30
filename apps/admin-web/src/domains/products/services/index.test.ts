@@ -69,6 +69,7 @@ describe("product service", () => {
       durationType: "months",
       durationValue: 1,
       isActive: true,
+      iconUrl: null,
     });
 
     await new Promise((resolve) => setTimeout(resolve, 0));

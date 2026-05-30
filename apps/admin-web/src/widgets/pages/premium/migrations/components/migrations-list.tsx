@@ -117,7 +117,6 @@ export function MigrationsList({
         <div className="p-12 text-center">
           <Database className="mx-auto mb-3 size-12 text-[var(--fg-muted)] opacity-20" />
           <p className="text-[15px] font-bold text-[var(--fg-base)]">{copy.list.emptyTitle}</p>
-          <p className="mt-1 text-[13px] text-[var(--fg-muted)]">{copy.list.emptyDescription}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 p-4 sm:p-5">

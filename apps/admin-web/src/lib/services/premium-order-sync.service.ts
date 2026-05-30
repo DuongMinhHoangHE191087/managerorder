@@ -3,6 +3,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import { getCycleMonths, type PremiumBillingCycle } from "@/lib/domain/premium-renewal-finance";
 import { createActivityLog } from "@/lib/supabase/repositories/activity-logs.repo";
 import { encryptPremiumPassword } from "@/lib/utils/premium-account-credentials";
+import { syncEventToGCal } from "@/lib/integrations/google-calendar";
 
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
 type OrderItemRow = Database["public"]["Tables"]["order_items"]["Row"];
@@ -769,6 +770,17 @@ export async function syncOrderToPremium(
     },
   });
 
+  // Sync to Google Calendar
+  await syncSubscriptionReminderToGCal(
+    accountId,
+    context.order.id,
+    context.order.customer_id,
+    context.customer?.full_name ?? "Khách hàng",
+    context.product.name,
+    context.order.expires_at,
+    subscription.row.status
+  ).catch(err => console.error("GCal Sync Error:", err));
+
   return {
     orderId: context.order.id,
     orderCode: context.order.order_code ?? null,
@@ -778,6 +790,108 @@ export async function syncOrderToPremium(
     sourceAccountId: sourceAccount?.id ?? null,
     placeholderAccount,
   };
+}
+
+async function syncSubscriptionReminderToGCal(
+  accountId: string,
+  orderId: string,
+  customerId: string,
+  customerName: string,
+  productName: string,
+  expiryDate: string,
+  subscriptionStatus: string,
+) {
+  try {
+    const { data: existingEvent, error: findError } = await supabaseAdmin
+      .from("reminder_events")
+      .select("*")
+      .eq("account_id", accountId)
+      .eq("order_id", orderId)
+      .eq("type", "renewal")
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (findError) {
+      console.error("[GCal Sync] Failed to find existing reminder event:", findError);
+      return;
+    }
+
+    const title = `Hạn dùng nick: ${customerName} - ${productName}`;
+    const notes = `Đơn hàng: ${orderId}\nHạn dùng: ${expiryDate}\nTrạng thái: ${subscriptionStatus}`;
+    const isDone = subscriptionStatus === "expired" || subscriptionStatus === "refunded";
+
+    let eventRecord;
+    let action: "create" | "update" = "create";
+
+    if (existingEvent) {
+      action = "update";
+      const { data: updated, error: updateError } = await supabaseAdmin
+        .from("reminder_events")
+        .update({
+          title,
+          due_at: expiryDate,
+          is_done: isDone,
+          notes,
+          customer_ids: [customerId],
+          customer_id: customerId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingEvent.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error("[GCal Sync] Failed to update reminder event:", updateError);
+        return;
+      }
+      eventRecord = updated;
+    } else {
+      const { data: inserted, error: insertError } = await supabaseAdmin
+        .from("reminder_events")
+        .insert({
+          account_id: accountId,
+          order_id: orderId,
+          customer_id: customerId,
+          customer_ids: [customerId],
+          title,
+          due_at: expiryDate,
+          type: "renewal",
+          is_done: isDone,
+          notes,
+          has_reminder: true,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("[GCal Sync] Failed to insert reminder event:", insertError);
+        return;
+      }
+      eventRecord = inserted;
+    }
+
+    const gcalResult = await syncEventToGCal(
+      accountId,
+      {
+        id: eventRecord.id,
+        title: eventRecord.title,
+        due_at: eventRecord.due_at,
+        notes: eventRecord.notes || undefined,
+        is_done: eventRecord.is_done,
+        gcal_event_id: eventRecord.gcal_event_id,
+      },
+      action
+    );
+
+    if (gcalResult.status === "synced" && gcalResult.gcalEventId && gcalResult.gcalEventId !== eventRecord.gcal_event_id) {
+      await supabaseAdmin
+        .from("reminder_events")
+        .update({ gcal_event_id: gcalResult.gcalEventId })
+        .eq("id", eventRecord.id);
+    }
+  } catch (err) {
+    console.error("[GCal Sync] Unexpected error syncing subscription reminder:", err);
+  }
 }
 
 export async function syncOrdersToPremium(accountId: string): Promise<SyncPremiumOrdersResult> {

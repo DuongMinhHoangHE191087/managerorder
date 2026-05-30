@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Pencil, ShieldAlert, Trash2, X } from "lucide-react";
+import { Check, Copy, HelpCircle, Pencil, Trash2, X } from "lucide-react";
 import { appToast } from "@/shared/ui/app-toast";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
@@ -44,6 +44,28 @@ type ChannelFormState = {
   defaultFailureTemplateKey: ShortLinkFailureTemplateKey;
   sellerContactUrl: string;
 };
+
+function HelpTooltip({ content }: { content: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative inline-block ml-1">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        onBlur={() => setTimeout(() => setOpen(false), 200)}
+        className="inline-flex items-center text-[var(--fg-muted)] hover:text-[var(--accent)] transition-colors focus:outline-none"
+      >
+        <HelpCircle className="size-3.5" />
+      </button>
+      {open && (
+        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-56 -translate-x-1/2 rounded-xl border border-[var(--border-soft)] bg-slate-900 p-2.5 text-[11px] leading-relaxed text-white shadow-xl">
+          <div className="absolute top-full left-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1 bg-slate-900 rotate-45 border-r border-b border-[var(--border-soft)]" />
+          {content}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function SalesChannelManager() {
   const { data: channels = [], isLoading } = useSalesChannels();
@@ -150,40 +172,15 @@ export function SalesChannelManager() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-[var(--border-soft)] bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-            <ShieldAlert className="size-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[12px] font-bold uppercase tracking-wider text-amber-700">Release / runtime note</p>
-            <p className="mt-1 text-[13px] leading-6 text-[var(--fg-base)]">
-              Kênh bán quyết định policy mặc định cho short-link public. Ở cấp chi tiết vẫn có thể override,
-              nhưng nếu không override thì hệ thống sẽ kế thừa từ kênh bán này.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-bold text-amber-700">
-                Default redirect / landing
-              </span>
-              <span className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-bold text-amber-700">
-                Template owner / CTV neutral
-              </span>
-              <span className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-bold text-amber-700">
-                Override at short-link level
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <CreateFormSection
         title="Tạo kênh bán mới"
-        description="Giữ create panel gọn: tên kênh, delivery mặc định và failure template là đủ để vận hành nhanh. Các override hiếm dùng được gom xuống phần nâng cao."
+        description=""
       >
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)]">
           <div className="space-y-2">
             <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
               Tên kênh bán
+              <HelpTooltip content="Tên nhận diện của kênh bán hàng (VD: Facebook, Zalo, Tiktok...)" />
             </label>
             <Input
               value={createForm.name}
@@ -199,6 +196,7 @@ export function SalesChannelManager() {
           <div className="space-y-2">
             <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
               Delivery mặc định
+              <HelpTooltip content="Quyết định cách khách hàng nhận link: Chuyển hướng trực tiếp đến trang đích hoặc xem qua trang Landing giới thiệu." />
             </label>
             <Select
               value={createForm.defaultDeliveryMode}
@@ -223,6 +221,7 @@ export function SalesChannelManager() {
           <div className="space-y-2">
             <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
               Failure template mặc định
+              <HelpTooltip content="Giao diện công khai hiển thị khi liên kết bị hết hạn, đạt giới hạn click hoặc bị khóa." />
             </label>
             <Select
               value={createForm.defaultFailureTemplateKey}
@@ -249,6 +248,7 @@ export function SalesChannelManager() {
           <div className="space-y-2">
             <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
               Landing template mặc định
+              <HelpTooltip content="Phong cách hiển thị Landing: Giới thiệu chính thức chủ shop hoặc mẫu trung tính ẩn thông tin." />
             </label>
             <Select
               value={createForm.defaultLandingTemplateKey}
@@ -270,6 +270,7 @@ export function SalesChannelManager() {
           <div className="space-y-2">
             <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--fg-muted)]">
               Link liên hệ người bán
+              <HelpTooltip content="Đường dẫn liên hệ trực tiếp của bạn (như Zalo, Messenger) hiển thị khi có sự cố." />
             </label>
             <Input
               className="h-12"
