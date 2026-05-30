@@ -162,13 +162,13 @@ export const INVENTORY_COPY = {
   },
   smartMatch: {
     title: "Quét Gợi Ý Kết Nối Thông Minh",
-    description: "So khớp nick / ghi chú đơn hàng với email / ghi chú kho hàng",
+    description: "",
     emptyTitle: "Chưa có kết quả",
     emptyDescription:
-      "Nhấn nút bên dưới để hệ thống quét và so khớp tự động các đơn hàng chưa kết nối với kho hàng phù hợp.",
+      "",
     emptyResultTitle: "Không tìm thấy gợi ý nào",
     emptyResultDescription:
-      "Tất cả đơn hàng đã được kết nối hoặc không có nick/ghi chú khớp với kho.",
+      "",
     scan: "Quét ngay",
     rescans: "Quét lại",
     scanning: "Đang quét...",
